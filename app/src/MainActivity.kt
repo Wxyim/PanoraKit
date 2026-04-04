@@ -66,7 +66,6 @@ import com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper
 import com.github.yumelira.yumebox.common.util.openUrl
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.presentation.component.BottomBarContent
-import com.github.yumelira.yumebox.presentation.component.EmasUpdateDialogHost
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarLiquidState
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
@@ -204,7 +203,6 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 defaultTransitions = NavigationTransitions.defaultStyle,
                             )
-                            EmasUpdateDialogHost(currentVersionName = BuildConfig.VERSION_NAME)
                             ToastDialogHost()
                         }
                     }

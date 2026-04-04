@@ -38,7 +38,6 @@ import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.update.EmasUpdateManager
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OpenSourceLicensesScreenDestination
@@ -131,7 +130,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     SuperArrow(
                         title = MLang.About.License.CheckUpdate,
                         summary = MLang.About.License.CheckUpdateSummary,
-                        onClick = { EmasUpdateManager.startManualUpdate(async = true) },
+                        onClick = { openUrl(context, "https://github.com/YumeLira/YumeBox/releases") },
                     )
                     AboutLinkItem(
                         title = MLang.About.Link.TelegramGroup,

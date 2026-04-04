@@ -21,7 +21,7 @@ About = {
 
     License = {
         CheckUpdate = "Check for Updates"
-        CheckUpdateSummary = "Manually trigger one cloud update check"
+        CheckUpdateSummary = "Open the GitHub releases page"
         Libraries = "Libraries"
         LibrariesSummary = "View all third-party libraries used in this app"
         AgplName = "GNU Affero General Public License v3.0"

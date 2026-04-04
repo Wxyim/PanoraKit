@@ -20,7 +20,6 @@
 
 @file:Suppress("UnstableApiUsage")
 
-import groovy.json.JsonSlurper
 import java.util.*
 
 plugins {
@@ -30,29 +29,11 @@ plugins {
     id("org.jetbrains.compose")
     id("com.google.devtools.ksp")
     id("com.mikepenz.aboutlibraries.plugin.android")
-    id("io.sentry.android.gradle") version "6.2.0"
 }
 
 
 val appAbiList = (gropify.abi.app.list ?: "armeabi-v7a,arm64-v8a,x86,x86_64")
     .split(',').map { it.trim() }.filter { it.isNotEmpty() }
-
-data class EmasConfig(val appKey: String, val appSecret: String, val channelId: String)
-
-val emasConfig = runCatching {
-    val file = layout.projectDirectory.file("aliyun-emas-services.json").asFile
-    if (file.exists()) {
-        val json = JsonSlurper().parse(file) as? Map<*, *>
-        val config = json?.get("config") as? Map<*, *> ?: emptyMap<Any, Any>()
-        EmasConfig(
-            appKey = (config["emas.appKey"] ?: "").toString(),
-            appSecret = (config["emas.appSecret"] ?: "").toString(),
-            channelId = (config["emas.channelId"] ?: "official").toString()
-        )
-    } else {
-        EmasConfig("", "", "official")
-    }
-}.getOrDefault(EmasConfig("", "", "official"))
 
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 
@@ -68,10 +49,6 @@ android {
         versionName = gropify.project.version.name
         manifestPlaceholders["appName"] = gropify.project.name
 
-        buildConfigField("String", "CLARITY_PROJECT_ID", "\"${gropify.clarity.projectId}\"")
-        buildConfigField("String", "EMAS_APP_KEY", "\"${emasConfig.appKey}\"")
-        buildConfigField("String", "EMAS_APP_SECRET", "\"${emasConfig.appSecret}\"")
-        buildConfigField("String", "EMAS_CHANNEL_ID", "\"${emasConfig.channelId}\"")
     }
 
     compileOptions {
@@ -258,24 +235,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${gropify.dep.version.lifecycle}")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:${gropify.dep.version.lifecycle}")
 
-    implementation("com.taobao.android:update-main:${gropify.dep.version.taobaoUpdate}")
-    implementation("com.taobao.android:update-common:${gropify.dep.version.taobaoUpdate}")
-    implementation("com.taobao.android:update-datasource:${gropify.dep.version.taobaoUpdate}")
-    implementation("com.taobao.android:update-adapter:${gropify.dep.version.taobaoUpdate}")
-
-    implementation("com.microsoft.clarity:clarity-compose:3.8.1")
 }
 
 ksp {
     arg("compose-destinations.defaultTransitions", "none")
 }
-
-sentry {
-    org.set("12d34a06e78c")
-    projectName.set("android")
-    includeSourceContext.set(true)
-}
-
-
-
 

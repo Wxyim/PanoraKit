@@ -103,63 +103,11 @@
 -dontwarn java.lang.reflect.AnnotatedType
 -dontwarn javax.lang.model.element.Modifier
 
-# ========================================
-# Sentry SDK (uses kotlinx.serialization internally)
-# ========================================
--keep class io.sentry.** { *; }
--keep interface io.sentry.** { *; }
--keepclassmembers class io.sentry.** { *; }
--dontwarn io.sentry.**
-
-# ========================================
-# EMAS / Taobao Update SDK (reflection heavy)
-# ========================================
-# Scope reflection-based constructor/event keeps to update SDK packages only
--keepclassmembers class com.taobao.update.** {
-    @com.google.inject.Inject <init>(...);
-    void *(**On*Event);
-    public <init>();
-    public <init>(android.content.Context);
-}
--keepclassmembers class com.alibaba.sdk.android.update.** {
-    @com.google.inject.Inject <init>(...);
-    void *(**On*Event);
-    public <init>();
-    public <init>(android.content.Context);
-}
--keepclassmembers class mtopsdk.** {
-    public <init>();
-    public <init>(android.content.Context);
-}
--keepclassmembers class com.taobao.accs.** {
-    public <init>();
-    public <init>(android.content.Context);
-}
-
 -keepclassmembernames class **.R$* { *; }
 -keepclassmembernames class **.R { *; }
 -keepclassmembers class ** {
     public static final <fields>;
 }
-
--keep class com.taobao.update.** { *; }
--keep class com.alibaba.sdk.android.update.** { *; }
--keep class mtopsdk.** { *; }
--keep class com.taobao.accs.** { *; }
-
--keep class com.taobao.update.apk.MainUpdateData { *; }
--keep class com.taobao.update.apk.ApkUpdater { *; }
--keep class com.taobao.update.common.framework.** { *; }
--keep class com.taobao.update.common.utils.** { *; }
--keep class com.taobao.update.common.dialog.** { *; }
--keep class com.taobao.update.common.Config { *; }
--keep class com.taobao.update.common.dialog.CustomUpdateInfo {
-    public <methods>;
-}
--keep interface com.taobao.update.common.dialog.UpdateNotifyListener { *; }
-
--dontwarn mtopsdk.mtop.intf.Mtop
--dontwarn com.taobao.update.**
 
 # ========================================
 # ML Kit (Google) - Reflection for Component Registration
