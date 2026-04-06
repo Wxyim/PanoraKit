@@ -196,13 +196,13 @@ jobs:
           set -eu
           mkdir -p ci-artifacts/apk ci-artifacts/mapping
 
-          find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | while read -r file; do
+          find build/app/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | while read -r file; do
             base="$(basename "$file")"
             cp -f "$file" "ci-artifacts/apk/${{ matrix.artifact_prefix }}-${base}"
           done
 
-          if [ -d app/build/outputs/mapping/release ]; then
-            cp -r app/build/outputs/mapping/release "ci-artifacts/mapping/${{ matrix.variant }}"
+          if [ -d build/app/outputs/mapping/release ]; then
+            cp -r build/app/outputs/mapping/release "ci-artifacts/mapping/${{ matrix.variant }}"
           fi
 
       - name: Upload arm64-v8a APK

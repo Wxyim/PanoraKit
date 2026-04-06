@@ -8,11 +8,13 @@ GOLANG_MAIN="$PROJECT_ROOT/lib/native/go"
 MIHOMO_DIR="$GOLANG_ROOT/mihomo"
 
 usage() {
-  echo "Usage: $(basename "$0") <alpha|meta|smart>"
+  echo "Usage: $(basename "$0") <alpha|meta|smart> [--print-state]"
   exit 1
 }
 
 CHOICE="${1:-}"
+MODE="${2:-}"
+
 case "$CHOICE" in
   alpha|Alpha)
     REPO_URL="https://github.com/MetaCubeX/mihomo.git"
@@ -37,6 +39,14 @@ case "$CHOICE" in
     ;;
 esac
 
+case "$MODE" in
+  ""|--print-state)
+    ;;
+  *)
+    usage
+    ;;
+esac
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1" >&2
@@ -45,8 +55,11 @@ require_cmd() {
 }
 
 require_cmd git
-require_cmd go
 require_cmd curl
+
+if [ "$MODE" != "--print-state" ]; then
+  require_cmd go
+fi
 
 resolve_release_tag() {
   if [ -n "${RELEASE_TAG:-}" ]; then
@@ -143,6 +156,12 @@ run_tidy() {
 
 resolve_release_tag
 resolve_release_revision
+
+if [ "$MODE" = "--print-state" ]; then
+  printf '%s|%s|%s\n' "$REPO_URL" "$RELEASE_TAG" "$RELEASE_REVISION"
+  exit 0
+fi
+
 update_kernel_properties
 sync_repo
 run_tidy "$GOLANG_ROOT"
