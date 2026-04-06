@@ -56,6 +56,13 @@ private object AboutPageMetrics {
     val FooterBottomSpacing = 32.dp
 }
 
+private object AboutProjectLinks {
+    const val MonadBoxRepo = "https://github.com/NomadBoxLab/NomadBox"
+    const val MonadBoxLatestRelease = "https://github.com/NomadBoxLab/NomadBox/releases/latest"
+    const val MihomoRepo = "https://github.com/MetaCubeX/mihomo"
+    const val YumeBoxUpstreamRepo = "https://github.com/YumeLira/YumeBox"
+}
+
 @Composable
 @Destination<RootGraph>
 fun AboutScreen(navigator: DestinationsNavigator) {
@@ -79,7 +86,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(AboutPageMetrics.HeroTopSpacing))
 
                     Icon(
-                        painter = painterResource(id = R.drawable.yume),
+                        painter = painterResource(id = R.drawable.monadbox_about_logo),
                         contentDescription = null,
                         modifier = Modifier
                             .size(AboutPageMetrics.HeroIconSize)
@@ -115,8 +122,20 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 SmallTitle(MLang.About.Section.ProjectLinks)
                 Card {
                     AboutLinkItem(
+                        title = "MonadBox (GitHub)",
+                        url = AboutProjectLinks.MonadBoxRepo,
+                        onOpenUrl = { url -> openUrl(context, url) },
+                        showArrow = false,
+                    )
+                    AboutLinkItem(
+                        title = "MonadBox Releases (Update Source)",
+                        url = AboutProjectLinks.MonadBoxLatestRelease,
+                        onOpenUrl = { url -> openUrl(context, url) },
+                        showArrow = false,
+                    )
+                    AboutLinkItem(
                         title = "Mihomo",
-                        url = "https://github.com/MetaCubeX/mihomo",
+                        url = AboutProjectLinks.MihomoRepo,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
                     )
@@ -126,7 +145,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 Card {
                     AboutLinkItem(
                         title = "YumeBox (Upstream)",
-                        url = "https://github.com/YumeLira/YumeBox",
+                        url = AboutProjectLinks.YumeBoxUpstreamRepo,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
                     )
