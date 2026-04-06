@@ -151,28 +151,28 @@ jobs:
       - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${CHANNEL}-arm64-v8a
+          name: monadbox-${{ env.CHANNEL }}-arm64-v8a
           path: ci-artifacts/apk/*arm64-v8a*.apk
           archive: false
 
       - name: Upload armeabi-v7a APK
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${CHANNEL}-armeabi-v7a
+          name: monadbox-${{ env.CHANNEL }}-armeabi-v7a
           path: ci-artifacts/apk/*armeabi-v7a*.apk
           archive: false
 
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${CHANNEL}-x86_64
+          name: monadbox-${{ env.CHANNEL }}-x86_64
           path: ci-artifacts/apk/*x86_64*.apk
           archive: false
 
       - name: Upload x86 APK
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${CHANNEL}-x86
+          name: monadbox-${{ env.CHANNEL }}-x86
           path: |
             ci-artifacts/apk/*x86*.apk
             !ci-artifacts/apk/*x86_64*.apk
@@ -181,7 +181,7 @@ jobs:
       - name: Upload universal APK
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${CHANNEL}-universal
+          name: monadbox-${{ env.CHANNEL }}-universal
           path: ci-artifacts/apk/*universal*.apk
           archive: false
           if-no-files-found: error
@@ -189,8 +189,8 @@ jobs:
       - name: Upload mappings
         uses: actions/upload-artifact@v7
         with:
-          name: mappings-${CHANNEL}
-          path: ci-artifacts/mapping/${CHANNEL}/
+          name: mappings-${{ env.CHANNEL }}
+          path: ci-artifacts/mapping/${{ env.CHANNEL }}/
 
       - name: Compute tag
         id: tag
