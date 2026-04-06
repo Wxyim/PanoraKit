@@ -184,7 +184,7 @@ jobs:
       - name: Build Release APKs
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon clean assembleRelease --no-configuration-cache --stacktrace
         env:
           YUMEBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
           YUMEBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
