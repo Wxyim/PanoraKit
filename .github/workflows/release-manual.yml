@@ -9,7 +9,6 @@ on:
         default: all
         type: choice
         options:
-          - all
           - alpha
           - meta
           - smart
