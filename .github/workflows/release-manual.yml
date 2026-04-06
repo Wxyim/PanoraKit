@@ -38,6 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          chmod +x scripts/sync-kernel.sh
           s="$(./scripts/sync-kernel.sh "${{ inputs.channel }}" --print-state)"
           echo "repo=$(echo "$s" | cut -d'|' -f1)" >> "$GITHUB_OUTPUT"
           echo "tag=$(echo "$s" | cut -d'|' -f2)" >> "$GITHUB_OUTPUT"
