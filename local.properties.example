@@ -1,0 +1,11 @@
+# Copy this file to local.properties and adjust paths for your machine.
+# local.properties is machine-local and should not be committed.
+
+# Android SDK path.
+# Windows example: C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
+# macOS example: /Users/<you>/Library/Android/sdk
+# Linux example: /home/<you>/Android/Sdk
+sdk.dir=/absolute/path/to/android/sdk
+
+# Optional explicit NDK path (recommended to match project pin).
+ndk.dir=/absolute/path/to/android/sdk/ndk/27.3.13750724

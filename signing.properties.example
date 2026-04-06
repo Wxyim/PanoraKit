@@ -1,5 +1,7 @@
 # Copy this file to signing.properties and fill in your own values.
 # This file should NOT be committed with real credentials.
+# On Windows, you can bootstrap this file with: ./scripts/setup-release-signing.ps1
+# On macOS/Linux, you can bootstrap this file with: ./scripts/setup-release-signing.sh
 
 # Absolute path or path relative to repository root.
 keystore.path=release.keystore
