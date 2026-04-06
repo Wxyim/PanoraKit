@@ -148,21 +148,44 @@ jobs:
       - name: Check upload availability
         id: check_upload
         run: echo "UPLOAD=${{ secrets.BOT_TOKEN != '' }}" >> $GITHUB_OUTPUT
-
+      
       - name: Restore signing files
+        shell: bash
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ] && \
-             [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ] && \
-             [ -n "${{ secrets.SIGNING_KEY_ALIAS }}" ] && \
-             [ -n "${{ secrets.SIGNING_KEY_PASSWORD }}" ]; then
-            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
-            echo "keystore.password=${{ secrets.SIGNING_STORE_PASSWORD }}" > signing.properties
-            echo "key.alias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
-            echo "key.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
-            echo "keystore.path=release.keystore" >> signing.properties
-          else
-            echo "Signing secrets are incomplete, release signing may fail"
+          set -euo pipefail
+
+          echo "[signing] Restoring keystore..."
+
+          if [ -z "${SIGNING_KEYSTORE_BASE64:-}" ] || \
+            [ -z "${SIGNING_STORE_PASSWORD:-}" ] || \
+            [ -z "${SIGNING_KEY_ALIAS:-}" ] || \
+            [ -z "${SIGNING_KEY_PASSWORD:-}" ]; then
+            echo "::error::Signing secrets are missing"
+            exit 1
           fi
+
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > release.keystore
+
+          if ! keytool -list -keystore release.keystore \
+              -storepass "$SIGNING_STORE_PASSWORD" \
+              -alias "$SIGNING_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::Keystore validation failed (wrong password/alias or corrupted base64)"
+            exit 1
+          fi
+
+          {
+            printf 'keystore.password=%s\n' "$SIGNING_STORE_PASSWORD"
+            printf 'key.alias=%s\n' "$SIGNING_KEY_ALIAS"
+            printf 'key.password=%s\n' "$SIGNING_KEY_PASSWORD"
+            printf 'keystore.path=release.keystore\n'
+          } > signing.properties
+
+          echo "[signing] Signing setup OK"
 
       - name: Build Native Libraries
         env:
