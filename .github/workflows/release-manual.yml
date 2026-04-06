@@ -13,10 +13,6 @@ on:
           - meta
           - smart
 
-concurrency:
-  group: Build-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   state:
     runs-on: ubuntu-latest
