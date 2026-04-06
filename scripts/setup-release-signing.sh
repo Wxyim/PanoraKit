@@ -202,6 +202,8 @@ printf '%s\n' "$STARTUP_GATE_CONTENT" > "$STARTUP_GATE_PATH"
 echo "[signing-setup] Wrote startup gate config: $STARTUP_GATE_PATH"
 
 if [[ "$SKIP_BUILD" != "true" ]]; then
+  echo "[signing-setup] Running native build..."
+  kotlin ./scripts/native-build.main.kts --all
   echo "[signing-setup] Running release build validation..."
   ./gradlew :app:assembleRelease
 fi

@@ -70,9 +70,10 @@ $startupGatePath = Join-Path $projectRoot "startup-gate.local.properties"
 $startupGateFingerprintPreview = "<SHA256_FROM_KEYSTORE>"
 if (Test-Path -LiteralPath $keystoreFullPath) {
     $previewOutput = & keytool -list -v -keystore $keystoreFullPath -alias $Alias -storepass $storePassword 2>$null
-    $previewFingerprint =
-        ($previewOutput | Select-String -Pattern '^\s*SHA256:\s*(.+)$' | Select-Object -First 1)
-            .Matches.Groups[1].Value.Trim()
+    $match = $previewOutput | Select-String -Pattern '^\s*SHA256:\s*(.+)$' | Select-Object -First 1
+    if ($match) {
+        $previewFingerprint = $match.Matches.Groups[1].Value.Trim()
+    }
     if (-not [string]::IsNullOrWhiteSpace($previewFingerprint)) {
         $startupGateFingerprintPreview = $previewFingerprint
     }
@@ -122,9 +123,10 @@ if ($shouldCreate) {
 
 Write-Host "[signing-setup] Validating keystore alias..."
 $keytoolListOutput = & keytool -list -v -keystore $keystoreFullPath -alias $Alias -storepass $storePassword
-$startupGateFingerprint =
-    ($keytoolListOutput | Select-String -Pattern '^\s*SHA256:\s*(.+)$' | Select-Object -First 1)
-        .Matches.Groups[1].Value.Trim()
+$match = $keytoolListOutput | Select-String -Pattern '^\s*SHA256:\s*(.+)$' | Select-Object -First 1
+if ($match) {
+    $startupGateFingerprint = $match.Matches.Groups[1].Value.Trim()
+}
 if ([string]::IsNullOrWhiteSpace($startupGateFingerprint)) {
     throw "Failed to extract SHA256 fingerprint from keystore alias: $Alias"
 }
@@ -146,6 +148,9 @@ $startupGateLines | Set-Content -Path $startupGatePath -Encoding UTF8
 Write-Host "[signing-setup] Wrote startup gate config: $startupGatePath"
 
 if (-not $SkipBuild) {
+    $ErrorActionPreference = "Stop"
+    Write-Host "[signing-setup] Running native build..."
+    & kotlin .\scripts\native-build.main.kts --all
     Write-Host "[signing-setup] Running release build validation..."
     & .\gradlew.bat :app:assembleRelease
 }
