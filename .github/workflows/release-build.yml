@@ -205,7 +205,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
           prerelease: ${{ inputs.kernel_channel != 'meta' }}
-          files: ci-artifacts/apk/${{ matrix.artifact_prefix }}-*.apk
+          files: ci-artifacts/apk/monadbox-${{ env.CHANNEL }}-*.apk
 
       - name: Update state
         run: |
