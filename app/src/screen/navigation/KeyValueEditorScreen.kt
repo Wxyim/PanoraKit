@@ -51,6 +51,15 @@ import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Reset
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private object KeyValueEditorMetrics {
+    val CardVerticalPadding = 4.dp
+    val RowHorizontalPadding = 16.dp
+    val RowVerticalPadding = 12.dp
+    val IndexWidth = 40.dp
+    val ContentHorizontalPadding = 8.dp
+    val DeleteButtonSize = 40.dp
+}
+
 object EditorDataHolder {
     var listEditorTitle: String = ""
     var listEditorPlaceholder: String = ""
@@ -143,7 +152,7 @@ fun StringListEditorScreen(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Reset,
-                            contentDescription = "Reset",
+                            contentDescription = MLang.Component.Editor.Action.Reset,
                         )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -152,7 +161,7 @@ fun StringListEditorScreen(
                     ) {
                         Icon(
                             imageVector = Yume.`Badge-plus`,
-                            contentDescription = "Add",
+                            contentDescription = MLang.Component.Editor.Action.Add,
                         )
                     }
                 },
@@ -527,7 +536,7 @@ fun KeyValueEditorScreen(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Reset,
-                            contentDescription = "Reset",
+                            contentDescription = MLang.Component.Editor.Action.Reset,
                         )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -536,7 +545,7 @@ fun KeyValueEditorScreen(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.AddCircle,
-                            contentDescription = "Add",
+                            contentDescription = MLang.Component.Editor.Action.Add,
                         )
                     }
                 },
@@ -681,34 +690,37 @@ private fun ListItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.padding(vertical = 4.dp)) {
+    Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
+                    vertical = KeyValueEditorMetrics.RowVerticalPadding,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "$index.",
                 style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.width(40.dp),
+                modifier = Modifier.width(KeyValueEditorMetrics.IndexWidth),
             )
             Text(
                 text = text,
                 style = MiuixTheme.textStyles.body1,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
             )
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(KeyValueEditorMetrics.DeleteButtonSize),
             ) {
                 Icon(
                     imageVector = MiuixIcons.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = MLang.Component.Editor.Action.Delete,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
@@ -724,24 +736,27 @@ private fun KeyValueItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.padding(vertical = 4.dp)) {
+    Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
+                    vertical = KeyValueEditorMetrics.RowVerticalPadding,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "$index.",
                 style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.width(40.dp),
+                modifier = Modifier.width(KeyValueEditorMetrics.IndexWidth),
             )
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
             ) {
                 Text(text = key, style = MiuixTheme.textStyles.body1)
                 Text(
@@ -752,11 +767,11 @@ private fun KeyValueItem(
             }
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(KeyValueEditorMetrics.DeleteButtonSize),
             ) {
                 Icon(
                     imageVector = MiuixIcons.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = MLang.Component.Editor.Action.Delete,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }

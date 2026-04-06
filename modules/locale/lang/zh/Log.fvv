@@ -1,0 +1,33 @@
+<Log Page>
+Log = {
+    Title = "日志"
+
+    Action = {
+        StopRecording = "停止记录"
+        StartRecording = "开始记录"
+        Save = "保存"
+    }
+
+    Empty = {
+        NoLogs = "暂无日志记录"
+        StartRecordingHint = "点击右下角按钮开始记录日志"
+    }
+
+    Detail = {
+        WaitingLog = "等待日志..."
+        WillShowWhenGenerated = "日志将在产生时显示"
+    }
+
+    History = {
+        Title = "历史文件"
+        LiveSection = "实时日志"
+        Recording = "记录中"
+        ItemSummary = "%s · %s"
+    }
+
+    Startup = {
+        Title = "启动日志"
+        LiveSection = "实时日志"
+        ItemSummary = "%s · %s"
+    }
+}

@@ -31,6 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumelira.yumebox.common.util.ToastDialogBridge
 import com.github.yumelira.yumebox.common.util.ToastDialogEvent
+import com.github.yumelira.yumebox.common.util.ToastMode
+import dev.oom_wg.purejoy.mlang.MLang
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.extra.DialogDefaults
 import top.yukonga.miuix.kmp.extra.WindowDialog
@@ -69,19 +72,31 @@ fun ToastDialogHost() {
             insideMargin = DialogDefaults.insideMargin,
             defaultWindowInsetsPadding = true,
             content = {
-                TextButton(
-                    text = "复制",
-                    onClick = {
-                        val clipboardManager =
-                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val textToCopy = snapshot.message.ifBlank { snapshot.title }
-                        clipboardManager.setPrimaryClip(
-                            ClipData.newPlainText(snapshot.title, textToCopy)
-                        )
-                        showDialog.value = false
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (snapshot.mode == ToastMode.COPY) {
+                    TextButton(
+                        text = MLang.Override.Card.Copy,
+                        onClick = {
+                            val clipboardManager =
+                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val textToCopy = snapshot.message.ifBlank { snapshot.title }
+                            clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText(snapshot.title, textToCopy)
+                            )
+                            showDialog.value = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                    )
+                } else {
+                    TextButton(
+                        text = MLang.Component.Button.Confirm,
+                        onClick = {
+                            showDialog.value = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                    )
+                }
             })
     }
 }

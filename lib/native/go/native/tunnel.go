@@ -86,11 +86,12 @@ func queryGroup(name C.c_string, sortMode C.c_string) *C.char {
 
 //export healthCheck
 func healthCheck(completable unsafe.Pointer, name C.c_string) {
-	go func(name string) {
-		tunnel.HealthCheck(name)
+	nameStr := C.GoString(name)
 
-		C.complete(completable, nil)
-	}(C.GoString(name))
+	completeAsync(completable, func() error {
+		tunnel.HealthCheck(nameStr)
+		return nil
+	})
 }
 
 //export healthCheckAll
@@ -100,15 +101,14 @@ func healthCheckAll() {
 
 //export healthCheckProxy
 func healthCheckProxy(completable unsafe.Pointer, proxyName C.c_string) {
-	go func(name string) {
-		delay := tunnel.HealthCheckProxy(name)
+	proxyNameStr := C.GoString(proxyName)
 
-		response := &struct {
+	completeJsonAsync(completable, func() any {
+		delay := tunnel.HealthCheckProxy(proxyNameStr)
+		return &struct {
 			Delay int `json:"delay"`
 		}{delay}
-
-		C.complete_with_string(completable, marshalJson(response))
-	}(C.GoString(proxyName))
+	})
 }
 
 //export patchSelector
@@ -130,11 +130,12 @@ func queryProviders() *C.char {
 
 //export updateProvider
 func updateProvider(completable unsafe.Pointer, pType C.c_string, name C.c_string) {
-	go func(pType, name string) {
-		C.complete(completable, marshalString(tunnel.UpdateProvider(pType, name)))
+	pTypeStr := C.GoString(pType)
+	nameStr := C.GoString(name)
 
-		C.release_object(completable)
-	}(C.GoString(pType), C.GoString(name))
+	completeAsync(completable, func() error {
+		return tunnel.UpdateProvider(pTypeStr, nameStr)
+	})
 }
 
 //export suspend

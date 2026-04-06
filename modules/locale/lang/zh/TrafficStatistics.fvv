@@ -1,0 +1,48 @@
+<Traffic Statistics Page>
+TrafficStatistics = {
+    Title = "最近请求"
+    EntrySummary = "查看最近请求与流量概览"
+
+    OverviewTitle = "流量概览"
+
+    RecentRequests = {
+        Title = "最近请求"
+        Summary = "按时间顺序查看最近的网络访问与命中链路"
+        Empty = "暂无最近请求记录"
+        UnknownRequest = "未知请求"
+        Count = "%d 条"
+    }
+
+    Status = {
+        Active = "进行中"
+        Closed = "已结束"
+    }
+
+    RelativeTime = {
+        JustNow = "刚刚"
+        MinutesAgo = "%d分钟前"
+        HoursAgo = "%d小时前"
+    }
+
+    TimeRange = {
+        Today = "今日"
+        Week = "本周"
+    }
+
+    Summary = {
+        TodayTraffic = "今日流量"
+        WeekTraffic = "本周流量"
+    }
+
+    Compare = {
+        MoreThanYesterday = "较昨日 +%s"
+        LessThanYesterday = "较昨日 %s"
+        SameAsYesterday = "与昨日持平"
+        WeekStats = "近 7 天统计"
+    }
+
+    Chart = {
+        Hourly = "4 小时"
+        Daily = "按天"
+    }
+}

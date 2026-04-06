@@ -1,0 +1,14 @@
+# Copy this file to signing.properties and fill in your own values.
+# This file should NOT be committed with real credentials.
+
+# Absolute path or path relative to repository root.
+keystore.path=release.keystore
+
+# Keystore password.
+keystore.password=YOUR_KEYSTORE_PASSWORD
+
+# Key alias inside the keystore.
+key.alias=YOUR_KEY_ALIAS
+
+# Password for the key alias.
+key.password=YOUR_KEY_PASSWORD

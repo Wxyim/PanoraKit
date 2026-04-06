@@ -29,13 +29,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.AppIconHelper
-import com.github.yumelira.yumebox.common.util.LocaleUtil
+import com.github.yumelira.yumebox.common.util.toast
+import com.github.yumelira.yumebox.data.model.AppLanguage
+import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
@@ -57,6 +62,10 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.text.toString
 
 @Composable
@@ -65,9 +74,12 @@ fun AppSettingsScreen(
     navigator: DestinationsNavigator,
 ) {
     val context = LocalContext.current
+    val activity = LocalActivity.current
+    val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
+    val appLanguage = viewModel.appLanguage.state.collectAsState().value
     val themeMode = viewModel.themeMode.state.collectAsState().value
     val themeSeedColorArgb = viewModel.themeSeedColorArgb.state.collectAsState().value
 
@@ -84,12 +96,22 @@ fun AppSettingsScreen(
     var pageScaleLocal by remember(pageScaleState) { mutableFloatStateOf(pageScaleState) }
 
     val customUserAgent = viewModel.customUserAgent.state.collectAsState().value
+    val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsState().value
+    val cleanupPolicy = viewModel.cleanupPolicy.state.collectAsState().value
+    val cleanupThresholdMb = viewModel.cleanupThresholdMb.state.collectAsState().value
+    val cleanupIntervalHours = viewModel.cleanupIntervalHours.state.collectAsState().value
+    val cleanupLastRunAt = viewModel.cleanupLastRunAt.state.collectAsState().value
 
     val showHideIconDialog = remember { mutableStateOf(false) }
     val showEditCustomUserAgentDialog = remember { mutableStateOf(false) }
     val showPageScaleSheet = remember { mutableStateOf(false) }
+    val showCleanupThresholdDialog = remember { mutableStateOf(false) }
+    val showCleanupIntervalDialog = remember { mutableStateOf(false) }
 
     val customUserAgentTextFieldState = remember { mutableStateOf(TextFieldValue(customUserAgent)) }
+    var cleanupThresholdText by remember(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
+    var cleanupIntervalText by remember(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
+    val dateTimeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -116,18 +138,25 @@ fun AppSettingsScreen(
                             checked = autoUpdateCurrentProfileOnStart,
                             onCheckedChange = { viewModel.onAutoUpdateCurrentProfileOnStartChange(it) },
                         )
-                        if (LocaleUtil.isChineseLocale()) {
-                            SuperSwitch(
-                                title = MLang.AppSettings.Behavior.OneChinaTitle,
-                                summary = MLang.AppSettings.Behavior.OneChinaSummary,
-                                checked = true,
-                                onCheckedChange = { },
-                                enabled = false,
-                            )
-                        }
                     }
                     SmallTitle(MLang.AppSettings.Section.Interface)
                     Card {
+                        EnumSelector(
+                            title = MLang.AppSettings.Interface.LanguageTitle,
+                            summary = MLang.AppSettings.Interface.LanguageSummary,
+                            currentValue = appLanguage,
+                            items = listOf(
+                                MLang.AppSettings.Interface.LanguageSystem,
+                                MLang.AppSettings.Interface.LanguageChinese,
+                                MLang.AppSettings.Interface.LanguageEnglish,
+                            ),
+                            values = AppLanguage.entries,
+                            onValueChange = {
+                                viewModel.onAppLanguageChange(it)
+                                AppLanguageManager.apply(it)
+                                activity?.recreate()
+                            },
+                        )
                         EnumSelector(
                             title = MLang.AppSettings.Interface.ThemeModeTitle,
                             summary = MLang.AppSettings.Interface.ThemeModeSummary,
@@ -232,6 +261,67 @@ fun AppSettingsScreen(
                             }
                         )
                     }
+                    SmallTitle(MLang.AppSettings.Section.Cleanup)
+                    Card {
+                        SuperSwitch(
+                            title = MLang.AppSettings.Cleanup.AutoEnabledTitle,
+                            summary = MLang.AppSettings.Cleanup.AutoEnabledSummary,
+                            checked = cleanupAutoEnabled,
+                            onCheckedChange = { viewModel.onCleanupAutoEnabledChange(it) },
+                        )
+                        EnumSelector(
+                            title = MLang.AppSettings.Cleanup.PolicyTitle,
+                            summary = MLang.AppSettings.Cleanup.PolicySummary,
+                            currentValue = cleanupPolicy,
+                            items = listOf(
+                                MLang.AppSettings.Cleanup.PolicyAggressive,
+                                MLang.AppSettings.Cleanup.PolicyBalanced,
+                                MLang.AppSettings.Cleanup.PolicyConservative,
+                            ),
+                            values = CleanupPolicy.entries,
+                            onValueChange = { viewModel.onCleanupPolicyChange(it) },
+                        )
+                        SuperArrow(
+                            title = MLang.AppSettings.Cleanup.ThresholdTitle,
+                            summary = MLang.AppSettings.Cleanup.ThresholdSummary.format(cleanupThresholdMb),
+                            onClick = {
+                                cleanupThresholdText = cleanupThresholdMb.toString()
+                                showCleanupThresholdDialog.value = true
+                            },
+                        )
+                        SuperArrow(
+                            title = MLang.AppSettings.Cleanup.IntervalTitle,
+                            summary = MLang.AppSettings.Cleanup.IntervalSummary.format(cleanupIntervalHours),
+                            onClick = {
+                                cleanupIntervalText = cleanupIntervalHours.toString()
+                                showCleanupIntervalDialog.value = true
+                            },
+                        )
+                        BasicComponent(
+                            title = MLang.AppSettings.Cleanup.CleanupNowTitle,
+                            summary = if (cleanupLastRunAt > 0L) {
+                                MLang.AppSettings.Cleanup.LastRunSummary.format(
+                                    dateTimeFormatter.format(Date(cleanupLastRunAt))
+                                )
+                            } else {
+                                MLang.AppSettings.Cleanup.LastRunNever
+                            },
+                            onClick = {
+                                scope.launch {
+                                    val result = viewModel.runCleanupNow()
+                                    if (result.executed) {
+                                        val freedMb = result.freedBytes / (1024 * 1024)
+                                        val archive = result.archiveFileName ?: MLang.AppSettings.Cleanup.ArchiveSkipped
+                                        context.toast(
+                                            MLang.AppSettings.Cleanup.CleanupNowSuccess.format(freedMb, archive)
+                                        )
+                                    } else {
+                                        context.toast(MLang.AppSettings.Cleanup.CleanupNowSkipped)
+                                    }
+                                }
+                            },
+                        )
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
@@ -260,7 +350,7 @@ fun AppSettingsScreen(
                 show = showPageScaleSheet.value,
                 modifier = Modifier,
                 title = MLang.AppSettings.Interface.PageScaleTitle,
-                summary = "80% - 120%",
+                summary = MLang.AppSettings.Interface.PageScaleRange,
                 onDismissRequest = { showPageScaleSheet.value = false },
                 renderInRootScaffold = true,
                 content = {
@@ -307,6 +397,106 @@ fun AppSettingsScreen(
                         )
                     }
                 })
+
+            AppDialog(
+                show = showCleanupThresholdDialog.value,
+                modifier = Modifier,
+                title = MLang.AppSettings.Cleanup.ThresholdTitle,
+                summary = MLang.AppSettings.Cleanup.ThresholdRange,
+                onDismissRequest = { showCleanupThresholdDialog.value = false },
+                renderInRootScaffold = true,
+                content = {
+                    TextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        value = cleanupThresholdText,
+                        maxLines = 1,
+                        trailingIcon = {
+                            Text(
+                                text = "MB",
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            )
+                        },
+                        onValueChange = { value ->
+                            if (value.isEmpty() || value.all { it.isDigit() }) {
+                                cleanupThresholdText = value
+                            }
+                        },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        TextButton(
+                            text = MLang.AppSettings.Button.Cancel,
+                            onClick = { showCleanupThresholdDialog.value = false },
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            text = MLang.AppSettings.Button.Apply,
+                            onClick = {
+                                val parsed = cleanupThresholdText.toIntOrNull() ?: cleanupThresholdMb
+                                viewModel.onCleanupThresholdMbChange(parsed)
+                                showCleanupThresholdDialog.value = false
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                        )
+                    }
+                },
+            )
+
+            AppDialog(
+                show = showCleanupIntervalDialog.value,
+                modifier = Modifier,
+                title = MLang.AppSettings.Cleanup.IntervalTitle,
+                summary = MLang.AppSettings.Cleanup.IntervalRange,
+                onDismissRequest = { showCleanupIntervalDialog.value = false },
+                renderInRootScaffold = true,
+                content = {
+                    TextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        value = cleanupIntervalText,
+                        maxLines = 1,
+                        trailingIcon = {
+                            Text(
+                                text = MLang.AppSettings.Cleanup.IntervalUnit,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            )
+                        },
+                        onValueChange = { value ->
+                            if (value.isEmpty() || value.all { it.isDigit() }) {
+                                cleanupIntervalText = value
+                            }
+                        },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        TextButton(
+                            text = MLang.AppSettings.Button.Cancel,
+                            onClick = { showCleanupIntervalDialog.value = false },
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            text = MLang.AppSettings.Button.Apply,
+                            onClick = {
+                                val parsed = cleanupIntervalText.toIntOrNull() ?: cleanupIntervalHours
+                                viewModel.onCleanupIntervalHoursChange(parsed)
+                                showCleanupIntervalDialog.value = false
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                        )
+                    }
+                },
+            )
         }
     }
 }

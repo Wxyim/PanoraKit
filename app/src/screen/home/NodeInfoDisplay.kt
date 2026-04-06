@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import dev.oom_wg.purejoy.mlang.MLang
@@ -41,14 +42,30 @@ private val NODE_DELAY_WIDTH = 72.dp
 
 @Composable
 fun NodeInfoDisplay(
-    serverName: String?,
-    serverPing: Int?,
+    selectedServer: HomeSelectedServerState?,
+    tunnelMode: TunnelState.Mode,
     modifier: Modifier = Modifier
 ) {
-    val flagged = remember(serverName) {
-        serverName?.let(::extractFlaggedName)
+    val groupName = selectedServer?.groupName
+    val serverName = selectedServer?.name
+    val serverPing = selectedServer?.delay
+    val normalizedGroupName = remember(groupName) {
+        groupName?.trim()?.takeIf { it.isNotEmpty() && it != "-" }
     }
-    val hasKnownNode = flagged != null || !serverName.isNullOrBlank()
+    val displayName = remember(serverName, tunnelMode) {
+        when {
+            tunnelMode == TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
+            tunnelMode == TunnelState.Mode.Global && serverName.isNullOrBlank() -> MLang.Home.Profile.Global
+            serverName.isNullOrBlank() -> null
+            isDirectLikeNodeName(serverName) -> MLang.Home.Profile.Direct
+            else -> serverName
+        }
+    }
+    val flagged = remember(displayName) {
+        displayName?.let(::extractFlaggedName)
+    }
+    val showRuleGroup = tunnelMode == TunnelState.Mode.Rule && !normalizedGroupName.isNullOrBlank()
+    val hasKnownNode = flagged != null || !displayName.isNullOrBlank() || showRuleGroup
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -75,12 +92,21 @@ fun NodeInfoDisplay(
                         .height(INFO_TEXT_HEIGHT),
                 ) {
                     val countryCode = flagged?.countryCode
+                    if (showRuleGroup) {
+                        Text(
+                            text = "$normalizedGroupName · ",
+                            style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     if (countryCode != null) {
                         CountryFlagCircle(countryCode = countryCode, size = 18.dp)
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
-                        text = flagged?.displayName ?: serverName.orEmpty(),
+                        text = flagged?.displayName ?: displayName.orEmpty(),
                         style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                         color = MiuixTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -89,7 +115,7 @@ fun NodeInfoDisplay(
                 }
             } else {
                 Text(
-                    text = "Unknown",
+                    text = MLang.Home.NodeInfo.Unknown,
                     style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     modifier = Modifier.height(INFO_TEXT_HEIGHT)
@@ -107,31 +133,55 @@ fun NodeInfoDisplay(
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
             Spacer(modifier = Modifier.height(4.dp))
-            PingValue(ping = serverPing)
+            PingValue(
+                ping = if (tunnelMode == TunnelState.Mode.Direct) {
+                    null
+                } else {
+                    serverPing
+                }
+            )
         }
     }
 }
 
 @Composable
 private fun PingValue(ping: Int?) {
-    if (ping != null && ping <= 1000) {
-        val color = if (ping < 500) {
-            Color(0xFF007906)
-        } else {
-            Color(0xFFFFB300)
+    when {
+        ping == null || ping == 0 -> {
+            Text(
+                text = "--",
+                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+            )
         }
-        Text(
-            text = "${ping}ms",
-            style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-            color = color,
-            modifier = Modifier.height(INFO_TEXT_HEIGHT)
-        )
-    } else {
-        Text(
-            text = "--",
-            style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.height(INFO_TEXT_HEIGHT)
-        )
+
+        ping < 0 -> {
+            Text(
+                text = "TIMEOUT",
+                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+            )
+        }
+
+        else -> {
+            val color = when {
+                ping <= 300 -> Color(0xFF007906)
+                ping <= 1000 -> Color(0xFFFFB300)
+                else -> Color(0xFFE53935)
+            }
+            Text(
+                text = "${ping}ms",
+                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                color = color,
+                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+            )
+        }
     }
+}
+
+private fun isDirectLikeNodeName(name: String): Boolean {
+    val normalized = name.trim().uppercase()
+    return normalized == "DIRECT" || normalized == "直连"
 }

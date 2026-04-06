@@ -3,15 +3,27 @@ package config
 import (
 	"os"
 	P "path"
-	"runtime"
 	"strings"
+	"sync"
 
 	"gopkg.in/yaml.v3"
-
 
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/hub"
 	"github.com/metacubex/mihomo/log"
+)
+
+type RuntimeUiConfiguration struct {
+	ExternalController    string `json:"externalController,omitempty"`
+	ExternalControllerTLS string `json:"externalControllerTls,omitempty"`
+	Secret                string `json:"secret,omitempty"`
+	ConfigSource          string `json:"configSource,omitempty"`
+	ConfigPath            string `json:"configPath,omitempty"`
+}
+
+var (
+	configMu               sync.RWMutex
+	currentUiConfiguration RuntimeUiConfiguration
 )
 
 func logDns(cfg *config.RawConfig) {
@@ -67,6 +79,15 @@ func Load(path string) error {
 	}
 
 	logDns(rawCfg)
+	configMu.Lock()
+	currentUiConfiguration = RuntimeUiConfiguration{
+		ExternalController:    rawCfg.ExternalController,
+		ExternalControllerTLS: rawCfg.ExternalControllerTLS,
+		Secret:                rawCfg.Secret,
+		ConfigSource:          "profile",
+		ConfigPath:            P.Join(path, "config.yaml"),
+	}
+	configMu.Unlock()
 
 	cfg, err := Parse(rawCfg)
 	if err != nil {
@@ -78,8 +99,6 @@ func Load(path string) error {
 	// like hub.Parse()
 	hub.ApplyConfig(cfg)
 
-	runtime.GC()
-
 	return nil
 }
 
@@ -89,5 +108,14 @@ func LoadDefault() {
 		panic(err.Error())
 	}
 
+	configMu.Lock()
+	currentUiConfiguration = RuntimeUiConfiguration{}
+	configMu.Unlock()
 	hub.ApplyConfig(cfg)
+}
+
+func QueryUiConfiguration() RuntimeUiConfiguration {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentUiConfiguration
 }

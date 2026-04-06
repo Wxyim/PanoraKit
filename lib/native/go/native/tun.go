@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sync/semaphore"
@@ -18,6 +19,8 @@ import (
 var rTunLock sync.Mutex
 var rTun *remoteTun
 var rootTun io.Closer
+
+const tunCloseAcquireTimeout = 5 * time.Second
 
 type remoteTun struct {
 	closer   io.Closer
@@ -50,10 +53,18 @@ func (t *remoteTun) querySocketUid(protocol int, source, target string) int {
 }
 
 func (t *remoteTun) close() {
-	_ = t.limit.Acquire(context.TODO(), 4)
-	defer t.limit.Release(4)
-
 	t.closed = true
+	ctx, cancel := context.WithTimeout(context.Background(), tunCloseAcquireTimeout)
+	defer cancel()
+
+	if err := t.limit.Acquire(ctx, 4); err != nil {
+		if t.closer != nil {
+			_ = t.closer.Close()
+		}
+		app.ApplyTunContext(nil, nil)
+		return
+	}
+	defer t.limit.Release(4)
 
 	if t.closer != nil {
 		_ = t.closer.Close()

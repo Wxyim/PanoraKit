@@ -12,6 +12,17 @@ on:
     - cron: '0 18 * * *'
     - cron: '20 18 * * *'
   workflow_dispatch:
+    inputs:
+      kernel_channel:
+        description: 'Kernel channel to build'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - alpha
+          - meta
+          - smart
   workflow_call:
 
 concurrency:
@@ -34,7 +45,8 @@ jobs:
         run: |
           set -eu
 
-          alpha='{"variant":"alpha","cron":"0 18 * * *","kernel_channel":"alpha","title":"YumeBox","artifact_prefix":"yumebox","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Pre-release","release_name":"Pre-release"}'
+          alpha='{"variant":"alpha","cron":"0 18 * * *","kernel_channel":"alpha","title":"YumeBox Aplha","artifact_prefix":"yumebox-alpha","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Pre-release","release_name":"Pre-release"}'
+          meta='{"variant":"meta","cron":"","kernel_channel":"meta","title":"YumeBox Meta","artifact_prefix":"yumebox-meta","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Meta","release_name":"Meta"}'
           smart='{"variant":"smart","cron":"20 18 * * *","kernel_channel":"smart","title":"YumeBox Smart","artifact_prefix":"yumebox-smart","aliyun_secret_name":"ALIYUN_SERVICES_JSON_SMART","release_tag":"Smart","release_name":"Smart"}'
 
           if [ "${{ github.event_name }}" = "schedule" ]; then
@@ -46,8 +58,19 @@ jobs:
                 exit 1
                 ;;
             esac
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ github.event.inputs.kernel_channel }}" in
+              alpha) matrix="{\"include\":[${alpha}]}" ;;
+              meta) matrix="{\"include\":[${meta}]}" ;;
+              smart) matrix="{\"include\":[${smart}]}" ;;
+              all) matrix="{\"include\":[${alpha},${meta},${smart}]}" ;;
+              *)
+                echo "Unsupported kernel_channel: ${{ github.event.inputs.kernel_channel }}" >&2
+                exit 1
+                ;;
+            esac
           else
-            matrix="{\"include\":[${alpha},${smart}]}"
+            matrix="{\"include\":[${alpha},${meta},${smart}]}"
           fi
 
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
@@ -122,26 +145,26 @@ jobs:
         id: cache-ndk
         uses: actions/cache@v5
         with:
-          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/29.0.14206865
-          key: ${{ runner.os }}-ndk-29.0.14206865-v1
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+          key: ${{ runner.os }}-ndk-27.3.13750724-v1
           restore-keys: |
-            ${{ runner.os }}-ndk-29.0.14206865-
+            ${{ runner.os }}-ndk-27.3.13750724-
 
       - name: Install NDK
         if: steps.cache-ndk.outputs.cache-hit != 'true'
-        run: sdkmanager "ndk;29.0.14206865"
+        run: sdkmanager "ndk;27.3.13750724"
 
       - name: Configure local.properties
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
-          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/29.0.14206865" >> local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
 
       - name: Update CA certificates
         run: |
           sudo apt-get update && sudo apt-get install -y ca-certificates
           sudo update-ca-certificates
-          mkdir -p core/src/foss/golang/mihomo/component/ca
-          cp -f /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+          mkdir -p modules/core/src/foss/golang/mihomo/component/ca
+          cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel
         run: |
@@ -179,7 +202,7 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/29.0.14206865
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
         run: kotlin scripts/native-build.main.kts --all
 
       - name: Build Release APKs

@@ -23,7 +23,7 @@ func init() {
 		defer log.UnSubscribe(sub)
 
 		for msg := range sub {
-			cPayload := C.CString(msg.Payload)
+			cPayload := cString(msg.Payload)
 
 			switch msg.LogLevel {
 			case log.INFO:

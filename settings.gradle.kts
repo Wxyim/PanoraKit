@@ -21,7 +21,7 @@
 @file:Suppress("UnstableApiUsage")
 
 
-rootProject.name = "YumeBox"
+rootProject.name = "MonadBox"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
@@ -30,10 +30,7 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
-        maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
         maven("https://jitpack.io")
-        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
 
         maven("https://oom-maven.sawahara.host") {
             content {
@@ -53,8 +50,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://jitpack.io")
-        maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
-        maven ("https://maven.aliyun.com/nexus/content/repositories/releases/")
 
         maven("https://oom-maven.sawahara.host") {
             content {
@@ -63,7 +58,6 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("dev.oom-wg")
             }
         }
-        maven("https://maven.kr328.app/releases")
     }
 }
 
@@ -89,13 +83,13 @@ gropify {
         android {
             generateDirPath = "build/generated/gropify"
             sourceSetName = "main"
-            packageName = "com.github.yumelira.yumebox.yumebox.generated"
+            packageName = "com.github.nomadboxlab.monadbox.generated"
             useKotlin = true
             isRestrictedAccessEnabled = false
             isIsolationEnabled = true
         }
     }
-    projects(":core", ":extension") {
+    projects(":core") {
         android { isEnabled = false }
     }
 }
@@ -105,9 +99,7 @@ include(
     ":platform",
     ":locale",
     ":ui",
-    ":extension",
     ":app",
-    ":feature:substore",
     ":feature:proxy",
     ":feature:override",
     ":feature:editor",
@@ -119,3 +111,25 @@ include(
     ":runtime:client",
     ":runtime:service",
 )
+
+project(":core").projectDir = file("modules/core")
+
+project(":platform").projectDir = file("modules/platform")
+project(":locale").projectDir = file("modules/locale")
+project(":ui").projectDir = file("modules/ui")
+
+project(":feature").projectDir = file("modules/feature")
+project(":feature:proxy").projectDir = file("modules/feature/proxy")
+project(":feature:override").projectDir = file("modules/feature/override")
+project(":feature:editor").projectDir = file("modules/feature/editor")
+project(":feature:meta").projectDir = file("modules/feature/meta")
+
+project(":data").projectDir = file("modules/data")
+project(":data:log").projectDir = file("modules/data/log")
+project(":data:settings").projectDir = file("modules/data/settings")
+project(":data:proxy").projectDir = file("modules/data/proxy")
+
+project(":runtime").projectDir = file("modules/runtime")
+project(":runtime:api").projectDir = file("modules/runtime/api")
+project(":runtime:client").projectDir = file("modules/runtime/client")
+project(":runtime:service").projectDir = file("modules/runtime/service")

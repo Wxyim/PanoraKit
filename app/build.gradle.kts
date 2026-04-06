@@ -21,6 +21,7 @@
 @file:Suppress("UnstableApiUsage")
 
 import java.util.*
+import org.gradle.api.tasks.Sync
 
 plugins {
     id("com.android.application")
@@ -35,7 +36,20 @@ plugins {
 val appAbiList = (gropify.abi.app.list ?: "armeabi-v7a,arm64-v8a,x86,x86_64")
     .split(',').map { it.trim() }.filter { it.isNotEmpty() }
 
+val kernelProperties = Properties().apply {
+    val kernelPropertiesFile = rootProject.file("config/kernel.properties")
+    if (kernelPropertiesFile.exists()) {
+        kernelPropertiesFile.inputStream().use(::load)
+    }
+}
+val mihomoVersion = kernelProperties.getProperty("external.mihomo.branch")
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: "unknown"
+
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
+val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
+val legacyJniLibsDir = rootProject.layout.projectDirectory.dir("jniLibs")
 
 android {
     namespace = gropify.project.namespace.base
@@ -48,6 +62,7 @@ android {
         versionCode = gropify.project.version.code
         versionName = gropify.project.version.name
         manifestPlaceholders["appName"] = gropify.project.name
+        buildConfigField("String", "MIHOMO_VERSION", "\"$mihomoVersion\"")
 
     }
 
@@ -60,8 +75,14 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDirs("src")
-            res.srcDirs("res")
+            kotlin.directories.apply {
+                clear()
+                add("src")
+            }
+            res.directories.apply {
+                clear()
+                add("res")
+            }
             assets.directories.apply {
                 clear()
                 addAll(
@@ -71,9 +92,18 @@ android {
                     )
                 )
             }
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
-            jniLibs.srcDirs("../jniLibs")
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
+            jniLibs.directories.apply {
+                clear()
+                add(unifiedJniLibsDir.get().asFile.invariantSeparatorsPath)
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
@@ -120,20 +150,49 @@ android {
 
     packaging {
         jniLibs {
-            excludes += listOf("lib/**/libjavet*.so")
+            excludes += listOf("lib/**/libjavet*.so", "lib/**/libyume.so")
             useLegacyPackaging = true
         }
     }
 
     signingConfigs {
-        val keystore = rootProject.file("signing.properties")
-        if (keystore.exists()) {
+        val signingPropertiesFile = rootProject.file("signing.properties")
+        val signingProperties = Properties().apply {
+            if (signingPropertiesFile.exists()) {
+                signingPropertiesFile.inputStream().use(::load)
+            }
+        }
+
+        fun readSigningValue(propertyKey: String, envKey: String): String? {
+            return (project.findProperty(propertyKey) as? String)
+                ?.trim()
+                ?.takeIf(String::isNotBlank)
+                ?: System.getenv(envKey)
+                    ?.trim()
+                    ?.takeIf(String::isNotBlank)
+                ?: signingProperties.getProperty(propertyKey)
+                    ?.trim()
+                    ?.takeIf(String::isNotBlank)
+        }
+
+        val configuredKeystorePath = readSigningValue("keystore.path", "YUMEBOX_KEYSTORE_PATH")
+        val configuredStoreFile = configuredKeystorePath
+            ?.let { rawPath ->
+                val asFile = file(rawPath)
+                if (asFile.isAbsolute) asFile else rootProject.file(rawPath)
+            }
+            ?: rootProject.file("release.keystore").takeIf { it.exists() }
+
+        val storePassword = readSigningValue("keystore.password", "YUMEBOX_KEYSTORE_PASSWORD")
+        val keyAlias = readSigningValue("key.alias", "YUMEBOX_KEY_ALIAS")
+        val keyPassword = readSigningValue("key.password", "YUMEBOX_KEY_PASSWORD")
+
+        if (configuredStoreFile?.exists() == true && storePassword != null && keyAlias != null && keyPassword != null) {
             create("release") {
-                val prop = Properties().apply { keystore.inputStream().use(::load) }
-                storeFile = rootProject.file("release.keystore")
-                storePassword = prop.getProperty("keystore.password")!!
-                keyAlias = prop.getProperty("key.alias")!!
-                keyPassword = prop.getProperty("key.password")!!
+                storeFile = configuredStoreFile
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
             }
         }
     }
@@ -142,6 +201,19 @@ android {
         buildTypes.named("release").configure {
             signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    val releaseArtifactRequested = gradle.startParameter.taskNames.any { taskName ->
+        val normalized = taskName.lowercase()
+        normalized.contains("release") &&
+            (normalized.contains("assemble") || normalized.contains("bundle") || normalized.contains("package"))
+    }
+
+    if (releaseArtifactRequested && signingConfigs.findByName("release") == null) {
+        throw GradleException(
+            "Release signing is not configured. Provide signing.properties or env vars " +
+                "(YUMEBOX_KEYSTORE_PATH, YUMEBOX_KEYSTORE_PASSWORD, YUMEBOX_KEY_ALIAS, YUMEBOX_KEY_PASSWORD).",
+        )
     }
 
     androidComponents {
@@ -160,6 +232,15 @@ android {
     }
 }
 
+val syncLegacyJniLibs = tasks.register<Sync>("syncLegacyJniLibs") {
+    from(legacyJniLibsDir)
+    into(unifiedJniLibsDir)
+}
+
+tasks.named("preBuild") {
+    dependsOn(syncLegacyJniLibs)
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:${gropify.dep.version.desugarJdkLibs}")
 
@@ -173,7 +254,6 @@ dependencies {
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
     implementation(project(":runtime:service"))
-    implementation(project(":feature:substore"))
     implementation(project(":feature:proxy"))
     implementation(project(":feature:override"))
     implementation(project(":feature:editor"))
@@ -231,6 +311,7 @@ dependencies {
     implementation("sh.calvin.reorderable:reorderable:${gropify.dep.version.reorderable}")
     implementation("com.mikepenz:aboutlibraries-core:${gropify.dep.version.aboutLibraries}")
     implementation("com.mikepenz:aboutlibraries-compose:${gropify.dep.version.aboutLibraries}")
+    implementation("dev.oom-wg.purejoy.fyl.fytxt:common-android:2.2")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${gropify.dep.version.lifecycle}")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:${gropify.dep.version.lifecycle}")
@@ -240,4 +321,3 @@ dependencies {
 ksp {
     arg("compose-destinations.defaultTransitions", "none")
 }
-

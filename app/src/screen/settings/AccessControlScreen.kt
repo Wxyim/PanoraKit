@@ -25,6 +25,8 @@ package com.github.yumelira.yumebox.screen.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
+import android.util.LruCache
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -73,6 +76,17 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private object AccessControlMetrics {
+    val SearchHorizontalPadding = 16.dp
+    val SearchTopPadding = 12.dp
+    val SearchResultCornerRadius = 16.dp
+    val ListCardVerticalPadding = 4.dp
+    val SearchResultAppIconSize = 40.dp
+    val AppCardIconSize = 45.dp
+    val AppIconBitmapBaseSize = 80
+    val AppIconEndPadding = 12.dp
+}
+
 @Composable
 @Destination<RootGraph>
 fun AccessControlScreen(navigator: DestinationsNavigator) {
@@ -80,6 +94,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AccessControlViewModel>()
     val uiState by viewModel.uiState.collectAsState()
+    val filteredApps by viewModel.filteredApps.collectAsState()
 
     val showSettingsSheet = rememberSaveable { mutableStateOf(false) }
     val searchExpanded = rememberSaveable { mutableStateOf(false) }
@@ -92,15 +107,6 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
             }
         }
     )
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { uiState.needsMiuiPermission }
-            .collect { needsPermission ->
-                if (needsPermission) {
-                    permissionLauncher.launch("com.android.permission.GET_INSTALLED_APPS")
-                }
-            }
-    }
 
     BackHandler(enabled = searchExpanded.value) {
         searchExpanded.value = false
@@ -118,7 +124,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             modifier = Modifier.padding(end = 24.dp),
                             onClick = { showSettingsSheet.value = true }
                         ) {
-                            Icon(Yume.`Settings-2`, contentDescription = "Settings")
+                            Icon(Yume.`Settings-2`, contentDescription = MLang.Component.Navigation.Settings)
                         }
                     }
                 )
@@ -137,6 +143,36 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     innerPadding = innerPadding,
                     topPadding = 20.dp
                 ) {
+                    if (uiState.needsMiuiPermission) {
+                        item {
+                            Card {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(MLang.Onboarding.Permission.AppList.Title)
+                                    Text(
+                                        MLang.Onboarding.Permission.AppList.SummaryNeed,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                    Button(
+                                        onClick = {
+                                            permissionLauncher.launch("com.android.permission.GET_INSTALLED_APPS")
+                                        },
+                                        colors = ButtonDefaults.buttonColorsPrimary(),
+                                    ) {
+                                        Text(
+                                            MLang.Onboarding.Permission.AppList.Title,
+                                            color = MiuixTheme.colorScheme.onPrimary,
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
                     item {
                         var searchText by remember { mutableStateOf("") }
                         var expanded by remember { mutableStateOf(false) }
@@ -165,7 +201,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     }
 
                     items(
-                        items = uiState.filteredApps,
+                        items = filteredApps,
                         key = { it.packageName }
                     ) { app ->
                         AppCard(
@@ -206,12 +242,12 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.SortMode,
                                 summary = MLang.AccessControl.Settings.SortModeCurrent.format(uiState.sortMode.displayName),
-                                items = AccessControlViewModel.SortMode.entries.map { it.displayName },
-                                selectedIndex = AccessControlViewModel.SortMode.entries
+                                items = AccessControlSortMode.entries.map { it.displayName },
+                                selectedIndex = AccessControlSortMode.entries
                                     .indexOf(uiState.sortMode)
-                                    .coerceAtLeast(0),
+                                      .coerceAtLeast(0),
                                 onSelectedIndexChange = { index ->
-                                    AccessControlViewModel.SortMode.entries.getOrNull(index)
+                                    AccessControlSortMode.entries.getOrNull(index)
                                         ?.let { viewModel.onSortModeChange(it) }
                                 }
                             )
@@ -327,7 +363,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
         ExpandedSearchOverlay(
             searchQuery = uiState.searchQuery,
             onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
-            filteredApps = uiState.filteredApps,
+            filteredApps = filteredApps,
             onAppSelectionChange = { packageName, checked ->
                 viewModel.onAppSelectionChange(packageName, checked)
             },
@@ -343,7 +379,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
 private fun ExpandedSearchOverlay(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    filteredApps: List<AccessControlViewModel.AppInfo>,
+    filteredApps: List<AccessControlAppInfo>,
     onAppSelectionChange: (String, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -371,14 +407,22 @@ private fun ExpandedSearchOverlay(
                 label = MLang.AccessControl.Search.Placeholder,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(
+                        horizontal = AccessControlMetrics.SearchHorizontalPadding,
+                        vertical = AccessControlMetrics.SearchTopPadding,
+                    )
             )
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .padding(horizontal = AccessControlMetrics.SearchHorizontalPadding)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = AccessControlMetrics.SearchResultCornerRadius,
+                            topEnd = AccessControlMetrics.SearchResultCornerRadius,
+                        )
+                    )
                     .background(MiuixTheme.colorScheme.surface)
             ) {
                 items(
@@ -392,8 +436,8 @@ private fun ExpandedSearchOverlay(
                             AppIcon(
                                 packageName = app.packageName,
                                 contentDescription = app.label,
-                                imageSize = 40.dp,
-                                bitmapSize = 80
+                                imageSize = AccessControlMetrics.SearchResultAppIconSize,
+                                bitmapSize = AccessControlMetrics.AppIconBitmapBaseSize,
                             )
                         },
                         endActions = {
@@ -416,11 +460,11 @@ private fun ExpandedSearchOverlay(
 
 @Composable
 private fun AppCard(
-    app: AccessControlViewModel.AppInfo,
+    app: AccessControlAppInfo,
     onSelectionChange: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
-    Card(modifier = Modifier.padding(vertical = 4.dp)) {
+    Card(modifier = Modifier.padding(vertical = AccessControlMetrics.ListCardVerticalPadding)) {
         BasicComponent(
             title = app.label,
             summary = app.packageName,
@@ -428,9 +472,9 @@ private fun AppCard(
                 AppIcon(
                     packageName = app.packageName,
                     contentDescription = app.label,
-                    imageSize = 45.dp,
-                    bitmapSize = 80,
-                    modifier = Modifier.padding(end = 12.dp)
+                    imageSize = AccessControlMetrics.AppCardIconSize,
+                    bitmapSize = AccessControlMetrics.AppIconBitmapBaseSize,
+                    modifier = Modifier.padding(end = AccessControlMetrics.AppIconEndPadding),
                 )
             },
             endActions = {
@@ -453,12 +497,22 @@ private fun AppIcon(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val iconBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = packageName, key2 = bitmapSize) {
+    val density = LocalDensity.current
+    val targetBitmapSize = remember(imageSize, bitmapSize, density) {
+        maxOf(
+            bitmapSize,
+            (with(density) { imageSize.toPx() } * 1.35f).toInt(),
+        ).coerceIn(64, 160)
+    }
+    val cacheKey = remember(packageName, targetBitmapSize) { "$packageName@$targetBitmapSize" }
+    val iconBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = packageName, key2 = targetBitmapSize) {
         value = withContext(Dispatchers.IO) {
+            AppIconMemoryCache.get(cacheKey)?.asImageBitmap()?.let { return@withContext it }
             runCatching {
                 context.packageManager
                     .getApplicationIcon(packageName)
-                    .toBitmap(width = bitmapSize, height = bitmapSize)
+                    .toBitmap(width = targetBitmapSize, height = targetBitmapSize)
+                    .also { bitmap -> AppIconMemoryCache.put(cacheKey, bitmap) }
                     .asImageBitmap()
             }.getOrNull()
         }
@@ -470,4 +524,16 @@ private fun AppIcon(
         contentDescription = contentDescription,
         modifier = modifier.size(imageSize)
     )
+}
+
+private object AppIconMemoryCache {
+    private val cache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
+
+    fun get(key: String): Bitmap? = cache.get(key)?.takeUnless { it.isRecycled }
+
+    fun put(key: String, bitmap: Bitmap) {
+        cache.put(key, bitmap)
+    }
 }

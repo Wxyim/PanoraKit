@@ -1,44 +1,52 @@
-## Privacy Policy
+# Privacy Policy
 
-The YumeBox is built as an Open Source software. This app is provided by personal at no cost and is intended for use as is.
+YumeBox is an open-source Android client. The app is provided as-is and does not intentionally collect personally identifiable information.
 
-This page is used to inform visitors regarding our policies with the collection, use, and disclosure of Personal Information if anyone decided to use our app.
+## Data Collection
 
-If you choose to use our app, then you agree to the collection and use of information in relation to this policy. This fork is intended to avoid integrating third-party analytics, crash reporting, and cloud update SDKs. We will not use or share your information with anyone except as described in this Privacy Policy.
+- We do not bundle third-party analytics SDKs.
+- We do not bundle third-party crash reporting SDKs.
+- We do not bundle cloud update SDKs that upload your app usage data.
+- Runtime logs are stored locally on your device unless you explicitly export or share them.
 
-The terms used in this Privacy Policy have the same meanings as in our Terms and Conditions, which is accessible at Clash for Android unless otherwise defined in this Privacy Policy.
+## Permission Usage
 
-**Information Collection and Use**
+YumeBox requests only permissions required for local functionality:
 
-This fork does not intentionally collect personally identifiable information and does not bundle third-party analytics, crash reporting, or cloud update SDKs.
+- `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`:
+  Required for proxy runtime networking, profile download, and network state checks.
+- `POST_NOTIFICATIONS`:
+  Used to display runtime/service status notifications.
+- `CAMERA`:
+  Optional. Used only when you choose QR code import.
+- `GET_INSTALLED_APPS`, `QUERY_ALL_PACKAGES`:
+  Used for access-control and RootTun app filtering (include/exclude app traffic). Package lists are processed locally.
+- Foreground service permissions:
+  Required by Android for running VPN/proxy background services.
 
+YumeBox does not upload your installed app list, profile files, or runtime logs to an app-owned cloud backend.
 
-**Log Data**
+## File Access And Sharing
 
-If the app encounters an error, any logs remain on your device unless you choose to export or share them yourself.
+- Profile import/export is user-triggered.
+- File sharing is performed through Android system sharing (`FileProvider`) and only for files you explicitly choose to export.
 
-**Cookies**
+## Cookies
 
-Cookies are files with a small amount of data that are commonly used as anonymous unique identifiers. These are sent to your browser from the websites that you visit and are stored on your device's internal memory.
+YumeBox itself does not use web cookies. If you open third-party websites from links in the app, those websites may apply their own cookie and privacy policies.
 
-This app does not use cookies explicitly, and this fork does not intentionally include third-party services that place cookies or similar cross-site identifiers.
+## Security
 
-**Security**
+We use reasonable measures to protect local data, but no system can guarantee absolute security.
 
-We value your trust in providing us your Personal Information, thus we are striving to use commercially acceptable means of protecting it. But remember that no method of transmission over the internet, or method of electronic storage is 100% secure and reliable, and we cannot guarantee its absolute security.
+## Children’s Privacy
 
-**Links to Other Sites**
+YumeBox is not specifically directed to children under 13, and we do not knowingly collect personal data from children.
 
-This app may contain links to other sites. If you click on a third-party link, you will be directed to that site. Note that these external sites are not operated by us. Therefore, we strongly advise you to review the Privacy Policy of these websites. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
+## Changes To This Policy
 
-**Children’s Privacy**
+This policy may be updated over time. Updates are effective after publication in this repository and app resources.
 
-These Services do not address anyone under the age of 13\. We do not knowingly collect personally identifiable information from children under 13\. In the case we discover that a child under 13 has provided us with personal information, we immediately delete this from our servers. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact us so that we will be able to do necessary actions.
+## Contact
 
-**Changes to This Privacy Policy**
-
-We may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. We will notify you of any changes by posting the new Privacy Policy on this page. These changes are effective immediately after they are posted on this page.
-
-**Contact Us**
-
-If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us.
+If you have questions or suggestions about this Privacy Policy, please contact the project maintainers through the repository issue tracker.

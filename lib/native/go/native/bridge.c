@@ -5,127 +5,129 @@
 //  as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 #include "bridge.h"
+
 #include "trace.h"
 
-void (*mark_socket_func)(void *tun_interface, int fd);
+void (*mark_socket_func)(void* tun_interface, int fd);
 
-int (*query_socket_uid_func)(void *tun_interface, int protocol, const char *source, const char *target);
+int (*query_socket_uid_func)(void* tun_interface, int protocol, const char* source,
+                             const char* target);
 
-void (*complete_func)(void *completable, const char *exception);
+void (*complete_func)(void* completable, const char* exception);
 
-void (*complete_with_string_func)(void *completable, const char *result);
+void (*complete_with_string_func)(void* completable, const char* result);
 
-void (*fetch_report_func)(void *fetch_callback, const char *status_json);
+void (*fetch_report_func)(void* fetch_callback, const char* status_json);
 
-void (*fetch_complete_func)(void *fetch_callback, const char *error);
+void (*fetch_complete_func)(void* fetch_callback, const char* error);
 
-int (*logcat_received_func)(void *logcat_interface, const char *payload);
+int (*logcat_received_func)(void* logcat_interface, const char* payload);
 
-int (*open_content_func)(const char *url, char *error, int error_length);
+int (*open_content_func)(const char* url, char* error, int error_length);
 
-void (*release_object_func)(void *obj);
+void (*release_object_func)(void* obj);
 
-void mark_socket(void *interface, int fd) {
-    TRACE_METHOD();
+void mark_socket(void* interface, int fd) {
+  TRACE_METHOD();
 
-    mark_socket_func(interface, fd);
+  mark_socket_func(interface, fd);
 }
 
-int query_socket_uid(void *interface, int protocol, char *source, char *target) {
-    TRACE_METHOD();
+int query_socket_uid(void* interface, int protocol, char* source, char* target) {
+  TRACE_METHOD();
 
-    int result = query_socket_uid_func(interface, protocol, source, target);
+  int result = query_socket_uid_func(interface, protocol, source, target);
 
-    free(source);
-    free(target);
+  free(source);
+  free(target);
 
-    return result;
+  return result;
 }
 
-void complete(void *obj, char *error) {
-    TRACE_METHOD();
+void complete(void* obj, char* error) {
+  TRACE_METHOD();
 
-    complete_func(obj, error);
+  complete_func(obj, error);
 
-    free(error);
+  free(error);
 }
 
-void complete_with_string(void *obj, char *result) {
-TRACE_METHOD();
+void complete_with_string(void* obj, char* result) {
+  TRACE_METHOD();
 
-complete_with_string_func(obj, result);
+  complete_with_string_func(obj, result);
 
-free(result);
+  free(result);
 }
 
-void fetch_complete(void *fetch_callback, char *exception) {
-    TRACE_METHOD();
+void fetch_complete(void* fetch_callback, char* exception) {
+  TRACE_METHOD();
 
-    fetch_complete_func(fetch_callback, exception);
+  fetch_complete_func(fetch_callback, exception);
 
-    free(exception);
+  free(exception);
 }
 
-void fetch_report(void *fetch_callback, char *json_status) {
-    TRACE_METHOD();
+void fetch_report(void* fetch_callback, char* json_status) {
+  TRACE_METHOD();
 
-    fetch_report_func(fetch_callback, json_status);
+  fetch_report_func(fetch_callback, json_status);
 
-    free(json_status);
+  free(json_status);
 }
 
-int logcat_received(void *logcat_interface, char *payload) {
-    TRACE_METHOD();
+int logcat_received(void* logcat_interface, char* payload) {
+  TRACE_METHOD();
 
-    int result = logcat_received_func(logcat_interface, payload);
+  int result = logcat_received_func(logcat_interface, payload);
 
-    free(payload);
+  free(payload);
 
-    return result;
+  return result;
 }
 
-int open_content(char *url, char *error, int error_length) {
-    TRACE_METHOD();
+int open_content(char* url, char* error, int error_length) {
+  TRACE_METHOD();
 
-    int result = open_content_func(url, error, error_length);
+  int result = open_content_func(url, error, error_length);
 
-    free(url);
+  free(url);
 
-    return result;
+  return result;
 }
 
-void release_object(void *obj) {
-    TRACE_METHOD();
+void release_object(void* obj) {
+  TRACE_METHOD();
 
-    release_object_func(obj);
+  release_object_func(obj);
 }
 
-void log_info(char *msg) {
-    __android_log_write(ANDROID_LOG_INFO, TAG, msg);
+void log_info(char* msg) {
+  __android_log_write(ANDROID_LOG_INFO, TAG, msg);
 
-    free(msg);
+  free(msg);
 }
 
-void log_error(char *msg) {
-    __android_log_write(ANDROID_LOG_ERROR, TAG, msg);
+void log_error(char* msg) {
+  __android_log_write(ANDROID_LOG_ERROR, TAG, msg);
 
-    free(msg);
+  free(msg);
 }
 
-void log_warn(char *msg) {
-    __android_log_write(ANDROID_LOG_WARN, TAG, msg);
+void log_warn(char* msg) {
+  __android_log_write(ANDROID_LOG_WARN, TAG, msg);
 
-    free(msg);
+  free(msg);
 }
 
-void log_debug(char *msg) {
-    __android_log_write(ANDROID_LOG_DEBUG, TAG, msg);
+void log_debug(char* msg) {
+  __android_log_write(ANDROID_LOG_DEBUG, TAG, msg);
 
-    free(msg);
+  free(msg);
 }
 
-void log_verbose(char *msg) {
-    __android_log_write(ANDROID_LOG_VERBOSE, TAG, msg);
+void log_verbose(char* msg) {
+  __android_log_write(ANDROID_LOG_VERBOSE, TAG, msg);
 
-    free(msg);
+  free(msg);
 }

@@ -61,6 +61,17 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
+import java.util.UUID
+
+private val BLANK_PROFILE_TEMPLATE = """
+mixed-port: 7890
+mode: rule
+log-level: info
+
+proxies: []
+proxy-groups: []
+rules: []
+""".trimIndent()
 
 @SuppressLint("UseKtx")
 @Composable
@@ -84,7 +95,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val showShareDialog = remember { mutableStateOf(false) }
     var isEditOptionsDialogVisible by remember { mutableStateOf(false) }
     var showEditOptionsDialog by remember { mutableStateOf<Profile?>(null) }
-    var openConfigPreviewAfterEditDialogDismiss by remember { mutableStateOf(false) }
     var profileToShare by remember { mutableStateOf<Profile?>(null) }
     var pendingProfileId by remember { mutableStateOf<String?>(null) }
     var profileToEdit by remember { mutableStateOf<Profile?>(null) }
@@ -123,6 +133,36 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
 
     val scrollBehavior = MiuixScrollBehavior()
     val scope = rememberCoroutineScope()
+    val openProfileEditor: (UUID, String) -> Unit = openProfileEditor@{ profileUuid, profileName ->
+        val configFile = resolveProfileConfigFile(profileUuid)
+        val configContent = runCatching {
+            if (!configFile.exists()) {
+                configFile.parentFile?.mkdirs()
+                configFile.writeText(BLANK_PROFILE_TEMPLATE)
+            }
+            configFile.readText()
+        }.getOrElse {
+            com.github.yumelira.yumebox.App.instance.toast(
+                it.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
+            )
+            return@openProfileEditor
+        }
+
+        OverrideStructuredEditorStore.setupConfigPreview(
+            title = profileName,
+            content = configContent,
+            language = LanguageScope.Yaml,
+            callback = { updatedContent ->
+                runCatching {
+                    configFile.writeText(updatedContent)
+                    profilesViewModel.refreshProfiles()
+                }.onFailure {
+                    throw IllegalStateException(it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed, it)
+                }
+            },
+        )
+        navigator.navigate(OverrideConfigPreviewRouteDestination)
+    }
 
     Scaffold(
         topBar = {
@@ -145,7 +185,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     ) {
                         Icon(
                             Yume.`Circle-fading-arrow-up`,
-                            contentDescription = "Update all"
+                            contentDescription = MLang.ProfilesPage.Action.UpdateAll
                         )
                     }
 
@@ -157,7 +197,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     ) {
                         Icon(
                             Yume.`Badge-plus`,
-                            contentDescription = "Add profile"
+                            contentDescription = MLang.ProfilesPage.Action.AddProfile
                         )
                     }
                 })
@@ -252,6 +292,15 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         onAddProfile = { name, source, type, interval, fileUri ->
             profilesViewModel.createProfile(type, name, source, interval, fileUri)
         },
+        onCreateBlankProfile = { name ->
+            showAddBottomSheet.value = false
+            profilesViewModel.createBlankProfile(
+                name = name,
+                initialContent = BLANK_PROFILE_TEMPLATE,
+            ) { uuid ->
+                openProfileEditor(uuid, name)
+            }
+        },
         onUpdateProfile = { uuid, name, source, interval ->
             profilesViewModel.patchProfile(uuid, name, source, interval)
         },
@@ -338,7 +387,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 ?: File(File(context.filesDir, "clash"), "profiles/${profile.uuid}/config.yaml").takeIf { it.exists() }
 
             if (file == null) {
-                context.toast("Profile file does not exist")
+                context.toast(MLang.ProfilesPage.Message.ProfileFileNotExist)
             } else {
                 runCatching {
                     val uri = FileProvider.getUriForFile(
@@ -357,7 +406,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
                 }.onFailure {
-                    context.toast(it.message ?: "Share failed")
+                    context.toast(it.message ?: MLang.ProfilesPage.Message.ShareFailed)
                 }
             }
             showShareDialog.value = false
@@ -387,37 +436,11 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         ProfileEditOptionsDialog(
             show = isEditOptionsDialogVisible,
             onOpenConfig = {
-                openConfigPreviewAfterEditDialogDismiss = false
                 isEditOptionsDialogVisible = false
-                val configFile = File(File(com.github.yumelira.yumebox.App.instance.filesDir, "imported"), "${profile.uuid}/config.yaml")
-                    .takeIf { it.exists() }
-                    ?: File(File(com.github.yumelira.yumebox.App.instance.filesDir, "clash"), "profiles/${profile.uuid}/config.yaml").takeIf { it.exists() }
-
-                if (configFile == null) {
-                    com.github.yumelira.yumebox.App.instance.toast("Profile file does not exist")
-                    return@ProfileEditOptionsDialog
-                }
-
-                val configContent = runCatching { configFile.readText() }.getOrElse {
-                    com.github.yumelira.yumebox.App.instance.toast(it.message ?: "Failed to read profile")
-                    return@ProfileEditOptionsDialog
-                }
-                OverrideStructuredEditorStore.setupConfigPreview(
-                    title = profile.name,
-                    content = configContent,
-                    language = LanguageScope.Yaml,
-                    callback = { updatedContent ->
-                        runCatching {
-                            configFile.writeText(updatedContent)
-                        }.onFailure {
-                            throw IllegalStateException(it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed, it)
-                        }
-                    },
-                )
-                openConfigPreviewAfterEditDialogDismiss = true
+                showEditOptionsDialog = null
+                openProfileEditor(profile.uuid, profile.name)
             },
             onEditSettings = {
-                openConfigPreviewAfterEditDialogDismiss = false
                 isEditOptionsDialogVisible = false
                 profileToEdit = profile
                 scope.launch {
@@ -426,17 +449,22 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 showSettingsDialog.value = true
             },
             onDismiss = {
-                openConfigPreviewAfterEditDialogDismiss = false
                 isEditOptionsDialogVisible = false
             },
             onDismissFinished = {
                 showEditOptionsDialog = null
-                if (openConfigPreviewAfterEditDialogDismiss) {
-                    openConfigPreviewAfterEditDialogDismiss = false
-                    navigator.navigate(OverrideConfigPreviewRouteDestination)
-                }
             },
         )
+    }
+}
+
+private fun resolveProfileConfigFile(profileUuid: UUID): File {
+    val filesDir = com.github.yumelira.yumebox.App.instance.filesDir
+    val importedFile = File(filesDir, "imported/${profileUuid}/config.yaml")
+    return if (importedFile.exists()) {
+        importedFile
+    } else {
+        File(filesDir, "clash/profiles/${profileUuid}/config.yaml")
     }
 }
 

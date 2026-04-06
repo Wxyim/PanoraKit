@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.github.yumelira.yumebox.common.util.OemPermissionSettingsNavigator
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 
@@ -165,6 +166,9 @@ internal fun openAppNotificationSettings(context: Context) {
 }
 
 internal fun openAppDetailsSettings(context: Context) {
+    if (OemPermissionSettingsNavigator.openBackgroundPermissionSettings(context)) {
+        return
+    }
     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
         data = android.net.Uri.fromParts("package", context.packageName, null)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

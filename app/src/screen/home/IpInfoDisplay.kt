@@ -24,7 +24,6 @@ package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -32,15 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import com.github.yumelira.yumebox.common.util.LocaleUtil
 import com.github.yumelira.yumebox.data.repository.IpMonitoringState
+import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -141,20 +139,12 @@ private fun IpInfoRow(
 private fun CountryBadge(countryCode: String?) {
     if (countryCode != null) {
         val displayCountryCode = LocaleUtil.normalizeRegionCode(countryCode) ?: countryCode
-        val flagUrl = remember(countryCode) { LocaleUtil.normalizeFlagUrl(countryCode) }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = flagUrl,
-                contentDescription = "$displayCountryCode flag",
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            CountryFlagCircle(countryCode = countryCode, size = 20.dp)
             Text(
                 text = displayCountryCode,
                 style = MiuixTheme.textStyles.body1,

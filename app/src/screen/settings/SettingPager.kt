@@ -39,24 +39,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.BuildConfig
-import com.github.yumelira.yumebox.WebViewActivity
+import com.github.nomadboxlab.monadbox.BuildConfig
+import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.viewmodel.SettingEvent
-import com.github.yumelira.yumebox.presentation.viewmodel.SettingViewModel
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.FeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.MetaFeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
-import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -64,6 +60,19 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private object SettingsPageMetrics {
+    val EntryIconSlotSize = 24.dp
+    val EntryIconContainerSize = 36.dp
+    val EntryIconContainerCornerRadius = 16.dp
+    val EntryIconSize = 22.dp
+    val EntryIconOuterStartPadding = 4.dp
+    val EntryIconOuterEndPadding = 16.dp
+    val VersionBadgeHeight = 22.dp
+    val VersionBadgeEndPadding = 12.dp
+    val VersionBadgeHorizontalPadding = 12.dp
+    val VersionBadgeFontSize = 12.sp
+}
 
 @Composable
 private fun CircularIcon(
@@ -74,15 +83,18 @@ private fun CircularIcon(
 ) {
     Box(
         modifier = modifier
-            .padding(start = 4.dp, end = 16.dp)
-            .requiredSize(24.dp),
+            .padding(
+                start = SettingsPageMetrics.EntryIconOuterStartPadding,
+                end = SettingsPageMetrics.EntryIconOuterEndPadding,
+            )
+            .requiredSize(SettingsPageMetrics.EntryIconSlotSize),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .layout { measurable, _ ->
-                    val containerSize = 36.dp.roundToPx()
-                    val parentSize = 24.dp.roundToPx()
+                    val containerSize = SettingsPageMetrics.EntryIconContainerSize.roundToPx()
+                    val parentSize = SettingsPageMetrics.EntryIconSlotSize.roundToPx()
                     val offset = (containerSize - parentSize) / 2
 
                     val placeable = measurable.measure(
@@ -92,8 +104,8 @@ private fun CircularIcon(
                         placeable.place(-offset, -offset)
                     }
                 }
-                .size(36.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .size(SettingsPageMetrics.EntryIconContainerSize)
+                .clip(RoundedCornerShape(SettingsPageMetrics.EntryIconContainerCornerRadius))
                 .background(MiuixTheme.colorScheme.primary),
             contentAlignment = Alignment.Center) {
             Icon(
@@ -101,7 +113,7 @@ private fun CircularIcon(
                 contentDescription = contentDescription,
                 tint = MiuixTheme.colorScheme.onPrimary,
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(SettingsPageMetrics.EntryIconSize)
                     .graphicsLayer(
                         scaleX = iconSize,
                         scaleY = iconSize,
@@ -115,26 +127,11 @@ private fun CircularIcon(
 @SuppressLint("LocalContextResourcesRead")
 @Composable
 fun SettingPager(mainInnerPadding: PaddingValues) {
-    val viewModel = koinViewModel<SettingViewModel>()
     val scrollBehavior = MiuixScrollBehavior()
     val navigator = LocalNavigator.current
     val context = LocalContext.current
 
     val versionInfo = remember { BuildConfig.VERSION_NAME }
-
-    LaunchedEffect(viewModel, context) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is SettingEvent.OpenWebView -> {
-                    runCatching {
-                        WebViewActivity.start(context, event.url)
-                    }.getOrElse { throwable ->
-                        context.toast(MLang.Settings.Error.WebviewFailed.format(throwable.message))
-                    }
-                }
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -200,18 +197,6 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 
                 Card {
                     SuperArrow(
-                        title = MLang.Settings.More.Lab,
-                        summary = MLang.Settings.More.LabSummary,
-                        onClick = {
-                            navigator.navigate(FeatureScreenDestination) { launchSingleTop = true }
-                        },
-                        startAction = {
-                            CircularIcon(
-                                imageVector = Yume.FlaskConical, contentDescription = null
-                            )
-                        },
-                    )
-                    SuperArrow(
                         title = MLang.Settings.More.Logs,
                         summary = MLang.Settings.More.LogsSummary,
                         onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
@@ -248,17 +233,17 @@ private fun VersionBadge(
         color = MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
         modifier = Modifier
-            .height(22.dp)
-            .padding(end = 12.dp)
+            .height(SettingsPageMetrics.VersionBadgeHeight)
+            .padding(end = SettingsPageMetrics.VersionBadgeEndPadding)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = SettingsPageMetrics.VersionBadgeHorizontalPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = versionInfo ?: "Unknown", style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = 12.sp, fontWeight = FontWeight.Bold
+                    fontSize = SettingsPageMetrics.VersionBadgeFontSize, fontWeight = FontWeight.Bold
                 ), color = MiuixTheme.colorScheme.primary
             )
         }

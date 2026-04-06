@@ -65,7 +65,16 @@ func patchDns(cfg *config.RawConfig, _ string) error {
 	}
 
 	if cfg.ClashForAndroid.AppendSystemDNS {
-		cfg.DNS.NameServer = append(cfg.DNS.NameServer, "system://")
+		hasSystem := false
+		for _, server := range cfg.DNS.NameServer {
+			if server == "system://" {
+				hasSystem = true
+				break
+			}
+		}
+		if !hasSystem {
+			cfg.DNS.NameServer = append(cfg.DNS.NameServer, "system://")
+		}
 	}
 
 	return nil

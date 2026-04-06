@@ -4,7 +4,6 @@ package main
 import "C"
 
 import (
-	"runtime"
 	"unsafe"
 
 	"cfa/native/config"
@@ -20,39 +19,24 @@ func (r *remoteValidCallback) reportStatus(json string) {
 
 //export fetchAndValid
 func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int) {
-	go func(path, url string, callback unsafe.Pointer) {
+	pathStr := C.GoString(path)
+	urlStr := C.GoString(url)
+	forceBool := force != 0
+
+	runAsyncWithRelease(callback, func() {
 		cb := &remoteValidCallback{callback: callback}
-
-		err := config.FetchAndValid(path, url, force != 0, cb.reportStatus)
-
-		C.fetch_complete(callback, marshalString(err))
-
-		C.release_object(callback)
-
-		runtime.GC()
-	}(C.GoString(path), C.GoString(url), callback)
-}
-
-//export load
-func load(completable unsafe.Pointer, path C.c_string) {
-	go func(path string) {
-		C.complete(completable, marshalString(config.Load(path)))
-
-		C.release_object(completable)
-
-		runtime.GC()
-	}(C.GoString(path))
+		err := config.FetchAndValid(pathStr, urlStr, forceBool, cb.reportStatus)
+		C.fetch_complete(callback, marshalError(err))
+	})
 }
 
 //export loadCompiledConfig
 func loadCompiledConfig(completable unsafe.Pointer, path C.c_string) {
-	go func(path string) {
-		C.complete(completable, marshalString(config.LoadCompiled(path)))
+	pathStr := C.GoString(path)
 
-		C.release_object(completable)
-
-		runtime.GC()
-	}(C.GoString(path))
+	completeAsync(completable, func() error {
+		return config.LoadCompiled(pathStr)
+	})
 }
 
 //export inspectCompiledConfig
@@ -75,4 +59,16 @@ func inspectCompiledGroups(yamlText C.c_string, profileDir C.c_string, excludeNo
 		return nil
 	}
 	return marshalJson(groups)
+}
+
+//export compilePreview
+func compilePreview(requestJson C.c_string) *C.char {
+	result := config.CompileOverride(C.GoString(requestJson), false)
+	return C.CString(result)
+}
+
+//export compileToFile
+func compileToFile(requestJson C.c_string) *C.char {
+	result := config.CompileOverride(C.GoString(requestJson), true)
+	return C.CString(result)
 }

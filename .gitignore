@@ -41,6 +41,7 @@ cmake-build-*/
 release.keystore
 signing.properties
 local.properties
+startup-gate.local.properties
 .env
 .env.local
 .env.*.local
@@ -81,3 +82,9 @@ sentry.properties
 /CLAUDE.md
 /docs/override-merge-plan/
 /docs/config/
+
+# Kernel sources are synced by scripts/sync-kernel.* and should not be tracked
+/lib/mihomo/mihomo/
+
+# Copilot workspace instruction file (local)
+/.github/copilot-instructions.md

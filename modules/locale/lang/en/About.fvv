@@ -1,0 +1,34 @@
+<About Page>
+About = {
+    Title = "About"
+
+    App = {
+        Description = "A customized Android client based on mihomo"
+        VersionLoading = "Loading..."
+        VersionFailed = "Failed to load"
+        VersionWithMihomo = "%s · mihomo %s"
+    }
+
+    Section = {
+        ProjectLinks = "Project Links"
+        Credits = "Credits"
+        More = "More"
+        License = "License"
+    }
+
+    Link = {
+        TelegramGroup = "Telegram Group"
+        TelegramChannel = "Telegram Channel"
+    }
+
+    License = {
+        CheckUpdate = "Check for Updates"
+        CheckUpdateSummary = "Open the GitHub releases page"
+        Libraries = "Libraries"
+        LibrariesSummary = "View all third-party libraries used in this app"
+        AgplName = "GNU Affero General Public License v3.0"
+        AgplDescription = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License."
+    }
+
+    Copyright = "© 2025 YumeLira, 2026 – Present MonadBox"
+}

@@ -56,6 +56,10 @@ private object ConnectionPageSpacing {
     val ContentTop = 20.dp
     val ContentHorizontal = 12.dp
     val ItemVertical = 6.dp
+    val TopBarActionInner = 8.dp
+    val TopBarActionOuter = 24.dp
+    val SearchVerticalPadding = 8.dp
+    val EmptyStatePadding = 32.dp
 }
 
 private val SortModes = listOf(
@@ -111,11 +115,11 @@ fun ConnectionScreen(
                 actions = {
                     Box {
                         IconButton(
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
                             onClick = { showSortPopup = true }) {
                             Icon(
                                 imageVector = MiuixIcons.Sort,
-                                contentDescription = "Sort",
+                                contentDescription = MLang.Component.Navigation.Sort,
                                 tint = MiuixTheme.colorScheme.onSurface,
                             )
                         }
@@ -142,11 +146,11 @@ fun ConnectionScreen(
                         }
                     }
                     IconButton(
-                        modifier = Modifier.padding(end = 24.dp),
+                        modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionOuter),
                         onClick = { showSearchBar = !showSearchBar }) {
                         Icon(
                             imageVector = MiuixIcons.Search,
-                            contentDescription = "Search",
+                            contentDescription = MLang.Component.Navigation.Search,
                             tint = MiuixTheme.colorScheme.onSurface,
                         )
                     }
@@ -188,7 +192,7 @@ fun ConnectionScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = ConnectionPageSpacing.SearchVerticalPadding),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextField(
@@ -207,7 +211,7 @@ fun ConnectionScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp),
+                            .padding(ConnectionPageSpacing.EmptyStatePadding),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(

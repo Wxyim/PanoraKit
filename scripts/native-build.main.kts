@@ -30,7 +30,7 @@ import org.tukaani.xz.XZOutputStream
 
 class ProjectConfig {
     private val properties = Properties()
-    private val kernelFile = File("kernel.properties")
+    private val kernelFile = File("config/kernel.properties")
     private val localFile = File("local.properties")
     private val gradleFile = File("gradle.properties")
 
@@ -109,6 +109,40 @@ data class CommandResult(
     val output: String = "",
     val error: String = ""
 )
+
+object PathBudgetGuard {
+    // Keep enough headroom under MAX_PATH for nested generated files.
+    private const val windowsWarnLength = 220
+    private const val windowsFailLength = 245
+
+    private fun check(path: String, label: String, failOnOverflow: Boolean) {
+        if (SystemDetector.os != "windows") return
+        val normalized = path.replace('/', '\\')
+        val len = normalized.length
+        if (len >= windowsFailLength) {
+            val message = "[Path][Windows] $label path is too long ($len): $normalized"
+            if (failOnOverflow) {
+                throw RuntimeException("$message. Move workspace closer to disk root (for example D:\\src\\YumeBox).")
+            }
+            println("[WARN] $message")
+        } else if (len >= windowsWarnLength) {
+            println("[WARN] [Path][Windows] $label path is close to MAX_PATH ($len): $normalized")
+        }
+    }
+
+    fun warn(path: String, label: String) = check(path, label, failOnOverflow = false)
+
+    fun ensure(path: String, label: String) = check(path, label, failOnOverflow = true)
+}
+
+fun copyNativeLibToJni(appJniRoot: File, abi: String, sourceLib: File, outputName: String, label: String) {
+    val destDir = File(appJniRoot, abi)
+    destDir.mkdirs()
+    val destLib = File(destDir, outputName)
+    PathBudgetGuard.ensure(destLib.absolutePath, "$label jni output")
+    sourceLib.copyTo(destLib, overwrite = true)
+    println("[$label] Copied to ${destLib.absolutePath}")
+}
 
 fun executeCommand(
     command: List<String>,
@@ -193,6 +227,26 @@ class NdkTools(private val config: ProjectConfig) {
         }
     }
 
+    private val llvmPrebuiltDir: File by lazy {
+        val prebuiltRoot = File(ndkDir, "toolchains/llvm/prebuilt")
+        require(prebuiltRoot.isDirectory) {
+            "LLVM prebuilt toolchain directory not found: ${prebuiltRoot.absolutePath}"
+        }
+
+        val preferred = listOf(SystemDetector.hostTag, "darwin-x86_64", "darwin-arm64", "linux-x86_64", "windows-x86_64")
+            .map { File(prebuiltRoot, it) }
+            .firstOrNull { it.isDirectory }
+        if (preferred != null) {
+            return@lazy preferred
+        }
+
+        prebuiltRoot.listFiles()
+            ?.filter { it.isDirectory }
+            ?.sortedBy { it.name }
+            ?.firstOrNull()
+            ?: throw RuntimeException("No LLVM prebuilt toolchain found under ${prebuiltRoot.absolutePath}")
+    }
+
     fun getClangPath(abi: String): String {
         val triple = when (abi) {
             "arm64-v8a" -> "aarch64-linux-android24"
@@ -202,12 +256,12 @@ class NdkTools(private val config: ProjectConfig) {
             else -> throw IllegalArgumentException("Unsupported ABI: $abi")
         }
         val ext = if (SystemDetector.os == "windows") ".cmd" else ""
-        return File(ndkDir, "toolchains/llvm/prebuilt/${SystemDetector.hostTag}/bin/${triple}-clang${ext}").absolutePath
+        return File(llvmPrebuiltDir, "bin/${triple}-clang${ext}").absolutePath
     }
 
     fun getStripPath(): String {
         val ext = if (SystemDetector.os == "windows") ".exe" else ""
-        return File(ndkDir, "toolchains/llvm/prebuilt/${SystemDetector.hostTag}/bin/llvm-strip${ext}").absolutePath
+        return File(llvmPrebuiltDir, "bin/llvm-strip${ext}").absolutePath
     }
 
     fun getMinAndroidApi(): Int = maxOf(config.getInt("android.minSdk", 24), 24)
@@ -258,7 +312,7 @@ class NdkTools(private val config: ProjectConfig) {
 class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTools) {
     private val sourceDir = File("lib/native/go/native")
     private val outputDir = File("build/native/go")
-    private val appJniRoot = File("jniLibs")
+    private val appJniRoot = File("build/jniLibs")
     private val goModuleDir = File("lib/native/go")
 
     private val abiToGoArch = mapOf(
@@ -276,6 +330,10 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
             println("[Go] Source directory not found: ${sourceDir.absolutePath}")
             return
         }
+
+        PathBudgetGuard.warn(sourceDir.absolutePath, "Go source")
+        PathBudgetGuard.warn(outputDir.absolutePath, "Go output root")
+        PathBudgetGuard.warn(appJniRoot.absolutePath, "JNI output root")
 
         val abis = config.getCsv("abi.app.list", "armeabi-v7a,arm64-v8a,x86,x86_64")
         println("[Go] Building for ABIs: ${abis.joinToString()}")
@@ -295,6 +353,7 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
         outputLibDir.mkdirs()
 
         val outputFile = File(outputLibDir, "libclash.so")
+        PathBudgetGuard.ensure(outputFile.absolutePath, "Go output")
 
         val env = buildGoEnv(abi)
 
@@ -354,10 +413,13 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
     }
 
     private fun copyToAppJni(abi: String, sourceLib: File) {
-        val destDir = File(appJniRoot, abi)
-        destDir.mkdirs()
-        val destLib = File(destDir, "libclash.so")
-        sourceLib.copyTo(destLib, overwrite = true)
+        copyNativeLibToJni(
+            appJniRoot = appJniRoot,
+            abi = abi,
+            sourceLib = sourceLib,
+            outputName = "libclash.so",
+            label = "Go"
+        )
 
         val generatedHeader = File(sourceLib.parentFile, "libclash.h")
         if (!generatedHeader.exists()) {
@@ -366,67 +428,10 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
                 fallbackHeader.copyTo(generatedHeader, overwrite = true)
             }
         }
-
-        println("[Go] Copied to ${destLib.absolutePath}")
     }
 }
 
-class RustBuilder(private val config: ProjectConfig) {
-    private val sourceDir = File("lib/native/rust")
-    private val outputDir = File("build/native/rust")
-    private val appJniRoot = File("jniLibs")
 
-    fun buildAll() {
-        if (!sourceDir.exists()) {
-            println("[Rust] Source directory not found: ${sourceDir.absolutePath}")
-            return
-        }
-
-        val abis = config.getCsv("abi.app.list", "armeabi-v7a,arm64-v8a,x86,x86_64")
-        println("[Rust] Building for ABIs: ${abis.joinToString()}")
-
-        abis.forEach { abi -> buildForAbi(abi) }
-    }
-
-    private fun buildForAbi(abi: String) {
-        println("[building] Building for $abi (Rust)...")
-
-        val command = listOf(
-            "cargo", "ndk",
-            "-t", abi,
-            "-o", outputDir.absolutePath,
-            "build", "--release"
-        )
-
-        val result = executeCommand(
-            command = command,
-            workingDir = sourceDir,
-            stdoutPrefix = "[building][$abi]",
-            stderrPrefix = "[building][$abi]",
-            stderrIsError = false
-        )
-        if (result.success) {
-            val sourceLib = File(outputDir, "$abi/liboverride.so")
-            if (sourceLib.exists()) {
-                copyToAppJni(abi, sourceLib)
-                println("[building] Successfully built $abi (Rust)")
-            } else {
-                println("[building] Output library not found: ${sourceLib.absolutePath}")
-            }
-        } else {
-            val reason = result.error.ifBlank { result.output }.trim()
-            println("[building] Failed to build $abi (Rust): $reason")
-        }
-    }
-
-    private fun copyToAppJni(abi: String, sourceLib: File) {
-        val destDir = File(appJniRoot, abi)
-        destDir.mkdirs()
-        val destLib = File(destDir, "liboverride.so")
-        sourceLib.copyTo(destLib, overwrite = true)
-        println("[Rust] Copied to ${destLib.absolutePath}")
-    }
-}
 
 class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkTools) {
     private val sourceDir = File("lib/native/cpp")
@@ -434,13 +439,17 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
     private val goOutputDir = File("build/native/go")
     private val gitInfoDir = File("build/native/mihomo")
     private val outputDir = File("build/native/cpp")
-    private val appJniRoot = File("jniLibs")
+    private val appJniRoot = File("build/jniLibs")
 
     fun buildAll() {
         if (!sourceDir.exists()) {
             println("[C++] Source directory not found: ${sourceDir.absolutePath}")
             return
         }
+
+        PathBudgetGuard.warn(sourceDir.absolutePath, "C++ source")
+        PathBudgetGuard.warn(outputDir.absolutePath, "C++ output root")
+        PathBudgetGuard.warn(appJniRoot.absolutePath, "JNI output root")
 
         val gitInfoFile = generateGitInfo()
         val abis = config.getCsv("abi.app.list", "armeabi-v7a,arm64-v8a,x86,x86_64")
@@ -507,6 +516,8 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
         val objDir = File(outputDir, "obj/$abi")
         buildDir.mkdirs()
         objDir.mkdirs()
+        PathBudgetGuard.ensure(buildDir.absolutePath, "CMake build dir")
+        PathBudgetGuard.ensure(objDir.absolutePath, "CMake output dir")
 
         val cmakePath = ndkTools.getCmakePath()
         val ninjaPath = ndkTools.getNinjaPath()
@@ -578,11 +589,13 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
     }
 
     private fun copyToAppJni(abi: String, sourceLib: File) {
-        val destDir = File(appJniRoot, abi)
-        destDir.mkdirs()
-        val destLib = File(destDir, "libbridge.so")
-        sourceLib.copyTo(destLib, overwrite = true)
-        println("[C++] Copied to ${destLib.absolutePath}")
+        copyNativeLibToJni(
+            appJniRoot = appJniRoot,
+            abi = abi,
+            sourceLib = sourceLib,
+            outputName = "libbridge.so",
+            label = "C++"
+        )
     }
 }
 
@@ -593,6 +606,7 @@ class ResourceDownloader(private val config: ProjectConfig) {
 
     fun downloadGeoFiles() {
         outputDir.mkdirs()
+        PathBudgetGuard.warn(outputDir.absolutePath, "Geo asset output")
 
         val assets = listOf(
             AssetInfo("geoip.metadb", config.getString("asset.geoip.url", "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb")),
@@ -611,43 +625,34 @@ class ResourceDownloader(private val config: ProjectConfig) {
 
     private fun downloadFile(name: String, url: String, compress: Boolean = false) {
         try {
-            println("[Geo] Downloading $name from $url...")
+            val outputFile = File(outputDir, if (compress) "${name}.xz" else name)
+            PathBudgetGuard.ensure(outputFile.absolutePath, "Geo asset")
+            if (outputFile.exists() && outputFile.length() > 0L) {
+                println("[Geo] Skipping $name, cached output exists: ${outputFile.absolutePath}")
+                return
+            }
 
-            val tempFile = File.createTempFile("geo-", "-${name}")
-            tempFile.deleteOnExit()
+            println("[Geo] Downloading $name from $url...")
 
             val connection = URL(url).openConnection()
             connection.connect()
-            connection.getInputStream().use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
+            connection.getInputStream().buffered().use { input ->
+                if (compress) {
+                    outputFile.outputStream().buffered().use { fileOutput ->
+                        XZOutputStream(fileOutput, LZMA2Options()).use { xzOutput ->
+                            input.copyTo(xzOutput)
+                        }
+                    }
+                    println("[Geo] Downloaded and compressed $name -> ${outputFile.absolutePath}")
+                } else {
+                    outputFile.outputStream().buffered().use { output ->
+                        input.copyTo(output)
+                    }
+                    println("[Geo] Downloaded $name to ${outputFile.absolutePath}")
                 }
-            }
-
-            if (compress) {
-                val outputFile = File(outputDir, "${name}.xz")
-                compressToXz(tempFile, outputFile)
-                println("[Geo] Downloaded and compressed $name -> ${outputFile.absolutePath}")
-            } else {
-                val outputFile = File(outputDir, name)
-                tempFile.copyTo(outputFile, overwrite = true)
-                println("[Geo] Downloaded $name to ${outputFile.absolutePath}")
             }
         } catch (e: Exception) {
             println("[Geo] Failed to download $name: ${e.message}")
-        }
-    }
-
-    private fun compressToXz(sourceFile: File, outputFile: File) {
-        if (outputFile.exists()) {
-            outputFile.delete()
-        }
-        sourceFile.inputStream().buffered().use { input ->
-            outputFile.outputStream().buffered().use { fileOutput ->
-                XZOutputStream(fileOutput, LZMA2Options()).use { xzOutput ->
-                    input.copyTo(xzOutput)
-                }
-            }
         }
     }
 }
@@ -660,7 +665,6 @@ fun printUsage() {
 
         Options:
           --go       Build Go native libraries
-          --rust     Build Rust config compiler
           --cpp      Generate CMake/git info
           --geo      Download and compress GeoIP/GeoSite assets into app/assets with XZ
           --clean    Clean build outputs
@@ -674,13 +678,13 @@ fun cleanBuildOutputs() {
     File("build/native").deleteRecursively()
     File("build/generated").deleteRecursively()
     listOf("geoip.metadb.xz", "geosite.dat.xz", "ASN.mmdb.xz").forEach { name ->
-        File("app/assets/$name").delete()
+        File("build/generated/assets/geo/$name").delete()
     }
 
     val abis = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
     abis.forEach { abi ->
+        File("jniLibs/$abi/libyume.so").delete()
         File("jniLibs/$abi/libclash.so").delete()
-        File("jniLibs/$abi/liboverride.so").delete()
         File("jniLibs/$abi/libbridge.so").delete()
     }
     println("[Clean] Done")
@@ -716,20 +720,14 @@ fun main(args: Array<String>) {
 
     println("NDK: ${ndkTools.ndkDir.absolutePath}")
     println("Go: ${if (SystemDetector.checkCommandExists("go")) "OK" else "NOT FOUND"}")
-    println("Rust: ${if (SystemDetector.checkCommandExists("cargo")) "OK" else "NOT FOUND"}")
     println("XZ library: org.tukaani:xz:1.12")
 
     val buildGo = args.isEmpty() || args.contains("--all") || args.contains("--go")
-    val buildRust = args.isEmpty() || args.contains("--all") || args.contains("--rust")
     val buildCpp = args.isEmpty() || args.contains("--all") || args.contains("--cpp")
     val downloadGeo = args.isEmpty() || args.contains("--all") || args.contains("--geo")
 
     if (buildGo) {
         GoBuilder(config, ndkTools).buildAll()
-    }
-
-    if (buildRust) {
-        RustBuilder(config).buildAll()
     }
 
     if (buildCpp) {

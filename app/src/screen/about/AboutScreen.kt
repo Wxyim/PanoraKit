@@ -30,10 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.BuildConfig
-import com.github.yumelira.yumebox.R
+import com.github.nomadboxlab.monadbox.BuildConfig
+import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.common.util.openUrl
-import com.github.yumelira.yumebox.core.bridge.Bridge
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
@@ -47,20 +46,21 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private object AboutPageMetrics {
+    val HeroTopSpacing = 24.dp
+    val HeroIconSize = 120.dp
+    val HeroIconCornerRadius = 24.dp
+    val HeroSectionSpacing = 24.dp
+    val HeroMetaSpacing = 8.dp
+    val FooterTopPadding = 32.dp
+    val FooterBottomSpacing = 32.dp
+}
+
 @Composable
 @Destination<RootGraph>
 fun AboutScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
-    var coreVersion by remember { mutableStateOf(MLang.About.App.VersionLoading) }
-
-    LaunchedEffect(Unit) {
-        coreVersion = try {
-            Bridge.nativeCoreVersion()
-        } catch (_: Exception) {
-            MLang.About.App.VersionFailed
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -76,47 +76,44 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroTopSpacing))
 
                     Icon(
                         painter = painterResource(id = R.drawable.yume),
-                        contentDescription = "App Icon",
+                        contentDescription = null,
                         modifier = Modifier
-                            .size(120.dp)
-                            .clip(RoundedCornerShape(24.dp)),
+                            .size(AboutPageMetrics.HeroIconSize)
+                            .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
                         tint = Color.Unspecified,
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroSectionSpacing))
 
-                    Text(text = "YumeBox", style = MiuixTheme.textStyles.title1)
+                    Text(text = "MonadBox", style = MiuixTheme.textStyles.title1)
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
 
                     Text(
-                        text = "${BuildConfig.VERSION_NAME} ($coreVersion)",
+                        text = MLang.About.App.VersionWithMihomo.format(
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.MIHOMO_VERSION,
+                        ),
                         style = MiuixTheme.textStyles.body1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
                 }
 
                 Card {
                     BasicComponent(
-                        title = "YumeBox",
-                        summary = "An open-source Android client based Mihomo",
+                        title = "MonadBox",
+                        summary = MLang.About.App.Description,
                     )
                 }
 
                 SmallTitle(MLang.About.Section.ProjectLinks)
                 Card {
-                    AboutLinkItem(
-                        title = "YumeBox",
-                        url = "https://github.com/YumeLira/YumeBox",
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = false,
-                    )
                     AboutLinkItem(
                         title = "Mihomo",
                         url = "https://github.com/MetaCubeX/mihomo",
@@ -125,24 +122,13 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     )
                 }
 
-                SmallTitle(MLang.About.Section.More)
+                SmallTitle(MLang.About.Section.Credits)
                 Card {
-                    SuperArrow(
-                        title = MLang.About.License.CheckUpdate,
-                        summary = MLang.About.License.CheckUpdateSummary,
-                        onClick = { openUrl(context, "https://github.com/YumeLira/YumeBox/releases") },
-                    )
                     AboutLinkItem(
-                        title = MLang.About.Link.TelegramGroup,
-                        url = "https://t.me/OOM_Group",
+                        title = "YumeBox (Upstream)",
+                        url = "https://github.com/YumeLira/YumeBox",
                         onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = true,
-                    )
-                    AboutLinkItem(
-                        title = MLang.About.Link.TelegramChannel,
-                        url = "https://t.me/YumeLira",
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = true,
+                        showArrow = false,
                     )
                 }
 
@@ -164,7 +150,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp),
+                        .padding(top = AboutPageMetrics.FooterTopPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -172,7 +158,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         style = MiuixTheme.textStyles.footnote1,
                     )
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
             }
         }
     }

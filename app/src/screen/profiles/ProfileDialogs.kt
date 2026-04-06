@@ -48,6 +48,10 @@ private const val PROFILE_SETTINGS_MIN_HEIGHT_FRACTION = 0.5f
 private const val PROFILE_SETTINGS_MAX_HEIGHT_FRACTION = 0.7f
 private val PROFILE_SETTINGS_LIST_MAX_HEIGHT = 420.dp
 private const val SYSTEM_OVERRIDE_PREFIX = "preset-"
+private object ProfileDialogMetrics {
+    val BottomPadding = 16.dp
+    val SectionSpacing = 16.dp
+}
 
 @Composable
 internal fun EditProfileNameDialog(
@@ -268,8 +272,8 @@ internal fun ProfileSettingsDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = minimumSheetHeight, max = maximumSheetHeight)
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(bottom = ProfileDialogMetrics.BottomPadding),
+                verticalArrangement = Arrangement.spacedBy(ProfileDialogMetrics.SectionSpacing),
             ) {
                 TextField(
                     value = editName,

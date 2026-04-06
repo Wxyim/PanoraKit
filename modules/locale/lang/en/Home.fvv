@@ -1,0 +1,41 @@
+<Home Page>
+Home = {
+    Title = "MonadBox"
+
+    Message = {
+        ConfigSwitched = "Config switched"
+        ConfigSwitchFailed = "Config switch failed: %s"
+        Preparing = "Preparing..."
+        StartFailed = "Start failed: %s"
+        StopFailed = "Stop failed: %s"
+    }
+
+    Control = {
+        HintAddProfile = "Please add a profile first"
+        HintEnableProfile = "Please enable a profile in Config page first"
+    }
+
+    Profile = {
+        NoProfile = "No Profile"
+        Direct = "Direct"
+        Proxy = "Proxy"
+        Reject = "Reject"
+        Global = "Global"
+        Rule = "Rule"
+    }
+
+    NodeInfo = {
+        Node = "Node"
+        Delay = "Delay"
+        Unknown = "--"
+    }
+
+    IpInfo = {
+        ExitIp = "Exit IP"
+    }
+
+    Status = {
+        Running = "Running"
+        TapToStart = "Tap to start"
+    }
+}

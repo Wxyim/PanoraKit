@@ -58,12 +58,17 @@ fun OverrideScreen(navigator: DestinationsNavigator) {
         )
     }, onOpenCodeEditor = { configId, configName ->
         val jsonContent = overrideConfigViewModel.getConfigJsonContent(configId) ?: "{}"
+        val isReadOnly = overrideConfigViewModel.isCodeEditorReadOnly(configId)
         OverrideStructuredEditorStore.setupConfigPreview(
             title = configName,
             content = jsonContent,
             language = LanguageScope.Json,
-            callback = { content ->
-                overrideConfigViewModel.saveConfigJsonContent(configId, content)
+            callback = if (isReadOnly) {
+                null
+            } else {
+                { content ->
+                    overrideConfigViewModel.saveConfigJsonContent(configId, content)
+                }
             },
         )
         navigator.navigate(OverrideConfigPreviewRouteDestination)

@@ -25,8 +25,6 @@ package com.github.yumelira.yumebox.screen.home
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,8 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.common.AppConstants
@@ -59,31 +60,69 @@ fun TrafficDisplay(
     tunnelMode: TunnelState.Mode?,
     isRunning: Boolean,
     proxyMode: ProxyMode,
-    isEnabled: Boolean,
-    onClick: () -> Unit,
+    onModeBadgeBoundsChanged: (Rect) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                enabled = isEnabled,
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick
-            )
-            .padding(top = 60.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth(),
     ) {
-        DownloadSection(
-            downloadSpeed = trafficNow.download,
-            profileName = profileName,
-            tunnelMode = tunnelMode
-        )
+        val metrics = remember(maxWidth) { HomeTrafficMetrics.from(maxWidth) }
 
-        UploadSection(uploadSpeed = trafficNow.upload, isRunning = isRunning, proxyMode = proxyMode)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = metrics.topPadding, bottom = metrics.bottomPadding),
+            verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing)
+        ) {
+            DownloadSection(
+                downloadSpeed = trafficNow.download,
+                profileName = profileName,
+                tunnelMode = tunnelMode,
+                metrics = metrics,
+                onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
+            )
+
+            UploadSection(
+                uploadSpeed = trafficNow.upload,
+                metrics = metrics,
+            )
+
+            Column(
+                modifier = Modifier.animateContentSize(
+                    tween(
+                        AnimationSpecs.DURATION_FAST,
+                        easing = AnimationSpecs.EmphasizedDecelerate
+                    )
+                ),
+                verticalArrangement = Arrangement.spacedBy(metrics.capsuleSectionSpacing)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(metrics.capsuleSpacing),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ProxyStatusCapsule(
+                        isRunning = isRunning,
+                        metrics = metrics,
+                    )
+                    AnimatedVisibility(
+                        visible = isRunning,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { it / 2 },
+                            animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate)
+                        ) + fadeIn(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { it / 2 },
+                            animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
+                        ) + fadeOut(tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.ExitEasing))
+                    ) {
+                        ProxyTypeCapsule(
+                            proxyMode = proxyMode,
+                            metrics = metrics,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -91,7 +130,9 @@ fun TrafficDisplay(
 private fun DownloadSection(
     downloadSpeed: Long,
     profileName: String?,
-    tunnelMode: TunnelState.Mode?
+    tunnelMode: TunnelState.Mode?,
+    metrics: HomeTrafficMetrics,
+    onModeBadgeBoundsChanged: (Rect) -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.Start) {
         Row(
@@ -101,36 +142,47 @@ private fun DownloadSection(
         ) {
             Text(
                 text = "DOWNLOAD",
-                style = MiuixTheme.textStyles.footnote1.copy(fontSize = 14.sp),
+                style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
 
-            ProfileModeBadge(profileName = profileName, tunnelMode = tunnelMode)
+            ProfileModeBadge(
+                profileName = profileName,
+                tunnelMode = tunnelMode,
+                metrics = metrics,
+                onBoundsChanged = onModeBadgeBoundsChanged,
+            )
         }
 
-        SpeedValue(speed = downloadSpeed)
+        SpeedValue(speed = downloadSpeed, metrics = metrics)
     }
 }
 
 @Composable
 private fun ProfileModeBadge(
     profileName: String?,
-    tunnelMode: TunnelState.Mode?
+    tunnelMode: TunnelState.Mode?,
+    metrics: HomeTrafficMetrics,
+    onBoundsChanged: (Rect) -> Unit,
 ) {
     Surface(
-        color = MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
+        color = MiuixTheme.colorScheme.primary.copy(alpha = 0.08f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier.height(28.dp)
+        modifier = Modifier
+            .height(metrics.capsuleHeight)
+            .onGloballyPositioned { coordinates ->
+                onBoundsChanged(coordinates.boundsInRoot())
+            }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleInnerSpacing)
         ) {
             Text(
-                text = profileName ?: "No Profile",
+                text = profileName ?: MLang.Home.Profile.NoProfile,
                 style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = 12.sp,
+                    fontSize = metrics.capsuleTextSize,
                     fontWeight = FontWeight.Bold
                 ),
                 color = MiuixTheme.colorScheme.primary
@@ -138,14 +190,14 @@ private fun ProfileModeBadge(
 
             Box(
                 modifier = Modifier
-                    .size(4.dp)
+                    .size(metrics.capsuleDotSize)
                     .background(MiuixTheme.colorScheme.primary, CircleShape)
             )
 
             Text(
                 text = tunnelMode.toDisplayName(),
                 style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = 12.sp,
+                    fontSize = metrics.capsuleTextSize,
                     fontWeight = FontWeight.Bold
                 ),
                 color = MiuixTheme.colorScheme.primary
@@ -155,87 +207,66 @@ private fun ProfileModeBadge(
 }
 
 @Composable
-private fun SpeedValue(speed: Long) {
+private fun SpeedValue(speed: Long, metrics: HomeTrafficMetrics) {
     val (value, unit) = formatBytesForDisplay(speed)
     Row(verticalAlignment = Alignment.Bottom) {
         Text(
             text = value,
             style = MiuixTheme.textStyles.headline1.copy(
-                fontSize = AppConstants.UI.TRAFFIC_FONT_SIZE,
-                lineHeight = AppConstants.UI.TRAFFIC_FONT_SIZE,
-                letterSpacing = AppConstants.UI.TRAFFIC_LETTER_SPACING
+                fontSize = metrics.trafficFontSize,
+                lineHeight = metrics.trafficFontSize,
+                letterSpacing = metrics.trafficLetterSpacing
             ),
             color = MiuixTheme.colorScheme.primary
         )
         Text(
             text = unit,
             style = MiuixTheme.textStyles.title2.copy(
-                fontSize = AppConstants.UI.TRAFFIC_UNIT_FONT_SIZE
+                fontSize = metrics.trafficUnitFontSize
             ),
             color = MiuixTheme.colorScheme.primary.copy(alpha = 0.5f),
-            modifier = Modifier.padding(bottom = 14.dp, start = 8.dp)
+            modifier = Modifier.padding(bottom = metrics.unitBottomPadding, start = metrics.unitStartPadding)
         )
     }
 }
 
 @Composable
-private fun UploadSection(uploadSpeed: Long, isRunning: Boolean, proxyMode: ProxyMode) {
+private fun UploadSection(uploadSpeed: Long, metrics: HomeTrafficMetrics) {
     val (value, unit) = formatBytesForDisplay(uploadSpeed)
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(metrics.uploadValueSpacing)
         ) {
             Text(
                 text = "UPLOAD",
-                style = MiuixTheme.textStyles.footnote1.copy(fontSize = 14.sp),
+                style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
             Text(
                 text = "$value $unit",
-                style = MiuixTheme.textStyles.title2.copy(fontSize = 20.sp),
+                style = MiuixTheme.textStyles.title2.copy(fontSize = metrics.uploadValueFontSize),
                 color = MiuixTheme.colorScheme.primary
             )
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.animateContentSize(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate))
-        ) {
-            ProxyStatusCapsule(isRunning = isRunning)
-            AnimatedVisibility(
-                visible = isRunning,
-                enter = slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate)
-                ) + fadeIn(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)),
-                exit = slideOutHorizontally(
-                    targetOffsetX = { it },
-                    animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
-                ) + fadeOut(tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.ExitEasing))
-            ) {
-                ProxyTypeCapsule(proxyMode = proxyMode)
-            }
         }
     }
 }
 
 @Composable
-private fun ProxyTypeCapsule(proxyMode: ProxyMode) {
+private fun ProxyTypeCapsule(proxyMode: ProxyMode, metrics: HomeTrafficMetrics) {
     val primary = MiuixTheme.colorScheme.primary
     Surface(
         color = primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier.height(28.dp)
+        modifier = Modifier.height(metrics.capsuleHeight)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing)
         ) {
             Icon(
                 imageVector = when (proxyMode) {
@@ -245,7 +276,7 @@ private fun ProxyTypeCapsule(proxyMode: ProxyMode) {
                 },
                 contentDescription = null,
                 tint = primary,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(metrics.capsuleIconSize)
             )
             Text(
                 text = when (proxyMode) {
@@ -254,7 +285,7 @@ private fun ProxyTypeCapsule(proxyMode: ProxyMode) {
                     ProxyMode.Http -> "HTTP"
                 },
                 style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = 12.sp,
+                    fontSize = metrics.capsuleTextSize,
                     fontWeight = FontWeight.Bold
                 ),
                 color = primary
@@ -264,13 +295,16 @@ private fun ProxyTypeCapsule(proxyMode: ProxyMode) {
 }
 
 @Composable
-private fun ProxyStatusCapsule(isRunning: Boolean) {
+private fun ProxyStatusCapsule(
+    isRunning: Boolean,
+    metrics: HomeTrafficMetrics,
+) {
     val primary = MiuixTheme.colorScheme.primary
     Surface(
         color = primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
         modifier = Modifier
-            .height(28.dp)
+            .height(metrics.capsuleHeight)
             .animateContentSize(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate))
     ) {
         AnimatedContent(
@@ -291,19 +325,19 @@ private fun ProxyStatusCapsule(isRunning: Boolean) {
         ) { running ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
+                horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing)
             ) {
                 Icon(
                     imageVector = if (running) Yume.Activity else Yume.Rocket,
                     contentDescription = null,
                     tint = primary,
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(metrics.capsuleIconSize)
                 )
                 Text(
                     text = if (running) MLang.Home.Status.Running else MLang.Home.Status.TapToStart,
                     style = MiuixTheme.textStyles.footnote1.copy(
-                        fontSize = 12.sp,
+                        fontSize = metrics.capsuleTextSize,
                         fontWeight = FontWeight.Bold
                     ),
                     color = primary
@@ -314,8 +348,61 @@ private fun ProxyStatusCapsule(isRunning: Boolean) {
 }
 
 private fun TunnelState.Mode?.toDisplayName(): String = when (this) {
-    TunnelState.Mode.Direct -> "Direct"
-    TunnelState.Mode.Global -> "Global"
-    TunnelState.Mode.Rule -> "Rule"
-    else -> "Rule"
+    TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
+    TunnelState.Mode.Global -> MLang.Home.Profile.Global
+    TunnelState.Mode.Rule -> MLang.Home.Profile.Rule
+    else -> MLang.Home.Profile.Rule
+}
+
+private data class HomeTrafficMetrics(
+    val topPadding: Dp,
+    val bottomPadding: Dp,
+    val sectionSpacing: Dp,
+    val capsuleSectionSpacing: Dp,
+    val capsuleSpacing: Dp,
+    val labelFontSize: androidx.compose.ui.unit.TextUnit,
+    val trafficFontSize: androidx.compose.ui.unit.TextUnit,
+    val trafficLetterSpacing: androidx.compose.ui.unit.TextUnit,
+    val trafficUnitFontSize: androidx.compose.ui.unit.TextUnit,
+    val unitBottomPadding: Dp,
+    val unitStartPadding: Dp,
+    val uploadSectionSpacing: Dp,
+    val uploadValueSpacing: Dp,
+    val uploadValueFontSize: androidx.compose.ui.unit.TextUnit,
+    val capsuleHeight: Dp,
+    val capsuleHorizontalPadding: Dp,
+    val capsuleInnerSpacing: Dp,
+    val capsuleIconSpacing: Dp,
+    val capsuleIconSize: Dp,
+    val capsuleDotSize: Dp,
+    val capsuleTextSize: androidx.compose.ui.unit.TextUnit,
+) {
+    companion object {
+        fun from(width: Dp): HomeTrafficMetrics {
+            val scale = (width / 390.dp).coerceIn(0.9f, 1f)
+            return HomeTrafficMetrics(
+                topPadding = (60.dp * scale).coerceIn(48.dp, 60.dp),
+                bottomPadding = (16.dp * scale).coerceIn(12.dp, 16.dp),
+                sectionSpacing = (24.dp * scale).coerceIn(18.dp, 24.dp),
+                capsuleSectionSpacing = (18.dp * scale).coerceIn(14.dp, 18.dp),
+                capsuleSpacing = (8.dp * scale).coerceIn(6.dp, 8.dp),
+                labelFontSize = (14f * scale).coerceIn(13f, 14f).sp,
+                trafficFontSize = (96f * scale).coerceIn(80f, 96f).sp,
+                trafficLetterSpacing = (-3f * scale).coerceIn(-3f, -2f).sp,
+                trafficUnitFontSize = (24f * scale).coerceIn(20f, 24f).sp,
+                unitBottomPadding = (14.dp * scale).coerceIn(10.dp, 14.dp),
+                unitStartPadding = (8.dp * scale).coerceIn(6.dp, 8.dp),
+                uploadSectionSpacing = (10.dp * scale).coerceIn(8.dp, 10.dp),
+                uploadValueSpacing = (12.dp * scale).coerceIn(10.dp, 12.dp),
+                uploadValueFontSize = (20f * scale).coerceIn(18f, 20f).sp,
+                capsuleHeight = (28.dp * scale).coerceIn(26.dp, 28.dp),
+                capsuleHorizontalPadding = (12.dp * scale).coerceIn(10.dp, 12.dp),
+                capsuleInnerSpacing = (8.dp * scale).coerceIn(6.dp, 8.dp),
+                capsuleIconSpacing = (6.dp * scale).coerceIn(5.dp, 6.dp),
+                capsuleIconSize = (12.dp * scale).coerceIn(11.dp, 12.dp),
+                capsuleDotSize = (4.dp * scale).coerceIn(3.dp, 4.dp),
+                capsuleTextSize = (12f * scale).coerceIn(11f, 12f).sp,
+            )
+        }
+    }
 }

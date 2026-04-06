@@ -85,6 +85,7 @@ fun NetworkSettingsScreen(
     val rootTunStrictRoute by viewModel.rootTunStrictRoute.state.collectAsState()
     val rootTunAutoRedirect by viewModel.rootTunAutoRedirect.state.collectAsState()
     val rootTunDnsMode by viewModel.rootTunDnsMode.state.collectAsState()
+    val allowNonLocalhostHttpRemote by viewModel.allowNonLocalhostHttpRemote.state.collectAsState()
     val accessControlMode by viewModel.accessControlMode.state.collectAsState()
 
     val rootTunIfNameDraft by viewModel.rootTunIfNameDraft.collectAsState()
@@ -225,6 +226,12 @@ fun NetworkSettingsScreen(
 
                 SmallTitle(MLang.NetworkSettings.Section.ProxyOptions)
                 Card {
+                    SuperSwitch(
+                        title = MLang.NetworkSettings.ProxyOptions.AllowNonLocalhostHttpRemoteTitle,
+                        summary = MLang.NetworkSettings.ProxyOptions.AllowNonLocalhostHttpRemoteSummary,
+                        checked = allowNonLocalhostHttpRemote,
+                        onCheckedChange = viewModel::onAllowNonLocalhostHttpRemoteChange,
+                    )
                     if (uiState.showAccessControlMode) {
                         EnumSelector(
                             title = MLang.NetworkSettings.ProxyOptions.AccessControlModeTitle,

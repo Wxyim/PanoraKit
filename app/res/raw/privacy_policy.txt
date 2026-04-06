@@ -1,51 +1,50 @@
 Privacy Policy
 
-YumeBox is built as open source software. This app is provided by an individual at no cost and is intended for use as-is.
+YumeBox is an open-source Android client. This app is provided as-is and does not intentionally collect personally identifiable information.
 
-This page is used to inform visitors regarding our policies on the collection, use, and disclosure of Personal Information if anyone decides to use our app.
+Data Collection
 
-If you choose to use our app, then you agree to the collection and use of information in relation to this policy. This fork is intended to avoid integrating third-party analytics, crash reporting, and cloud update SDKs. We will not use or share your information with anyone except as described in this Privacy Policy.
+- No third-party analytics SDKs.
+- No third-party crash reporting SDKs.
+- No cloud update SDKs that upload your usage data.
+- Runtime logs stay on your device unless you explicitly export or share them.
 
-The terms used in this Privacy Policy have the same meanings as in our Terms and Conditions, which are accessible at Clash for Android, unless otherwise defined in this Privacy Policy.
+Permission Usage
 
+- INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE:
+	Used for proxy runtime networking, profile download, and network checks.
+- POST_NOTIFICATIONS:
+	Used for runtime/service status notifications.
+- CAMERA:
+	Optional, only for QR code import.
+- GET_INSTALLED_APPS, QUERY_ALL_PACKAGES:
+	Used for access-control and RootTun app filtering. Package lists are processed locally.
+- Foreground service permissions:
+	Required by Android for VPN/proxy background services.
 
-Information Collection and Use
+YumeBox does not upload your installed app list, profile files, or runtime logs to an app-owned cloud backend.
 
-This fork does not intentionally collect personally identifiable information and does not bundle third-party analytics, crash reporting, or cloud update SDKs.
+File Access And Sharing
 
-
-Log Data
-
-If the app encounters an error, any logs remain on your device unless you choose to export or share them yourself.
-
+- Import/export is user-triggered.
+- Sharing uses Android system sharing (FileProvider) only for files you explicitly choose to export.
 
 Cookies
 
-Cookies are files with a small amount of data that are commonly used as anonymous unique identifiers. These are sent to your browser from the websites that you visit and are stored on your device's internal memory.
-
-This app does not use cookies explicitly, and this fork does not intentionally include third-party services that place cookies or similar cross-site identifiers.
-
+YumeBox itself does not use web cookies. Third-party websites opened from app links may use their own cookie/privacy policies.
 
 Security
 
-We value your trust in providing us your Personal Information, thus we strive to use commercially acceptable means of protecting it. But remember that no method of transmission over the internet, or method of electronic storage is 100% secure and reliable, and we cannot guarantee its absolute security.
+We use reasonable measures to protect local data, but no method can guarantee absolute security.
 
+Children's Privacy
 
-Links to Other Sites
+YumeBox is not specifically directed to children under 13, and we do not knowingly collect personal data from children.
 
-This app may contain links to other sites. If you click on a third-party link, you will be directed to that site. Note that these external sites are not operated by us. Therefore, we strongly advise you to review the Privacy Policy of these websites. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
+Changes To This Policy
 
+This policy may be updated over time. Updates are effective after publication in repository and app resources.
 
-Children’s Privacy
+Contact
 
-These services do not address anyone under the age of 13. We do not knowingly collect personally identifiable information from children under 13. In the case we discover that a child under 13 has provided us with personal information, we immediately delete this from our servers. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact us so that we will be able to take necessary actions.
-
-
-Changes to This Privacy Policy
-
-We may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. We will notify you of any changes by posting the new Privacy Policy on this page. These changes are effective immediately after they are posted on this page.
-
-
-Contact Us
-
-If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us.
+If you have questions or suggestions about this Privacy Policy, contact project maintainers via repository issues.

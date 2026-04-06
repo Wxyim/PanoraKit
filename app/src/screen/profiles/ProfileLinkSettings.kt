@@ -39,6 +39,16 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private object ProfileLinkSheetMetrics {
+    val BottomPadding = 16.dp
+    val SectionSpacing = 12.dp
+    val FormSpacing = 16.dp
+    val LinkRowHorizontalPadding = 16.dp
+    val LinkRowVerticalPadding = 12.dp
+    val DividerHorizontalPadding = 16.dp
+    val LinkListMaxHeight = 360.dp
+}
+
 @Composable
 internal fun LinkSettingsDialog(
     show: MutableState<Boolean>,
@@ -78,8 +88,8 @@ internal fun LinkSettingsDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
+                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
             ) {
 
                 top.yukonga.miuix.kmp.basic.Card {
@@ -114,13 +124,20 @@ internal fun LinkSettingsDialog(
 
                 if (links.isNotEmpty()) {
                     top.yukonga.miuix.kmp.basic.Card {
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = ProfileLinkSheetMetrics.LinkListMaxHeight)
+                        ) {
                             links.forEachIndexed { index, link ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { onOpenLink(link) }
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        .padding(
+                                            horizontal = ProfileLinkSheetMetrics.LinkRowHorizontalPadding,
+                                            vertical = ProfileLinkSheetMetrics.LinkRowVerticalPadding,
+                                        ),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically) {
                                     Column(modifier = Modifier.weight(1f)) {
@@ -140,7 +157,7 @@ internal fun LinkSettingsDialog(
                                         onClick = { onDeleteLink(link.id) }) {
                                         Icon(
                                             imageVector = MiuixIcons.Delete,
-                                            contentDescription = "Delete",
+                                            contentDescription = MLang.Component.Editor.Action.Delete,
                                             tint = MiuixTheme.colorScheme.error
                                         )
                                     }
@@ -148,7 +165,7 @@ internal fun LinkSettingsDialog(
 
                                 if (index < links.size - 1) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        modifier = Modifier.padding(horizontal = ProfileLinkSheetMetrics.DividerHorizontalPadding),
                                         thickness = 0.5.dp,
                                         color = MiuixTheme.colorScheme.outline.copy(alpha = 0.3f)
                                     )
@@ -160,7 +177,7 @@ internal fun LinkSettingsDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
                 ) {
                     TextButton(
                         text = MLang.ProfilesPage.LinkSettings.Close,
@@ -220,8 +237,8 @@ internal fun AddLinkDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
+                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.FormSpacing)
             ) {
                 TextField(
                     value = currentName, onValueChange = {
@@ -247,7 +264,7 @@ internal fun AddLinkDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
                 ) {
                     Button(
                         onClick = onDismiss, modifier = Modifier.weight(1f)

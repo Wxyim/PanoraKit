@@ -26,6 +26,16 @@ func LoadCompiled(path string) error {
 		return err
 	}
 
+	configMu.Lock()
+	currentUiConfiguration = RuntimeUiConfiguration{
+		ExternalController:    rawCfg.ExternalController,
+		ExternalControllerTLS: rawCfg.ExternalControllerTLS,
+		Secret:                rawCfg.Secret,
+		ConfigSource:          "compiled",
+		ConfigPath:            path,
+	}
+	configMu.Unlock()
+
 	cfg, err := config.Parse(configData)
 	if err != nil {
 		log.Errorln("Load compiled %s: %s", path, err.Error())

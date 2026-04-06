@@ -23,18 +23,23 @@
 package com.github.yumelira.yumebox.screen.settings
 
 import androidx.lifecycle.ViewModel
+import com.github.yumelira.yumebox.common.util.StorageCleanupManager
+import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.AppColorTheme
+import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.store.Preference
 
 class AppSettingsViewModel(
     private val repository: AppSettingsRepository,
+    private val cleanupManager: StorageCleanupManager,
 ) : ViewModel() {
 
     val initialSetupCompleted: Preference<Boolean> = repository.initialSetupCompleted
     val privacyPolicyAccepted: Preference<Boolean> = repository.privacyPolicyAccepted
 
+    val appLanguage: Preference<AppLanguage> = repository.appLanguage
     val themeMode: Preference<ThemeMode> = repository.themeMode
     val colorTheme: Preference<AppColorTheme> = repository.colorTheme
     val themeSeedColorArgb: Preference<Long> = repository.themeSeedColorArgb
@@ -48,9 +53,15 @@ class AppSettingsViewModel(
     val bottomBarLiquidGlassEnabled: Preference<Boolean> = repository.bottomBarLiquidGlassEnabled
     val pageScale: Preference<Float> = repository.pageScale
     val singleNodeTest: Preference<Boolean> = repository.singleNodeTest
+    val cleanupAutoEnabled: Preference<Boolean> = repository.cleanupAutoEnabled
+    val cleanupPolicy: Preference<CleanupPolicy> = repository.cleanupPolicy
+    val cleanupThresholdMb: Preference<Int> = repository.cleanupThresholdMb
+    val cleanupIntervalHours: Preference<Int> = repository.cleanupIntervalHours
+    val cleanupLastRunAt: Preference<Long> = repository.cleanupLastRunAt
 
     val customUserAgent: Preference<String> = repository.customUserAgent
 
+    fun onAppLanguageChange(language: AppLanguage) = repository.onAppLanguageChange(language)
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
     fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
     fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
@@ -65,8 +76,16 @@ class AppSettingsViewModel(
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
     fun onSingleNodeTestChange(enabled: Boolean) = singleNodeTest.set(enabled)
+    fun onCleanupAutoEnabledChange(enabled: Boolean) = cleanupAutoEnabled.set(enabled)
+    fun onCleanupPolicyChange(policy: CleanupPolicy) = cleanupPolicy.set(policy)
+    fun onCleanupThresholdMbChange(value: Int) = cleanupThresholdMb.set(value.coerceIn(64, 4096))
+    fun onCleanupIntervalHoursChange(value: Int) = cleanupIntervalHours.set(value.coerceIn(1, 48))
 
     fun applyCustomUserAgent(userAgent: String) = repository.applyCustomUserAgent(userAgent)
+
+    suspend fun runCleanupNow(): StorageCleanupManager.CleanupResult {
+        return cleanupManager.runCleanupNow()
+    }
 
     fun setInitialSetupCompleted(completed: Boolean) = initialSetupCompleted.set(completed)
     fun setPrivacyPolicyAccepted(accepted: Boolean) = privacyPolicyAccepted.set(accepted)

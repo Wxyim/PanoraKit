@@ -9,7 +9,7 @@ import (
 	U "net/url"
 	"os"
 	P "path"
-	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +52,10 @@ func openUrl(ctx context.Context, url string) (io.ReadCloser, error) {
 		return nil, err
 	}
 
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		response.Body.Close()
+		return nil, fmt.Errorf("HTTP %d fetching %s", response.StatusCode, url)
+	}
 
 	return response.Body, nil
 }
@@ -91,7 +95,8 @@ func fetch(url *U.URL, file string) error {
 
 	defer f.Close()
 
-	_, err = io.Copy(f, reader)
+	const maxConfigBytes = 50 * 1024 * 1024 // 50 MiB guard against oversized subscription responses
+	_, err = io.Copy(f, io.LimitReader(reader, maxConfigBytes))
 	if err != nil {
 		_ = os.Remove(file)
 	}
@@ -127,12 +132,12 @@ func FetchAndValid(
 		}
 	}
 
-	defer runtime.GC()
-
 	rawCfg, err := UnmarshalAndPatch(path)
 	if err != nil {
 		return err
 	}
+
+	providerFetchFailures := make([]string, 0)
 
 	forEachProviders(rawCfg, func(index int, total int, name string, provider map[string]any, prefix string) {
 		bytes, _ := json.Marshal(&Status{
@@ -164,11 +169,18 @@ func FetchAndValid(
 
 		url, err := U.Parse(us)
 		if err != nil {
+			providerFetchFailures = append(providerFetchFailures, fmt.Sprintf("%s: invalid provider url", name))
 			return
 		}
 
-		_ = fetch(url, ps)
+		if err := fetch(url, ps); err != nil {
+			providerFetchFailures = append(providerFetchFailures, fmt.Sprintf("%s: %v", name, err))
+		}
 	})
+
+	if len(providerFetchFailures) > 0 {
+		return fmt.Errorf("provider fetch failed: %s", strings.Join(providerFetchFailures, "; "))
+	}
 
 	bytes, _ := json.Marshal(&Status{
 		Action:      "Verifying",

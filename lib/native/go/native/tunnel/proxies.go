@@ -27,12 +27,15 @@ type Proxy struct {
 	Subtitle string `json:"subtitle"`
 	Type     string `json:"type"`
 	Delay    int    `json:"delay"`
+	Hidden   bool   `json:"hidden"`
+	Icon     string `json:"icon"`
 }
 
 type ProxyGroup struct {
 	Name    string   `json:"name,omitempty"`
 	Type    string   `json:"type"`
 	Now     string   `json:"now"`
+	Hidden  bool     `json:"hidden"`
 	Icon    string   `json:"icon,omitempty"`
 	Proxies []*Proxy `json:"proxies"`
 }
@@ -126,6 +129,7 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 		Name:    name,
 		Type:    g.Type().String(),
 		Now:     g.Now(),
+		Hidden:  g.Hidden(),
 		Icon:    proxyGroupIcon(g),
 		Proxies: proxies,
 	}
@@ -213,6 +217,8 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 			Subtitle: strings.TrimSpace(subtitle),
 			Type:     p.Type().String(),
 			Delay:    int(p.LastDelayForTestUrl(testURL)),
+			Hidden:   proxyHidden(p),
+			Icon:     proxyIcon(p),
 		})
 	}
 	return result
@@ -252,9 +258,25 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 				Subtitle: strings.TrimSpace(subtitle),
 				Type:     px.Type().String(),
 				Delay:    int(px.LastDelayForTestUrl(testURL)),
+				Hidden:   proxyHidden(px),
+				Icon:     proxyIcon(px),
 			})
 		}
 	}
 
 	return result
+}
+
+func proxyHidden(proxy C.Proxy) bool {
+	if group, ok := proxy.Adapter().(outboundgroup.ProxyGroup); ok {
+		return group.Hidden()
+	}
+	return false
+}
+
+func proxyIcon(proxy C.Proxy) string {
+	if group, ok := proxy.Adapter().(outboundgroup.ProxyGroup); ok {
+		return group.Icon()
+	}
+	return ""
 }

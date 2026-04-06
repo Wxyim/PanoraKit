@@ -1,0 +1,49 @@
+<Meta Feature Page>
+MetaFeature = {
+    Title = "Meta 功能"
+
+    RecentRequests = {
+        Title = "最近请求"
+        Summary = "查看最近请求与流量概览"
+    }
+
+    RuntimeConfig = {
+        Title = "运行时配置"
+        Summary = "查看当前 mihomo 的运行时配置快照"
+        LoadFailed = "读取运行时配置失败"
+        NoActiveProfile = "当前没有活动配置"
+        ConfigNotFound = "未找到当前活动配置文件"
+        PreviewTitle = "运行时配置"
+        PreviewTitleWithProfile = "运行时配置 · %s"
+        RuntimeConfigFetchFailed = "无法获取实时配置：%s"
+        RuntimeConfigUnauthorized = "密钥不匹配。请尝试重启内核以同步设置。"
+        RuntimeConfigNotRunning = "无法获取实时配置：内核未运行 (Connection Refused)"
+    }
+
+    GeoX = {
+        OnlineUpdateTitle = "更新 GeoX"
+        OnlineUpdateSummary = "下载数据库文件"
+    }
+
+    Download = {
+        DialogTitle = "更新 GeoX"
+        SelectFiles = "请选择要更新的文件"
+        DownloadComplete = "下载完成：%d/%d"
+    }
+
+    Dashboard = {
+        Title = "网页控制面板"
+        Port = "控制面板端口"
+        PortSummary = "配置网页控制面板的端口"
+        Secret = "API 密钥"
+        SecretSummary = "用于验证控制面板用户的密钥"
+        ShowSecret = "显示密钥"
+        Download = "下载 MetaCubeXD"
+        DownloadSummary = "下载 Web UI 资源并解压到数据目录"
+        DownloadOk = "控制面板 UI 下载完成"
+        DownloadFailed = "下载失败：%s"
+        Launch = "启动控制面板"
+        LaunchSummary = "全屏打开 Web UI"
+        LaunchDisabled = "请先下载面板"
+    }
+}

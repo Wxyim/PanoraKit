@@ -1,0 +1,48 @@
+<Traffic Statistics Page>
+TrafficStatistics = {
+    Title = "Recent Requests"
+    EntrySummary = "View recent requests and traffic overview"
+
+    OverviewTitle = "Traffic Overview"
+
+    RecentRequests = {
+        Title = "Recent Requests"
+        Summary = "Browse recent network requests and matched proxy chains in chronological order"
+        Empty = "No recent requests"
+        UnknownRequest = "Unknown Request"
+        Count = "%d"
+    }
+
+    Status = {
+        Active = "Active"
+        Closed = "Closed"
+    }
+
+    RelativeTime = {
+        JustNow = "Just now"
+        MinutesAgo = "%d min ago"
+        HoursAgo = "%d hr ago"
+    }
+
+    TimeRange = {
+        Today = "Today"
+        Week = "This Week"
+    }
+
+    Summary = {
+        TodayTraffic = "Today's Traffic"
+        WeekTraffic = "This Week's Traffic"
+    }
+
+    Compare = {
+        MoreThanYesterday = "vs yesterday +%s"
+        LessThanYesterday = "vs yesterday %s"
+        SameAsYesterday = "Same as yesterday"
+        WeekStats = "Last 7 days stats"
+    }
+
+    Chart = {
+        Hourly = "4 Hours"
+        Daily = "Daily"
+    }
+}

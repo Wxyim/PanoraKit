@@ -2,11 +2,12 @@
 
 #include <jni.h>
 #include <stdint.h>
+
 #include "jni_raii.hpp"
 
 struct _scoped_jni {
-    JNIEnv* env;
-    int require_release;
+  JNIEnv* env;
+  int require_release;
 };
 
 extern void initialize_jni(JavaVM* vm, JNIEnv* env);
@@ -17,11 +18,10 @@ extern void jni_attach_thread(struct _scoped_jni* jni);
 extern void jni_detach_thread(struct _scoped_jni* jni);
 extern void release_string(char** str);
 
-#define ATTACH_JNI() \
-    __attribute__((unused, cleanup(jni_detach_thread))) \
-    struct _scoped_jni _jni; \
-    jni_attach_thread(&_jni); \
-    JNIEnv* env = _jni.env
+#define ATTACH_JNI()                                                           \
+  __attribute__((unused, cleanup(jni_detach_thread))) struct _scoped_jni _jni; \
+  jni_attach_thread(&_jni);                                                    \
+  JNIEnv* env = _jni.env
 
 #define scoped_string __attribute__((cleanup(release_string))) char*
 

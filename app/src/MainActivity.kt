@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.pager.HorizontalPager
@@ -63,8 +64,6 @@ import androidx.navigation.compose.rememberNavController
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.common.util.IntentController
 import com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper
-import com.github.yumelira.yumebox.common.util.openUrl
-import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.presentation.component.BottomBarContent
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarLiquidState
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBehavior
@@ -79,9 +78,8 @@ import com.github.yumelira.yumebox.presentation.screen.ProxyPager
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
-import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
-import com.github.yumelira.yumebox.presentation.webview.WebViewUtils.getPanelUrl
-import com.github.yumelira.yumebox.screen.home.HomePager
+import com.github.yumelira.yumebox.presentation.theme.YumeTheme
+import com.github.yumelira.yumebox.screen.home.HomeRoute
 import com.github.yumelira.yumebox.screen.onboarding.OnboardingLauncher
 import com.github.yumelira.yumebox.screen.profiles.ProfilesPager
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
@@ -92,6 +90,7 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.github.yumelira.yumebox.core.StoreIds
 import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -127,7 +126,7 @@ class MainActivity : ComponentActivity() {
     private val networkSettingsStorage: com.github.yumelira.yumebox.data.store.NetworkSettingsStorage by inject()
     private val profilesRepository: com.github.yumelira.yumebox.runtime.client.ProfilesRepository by inject()
     private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
-    private val serviceCache: MMKV by inject(qualifier = named("service_cache"))
+    private val serviceCache: MMKV by inject(qualifier = named(StoreIds.SERVICE_CACHE))
 
     private lateinit var intentController: IntentController
 
@@ -149,6 +148,8 @@ class MainActivity : ComponentActivity() {
             finish()
             return
         }
+
+        (application as? App)?.ensureDeferredStartupInitialized()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -236,8 +237,8 @@ class MainActivity : ComponentActivity() {
                 if (scheme == "clash" || scheme == "clashmeta") {
                     val host = uri.host
                     if (host == "install-config") {
-                        val configUrl = uri.getQueryParameter("url")
-                        if (!configUrl.isNullOrBlank()) {
+                        val configUrl = sanitizeImportUrl(uri.getQueryParameter("url"))
+                        if (configUrl != null) {
                             _pendingImportUrl.value = configUrl
                         }
                     }
@@ -246,6 +247,25 @@ class MainActivity : ComponentActivity() {
 
             intentController.handleIntent(safeIntent)
         }
+    }
+
+    private fun sanitizeImportUrl(rawUrl: String?): String? {
+        val candidate = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        if (candidate.length > 2048) {
+            return null
+        }
+        val parsed = runCatching { android.net.Uri.parse(candidate) }.getOrNull() ?: return null
+        val normalizedScheme = parsed.scheme?.lowercase()
+        if (normalizedScheme != "http" && normalizedScheme != "https") {
+            return null
+        }
+        if (parsed.host.isNullOrBlank()) {
+            return null
+        }
+        if (candidate.any { it.isISOControl() }) {
+            return null
+        }
+        return candidate
     }
 
     @Suppress("DEPRECATION")
@@ -279,11 +299,9 @@ fun MainScreen(
     val bottomBarLiquidState = rememberLiquidState()
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-    val featureViewModel = koinViewModel<FeatureViewModel>()
     val bottomBarAutoHideEnabled by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
     val bottomBarLiquidGlassEnabled by appSettingsViewModel.bottomBarLiquidGlassEnabled.state.collectAsState()
-    val selectedPanelType by featureViewModel.selectedPanelType.state.collectAsState()
-    val panelOpenMode by featureViewModel.panelOpenMode.state.collectAsState()
+
     val bottomBarScrollBehavior = rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
 
     var pageChangeJob by remember { mutableStateOf<Job?>(null) }
@@ -291,12 +309,14 @@ fun MainScreen(
     val handlePageChange: (Int) -> Unit =
         remember(pagerState, coroutineScope) {
             { targetPage ->
-                if (targetPage == pagerState.currentPage && !pagerState.isScrollInProgress) return@remember
+                val boundedTargetPage = targetPage.coerceIn(0, 3)
+                if (pagerState.isScrollInProgress) return@remember
+                if (boundedTargetPage == pagerState.currentPage) return@remember
 
                 pageChangeJob?.cancel()
                 pageChangeJob = coroutineScope.launch {
                     pagerState.animateScrollToPage(
-                        page = targetPage,
+                        page = boundedTargetPage,
                     )
                 }
             }
@@ -332,7 +352,7 @@ fun MainScreen(
                         .hazeSource(state = hazeState)
                         .liquefiable(bottomBarLiquidState),
                     state = pagerState,
-                    beyondViewportPageCount = 2,
+                    beyondViewportPageCount = 0,
                     userScrollEnabled = true,
                     pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
                         state = pagerState,
@@ -340,21 +360,15 @@ fun MainScreen(
                     ),
                 ) { page ->
                     when (page) {
-                        0 -> HomePager(safeMainPadding)
+                        0 -> HomeRoute(
+                            mainInnerPadding = safeMainPadding,
+                            isActive = page == pagerState.currentPage,
+                        )
                         1 -> ProxyPager(
                             mainInnerPadding = safeMainPadding,
                             onNavigateToProviders = {
                                 navigator.navigate(ProvidersScreenDestination) {
                                     launchSingleTop = true
-                                }
-                            },
-                            onOpenPanel = onOpenPanel@{
-                                val context = activity ?: return@onOpenPanel
-                                val panelUrl = getPanelUrl(selectedPanelType)
-                                if (panelUrl.isEmpty()) return@onOpenPanel
-                                when (panelOpenMode) {
-                                    LinkOpenMode.IN_APP -> WebViewActivity.start(context, panelUrl)
-                                    LinkOpenMode.EXTERNAL_BROWSER -> openUrl(context, panelUrl)
                                 }
                             },
                             isActive = page == pagerState.currentPage,

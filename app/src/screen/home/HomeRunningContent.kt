@@ -39,10 +39,9 @@ fun HomeRunningContent(
     isRunning: Boolean,
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
-    serverName: String?,
-    serverPing: Int?,
+    selectedServer: HomeSelectedServerState?,
     ipMonitoringState: IpMonitoringState,
-    speedHistory: List<Long>,
+    speedHistory: SpeedHistoryBuffer,
     onChartClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,7 +53,8 @@ fun HomeRunningContent(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             NodeInfoDisplay(
-                serverName = serverName, serverPing = serverPing
+                selectedServer = selectedServer,
+                tunnelMode = tunnelMode ?: TunnelState.Mode.Rule,
             )
 
             IpInfoDisplay(state = ipMonitoringState)

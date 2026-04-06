@@ -51,10 +51,7 @@ internal class OnboardingFinishActivity : OnboardingBaseActivity() {
                     finishOnboarding()
                 },
                 onGithubClick = {
-                    openUrl(this, "https://github.com/YumeLira/YumeBox")
-                },
-                onCommunityClick = {
-                    openUrl(this, "https://t.me/YumeBox")
+                    openUrl(this, "https://github.com/NomadBoxLab/NomadBox")
                 },
             )
         }

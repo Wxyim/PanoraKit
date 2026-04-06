@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/adapter/outboundgroup"
+	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
 )

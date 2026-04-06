@@ -1,0 +1,49 @@
+<Meta Feature Page>
+MetaFeature = {
+    Title = "Meta Features"
+
+    RecentRequests = {
+        Title = "Recent Requests"
+        Summary = "View recent requests and traffic overview"
+    }
+
+    RuntimeConfig = {
+        Title = "Runtime Config"
+        Summary = "View the current mihomo runtime configuration snapshot"
+        LoadFailed = "Failed to load runtime config"
+        NoActiveProfile = "No active profile"
+        ConfigNotFound = "Active profile config file not found"
+        PreviewTitle = "Runtime Config"
+        PreviewTitleWithProfile = "Runtime Config · %s"
+        RuntimeConfigFetchFailed = "Unable to fetch live config: %s"
+        RuntimeConfigUnauthorized = "Mismatching secret. Please try restarting the kernel to sync settings."
+        RuntimeConfigNotRunning = "Unable to fetch live config: Kernel not running"
+    }
+
+    GeoX = {
+        OnlineUpdateTitle = "Update GeoX"
+        OnlineUpdateSummary = "Download Database"
+    }
+
+    Download = {
+        DialogTitle = "Update GeoX Online"
+        SelectFiles = "Please select files to update"
+        DownloadComplete = "Download complete: %d/%d"
+    }
+
+    Dashboard = {
+        Title = "Web Dashboard"
+        Port = "Dashboard Port"
+        PortSummary = "Configure the port for the web dashboard"
+        Secret = "API Secret"
+        SecretSummary = "The secret used to authenticate the user for the web dashboard"
+        ShowSecret = "Show Secret"
+        Download = "Download MetaCubeXD"
+        DownloadSummary = "Download and extract the Web UI assets into the data directory"
+        DownloadOk = "Dashboard UI downloaded successfully"
+        DownloadFailed = "Download failed: %s"
+        Launch = "Launch Dashboard"
+        LaunchSummary = "Open the Web UI in full-screen"
+        LaunchDisabled = "Please download dashboard first"
+    }
+}

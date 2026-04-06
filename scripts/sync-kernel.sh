@@ -2,7 +2,7 @@
 set -eu
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-KERNEL_PROPERTIES="$PROJECT_ROOT/kernel.properties"
+KERNEL_PROPERTIES="$PROJECT_ROOT/config/kernel.properties"
 GOLANG_ROOT="$PROJECT_ROOT/lib/mihomo"
 GOLANG_MAIN="$PROJECT_ROOT/lib/native/go"
 MIHOMO_DIR="$GOLANG_ROOT/mihomo"
@@ -16,17 +16,20 @@ CHOICE="${1:-}"
 case "$CHOICE" in
   alpha|Alpha)
     REPO_URL="https://github.com/MetaCubeX/mihomo.git"
-    BRANCH_NAME="Alpha"
+    RELEASE_TAG="Prerelease-Alpha"
+    RELEASE_API_URL=""
     VERSION_SUFFIX=""
     ;;
   meta|Meta)
     REPO_URL="https://github.com/MetaCubeX/mihomo.git"
-    BRANCH_NAME="Meta"
+    RELEASE_TAG=""
+    RELEASE_API_URL="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
     VERSION_SUFFIX=""
     ;;
   smart|Smart)
     REPO_URL="https://github.com/vernesong/mihomo.git"
-    BRANCH_NAME="Alpha"
+    RELEASE_TAG="Prerelease-Alpha"
+    RELEASE_API_URL=""
     VERSION_SUFFIX="-Smart"
     ;;
   *)
@@ -43,6 +46,37 @@ require_cmd() {
 
 require_cmd git
 require_cmd go
+require_cmd curl
+
+resolve_release_tag() {
+  if [ -n "${RELEASE_TAG:-}" ]; then
+    return
+  fi
+
+  if [ -z "${RELEASE_API_URL:-}" ]; then
+    echo "Failed to resolve release tag: no release API configured" >&2
+    exit 1
+  fi
+
+  RELEASE_TAG="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$RELEASE_API_URL" \
+    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+
+  if [ -z "${RELEASE_TAG:-}" ]; then
+    echo "Failed to resolve release tag from ${RELEASE_API_URL:-configured source}" >&2
+    exit 1
+  fi
+}
+
+resolve_release_revision() {
+  peeled_revision="$(git ls-remote "$REPO_URL" "refs/tags/$RELEASE_TAG^{}" | awk 'NR==1 { print $1 }')"
+  direct_revision="$(git ls-remote "$REPO_URL" "refs/tags/$RELEASE_TAG" | awk 'NR==1 { print $1 }')"
+  RELEASE_REVISION="${peeled_revision:-$direct_revision}"
+
+  if [ -z "${RELEASE_REVISION:-}" ]; then
+    echo "Failed to resolve revision for tag $RELEASE_TAG from $REPO_URL" >&2
+    exit 1
+  fi
+}
 
 update_kernel_properties() {
   tmp_file="$KERNEL_PROPERTIES.tmp.$$"
@@ -58,7 +92,7 @@ update_kernel_properties() {
         seen_repo=1
         ;;
       external.mihomo.branch=*)
-        echo "external.mihomo.branch=$BRANCH_NAME" >> "$tmp_file"
+        echo "external.mihomo.branch=$RELEASE_TAG" >> "$tmp_file"
         seen_branch=1
         ;;
       external.mihomo.suffix=*)
@@ -75,14 +109,14 @@ update_kernel_properties() {
     echo "external.mihomo.repo=$REPO_URL" >> "$tmp_file"
   fi
   if [ "$seen_branch" -eq 0 ]; then
-    echo "external.mihomo.branch=$BRANCH_NAME" >> "$tmp_file"
+    echo "external.mihomo.branch=$RELEASE_TAG" >> "$tmp_file"
   fi
   if [ "$seen_suffix" -eq 0 ]; then
     echo "external.mihomo.suffix=$VERSION_SUFFIX" >> "$tmp_file"
   fi
 
   mv "$tmp_file" "$KERNEL_PROPERTIES"
-  echo "Updated kernel.properties -> repo=$REPO_URL branch=$BRANCH_NAME suffix=$VERSION_SUFFIX"
+  echo "Updated kernel.properties -> repo=$REPO_URL tag=$RELEASE_TAG revision=$RELEASE_REVISION suffix=$VERSION_SUFFIX"
 }
 
 sync_repo() {
@@ -90,8 +124,9 @@ sync_repo() {
     echo "Removing existing directory $MIHOMO_DIR"
     rm -rf "$MIHOMO_DIR"
   fi
-  echo "Cloning $REPO_URL (branch $BRANCH_NAME) -> $MIHOMO_DIR"
-  git clone --branch "$BRANCH_NAME" --single-branch "$REPO_URL" "$MIHOMO_DIR"
+  echo "Cloning $REPO_URL -> $MIHOMO_DIR"
+  git clone --no-checkout "$REPO_URL" "$MIHOMO_DIR"
+  git -C "$MIHOMO_DIR" checkout --force "$RELEASE_REVISION"
 }
 
 run_tidy() {
@@ -106,9 +141,11 @@ run_tidy() {
   )
 }
 
+resolve_release_tag
+resolve_release_revision
 update_kernel_properties
 sync_repo
 run_tidy "$GOLANG_ROOT"
 run_tidy "$GOLANG_MAIN"
 
-echo "Done: selected $CHOICE"
+echo "Done: selected $CHOICE (tag=$RELEASE_TAG revision=$RELEASE_REVISION)"

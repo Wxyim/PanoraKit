@@ -73,10 +73,18 @@ private val SectionShape = RoundedCornerShape(36.dp)
 private const val RevealDurationMs = 420
 private const val LinkTermsTag = "terms"
 private const val LinkPolicyTag = "policy"
+private object StartupHeroMetrics {
+    val TopSpacerMin = 128.dp
+    val TopSpacerMax = 212.dp
+    const val TopSpacerFraction = 0.18f
+    val TitleSpacing = 18.dp
+    val DetailTopSpacing = 20.dp
+    val ActionBottomPadding = 24.dp
+}
 private val DetailPreviewBadgeSize = 108.dp
 private val DetailPreviewIconSize = 68.dp
 private val StartupTypewriterPhrases = listOf(
-    "YumeBox",
+    "MonadBox",
     "Hello Word",
 )
 
@@ -213,8 +221,11 @@ internal fun StartupHeroShell(
     enabled: Boolean,
     onStart: (View) -> Unit,
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
+
+        val heroTopSpacer = (maxHeight * StartupHeroMetrics.TopSpacerFraction)
+            .coerceIn(StartupHeroMetrics.TopSpacerMin, StartupHeroMetrics.TopSpacerMax)
 
         Column(
             modifier = Modifier
@@ -223,7 +234,7 @@ internal fun StartupHeroShell(
                 .navigationBarsPadding()
                 .padding(horizontal = PagePadding, vertical = 12.dp),
         ) {
-            Spacer(modifier = Modifier.height(212.dp))
+            Spacer(modifier = Modifier.height(heroTopSpacer))
 
             RevealBlock(
                 delayMillis = 0,
@@ -235,7 +246,7 @@ internal fun StartupHeroShell(
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(StartupHeroMetrics.TitleSpacing))
 
             Column(
                 modifier = Modifier
@@ -249,7 +260,7 @@ internal fun StartupHeroShell(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(StartupHeroMetrics.DetailTopSpacing))
                 }
             }
 
@@ -259,7 +270,7 @@ internal fun StartupHeroShell(
                     .widthIn(max = DetailWidth)
                     .fillMaxWidth()
                     .align(Alignment.CenterHorizontally)
-                    .offset(y = (-156).dp),
+                    .padding(bottom = StartupHeroMetrics.ActionBottomPadding),
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -437,7 +448,7 @@ internal fun ProvisionDetailShell(
                     .widthIn(max = DetailWidth)
                     .fillMaxWidth()
                     .align(Alignment.CenterHorizontally)
-                    .offset(y = (-36).dp),
+                    .padding(bottom = 12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -469,6 +480,12 @@ internal fun PermissionContent(state: PermissionState) {
         else -> MLang.Onboarding.Permission.Notification.SummaryNotRequired
     }
 
+    val appListSummary = when {
+        state.appListGranted -> MLang.Onboarding.Permission.Common.Granted
+        state.miuiDynamicSupported -> MLang.Onboarding.Permission.AppList.SummaryNeed
+        else -> MLang.Onboarding.Permission.AppList.SummaryNotRequired
+    }
+
     DetailGroup {
         PermissionRow(
             icon = Yume.Message,
@@ -485,15 +502,13 @@ internal fun PermissionContent(state: PermissionState) {
                 }
             },
         )
-        DetailDivider()
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp))
+
         PermissionRow(
             icon = Yume.List,
             title = MLang.Onboarding.Permission.AppList.Title,
-            summary = if (state.appListGranted) {
-                MLang.Onboarding.Permission.Common.Granted
-            } else {
-                MLang.Onboarding.Permission.AppList.SummaryNeed
-            },
+            summary = appListSummary,
             granted = state.appListGranted,
             onClick = {
                 if (!state.appListGranted) {
@@ -614,7 +629,6 @@ internal fun FinishHeroShell(
     enabled: Boolean,
     onPrimaryClick: () -> Unit,
     onGithubClick: () -> Unit,
-    onCommunityClick: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
@@ -689,13 +703,6 @@ internal fun FinishHeroShell(
                                 summary = MLang.Onboarding.Project.Github.Summary,
                                 onClick = onGithubClick,
                             )
-                            DetailDivider()
-                            ProjectLinkRow(
-                                icon = Yume.Message,
-                                title = MLang.Onboarding.Project.Community.Title,
-                                summary = MLang.Onboarding.Project.Community.Summary,
-                                onClick = onCommunityClick,
-                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
@@ -708,7 +715,7 @@ internal fun FinishHeroShell(
                     .widthIn(max = DetailWidth)
                     .fillMaxWidth()
                     .align(Alignment.CenterHorizontally)
-                    .offset(y = (-36).dp),
+                    .padding(bottom = 12.dp),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -764,7 +771,7 @@ private fun HeroStartButton(
         )
         Icon(
             imageVector = Yume.ArrowRight,
-            contentDescription = "Start",
+            contentDescription = MLang.Component.Button.Start,
             tint = MiuixTheme.colorScheme.onPrimary,
             modifier = Modifier.size(22.dp),
         )

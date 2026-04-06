@@ -1,0 +1,15 @@
+# Copy to startup-gate.local.properties (ignored by git) and fill your local values.
+# Priority: -P startup.gate.* > startup-gate.local.properties > local.properties
+
+# Expected identifiers for startup verification.
+startup.gate.expectedPackage=com.github.nomadboxlab.monadbox
+startup.gate.expectedAppClass=com.github.yumelira.yumebox.App
+startup.gate.expectedAppParent=android.app.Application
+
+# Release signer SHA-256 fingerprint, uppercase with ':' separator.
+startup.gate.releaseFingerprint=AA:BB:CC:DD:EE:FF:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA
+
+# Optional extra toggles.
+# In release build, strict mode is already true by buildType.
+startup.gate.enforceSigner=true
+startup.gate.enforceApkV2=true

@@ -30,11 +30,17 @@ import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.GeoFileType
 import com.github.yumelira.yumebox.core.model.GeoXItem
 import com.github.yumelira.yumebox.core.model.geoXItems
+import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
+import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.substore.util.DownloadUtil
+import com.github.yumelira.yumebox.remote.ServiceClient
+import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -55,7 +61,9 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+
     val showGeoXDownloadSheet = remember { mutableStateOf(false) }
+    var runtimeConfigLoading by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -79,11 +87,85 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                         },
                     )
                     SuperArrow(
-                        title = MLang.TrafficStatistics.Title,
-                        summary = MLang.TrafficStatistics.EntrySummary,
+                        title = MLang.MetaFeature.RecentRequests.Title,
+                        summary = MLang.MetaFeature.RecentRequests.Summary,
                         onClick = {
                             navigator.navigate(TrafficStatisticsScreenDestination) {
                                 launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+            }
+            item {
+                SmallTitle(MLang.MetaFeature.RuntimeConfig.Title)
+                Card {
+                    SuperArrow(
+                        title = MLang.MetaFeature.RuntimeConfig.Title,
+                        summary = MLang.MetaFeature.RuntimeConfig.Summary,
+                        onClick = {
+                            if (runtimeConfigLoading) return@SuperArrow
+                            scope.launch {
+                                runtimeConfigLoading = true
+                                try {
+                                    ServiceClient.connect(context)
+                                    val activeProfile = ServiceClient.profile().queryActive()
+                                    val runtimeConfig = ServiceClient.clash().queryConfiguration()
+                                    if (activeProfile == null) {
+                                        context.toast(MLang.MetaFeature.RuntimeConfig.NoActiveProfile)
+                                        return@launch
+                                    }
+
+                                    val configPath = runtimeConfig.configPath?.trim().orEmpty()
+                                    if (configPath.isBlank()) {
+                                        context.toast(MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning)
+                                        return@launch
+                                    }
+
+                                    val runtimeYaml = withContext(Dispatchers.IO) {
+                                        val file = File(configPath)
+                                        if (!file.exists() || !file.isFile) {
+                                            null
+                                        } else {
+                                            file.readText()
+                                        }
+                                    }
+
+                                    if (runtimeYaml.isNullOrBlank()) {
+                                        context.toast(MLang.MetaFeature.RuntimeConfig.ConfigNotFound)
+                                        return@launch
+                                    }
+
+                                    val previewTitle = activeProfile
+                                        .name
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let { MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it) }
+                                        ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
+
+                                    OverrideStructuredEditorStore.setupConfigPreview(
+                                        title = previewTitle,
+                                        content = decodeEscapedUnicode(runtimeYaml),
+                                        language = LanguageScope.Yaml,
+                                        callback = null,
+                                    )
+                                    navigator.navigate(OverrideConfigPreviewRouteDestination) {
+                                        launchSingleTop = true
+                                    }
+                                } catch (error: Throwable) {
+                                    val message = when {
+                                        error.message?.contains("unauthorized", ignoreCase = true) == true -> {
+                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigUnauthorized
+                                        }
+
+                                        else -> {
+                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigFetchFailed
+                                                .format(error.runtimeGatewayMessage(MLang.MetaFeature.RuntimeConfig.LoadFailed))
+                                        }
+                                    }
+                                    context.toast(message)
+                                } finally {
+                                    runtimeConfigLoading = false
+                                }
                             }
                         },
                     )
@@ -100,13 +182,40 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
-
         GeoXDownloadSheet(
             show = showGeoXDownloadSheet,
             context = context,
             scope = scope,
         )
     }
+}
+
+private fun decodeEscapedUnicode(text: String): String {
+    val out = StringBuilder(text.length)
+    var i = 0
+    while (i < text.length) {
+        val ch = text[i]
+        if (ch == '\\' && i + 1 < text.length) {
+            val marker = text[i + 1]
+            val hexLen = when (marker) {
+                'u' -> 4
+                'U' -> 8
+                else -> 0
+            }
+            if (hexLen > 0 && i + 2 + hexLen <= text.length) {
+                val hex = text.substring(i + 2, i + 2 + hexLen)
+                val codePoint = hex.toIntOrNull(16)
+                if (codePoint != null && codePoint in 0..0x10FFFF) {
+                    out.append(String(Character.toChars(codePoint)))
+                    i += 2 + hexLen
+                    continue
+                }
+            }
+        }
+        out.append(ch)
+        i += 1
+    }
+    return out.toString()
 }
 
 @Composable
@@ -162,6 +271,8 @@ private fun GeoXDownloadSheet(
         })
 }
 
+
+
 private fun downloadGeoXFiles(
     context: android.content.Context,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -172,10 +283,29 @@ private fun downloadGeoXFiles(
         withContext(Dispatchers.IO) {
             val clashDir = context.filesDir.resolve("clash")
             clashDir.mkdirs()
+            val client = OkHttpClient.Builder().build()
+            
             items.forEach { item ->
                 val targetFile = File(clashDir, item.fileName)
-                if (DownloadUtil.download(item.url, targetFile)) {
-                    successCount++
+                val request = Request.Builder()
+                    .url(item.url)
+                    // You could add a generic User-Agent array here if required, though OkHttp sets a default.
+                    .header("User-Agent", com.github.yumelira.yumebox.core.NetworkConstants.DEFAULT_USER_AGENT)
+                    .build()
+                
+                try {
+                    client.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) {
+                            response.body?.byteStream()?.use { input ->
+                                targetFile.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            successCount++
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Fail silently inside the background thread, just relying on successCount
                 }
             }
         }

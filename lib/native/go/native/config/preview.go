@@ -19,6 +19,8 @@ type Proxy struct {
 	Subtitle string `json:"subtitle"`
 	Type     string `json:"type"`
 	Delay    int    `json:"delay"`
+	Hidden   bool   `json:"hidden"`
+	Icon     string `json:"icon"`
 }
 
 // ProxyGroup 代理组结构体（本地定义，避免依赖 tunnel 包）
@@ -26,6 +28,7 @@ type ProxyGroup struct {
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`
 	Now     string   `json:"now"`
+	Hidden  bool     `json:"hidden"`
 	Icon    string   `json:"icon"`
 	Proxies []*Proxy `json:"proxies"`
 }
@@ -60,6 +63,7 @@ func buildProxyGroupsFromParsed(
 			Name:    name,
 			Type:    proxy.Type().String(),
 			Now:     group.Now(),
+			Hidden:  group.Hidden(),
 			Icon:    group.Icon(),
 			Proxies: convertPreviewProxies(group.Proxies(), pattern),
 		})
@@ -86,6 +90,8 @@ func buildPreviewProxy(
 	name := proxy.Name()
 	title := name
 	subtitle := proxy.Type().String()
+	hidden := false
+	icon := ""
 
 	if uiSubtitlePattern != nil {
 		if _, ok := proxy.Adapter().(outboundgroup.ProxyGroup); !ok {
@@ -98,12 +104,19 @@ func buildPreviewProxy(
 		}
 	}
 
+	if group, ok := proxy.Adapter().(outboundgroup.ProxyGroup); ok {
+		hidden = group.Hidden()
+		icon = group.Icon()
+	}
+
 	return &Proxy{
 		Name:     name,
 		Title:    strings.TrimSpace(title),
 		Subtitle: strings.TrimSpace(subtitle),
 		Type:     proxy.Type().String(),
 		Delay:    int(proxy.LastDelayForTestUrl(getPreviewTestURL(proxy))),
+		Hidden:   hidden,
+		Icon:     strings.TrimSpace(icon),
 	}
 }
 
