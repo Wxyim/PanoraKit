@@ -1,8 +1,8 @@
-name: Build YumeBox
+name: Build MonadBox
 
 on:
   push:
-    branches: [ "Yume", "Dev" ]
+    branches: [ "Monad" ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -45,9 +45,9 @@ jobs:
         run: |
           set -eu
 
-          alpha='{"variant":"alpha","cron":"0 18 * * *","kernel_channel":"alpha","title":"YumeBox Aplha","artifact_prefix":"yumebox-alpha","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Pre-release","release_name":"Pre-release"}'
-          meta='{"variant":"meta","cron":"","kernel_channel":"meta","title":"YumeBox Meta","artifact_prefix":"yumebox-meta","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Meta","release_name":"Meta"}'
-          smart='{"variant":"smart","cron":"20 18 * * *","kernel_channel":"smart","title":"YumeBox Smart","artifact_prefix":"yumebox-smart","aliyun_secret_name":"ALIYUN_SERVICES_JSON_SMART","release_tag":"Smart","release_name":"Smart"}'
+          alpha='{"variant":"alpha","cron":"0 18 * * *","kernel_channel":"alpha","title":"MonadBox Alpha","artifact_prefix":"monadbox-alpha","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Pre-release","release_name":"Pre-release"}'
+          meta='{"variant":"meta","cron":"","kernel_channel":"meta","title":"MonadBox Meta","artifact_prefix":"monadbox-meta","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Meta","release_name":"Meta"}'
+          smart='{"variant":"smart","cron":"20 18 * * *","kernel_channel":"smart","title":"MonadBox Smart","artifact_prefix":"monadbox-smart","aliyun_secret_name":"ALIYUN_SERVICES_JSON_SMART","release_tag":"Smart","release_name":"Smart"}'
 
           if [ "${{ github.event_name }}" = "schedule" ]; then
             case "${{ github.event.schedule }}" in
@@ -107,32 +107,6 @@ jobs:
           cache-dependency-path: |
             **/go.sum
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: armv7-linux-androideabi, aarch64-linux-android, i686-linux-android, x86_64-linux-android
-
-      - name: Cache Rust
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            lib/native/rust/target/
-          key: ${{ runner.os }}-rust-${{ hashFiles('lib/native/rust/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-rust-
-
-      - name: Install cargo-ndk
-        run: |
-          if ! command -v cargo-ndk &> /dev/null; then
-            cargo install cargo-ndk
-          else
-            echo "cargo-ndk already installed"
-          fi
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
@@ -175,27 +149,19 @@ jobs:
         id: check_upload
         run: echo "UPLOAD=${{ secrets.BOT_TOKEN != '' }}" >> $GITHUB_OUTPUT
 
-      - name: Write signing config
+      - name: Restore signing files
         run: |
-          if [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ] && \
+             [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.SIGNING_KEY_ALIAS }}" ] && \
+             [ -n "${{ secrets.SIGNING_KEY_PASSWORD }}" ]; then
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
             echo "keystore.password=${{ secrets.SIGNING_STORE_PASSWORD }}" > signing.properties
             echo "key.alias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
             echo "key.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
             echo "keystore.path=release.keystore" >> signing.properties
-          fi
-      - name: Write sentry config
-        run: |
-          if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
-            echo "${{ secrets.SENTRY_AUTH_TOKEN }}" | base64 --decode > sentry.properties
-          fi
-
-      - name: Inject aliyun-emas-services.json
-        env:
-          ALIYUN_SERVICES_JSON_CURRENT: ${{ secrets[matrix.aliyun_secret_name] }}
-        run: |
-          if [ -n "${ALIYUN_SERVICES_JSON_CURRENT}" ]; then
-            echo "Using real aliyun-emas-services.json from secrets"
-            echo "${ALIYUN_SERVICES_JSON_CURRENT}" | base64 --decode > app/aliyun-emas-services.json
+          else
+            echo "Signing secrets are incomplete, release signing may fail"
           fi
 
       - name: Build Native Libraries
@@ -281,30 +247,3 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ci-artifacts/apk/${{ matrix.artifact_prefix }}-*.apk
-
-      - name: Bot session cache
-        if: steps.check_upload.outputs.UPLOAD == 'true'
-        uses: actions/cache@v5
-        with:
-          path: scripts/yumebot.session
-          key: ${{ runner.os }}-bot-session-${{ github.ref_name }}-${{ matrix.variant }}
-          restore-keys: |
-            ${{ runner.os }}-bot-session-${{ github.ref_name }}-
-            ${{ runner.os }}-bot-session-
-
-      - name: Upload to Telegram
-        if: steps.check_upload.outputs.UPLOAD == 'true'
-        env:
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          MESSAGE_THREAD_ID: ${{ secrets.MESSAGE_THREAD_ID }}
-          TITLE: ${{ matrix.title }}
-          BRANCH: ${{ github.ref_name }}
-          WORKFLOW_NAME: ${{ github.workflow }}
-          EVENT_NAME: ${{ github.event_name }}
-          RUN_NUMBER: ${{ github.run_number }}
-          COMMIT_SHA: ${{ github.sha }}
-          REPOSITORY: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          SERVER_URL: ${{ github.server_url }}
-        run: python3 $GITHUB_WORKSPACE/scripts/yumebot.py

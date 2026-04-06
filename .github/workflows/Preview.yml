@@ -16,7 +16,7 @@ on:
         description: 'Branch or ref to use for relative image paths'
         required: false
         type: string
-        default: 'main'
+        default: 'Monad'
 
 jobs:
   preview:
@@ -58,7 +58,7 @@ jobs:
 
             const issueNumber = parseInt(process.env.ISSUE_NUMBER);
             const repo = process.env.GITHUB_REPOSITORY;
-            const branch = process.env.GITHUB_REF_NAME || 'main';
+            const branch = process.env.GITHUB_REF_NAME || 'Monad';
 
             core.info(`Generating preview for #${issueNumber}`);
 
@@ -256,12 +256,3 @@ jobs:
           path: ./screenshots/preview.png
           retention-days: 30
           if-no-files-found: error
-
-      - name: Send preview to Telegram
-        continue-on-error: true
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          MESSAGE_THREAD_ID: ${{ secrets.MESSAGE_THREAD_ID }}
-        run: |
-          python scripts/preview-bot.py
