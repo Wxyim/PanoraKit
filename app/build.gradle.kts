@@ -217,10 +217,29 @@ android {
                     normalized.contains("package"))
         }
 
-    if (releaseArtifactRequested && signingConfigs.findByName("release") == null) {
+    val requireReleaseSigning =
+        (findProperty("release.signing.required") as? String)?.toBooleanStrictOrNull()
+            ?: (System.getenv("CI")?.equals("true", ignoreCase = true) == true)
+
+    if (
+        releaseArtifactRequested &&
+            signingConfigs.findByName("release") == null &&
+            requireReleaseSigning
+    ) {
         throw GradleException(
             "Release signing is not configured. Provide signing.properties or env vars " +
                 "(YUMEBOX_KEYSTORE_PATH, YUMEBOX_KEYSTORE_PASSWORD, YUMEBOX_KEY_ALIAS, YUMEBOX_KEY_PASSWORD)."
+        )
+    }
+
+    if (
+        releaseArtifactRequested &&
+            signingConfigs.findByName("release") == null &&
+            !requireReleaseSigning
+    ) {
+        logger.warn(
+            "Release signing is not configured, but check is relaxed for local builds. " +
+                "Set -Prelease.signing.required=true to enforce it."
         )
     }
 
