@@ -18,13 +18,9 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.core
 
-/**
- * Shared network-level constants for HTTP clients across the app.
- */
+/** Shared network-level constants for HTTP clients across the app. */
 object NetworkConstants {
     const val DEFAULT_USER_AGENT = "MonadBox"
 }

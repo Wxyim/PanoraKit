@@ -22,8 +22,8 @@ package com.github.yumelira.yumebox.data.repository
 
 import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.remote.ServiceClient
 import com.github.yumelira.yumebox.remote.RuntimeGatewayException
+import com.github.yumelira.yumebox.remote.ServiceClient
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import kotlinx.coroutines.CancellationException
@@ -60,31 +60,36 @@ class ConnectionActivityRepository(
 
     private fun start() {
         if (monitorJob?.isActive == true) return
-        monitorJob = scope.launch {
-            proxyFacade.isRunning.collectLatest { isRunning ->
-                if (!isRunning) {
-                    _activeConnections.value = emptyList()
-                    _closedConnections.value = ConnectionHistoryManager.getClosedConnections()
-                    return@collectLatest
-                }
-
-                while (proxyFacade.isRunning.value) {
-                    runCatching {
-                        val snapshot = ServiceClient.clash().queryConnections()
-                        ConnectionHistoryManager.updateConnections(snapshot.connections)
-                        _activeConnections.value = snapshot.connections
+        monitorJob =
+            scope.launch {
+                proxyFacade.isRunning.collectLatest { isRunning ->
+                    if (!isRunning) {
+                        _activeConnections.value = emptyList()
                         _closedConnections.value = ConnectionHistoryManager.getClosedConnections()
-                    }.onFailure { error ->
-                        if (error is CancellationException) throw error
-                        if (error is RuntimeGatewayException) {
-                            Timber.d("Connection polling skipped: ${error.runtimeGatewayMessage("runtime unavailable")}")
-                        } else {
-                            Timber.w(error, "Failed to refresh connection activity")
-                        }
+                        return@collectLatest
                     }
-                    delay(POLL_INTERVAL_MS)
+
+                    while (proxyFacade.isRunning.value) {
+                        runCatching {
+                                val snapshot = ServiceClient.clash().queryConnections()
+                                ConnectionHistoryManager.updateConnections(snapshot.connections)
+                                _activeConnections.value = snapshot.connections
+                                _closedConnections.value =
+                                    ConnectionHistoryManager.getClosedConnections()
+                            }
+                            .onFailure { error ->
+                                if (error is CancellationException) throw error
+                                if (error is RuntimeGatewayException) {
+                                    Timber.d(
+                                        "Connection polling skipped: ${error.runtimeGatewayMessage("runtime unavailable")}"
+                                    )
+                                } else {
+                                    Timber.w(error, "Failed to refresh connection activity")
+                                }
+                            }
+                        delay(POLL_INTERVAL_MS)
+                    }
                 }
             }
-        }
     }
 }

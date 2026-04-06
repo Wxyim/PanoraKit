@@ -18,17 +18,16 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.VpnService
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
+import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.log.Log
 import com.github.yumelira.yumebox.service.common.util.CoreRuntimeConfig
@@ -41,13 +40,11 @@ import com.github.yumelira.yumebox.service.runtime.util.cancelAndJoinBlocking
 import com.github.yumelira.yumebox.service.runtime.util.sendClashStarted
 import com.github.yumelira.yumebox.service.runtime.util.sendClashStopped
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
+import java.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.util.*
 
 class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
     private var reason: String? = null
@@ -61,106 +58,117 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
     private lateinit var runtime: SessionRuntime
     private var reloadJob: Job? = null
 
-    private val runtimeEventsReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action ?: return) {
-                Intents.ACTION_PROFILE_CHANGED,
-                Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
-                Intents.ACTION_CLASH_REQUEST_STOP -> {
-                    reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
-                    stopSelf()
+    private val runtimeEventsReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action ?: return) {
+                    Intents.ACTION_PROFILE_CHANGED,
+                    Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
+                    Intents.ACTION_CLASH_REQUEST_STOP -> {
+                        reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
+                        stopSelf()
+                    }
                 }
             }
         }
-    }
 
     override fun onCreate() {
         super.onCreate()
         runCatching {
-            initializeServiceGlobal(appContextOrSelf)
-            startupLogStore.append("LOCAL_TUN service: onCreate begin")
+                initializeServiceGlobal(appContextOrSelf)
+                startupLogStore.append("LOCAL_TUN service: onCreate begin")
 
-            notificationManager.createChannel()
-            startForeground(
-                ServiceNotificationManager.VPN_CONFIG.notificationId,
-                notificationManager.createInitialNotification(),
-            )
-            startupLogStore.append("LOCAL_TUN service: startForeground done")
+                notificationManager.createChannel()
+                startForeground(
+                    ServiceNotificationManager.VPN_CONFIG.notificationId,
+                    notificationManager.createInitialNotification(),
+                )
+                startupLogStore.append("LOCAL_TUN service: startForeground done")
 
-            StatusProvider.clearLegacyStateFiles()
-            StatusProvider.markRuntimeStarted(ProxyMode.Tun)
-            CoreRuntimeConfig.applyCustomUserAgentIfPresent(this)
+                StatusProvider.clearLegacyStateFiles()
+                StatusProvider.markRuntimeStarted(ProxyMode.Tun)
+                CoreRuntimeConfig.applyCustomUserAgentIfPresent(this)
 
-            runtime = SessionRuntime(
-                host = object : RuntimeHost {
-                    override val context = this@TunService
-                    override val mode: ProxyMode = ProxyMode.Tun
+                runtime =
+                    SessionRuntime(
+                        host =
+                            object : RuntimeHost {
+                                override val context = this@TunService
+                                override val mode: ProxyMode = ProxyMode.Tun
 
-                    override fun onStarting(spec: RuntimeSpec) = Unit
+                                override fun onStarting(spec: RuntimeSpec) = Unit
 
-                    override fun onStarted(spec: RuntimeSpec) {
-                        StatusProvider.markRuntimeStarted(ProxyMode.Tun)
-                        sendClashStarted()
-                    }
+                                override fun onStarted(spec: RuntimeSpec) {
+                                    StatusProvider.markRuntimeStarted(ProxyMode.Tun)
+                                    sendClashStarted()
+                                }
 
-                    override fun onStopped(reason: String?) {
-                        this@TunService.reason = reason
-                        StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-                        sendClashStopped(reason)
-                    }
+                                override fun onStopped(reason: String?) {
+                                    this@TunService.reason = reason
+                                    StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                                    sendClashStopped(reason)
+                                }
 
-                    override fun onProfileLoaded(profileUuid: String) {
-                        sendProfileLoaded(UUID.fromString(profileUuid))
-                    }
+                                override fun onProfileLoaded(profileUuid: String) {
+                                    sendProfileLoaded(UUID.fromString(profileUuid))
+                                }
 
-                    override fun onSnapshotChanged(snapshot: RuntimeSnapshot) = Unit
+                                override fun onSnapshotChanged(snapshot: RuntimeSnapshot) = Unit
 
-                    override fun onLogReady(ready: Boolean) = Unit
+                                override fun onLogReady(ready: Boolean) = Unit
 
-                    override fun onLogItem(log: LogMessage) = Unit
+                                override fun onLogItem(log: LogMessage) = Unit
 
-                    override fun reportFailure(error: RuntimeFailure) {
-                        reason = "${error.code.name}: ${error.message}"
-                        startupLogStore.append("LOCAL_TUN failed=${error.code.name}:${error.message}")
-                        StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-                        sendClashStopped(reason)
-                        Log.e("Tun runtime failed: ${error.code.name} ${error.message}")
-                        stopSelf()
-                    }
-                },
-                transport = VpnTunTransport(this),
-                scope = this,
-            )
+                                override fun reportFailure(error: RuntimeFailure) {
+                                    reason = "${error.code.name}: ${error.message}"
+                                    startupLogStore.append(
+                                        "LOCAL_TUN failed=${error.code.name}:${error.message}"
+                                    )
+                                    StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                                    sendClashStopped(reason)
+                                    Log.e("Tun runtime failed: ${error.code.name} ${error.message}")
+                                    stopSelf()
+                                }
+                            },
+                        transport = VpnTunTransport(this),
+                        scope = this,
+                    )
 
-            registerRuntimeReceiver()
-            startupLogStore.append("LOCAL_TUN service: receiver registered")
-            launch {
-                runCatching {
-                    startupLogStore.append("LOCAL_TUN spec: create begin")
-                    val spec = SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec()
-                    startupLogStore.append("LOCAL_TUN spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
-                    val result = runtime.start(spec)
-                    check(result.success) {
-                        result.toException(
-                            defaultCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
-                            defaultMessage = "tun runtime start failed",
-                        ).runtimeGatewayMessage("tun runtime start failed")
-                    }
-                }.onFailure { error ->
-                    reason = error.runtimeGatewayMessage("tun runtime start failed")
-                    startupLogStore.append("LOCAL_TUN failed=$reason")
-                    StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-                    sendClashStopped(reason)
-                    stopSelf()
+                registerRuntimeReceiver()
+                startupLogStore.append("LOCAL_TUN service: receiver registered")
+                launch {
+                    runCatching {
+                            startupLogStore.append("LOCAL_TUN spec: create begin")
+                            val spec = SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec()
+                            startupLogStore.append(
+                                "LOCAL_TUN spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
+                            )
+                            val result = runtime.start(spec)
+                            check(result.success) {
+                                result
+                                    .toException(
+                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                                        defaultMessage = "tun runtime start failed",
+                                    )
+                                    .runtimeGatewayMessage("tun runtime start failed")
+                            }
+                        }
+                        .onFailure { error ->
+                            reason = error.runtimeGatewayMessage("tun runtime start failed")
+                            startupLogStore.append("LOCAL_TUN failed=$reason")
+                            StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                            sendClashStopped(reason)
+                            stopSelf()
+                        }
                 }
             }
-        }.onFailure { error ->
-            reason = error.runtimeGatewayMessage("tun runtime start failed")
-            startupLogStore.append("LOCAL_TUN failed=$reason")
-            StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-            sendClashStopped(reason)
-            stopSelf()
-        }
+            .onFailure { error ->
+                reason = error.runtimeGatewayMessage("tun runtime start failed")
+                startupLogStore.append("LOCAL_TUN failed=$reason")
+                StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                sendClashStopped(reason)
+                stopSelf()
+            }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -203,22 +211,25 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         reloadJob?.cancel()
         reloadJob = launch {
             startupLogStore.append("LOCAL_TUN spec: reload create begin")
-            val spec = runCatching {
-                SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec()
-            }.getOrElse { error ->
-                reason = error.runtimeGatewayMessage("tun runtime spec refresh failed")
-                startupLogStore.append("LOCAL_TUN failed=$reason")
-                Log.w("Tun runtime spec refresh failed: $reason")
-                return@launch
-            }
-            startupLogStore.append("LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+            val spec =
+                runCatching { SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec() }
+                    .getOrElse { error ->
+                        reason = error.runtimeGatewayMessage("tun runtime spec refresh failed")
+                        startupLogStore.append("LOCAL_TUN failed=$reason")
+                        Log.w("Tun runtime spec refresh failed: $reason")
+                        return@launch
+                    }
+            startupLogStore.append(
+                "LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
+            )
 
             val result = runtime.reload(spec)
             if (!result.success) {
-                val failure = result.toException(
-                    defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-                    defaultMessage = "tun runtime reload failed",
-                )
+                val failure =
+                    result.toException(
+                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                        defaultMessage = "tun runtime reload failed",
+                    )
                 reason = failure.runtimeGatewayMessage("tun runtime reload failed")
                 startupLogStore.append("LOCAL_TUN failed=${failure.code.name}:${failure.message}")
                 Log.w("Tun runtime reload failed: ${failure.code.name} ${failure.message}")

@@ -18,16 +18,14 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.di
 
 import com.github.yumelira.yumebox.common.util.StorageCleanupManager
+import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.data.repository.*
 import com.github.yumelira.yumebox.data.store.*
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +34,6 @@ import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
-import com.github.yumelira.yumebox.core.StoreIds
 import org.koin.dsl.module
 
 const val APPLICATION_SCOPE_NAME = "applicationScope"
@@ -49,12 +46,24 @@ val appFoundationModule = module {
     single { MMKVProvider() }
     single<MMKV>(named(StoreIds.PROFILES)) { get<MMKVProvider>().getMMKV(StoreIds.PROFILES) }
     single<MMKV>(named(StoreIds.SETTINGS)) { get<MMKVProvider>().getMMKV(StoreIds.SETTINGS) }
-    single<MMKV>(named(StoreIds.NETWORK_SETTINGS)) { get<MMKVProvider>().getMMKV(StoreIds.NETWORK_SETTINGS) }
-    single<MMKV>(named(StoreIds.PROXY_DISPLAY)) { get<MMKVProvider>().getMMKV(StoreIds.PROXY_DISPLAY) }
-    single<MMKV>(named(StoreIds.TRAFFIC_STATISTICS)) { get<MMKVProvider>().getMMKV(StoreIds.TRAFFIC_STATISTICS) }
-    single<MMKV>(named(StoreIds.PROFILE_LINKS)) { get<MMKVProvider>().getMMKV(StoreIds.PROFILE_LINKS) }
-    single<MMKV>(named(StoreIds.SERVICE_CACHE)) { get<MMKVProvider>().getMMKV(StoreIds.SERVICE_CACHE) }
-    single<MMKV>(named(StoreIds.OVERRIDE_BINDINGS)) { get<MMKVProvider>().getMMKV(StoreIds.OVERRIDE_BINDINGS) }
+    single<MMKV>(named(StoreIds.NETWORK_SETTINGS)) {
+        get<MMKVProvider>().getMMKV(StoreIds.NETWORK_SETTINGS)
+    }
+    single<MMKV>(named(StoreIds.PROXY_DISPLAY)) {
+        get<MMKVProvider>().getMMKV(StoreIds.PROXY_DISPLAY)
+    }
+    single<MMKV>(named(StoreIds.TRAFFIC_STATISTICS)) {
+        get<MMKVProvider>().getMMKV(StoreIds.TRAFFIC_STATISTICS)
+    }
+    single<MMKV>(named(StoreIds.PROFILE_LINKS)) {
+        get<MMKVProvider>().getMMKV(StoreIds.PROFILE_LINKS)
+    }
+    single<MMKV>(named(StoreIds.SERVICE_CACHE)) {
+        get<MMKVProvider>().getMMKV(StoreIds.SERVICE_CACHE)
+    }
+    single<MMKV>(named(StoreIds.OVERRIDE_BINDINGS)) {
+        get<MMKVProvider>().getMMKV(StoreIds.OVERRIDE_BINDINGS)
+    }
 
     single { AppSettingsStorage(get<MMKV>(named(StoreIds.SETTINGS))) }
     single { NetworkSettingsStorage(get(named(StoreIds.NETWORK_SETTINGS))) }
@@ -90,7 +99,4 @@ val appDataRuntimeModule = module {
     single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
 }
 
-val coreDiModules: List<Module> = listOf(
-    appFoundationModule,
-    appDataRuntimeModule,
-)
+val coreDiModules: List<Module> = listOf(appFoundationModule, appDataRuntimeModule)

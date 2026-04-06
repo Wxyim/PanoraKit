@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import android.content.ClipData
@@ -77,7 +75,8 @@ fun ToastDialogHost() {
                         text = MLang.Override.Card.Copy,
                         onClick = {
                             val clipboardManager =
-                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                context.getSystemService(Context.CLIPBOARD_SERVICE)
+                                    as ClipboardManager
                             val textToCopy = snapshot.message.ifBlank { snapshot.title }
                             clipboardManager.setPrimaryClip(
                                 ClipData.newPlainText(snapshot.title, textToCopy)
@@ -90,13 +89,12 @@ fun ToastDialogHost() {
                 } else {
                     TextButton(
                         text = MLang.Component.Button.Confirm,
-                        onClick = {
-                            showDialog.value = false
-                        },
+                        onClick = { showDialog.value = false },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
                 }
-            })
+            },
+        )
     }
 }

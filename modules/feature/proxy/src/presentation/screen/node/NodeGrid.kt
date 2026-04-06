@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen.node
 
 import android.annotation.SuppressLint
@@ -61,12 +59,9 @@ internal fun LazyListScope.nodeGridItems(
             onSingleNodeTestClick = onSingleNodeTestClick?.let { { it(proxy.name) } },
             showCountryFlag = true,
             singleNodeTestEnabled = singleNodeTestEnabled,
-            modifier = Modifier
-                .animateItem()
-                .padding(
-                    horizontal = outerHorizontalPadding,
-                    vertical = itemVerticalPadding,
-                ),
+            modifier =
+                Modifier.animateItem()
+                    .padding(horizontal = outerHorizontalPadding, vertical = itemVerticalPadding),
         )
     }
 }
@@ -85,13 +80,9 @@ internal fun NodeGrid(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     singleNodeTestEnabled: Boolean = true,
 ) {
-    val listState = rememberSaveable(listStateKey, saver = LazyListState.Saver) {
-        LazyListState()
-    }
+    val listState = rememberSaveable(listStateKey, saver = LazyListState.Saver) { LazyListState() }
     LazyColumn(
-        modifier = modifier
-            .scrollEndHaptic()
-            .overScrollVertical(),
+        modifier = modifier.scrollEndHaptic().overScrollVertical(),
         state = listState,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -18,33 +18,30 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import dev.oom_wg.purejoy.mlang.MLang
 import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
 import com.github.yumelira.yumebox.remote.ServiceClient
+import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
+import dev.oom_wg.purejoy.mlang.MLang
+import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.*
 
 class OverrideRepository(
     private val context: Context,
     private val configRepository: OverrideConfigRepository,
 ) {
     suspend fun updateProfile(
-        transform: (ConfigurationOverride) -> ConfigurationOverride,
+        transform: (ConfigurationOverride) -> ConfigurationOverride
     ): Result<ConfigurationOverride> = updateInternal(transform)
 
     private suspend fun loadInternal(): Result<ConfigurationOverride> = runCatching {
         val activeProfile = queryActiveProfile() ?: return@runCatching ConfigurationOverride()
-        configRepository.getById(runtimeOverrideId(activeProfile.uuid))
-            ?.config
+        configRepository.getById(runtimeOverrideId(activeProfile.uuid))?.config
             ?: ConfigurationOverride()
     }
 
@@ -65,7 +62,7 @@ class OverrideRepository(
                 isSystem = false,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
-            ),
+            )
         )
     }
 
@@ -75,31 +72,39 @@ class OverrideRepository(
     }
 
     private suspend fun updateInternal(
-        transform: (ConfigurationOverride) -> ConfigurationOverride,
+        transform: (ConfigurationOverride) -> ConfigurationOverride
     ): Result<ConfigurationOverride> {
-        val current = loadInternal().getOrElse { return Result.failure(it) }
+        val current =
+            loadInternal().getOrElse {
+                return Result.failure(it)
+            }
         val updated = transform(current)
         val saveResult = saveInternal(updated)
         if (saveResult.isFailure) {
             return Result.failure(
                 saveResult.exceptionOrNull()
-                    ?: IllegalStateException(MLang.Override.Save.RuntimeSaveFailed),
+                    ?: IllegalStateException(MLang.Override.Save.RuntimeSaveFailed)
             )
         }
         return Result.success(updated)
     }
 
-    private suspend fun requireActiveProfile(): com.github.yumelira.yumebox.service.runtime.entity.Profile {
+    private suspend fun requireActiveProfile():
+        com.github.yumelira.yumebox.service.runtime.entity.Profile {
         return queryActiveProfile() ?: error("No active profile selected")
     }
 
-    private suspend fun queryActiveProfile(): com.github.yumelira.yumebox.service.runtime.entity.Profile? {
+    private suspend fun queryActiveProfile():
+        com.github.yumelira.yumebox.service.runtime.entity.Profile? {
         return withContext(Dispatchers.IO) {
             try {
                 ServiceClient.connect(context)
                 ServiceClient.profile().queryActive()
             } catch (e: Exception) {
-                throw e.asRuntimeGatewayException(RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED, "Failed to query active profile")
+                throw e.asRuntimeGatewayException(
+                    RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
+                    "Failed to query active profile",
+                )
             }
         }
     }

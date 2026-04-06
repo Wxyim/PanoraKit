@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.profiles
 
 import androidx.compose.foundation.clickable
@@ -59,52 +57,53 @@ internal fun LinkSettingsDialog(
     onDefaultLinkChange: (String) -> Unit,
     onAddLink: () -> Unit,
     onDeleteLink: (String) -> Unit,
-    onOpenLink: (ProfileLink) -> Unit
+    onOpenLink: (ProfileLink) -> Unit,
 ) {
-    val openModeOptions = listOf(
-        MLang.ProfilesPage.LinkSettings.OpenModeInApp,
-        MLang.ProfilesPage.LinkSettings.OpenModeExternal
-    )
-    val openModeIndex = when (linkOpenMode) {
-        LinkOpenMode.IN_APP -> 0
-        LinkOpenMode.EXTERNAL_BROWSER -> 1
-    }
+    val openModeOptions =
+        listOf(
+            MLang.ProfilesPage.LinkSettings.OpenModeInApp,
+            MLang.ProfilesPage.LinkSettings.OpenModeExternal,
+        )
+    val openModeIndex =
+        when (linkOpenMode) {
+            LinkOpenMode.IN_APP -> 0
+            LinkOpenMode.EXTERNAL_BROWSER -> 1
+        }
 
-    val defaultLinkIndex = if (defaultLinkId.isEmpty() || links.isEmpty()) {
-        0
-    } else {
-        links.indexOfFirst { it.id == defaultLinkId }.let { if (it == -1) 0 else it }
-    }
+    val defaultLinkIndex =
+        if (defaultLinkId.isEmpty() || links.isEmpty()) {
+            0
+        } else {
+            links.indexOfFirst { it.id == defaultLinkId }.let { if (it == -1) 0 else it }
+        }
 
     AppActionBottomSheet(
         show = show.value,
         modifier = Modifier,
         title = MLang.ProfilesPage.LinkSettings.Title,
-        onDismissRequest = {
-            show.value = false
-        },
+        onDismissRequest = { show.value = false },
         enableNestedScroll = true,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
-                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
+                modifier =
+                    Modifier.fillMaxWidth().padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
+                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
             ) {
-
                 top.yukonga.miuix.kmp.basic.Card {
                     WindowDropdown(
                         title = MLang.ProfilesPage.LinkSettings.OpenMode,
                         items = openModeOptions,
                         selectedIndex = openModeIndex,
                         onSelectedIndexChange = { index ->
-                            val mode = when (index) {
-                                0 -> LinkOpenMode.IN_APP
-                                1 -> LinkOpenMode.EXTERNAL_BROWSER
-                                else -> LinkOpenMode.IN_APP
-                            }
+                            val mode =
+                                when (index) {
+                                    0 -> LinkOpenMode.IN_APP
+                                    1 -> LinkOpenMode.EXTERNAL_BROWSER
+                                    else -> LinkOpenMode.IN_APP
+                                }
                             onOpenModeChange(mode)
-                        })
+                        },
+                    )
                 }
 
                 if (links.isNotEmpty()) {
@@ -118,56 +117,64 @@ internal fun LinkSettingsDialog(
                                 if (index in links.indices) {
                                     onDefaultLinkChange(links[index].id)
                                 }
-                            })
+                            },
+                        )
                     }
                 }
 
                 if (links.isNotEmpty()) {
                     top.yukonga.miuix.kmp.basic.Card {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = ProfileLinkSheetMetrics.LinkListMaxHeight)
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .heightIn(max = ProfileLinkSheetMetrics.LinkListMaxHeight)
                         ) {
                             links.forEachIndexed { index, link ->
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onOpenLink(link) }
-                                        .padding(
-                                            horizontal = ProfileLinkSheetMetrics.LinkRowHorizontalPadding,
-                                            vertical = ProfileLinkSheetMetrics.LinkRowVerticalPadding,
-                                        ),
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                            .clickable { onOpenLink(link) }
+                                            .padding(
+                                                horizontal =
+                                                    ProfileLinkSheetMetrics
+                                                        .LinkRowHorizontalPadding,
+                                                vertical =
+                                                    ProfileLinkSheetMetrics.LinkRowVerticalPadding,
+                                            ),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically) {
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = link.name, style = MiuixTheme.textStyles.body1
-                                        )
+                                        Text(text = link.name, style = MiuixTheme.textStyles.body1)
                                         Text(
                                             text = link.url,
                                             style = MiuixTheme.textStyles.body2,
-                                            color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            color =
+                                                MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
 
-                                    IconButton(
-                                        onClick = { onDeleteLink(link.id) }) {
+                                    IconButton(onClick = { onDeleteLink(link.id) }) {
                                         Icon(
                                             imageVector = MiuixIcons.Delete,
-                                            contentDescription = MLang.Component.Editor.Action.Delete,
-                                            tint = MiuixTheme.colorScheme.error
+                                            contentDescription =
+                                                MLang.Component.Editor.Action.Delete,
+                                            tint = MiuixTheme.colorScheme.error,
                                         )
                                     }
                                 }
 
                                 if (index < links.size - 1) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = ProfileLinkSheetMetrics.DividerHorizontalPadding),
+                                        modifier =
+                                            Modifier.padding(
+                                                horizontal =
+                                                    ProfileLinkSheetMetrics.DividerHorizontalPadding
+                                            ),
                                         thickness = 0.5.dp,
-                                        color = MiuixTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        color = MiuixTheme.colorScheme.outline.copy(alpha = 0.3f),
                                     )
                                 }
                             }
@@ -177,26 +184,28 @@ internal fun LinkSettingsDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
+                    horizontalArrangement =
+                        Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
                 ) {
                     TextButton(
                         text = MLang.ProfilesPage.LinkSettings.Close,
                         onClick = { show.value = false },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     Button(
                         onClick = onAddLink,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColorsPrimary()
+                        colors = ButtonDefaults.buttonColorsPrimary(),
                     ) {
                         Text(
                             MLang.ProfilesPage.LinkSettings.AddLink,
-                            color = MiuixTheme.colorScheme.onPrimary
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
             }
-        })
+        },
+    )
 }
 
 @Composable
@@ -208,7 +217,7 @@ internal fun AddLinkDialog(
     linkUrl: String,
     onUrlChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
 ) {
     var error by remember { mutableStateOf("") }
     var currentName by remember { mutableStateOf(linkName) }
@@ -230,58 +239,64 @@ internal fun AddLinkDialog(
     AppActionBottomSheet(
         show = show.value,
         modifier = Modifier,
-        title = if (linkToEdit != null) MLang.ProfilesPage.LinkSettings.EditLink else MLang.ProfilesPage.LinkSettings.AddLink,
+        title =
+            if (linkToEdit != null) MLang.ProfilesPage.LinkSettings.EditLink
+            else MLang.ProfilesPage.LinkSettings.AddLink,
         onDismissRequest = onDismiss,
         enableNestedScroll = true,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
-                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.FormSpacing)
+                modifier =
+                    Modifier.fillMaxWidth().padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
+                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.FormSpacing),
             ) {
                 TextField(
-                    value = currentName, onValueChange = {
+                    value = currentName,
+                    onValueChange = {
                         currentName = it
                         error = ""
-                    }, label = MLang.ProfilesPage.LinkSettings.Name, modifier = Modifier.fillMaxWidth()
+                    },
+                    label = MLang.ProfilesPage.LinkSettings.Name,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 TextField(
-                    value = currentUrl, onValueChange = {
+                    value = currentUrl,
+                    onValueChange = {
                         currentUrl = it
                         error = ""
-                    }, label = MLang.ProfilesPage.LinkSettings.Url, modifier = Modifier.fillMaxWidth()
+                    },
+                    label = MLang.ProfilesPage.LinkSettings.Url,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 if (error.isNotEmpty()) {
                     Text(
                         text = error,
                         color = MiuixTheme.colorScheme.error,
-                        style = MiuixTheme.textStyles.body2
+                        style = MiuixTheme.textStyles.body2,
                     )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing)
+                    horizontalArrangement =
+                        Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
                 ) {
-                    Button(
-                        onClick = onDismiss, modifier = Modifier.weight(1f)
-                    ) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text(MLang.ProfilesPage.Button.Cancel)
                     }
                     Button(
                         onClick = {
                             when {
-                                currentName.isBlank() -> error =
-                                    MLang.ProfilesPage.LinkSettings.Validation.EnterName
+                                currentName.isBlank() ->
+                                    error = MLang.ProfilesPage.LinkSettings.Validation.EnterName
 
-                                currentUrl.isBlank() -> error =
-                                    MLang.ProfilesPage.LinkSettings.Validation.EnterUrl
+                                currentUrl.isBlank() ->
+                                    error = MLang.ProfilesPage.LinkSettings.Validation.EnterUrl
 
-                                !currentUrl.startsWith("http", ignoreCase = true) -> error =
-                                    MLang.ProfilesPage.LinkSettings.Validation.InvalidUrl
+                                !currentUrl.startsWith("http", ignoreCase = true) ->
+                                    error = MLang.ProfilesPage.LinkSettings.Validation.InvalidUrl
 
                                 else -> {
                                     onNameChange(currentName)
@@ -289,11 +304,17 @@ internal fun AddLinkDialog(
                                     onConfirm()
                                 }
                             }
-                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColorsPrimary(),
                     ) {
-                        Text(MLang.ProfilesPage.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
+                        Text(
+                            MLang.ProfilesPage.Button.Confirm,
+                            color = MiuixTheme.colorScheme.onPrimary,
+                        )
                     }
                 }
             }
-        })
+        },
+    )
 }

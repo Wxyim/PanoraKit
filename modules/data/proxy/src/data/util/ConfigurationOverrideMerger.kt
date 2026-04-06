@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.util
 
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
@@ -33,19 +31,35 @@ internal object ConfigurationOverrideMerger {
             redirectPort = incoming.redirectPort ?: base.redirectPort,
             tproxyPort = incoming.tproxyPort ?: base.tproxyPort,
             mixedPort = incoming.mixedPort ?: base.mixedPort,
-
-            authentication = MergeHelper.mergeListSimple(base.authentication, incoming.authentication),
-            authenticationStart = MergeHelper.mergeListSimple(base.authenticationStart, incoming.authenticationStart),
-            authenticationEnd = MergeHelper.mergeListSimple(base.authenticationEnd, incoming.authenticationEnd),
-            skipAuthPrefixes = MergeHelper.mergeListSimple(base.skipAuthPrefixes, incoming.skipAuthPrefixes),
-            skipAuthPrefixesStart = MergeHelper.mergeListSimple(base.skipAuthPrefixesStart, incoming.skipAuthPrefixesStart),
-            skipAuthPrefixesEnd = MergeHelper.mergeListSimple(base.skipAuthPrefixesEnd, incoming.skipAuthPrefixesEnd),
+            authentication =
+                MergeHelper.mergeListSimple(base.authentication, incoming.authentication),
+            authenticationStart =
+                MergeHelper.mergeListSimple(base.authenticationStart, incoming.authenticationStart),
+            authenticationEnd =
+                MergeHelper.mergeListSimple(base.authenticationEnd, incoming.authenticationEnd),
+            skipAuthPrefixes =
+                MergeHelper.mergeListSimple(base.skipAuthPrefixes, incoming.skipAuthPrefixes),
+            skipAuthPrefixesStart =
+                MergeHelper.mergeListSimple(
+                    base.skipAuthPrefixesStart,
+                    incoming.skipAuthPrefixesStart,
+                ),
+            skipAuthPrefixesEnd =
+                MergeHelper.mergeListSimple(base.skipAuthPrefixesEnd, incoming.skipAuthPrefixesEnd),
             lanAllowedIps = MergeHelper.mergeListSimple(base.lanAllowedIps, incoming.lanAllowedIps),
-            lanAllowedIpsStart = MergeHelper.mergeListSimple(base.lanAllowedIpsStart, incoming.lanAllowedIpsStart),
-            lanAllowedIpsEnd = MergeHelper.mergeListSimple(base.lanAllowedIpsEnd, incoming.lanAllowedIpsEnd),
-            lanDisallowedIps = MergeHelper.mergeListSimple(base.lanDisallowedIps, incoming.lanDisallowedIps),
-            lanDisallowedIpsStart = MergeHelper.mergeListSimple(base.lanDisallowedIpsStart, incoming.lanDisallowedIpsStart),
-            lanDisallowedIpsEnd = MergeHelper.mergeListSimple(base.lanDisallowedIpsEnd, incoming.lanDisallowedIpsEnd),
+            lanAllowedIpsStart =
+                MergeHelper.mergeListSimple(base.lanAllowedIpsStart, incoming.lanAllowedIpsStart),
+            lanAllowedIpsEnd =
+                MergeHelper.mergeListSimple(base.lanAllowedIpsEnd, incoming.lanAllowedIpsEnd),
+            lanDisallowedIps =
+                MergeHelper.mergeListSimple(base.lanDisallowedIps, incoming.lanDisallowedIps),
+            lanDisallowedIpsStart =
+                MergeHelper.mergeListSimple(
+                    base.lanDisallowedIpsStart,
+                    incoming.lanDisallowedIpsStart,
+                ),
+            lanDisallowedIpsEnd =
+                MergeHelper.mergeListSimple(base.lanDisallowedIpsEnd, incoming.lanDisallowedIpsEnd),
             allowLan = incoming.allowLan ?: base.allowLan,
             bindAddress = incoming.bindAddress ?: base.bindAddress,
             mode = incoming.mode ?: base.mode,
@@ -55,19 +69,21 @@ internal object ConfigurationOverrideMerger {
             externalControllerTLS = incoming.externalControllerTLS ?: base.externalControllerTLS,
             externalDohServer = incoming.externalDohServer ?: base.externalDohServer,
             externalControllerCors = mergeCors(base.externalControllerCors, incoming),
-            externalControllerCorsForce = incoming.externalControllerCorsForce ?: base.externalControllerCorsForce,
+            externalControllerCorsForce =
+                incoming.externalControllerCorsForce ?: base.externalControllerCorsForce,
             secret = incoming.secret ?: base.secret,
-            hosts = MergeHelper.mergeMap(
-                base = base.hosts,
-                replace = incoming.hosts,
-                merge = incoming.hostsMerge,
-            ),
-
-            hostsMerge = MergeHelper.mergeMap(
-                base = base.hostsMerge,
-                replace = incoming.hostsMerge,
-                merge = null,
-            ),
+            hosts =
+                MergeHelper.mergeMap(
+                    base = base.hosts,
+                    replace = incoming.hosts,
+                    merge = incoming.hostsMerge,
+                ),
+            hostsMerge =
+                MergeHelper.mergeMap(
+                    base = base.hostsMerge,
+                    replace = incoming.hostsMerge,
+                    merge = null,
+                ),
             unifiedDelay = incoming.unifiedDelay ?: base.unifiedDelay,
             geodataMode = incoming.geodataMode ?: base.geodataMode,
             tcpConcurrent = incoming.tcpConcurrent ?: base.tcpConcurrent,
@@ -77,51 +93,62 @@ internal object ConfigurationOverrideMerger {
             interfaceName = incoming.interfaceName ?: base.interfaceName,
             routingMark = incoming.routingMark ?: base.routingMark,
             geositeMatcher = incoming.geositeMatcher ?: base.geositeMatcher,
-            globalClientFingerprint = incoming.globalClientFingerprint ?: base.globalClientFingerprint,
+            globalClientFingerprint =
+                incoming.globalClientFingerprint ?: base.globalClientFingerprint,
             geoAutoUpdate = incoming.geoAutoUpdate ?: base.geoAutoUpdate,
             geoUpdateInterval = incoming.geoUpdateInterval ?: base.geoUpdateInterval,
-            ruleProviders = MergeHelper.mergeProviderMap(
-                base = base.ruleProviders,
-                replace = incoming.ruleProviders,
-                merge = incoming.ruleProvidersMerge,
-            ),
-            ruleProvidersMerge = MergeHelper.mergeProviderMap(
-                base = base.ruleProvidersMerge,
-                replace = incoming.ruleProvidersMerge,
-                merge = null,
-            ),
-
-            proxyGroups = MergeHelper.mergeProxyGroupListSimple(base.proxyGroups, incoming.proxyGroups),
-            proxyGroupsStart = MergeHelper.mergeProxyGroupListSimple(base.proxyGroupsStart, incoming.proxyGroupsStart),
-            proxyGroupsEnd = MergeHelper.mergeProxyGroupListSimple(base.proxyGroupsEnd, incoming.proxyGroupsEnd),
-
+            ruleProviders =
+                MergeHelper.mergeProviderMap(
+                    base = base.ruleProviders,
+                    replace = incoming.ruleProviders,
+                    merge = incoming.ruleProvidersMerge,
+                ),
+            ruleProvidersMerge =
+                MergeHelper.mergeProviderMap(
+                    base = base.ruleProvidersMerge,
+                    replace = incoming.ruleProvidersMerge,
+                    merge = null,
+                ),
+            proxyGroups =
+                MergeHelper.mergeProxyGroupListSimple(base.proxyGroups, incoming.proxyGroups),
+            proxyGroupsStart =
+                MergeHelper.mergeProxyGroupListSimple(
+                    base.proxyGroupsStart,
+                    incoming.proxyGroupsStart,
+                ),
+            proxyGroupsEnd =
+                MergeHelper.mergeProxyGroupListSimple(base.proxyGroupsEnd, incoming.proxyGroupsEnd),
             rules = MergeHelper.mergeListSimple(base.rules, incoming.rules),
             rulesStart = MergeHelper.mergeListSimple(base.rulesStart, incoming.rulesStart),
             rulesEnd = MergeHelper.mergeListSimple(base.rulesEnd, incoming.rulesEnd),
-            subRules = MergeHelper.mergeMap(
-                base = base.subRules,
-                replace = incoming.subRules,
-                merge = incoming.subRulesMerge,
-            ),
-            subRulesMerge = MergeHelper.mergeMap(
-                base = base.subRulesMerge,
-                replace = incoming.subRulesMerge,
-                merge = null,
-            ),
-
+            subRules =
+                MergeHelper.mergeMap(
+                    base = base.subRules,
+                    replace = incoming.subRules,
+                    merge = incoming.subRulesMerge,
+                ),
+            subRulesMerge =
+                MergeHelper.mergeMap(
+                    base = base.subRulesMerge,
+                    replace = incoming.subRulesMerge,
+                    merge = null,
+                ),
             proxies = MergeHelper.mergeProxyListSimple(base.proxies, incoming.proxies),
-            proxiesStart = MergeHelper.mergeProxyListSimple(base.proxiesStart, incoming.proxiesStart),
+            proxiesStart =
+                MergeHelper.mergeProxyListSimple(base.proxiesStart, incoming.proxiesStart),
             proxiesEnd = MergeHelper.mergeProxyListSimple(base.proxiesEnd, incoming.proxiesEnd),
-            proxyProviders = MergeHelper.mergeProviderMap(
-                base = base.proxyProviders,
-                replace = incoming.proxyProviders,
-                merge = incoming.proxyProvidersMerge,
-            ),
-            proxyProvidersMerge = MergeHelper.mergeProviderMap(
-                base = base.proxyProvidersMerge,
-                replace = incoming.proxyProvidersMerge,
-                merge = null,
-            ),
+            proxyProviders =
+                MergeHelper.mergeProviderMap(
+                    base = base.proxyProviders,
+                    replace = incoming.proxyProviders,
+                    merge = incoming.proxyProvidersMerge,
+                ),
+            proxyProvidersMerge =
+                MergeHelper.mergeProviderMap(
+                    base = base.proxyProvidersMerge,
+                    replace = incoming.proxyProvidersMerge,
+                    merge = null,
+                ),
             dns = mergeDns(base.dns, incoming),
             dnsForce = incoming.dnsForce ?: base.dnsForce,
             app = mergeApp(base.app, incoming.app),
@@ -138,7 +165,9 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.Dns,
         incoming: ConfigurationOverride,
     ): ConfigurationOverride.Dns {
-        incoming.dnsForce?.let { return it }
+        incoming.dnsForce?.let {
+            return it
+        }
 
         val incomingDns = incoming.dns
         return base.copy(
@@ -158,51 +187,80 @@ internal object ConfigurationOverrideMerger {
             fakeIpTtl = incomingDns.fakeIpTtl ?: base.fakeIpTtl,
             cacheMaxSize = incomingDns.cacheMaxSize ?: base.cacheMaxSize,
             directFollowPolicy = incomingDns.directFollowPolicy ?: base.directFollowPolicy,
-
             nameServer = MergeHelper.mergeListSimple(base.nameServer, incomingDns.nameServer),
-            nameServerStart = MergeHelper.mergeListSimple(base.nameServerStart, incomingDns.nameServerStart),
-            nameServerEnd = MergeHelper.mergeListSimple(base.nameServerEnd, incomingDns.nameServerEnd),
-
+            nameServerStart =
+                MergeHelper.mergeListSimple(base.nameServerStart, incomingDns.nameServerStart),
+            nameServerEnd =
+                MergeHelper.mergeListSimple(base.nameServerEnd, incomingDns.nameServerEnd),
             fallback = MergeHelper.mergeListSimple(base.fallback, incomingDns.fallback),
-            fallbackStart = MergeHelper.mergeListSimple(base.fallbackStart, incomingDns.fallbackStart),
+            fallbackStart =
+                MergeHelper.mergeListSimple(base.fallbackStart, incomingDns.fallbackStart),
             fallbackEnd = MergeHelper.mergeListSimple(base.fallbackEnd, incomingDns.fallbackEnd),
-
-            defaultServer = MergeHelper.mergeListSimple(base.defaultServer, incomingDns.defaultServer),
-            defaultServerStart = MergeHelper.mergeListSimple(base.defaultServerStart, incomingDns.defaultServerStart),
-            defaultServerEnd = MergeHelper.mergeListSimple(base.defaultServerEnd, incomingDns.defaultServerEnd),
-
+            defaultServer =
+                MergeHelper.mergeListSimple(base.defaultServer, incomingDns.defaultServer),
+            defaultServerStart =
+                MergeHelper.mergeListSimple(
+                    base.defaultServerStart,
+                    incomingDns.defaultServerStart,
+                ),
+            defaultServerEnd =
+                MergeHelper.mergeListSimple(base.defaultServerEnd, incomingDns.defaultServerEnd),
             fakeIpFilter = MergeHelper.mergeListSimple(base.fakeIpFilter, incomingDns.fakeIpFilter),
-            fakeIpFilterStart = MergeHelper.mergeListSimple(base.fakeIpFilterStart, incomingDns.fakeIpFilterStart),
-            fakeIpFilterEnd = MergeHelper.mergeListSimple(base.fakeIpFilterEnd, incomingDns.fakeIpFilterEnd),
-
-            proxyServerNameserver = MergeHelper.mergeListSimple(base.proxyServerNameserver, incomingDns.proxyServerNameserver),
-            proxyServerNameserverStart = MergeHelper.mergeListSimple(base.proxyServerNameserverStart, incomingDns.proxyServerNameserverStart),
-            proxyServerNameserverEnd = MergeHelper.mergeListSimple(base.proxyServerNameserverEnd, incomingDns.proxyServerNameserverEnd),
-
-            directNameserver = MergeHelper.mergeListSimple(base.directNameserver, incomingDns.directNameserver),
-            directNameserverStart = MergeHelper.mergeListSimple(base.directNameserverStart, incomingDns.directNameserverStart),
-            directNameserverEnd = MergeHelper.mergeListSimple(base.directNameserverEnd, incomingDns.directNameserverEnd),
-
-            nameserverPolicy = MergeHelper.mergeMap(
-                base = base.nameserverPolicy,
-                replace = incomingDns.nameserverPolicy,
-                merge = incomingDns.nameserverPolicyMerge,
-            ),
-            nameserverPolicyMerge = MergeHelper.mergeMap(
-                base = base.nameserverPolicyMerge,
-                replace = incomingDns.nameserverPolicyMerge,
-                merge = null,
-            ),
-            proxyServerNameserverPolicy = MergeHelper.mergeMap(
-                base = base.proxyServerNameserverPolicy,
-                replace = incomingDns.proxyServerNameserverPolicy,
-                merge = incomingDns.proxyServerNameserverPolicyMerge,
-            ),
-            proxyServerNameserverPolicyMerge = MergeHelper.mergeMap(
-                base = base.proxyServerNameserverPolicyMerge,
-                replace = incomingDns.proxyServerNameserverPolicyMerge,
-                merge = null,
-            ),
+            fakeIpFilterStart =
+                MergeHelper.mergeListSimple(base.fakeIpFilterStart, incomingDns.fakeIpFilterStart),
+            fakeIpFilterEnd =
+                MergeHelper.mergeListSimple(base.fakeIpFilterEnd, incomingDns.fakeIpFilterEnd),
+            proxyServerNameserver =
+                MergeHelper.mergeListSimple(
+                    base.proxyServerNameserver,
+                    incomingDns.proxyServerNameserver,
+                ),
+            proxyServerNameserverStart =
+                MergeHelper.mergeListSimple(
+                    base.proxyServerNameserverStart,
+                    incomingDns.proxyServerNameserverStart,
+                ),
+            proxyServerNameserverEnd =
+                MergeHelper.mergeListSimple(
+                    base.proxyServerNameserverEnd,
+                    incomingDns.proxyServerNameserverEnd,
+                ),
+            directNameserver =
+                MergeHelper.mergeListSimple(base.directNameserver, incomingDns.directNameserver),
+            directNameserverStart =
+                MergeHelper.mergeListSimple(
+                    base.directNameserverStart,
+                    incomingDns.directNameserverStart,
+                ),
+            directNameserverEnd =
+                MergeHelper.mergeListSimple(
+                    base.directNameserverEnd,
+                    incomingDns.directNameserverEnd,
+                ),
+            nameserverPolicy =
+                MergeHelper.mergeMap(
+                    base = base.nameserverPolicy,
+                    replace = incomingDns.nameserverPolicy,
+                    merge = incomingDns.nameserverPolicyMerge,
+                ),
+            nameserverPolicyMerge =
+                MergeHelper.mergeMap(
+                    base = base.nameserverPolicyMerge,
+                    replace = incomingDns.nameserverPolicyMerge,
+                    merge = null,
+                ),
+            proxyServerNameserverPolicy =
+                MergeHelper.mergeMap(
+                    base = base.proxyServerNameserverPolicy,
+                    replace = incomingDns.proxyServerNameserverPolicy,
+                    merge = incomingDns.proxyServerNameserverPolicyMerge,
+                ),
+            proxyServerNameserverPolicyMerge =
+                MergeHelper.mergeMap(
+                    base = base.proxyServerNameserverPolicyMerge,
+                    replace = incomingDns.proxyServerNameserverPolicyMerge,
+                    merge = null,
+                ),
             fallbackFilter = mergeFallbackFilter(base.fallbackFilter, incomingDns),
             fallbackFilterForce = incomingDns.fallbackFilterForce ?: base.fallbackFilterForce,
         )
@@ -212,21 +270,21 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.DnsFallbackFilter,
         incoming: ConfigurationOverride.Dns,
     ): ConfigurationOverride.DnsFallbackFilter {
-        incoming.fallbackFilterForce?.let { return it }
+        incoming.fallbackFilterForce?.let {
+            return it
+        }
 
         val incomingFilter = incoming.fallbackFilter
         return base.copy(
             geoIp = incomingFilter.geoIp ?: base.geoIp,
             geoIpCode = incomingFilter.geoIpCode ?: base.geoIpCode,
-
             ipcidr = MergeHelper.mergeListSimple(base.ipcidr, incomingFilter.ipcidr),
             ipcidrStart = MergeHelper.mergeListSimple(base.ipcidrStart, incomingFilter.ipcidrStart),
             ipcidrEnd = MergeHelper.mergeListSimple(base.ipcidrEnd, incomingFilter.ipcidrEnd),
-
             geosite = MergeHelper.mergeListSimple(base.geosite, incomingFilter.geosite),
-            geositeStart = MergeHelper.mergeListSimple(base.geositeStart, incomingFilter.geositeStart),
+            geositeStart =
+                MergeHelper.mergeListSimple(base.geositeStart, incomingFilter.geositeStart),
             geositeEnd = MergeHelper.mergeListSimple(base.geositeEnd, incomingFilter.geositeEnd),
-
             domain = MergeHelper.mergeListSimple(base.domain, incomingFilter.domain),
             domainStart = MergeHelper.mergeListSimple(base.domainStart, incomingFilter.domainStart),
             domainEnd = MergeHelper.mergeListSimple(base.domainEnd, incomingFilter.domainEnd),
@@ -237,9 +295,7 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.App,
         incoming: ConfigurationOverride.App,
     ): ConfigurationOverride.App {
-        return base.copy(
-            appendSystemDns = incoming.appendSystemDns ?: base.appendSystemDns,
-        )
+        return base.copy(appendSystemDns = incoming.appendSystemDns ?: base.appendSystemDns)
     }
 
     private fun mergeProfile(
@@ -256,14 +312,18 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.ExternalControllerCors,
         incoming: ConfigurationOverride,
     ): ConfigurationOverride.ExternalControllerCors {
-        incoming.externalControllerCorsForce?.let { return it }
+        incoming.externalControllerCorsForce?.let {
+            return it
+        }
 
         val incomingCors = incoming.externalControllerCors
         return base.copy(
-
-            allowOrigins = MergeHelper.mergeListSimple(base.allowOrigins, incomingCors.allowOrigins),
-            allowOriginsStart = MergeHelper.mergeListSimple(base.allowOriginsStart, incomingCors.allowOriginsStart),
-            allowOriginsEnd = MergeHelper.mergeListSimple(base.allowOriginsEnd, incomingCors.allowOriginsEnd),
+            allowOrigins =
+                MergeHelper.mergeListSimple(base.allowOrigins, incomingCors.allowOrigins),
+            allowOriginsStart =
+                MergeHelper.mergeListSimple(base.allowOriginsStart, incomingCors.allowOriginsStart),
+            allowOriginsEnd =
+                MergeHelper.mergeListSimple(base.allowOriginsEnd, incomingCors.allowOriginsEnd),
             allowPrivateNetwork = incomingCors.allowPrivateNetwork ?: base.allowPrivateNetwork,
         )
     }
@@ -272,7 +332,9 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.GeoXUrl,
         incoming: ConfigurationOverride,
     ): ConfigurationOverride.GeoXUrl {
-        incoming.geoxurlForce?.let { return it }
+        incoming.geoxurlForce?.let {
+            return it
+        }
 
         val incomingGeoX = incoming.geoxurl
         return base.copy(
@@ -289,9 +351,9 @@ internal object ConfigurationOverrideMerger {
         return base.copy(
             enable = incoming.enable ?: base.enable,
             stack = incoming.stack ?: base.stack,
-
             dnsHijack = MergeHelper.mergeListSimple(base.dnsHijack, incoming.dnsHijack),
-            dnsHijackStart = MergeHelper.mergeListSimple(base.dnsHijackStart, incoming.dnsHijackStart),
+            dnsHijackStart =
+                MergeHelper.mergeListSimple(base.dnsHijackStart, incoming.dnsHijackStart),
             dnsHijackEnd = MergeHelper.mergeListSimple(base.dnsHijackEnd, incoming.dnsHijackEnd),
             autoRoute = incoming.autoRoute ?: base.autoRoute,
             autoDetectInterface = incoming.autoDetectInterface ?: base.autoDetectInterface,
@@ -301,23 +363,36 @@ internal object ConfigurationOverrideMerger {
             gsoMaxSize = incoming.gsoMaxSize ?: base.gsoMaxSize,
             strictRoute = incoming.strictRoute ?: base.strictRoute,
             disableIcmpForwarding = incoming.disableIcmpForwarding ?: base.disableIcmpForwarding,
-
             routeAddress = MergeHelper.mergeListSimple(base.routeAddress, incoming.routeAddress),
-            routeAddressStart = MergeHelper.mergeListSimple(base.routeAddressStart, incoming.routeAddressStart),
-            routeAddressEnd = MergeHelper.mergeListSimple(base.routeAddressEnd, incoming.routeAddressEnd),
-
-            routeExcludeAddress = MergeHelper.mergeListSimple(base.routeExcludeAddress, incoming.routeExcludeAddress),
-            routeExcludeAddressStart = MergeHelper.mergeListSimple(base.routeExcludeAddressStart, incoming.routeExcludeAddressStart),
-            routeExcludeAddressEnd = MergeHelper.mergeListSimple(base.routeExcludeAddressEnd, incoming.routeExcludeAddressEnd),
+            routeAddressStart =
+                MergeHelper.mergeListSimple(base.routeAddressStart, incoming.routeAddressStart),
+            routeAddressEnd =
+                MergeHelper.mergeListSimple(base.routeAddressEnd, incoming.routeAddressEnd),
+            routeExcludeAddress =
+                MergeHelper.mergeListSimple(base.routeExcludeAddress, incoming.routeExcludeAddress),
+            routeExcludeAddressStart =
+                MergeHelper.mergeListSimple(
+                    base.routeExcludeAddressStart,
+                    incoming.routeExcludeAddressStart,
+                ),
+            routeExcludeAddressEnd =
+                MergeHelper.mergeListSimple(
+                    base.routeExcludeAddressEnd,
+                    incoming.routeExcludeAddressEnd,
+                ),
             endpointIndependentNat = incoming.endpointIndependentNat ?: base.endpointIndependentNat,
-
-            includePackage = MergeHelper.mergeListSimple(base.includePackage, incoming.includePackage),
-            includePackageStart = MergeHelper.mergeListSimple(base.includePackageStart, incoming.includePackageStart),
-            includePackageEnd = MergeHelper.mergeListSimple(base.includePackageEnd, incoming.includePackageEnd),
-
-            excludePackage = MergeHelper.mergeListSimple(base.excludePackage, incoming.excludePackage),
-            excludePackageStart = MergeHelper.mergeListSimple(base.excludePackageStart, incoming.excludePackageStart),
-            excludePackageEnd = MergeHelper.mergeListSimple(base.excludePackageEnd, incoming.excludePackageEnd),
+            includePackage =
+                MergeHelper.mergeListSimple(base.includePackage, incoming.includePackage),
+            includePackageStart =
+                MergeHelper.mergeListSimple(base.includePackageStart, incoming.includePackageStart),
+            includePackageEnd =
+                MergeHelper.mergeListSimple(base.includePackageEnd, incoming.includePackageEnd),
+            excludePackage =
+                MergeHelper.mergeListSimple(base.excludePackage, incoming.excludePackage),
+            excludePackageStart =
+                MergeHelper.mergeListSimple(base.excludePackageStart, incoming.excludePackageStart),
+            excludePackageEnd =
+                MergeHelper.mergeListSimple(base.excludePackageEnd, incoming.excludePackageEnd),
         )
     }
 
@@ -325,7 +400,9 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.Sniffer,
         incoming: ConfigurationOverride,
     ): ConfigurationOverride.Sniffer {
-        incoming.snifferForce?.let { return it }
+        incoming.snifferForce?.let {
+            return it
+        }
 
         val incomingSniffer = incoming.sniffer
         return base.copy(
@@ -334,22 +411,44 @@ internal object ConfigurationOverrideMerger {
             forceDnsMapping = incomingSniffer.forceDnsMapping ?: base.forceDnsMapping,
             parsePureIp = incomingSniffer.parsePureIp ?: base.parsePureIp,
             overrideDestination = incomingSniffer.overrideDestination ?: base.overrideDestination,
-
-            forceDomain = MergeHelper.mergeListSimple(base.forceDomain, incomingSniffer.forceDomain),
-            forceDomainStart = MergeHelper.mergeListSimple(base.forceDomainStart, incomingSniffer.forceDomainStart),
-            forceDomainEnd = MergeHelper.mergeListSimple(base.forceDomainEnd, incomingSniffer.forceDomainEnd),
-
+            forceDomain =
+                MergeHelper.mergeListSimple(base.forceDomain, incomingSniffer.forceDomain),
+            forceDomainStart =
+                MergeHelper.mergeListSimple(
+                    base.forceDomainStart,
+                    incomingSniffer.forceDomainStart,
+                ),
+            forceDomainEnd =
+                MergeHelper.mergeListSimple(base.forceDomainEnd, incomingSniffer.forceDomainEnd),
             skipDomain = MergeHelper.mergeListSimple(base.skipDomain, incomingSniffer.skipDomain),
-            skipDomainStart = MergeHelper.mergeListSimple(base.skipDomainStart, incomingSniffer.skipDomainStart),
-            skipDomainEnd = MergeHelper.mergeListSimple(base.skipDomainEnd, incomingSniffer.skipDomainEnd),
-
-            skipSrcAddress = MergeHelper.mergeListSimple(base.skipSrcAddress, incomingSniffer.skipSrcAddress),
-            skipSrcAddressStart = MergeHelper.mergeListSimple(base.skipSrcAddressStart, incomingSniffer.skipSrcAddressStart),
-            skipSrcAddressEnd = MergeHelper.mergeListSimple(base.skipSrcAddressEnd, incomingSniffer.skipSrcAddressEnd),
-
-            skipDstAddress = MergeHelper.mergeListSimple(base.skipDstAddress, incomingSniffer.skipDstAddress),
-            skipDstAddressStart = MergeHelper.mergeListSimple(base.skipDstAddressStart, incomingSniffer.skipDstAddressStart),
-            skipDstAddressEnd = MergeHelper.mergeListSimple(base.skipDstAddressEnd, incomingSniffer.skipDstAddressEnd),
+            skipDomainStart =
+                MergeHelper.mergeListSimple(base.skipDomainStart, incomingSniffer.skipDomainStart),
+            skipDomainEnd =
+                MergeHelper.mergeListSimple(base.skipDomainEnd, incomingSniffer.skipDomainEnd),
+            skipSrcAddress =
+                MergeHelper.mergeListSimple(base.skipSrcAddress, incomingSniffer.skipSrcAddress),
+            skipSrcAddressStart =
+                MergeHelper.mergeListSimple(
+                    base.skipSrcAddressStart,
+                    incomingSniffer.skipSrcAddressStart,
+                ),
+            skipSrcAddressEnd =
+                MergeHelper.mergeListSimple(
+                    base.skipSrcAddressEnd,
+                    incomingSniffer.skipSrcAddressEnd,
+                ),
+            skipDstAddress =
+                MergeHelper.mergeListSimple(base.skipDstAddress, incomingSniffer.skipDstAddress),
+            skipDstAddressStart =
+                MergeHelper.mergeListSimple(
+                    base.skipDstAddressStart,
+                    incomingSniffer.skipDstAddressStart,
+                ),
+            skipDstAddressEnd =
+                MergeHelper.mergeListSimple(
+                    base.skipDstAddressEnd,
+                    incomingSniffer.skipDstAddressEnd,
+                ),
         )
     }
 
@@ -357,7 +456,9 @@ internal object ConfigurationOverrideMerger {
         base: ConfigurationOverride.Sniff,
         incoming: ConfigurationOverride.Sniffer,
     ): ConfigurationOverride.Sniff {
-        incoming.sniffForce?.let { return it }
+        incoming.sniffForce?.let {
+            return it
+        }
 
         val incomingSniff = incoming.sniff
         return base.copy(
@@ -372,7 +473,6 @@ internal object ConfigurationOverrideMerger {
         incoming: ConfigurationOverride.ProtocolConfig,
     ): ConfigurationOverride.ProtocolConfig {
         return base.copy(
-
             ports = MergeHelper.mergeListSimple(base.ports, incoming.ports),
             portsStart = MergeHelper.mergeListSimple(base.portsStart, incoming.portsStart),
             portsEnd = MergeHelper.mergeListSimple(base.portsEnd, incoming.portsEnd),

@@ -18,21 +18,17 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.AppColorTheme
+import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
 
-class AppSettingsRepository(
-    private val storage: AppSettingsStorage,
-) {
+class AppSettingsRepository(private val storage: AppSettingsStorage) {
     val initialSetupCompleted: Preference<Boolean> = storage.initialSetupCompleted
     val privacyPolicyAccepted: Preference<Boolean> = storage.privacyPolicyAccepted
 
@@ -41,7 +37,8 @@ class AppSettingsRepository(
     val colorTheme: Preference<AppColorTheme> = storage.colorTheme
     val themeSeedColorArgb: Preference<Long> = storage.themeAccentColorArgb
     val automaticRestart: Preference<Boolean> = storage.automaticRestart
-    val autoUpdateCurrentProfileOnStart: Preference<Boolean> = storage.autoUpdateCurrentProfileOnStart
+    val autoUpdateCurrentProfileOnStart: Preference<Boolean> =
+        storage.autoUpdateCurrentProfileOnStart
     val hideAppIcon: Preference<Boolean> = storage.hideAppIcon
     val excludeFromRecents: Preference<Boolean> = storage.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = storage.showTrafficNotification
@@ -60,6 +57,7 @@ class AppSettingsRepository(
     val customUserAgent: Preference<String> = storage.customUserAgent
 
     fun onAppLanguageChange(language: AppLanguage) = appLanguage.set(language)
+
     fun applyCustomUserAgent(userAgent: String) {
         customUserAgent.set(userAgent)
         Clash.setCustomUserAgent(userAgent)

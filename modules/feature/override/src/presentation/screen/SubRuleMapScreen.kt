@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.clickable
@@ -48,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -58,15 +55,19 @@ private const val SubRuleReorderHeaderCount = 2
 @Composable
 fun OverrideSubRuleMapEditorScreen(
     navigator: DestinationsNavigator,
-    onOpenDraftEditor: (
-        title: String,
-        initialValue: OverrideSubRuleGroupDraft?,
-        onConfirm: (OverrideSubRuleGroupDraft) -> Unit,
-    ) -> Unit,
+    onOpenDraftEditor:
+        (
+            title: String,
+            initialValue: OverrideSubRuleGroupDraft?,
+            onConfirm: (OverrideSubRuleGroupDraft) -> Unit,
+        ) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = OverrideStructuredEditorStore.subRuleGroupEditorTitle.ifBlank { MLang.Override.Structured.SubRules.Title }
+    val title =
+        OverrideStructuredEditorStore.subRuleGroupEditorTitle.ifBlank {
+            MLang.Override.Structured.SubRules.Title
+        }
     val availableModes = OverrideStructuredEditorStore.subRuleGroupEditorAvailableModes
     var showResetDialog by remember { mutableStateOf(false) }
     val addFabController = rememberOverrideFabController()
@@ -82,18 +83,20 @@ fun OverrideSubRuleMapEditorScreen(
         OverrideStructuredEditorStore.applySubRuleDraftValues(values)
     }
 
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        val fromIndex = (from.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
-        val toIndex = (to.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
-        val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-        val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-        val updatedValues = latestValues.update(
-            mode,
-            reorderDraftList(latestValues.valueFor(mode).orEmpty(), fromIndex, toIndex),
-        )
-        selectedUiIds = emptySet()
-        applySubRuleValues(updatedValues)
-    }
+    val reorderState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            val fromIndex = (from.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
+            val toIndex = (to.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
+            val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
+            val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
+            val updatedValues =
+                latestValues.update(
+                    mode,
+                    reorderDraftList(latestValues.valueFor(mode).orEmpty(), fromIndex, toIndex),
+                )
+            selectedUiIds = emptySet()
+            applySubRuleValues(updatedValues)
+        }
     val showAddFab = !isDeleteMode && !showResetDialog
 
     Scaffold(
@@ -106,11 +109,15 @@ fun OverrideSubRuleMapEditorScreen(
                 onClick = {
                     onOpenDraftEditor(MLang.Override.Editor.NewSubRuleGroup, null) { createdDraft ->
                         val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-                        val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-                        val updatedValues = latestValues.update(
-                            mode,
-                            latestValues.valueFor(mode).orEmpty().toMutableList().also { it.add(createdDraft) },
-                        )
+                        val latestValues =
+                            OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
+                        val updatedValues =
+                            latestValues.update(
+                                mode,
+                                latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                                    it.add(createdDraft)
+                                },
+                            )
                         applySubRuleValues(updatedValues)
                     }
                 },
@@ -137,12 +144,17 @@ fun OverrideSubRuleMapEditorScreen(
                         IconButton(
                             onClick = {
                                 if (selectedUiIds.isNotEmpty()) {
-                                    val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-                                    val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-                                    val updatedValues = latestValues.update(
-                                        mode,
-                                        latestValues.valueFor(mode).orEmpty().filterNot { it.uiId in selectedUiIds },
-                                    )
+                                    val mode =
+                                        OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
+                                    val latestValues =
+                                        OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
+                                    val updatedValues =
+                                        latestValues.update(
+                                            mode,
+                                            latestValues.valueFor(mode).orEmpty().filterNot {
+                                                it.uiId in selectedUiIds
+                                            },
+                                        )
                                     selectedUiIds = emptySet()
                                     isDeleteMode = false
                                     applySubRuleValues(updatedValues)
@@ -198,7 +210,9 @@ fun OverrideSubRuleMapEditorScreen(
                         selectedIndex = selectedModeIndex,
                         onSelectedIndexChange = { index ->
                             val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateSubRuleGroupEditorSession(selectedMode = newMode)
+                            OverrideStructuredEditorStore.updateSubRuleGroupEditorSession(
+                                selectedMode = newMode
+                            )
                             isDeleteMode = false
                             selectedUiIds = emptySet()
                         },
@@ -211,17 +225,13 @@ fun OverrideSubRuleMapEditorScreen(
             }
 
             if (currentDrafts.isNotEmpty()) {
-                items(
-                    count = currentDrafts.size,
-                    key = { index -> currentDrafts[index].uiId },
-                ) { index ->
+                items(count = currentDrafts.size, key = { index -> currentDrafts[index].uiId }) {
+                    index ->
                     val draft = currentDrafts[index]
-                    ReorderableItem(
-                        state = reorderState,
-                        key = draft.uiId,
-                    ) { isDragging ->
+                    ReorderableItem(state = reorderState, key = draft.uiId) { isDragging ->
                         SubRuleGroupCard(
-                            title = draft.name.ifBlank { MLang.Override.Editor.UnnamedSubRuleGroup },
+                            title =
+                                draft.name.ifBlank { MLang.Override.Editor.UnnamedSubRuleGroup },
                             isDragging = isDragging,
                             isDeleteMode = isDeleteMode,
                             isSelected = draft.uiId in selectedUiIds,
@@ -231,28 +241,36 @@ fun OverrideSubRuleMapEditorScreen(
                                 } else {
                                     val draftUiId = draft.uiId
                                     val editMode = selectedMode
-                                    onOpenDraftEditor(MLang.Override.Editor.EditSubRuleGroup, draft) { updatedDraft ->
-                                        val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-                                        val updatedValues = latestValues.update(
-                                            editMode,
-                                            latestValues.valueFor(editMode).orEmpty().map { currentDraft ->
-                                                if (currentDraft.uiId == draftUiId) {
-                                                    updatedDraft.copy(uiId = draftUiId)
-                                                } else {
-                                                    currentDraft
-                                                }
-                                            },
-                                        )
+                                    onOpenDraftEditor(
+                                        MLang.Override.Editor.EditSubRuleGroup,
+                                        draft,
+                                    ) { updatedDraft ->
+                                        val latestValues =
+                                            OverrideStructuredEditorStore
+                                                .subRuleGroupEditorDraftValues
+                                        val updatedValues =
+                                            latestValues.update(
+                                                editMode,
+                                                latestValues.valueFor(editMode).orEmpty().map {
+                                                    currentDraft ->
+                                                    if (currentDraft.uiId == draftUiId) {
+                                                        updatedDraft.copy(uiId = draftUiId)
+                                                    } else {
+                                                        currentDraft
+                                                    }
+                                                },
+                                            )
                                         applySubRuleValues(updatedValues)
                                     }
                                 }
                             },
                             onSelectedChange = { checked ->
-                                selectedUiIds = if (checked) {
-                                    selectedUiIds + draft.uiId
-                                } else {
-                                    selectedUiIds - draft.uiId
-                                }
+                                selectedUiIds =
+                                    if (checked) {
+                                        selectedUiIds + draft.uiId
+                                    } else {
+                                        selectedUiIds - draft.uiId
+                                    }
                             },
                         )
                     }
@@ -264,10 +282,13 @@ fun OverrideSubRuleMapEditorScreen(
             }
         }
 
-    AppDialog(
+        AppDialog(
             show = showResetDialog,
             title = MLang.Override.Editor.ClearSubRules,
-            summary = MLang.Override.Editor.ClearDialog.Summary.format(MLang.Override.Structured.SubRules.ItemLabel),
+            summary =
+                MLang.Override.Editor.ClearDialog.Summary.format(
+                    MLang.Override.Structured.SubRules.ItemLabel
+                ),
             onDismissRequest = { showResetDialog = false },
         ) {
             DialogButtonRow(
@@ -277,7 +298,12 @@ fun OverrideSubRuleMapEditorScreen(
                     isDeleteMode = false
                     selectedUiIds = emptySet()
                     val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-                    applySubRuleValues(OverrideStructuredEditorStore.subRuleGroupEditorDraftValues.update(mode, emptyList()))
+                    applySubRuleValues(
+                        OverrideStructuredEditorStore.subRuleGroupEditorDraftValues.update(
+                            mode,
+                            emptyList(),
+                        )
+                    )
                 },
                 cancelText = MLang.Override.Dialog.Button.Cancel,
                 confirmText = MLang.Override.Editor.Clear,
@@ -297,15 +323,15 @@ private fun ReorderableCollectionItemScope.SubRuleGroupCard(
 ) {
     Column {
         Card(
-            modifier = Modifier
-                .longPressDraggableHandle(enabled = !isDeleteMode)
-                .alpha(if (isDragging) 0.92f else 1f),
+            modifier =
+                Modifier.longPressDraggableHandle(enabled = !isDeleteMode)
+                    .alpha(if (isDragging) 0.92f else 1f)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick)
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -314,18 +340,10 @@ private fun ReorderableCollectionItemScope.SubRuleGroupCard(
                     contentDescription = MLang.Override.Editor.DragToSort,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        text = title,
-                        style = MiuixTheme.textStyles.body1,
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MiuixTheme.textStyles.body1)
                 }
-                Box(
-                    modifier = Modifier.height(32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
                     if (isDeleteMode) {
                         Checkbox(
                             state = ToggleableState(isSelected),

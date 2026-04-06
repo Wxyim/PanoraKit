@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.common.util
 
 import android.content.Context
@@ -27,15 +25,15 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import dev.oom_wg.purejoy.mlang.MLang
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.*
-import java.util.concurrent.atomic.AtomicLong
 
 enum class ToastMode {
     INFO,
-    COPY
+    COPY,
 }
 
 data class ToastDialogEvent(
@@ -58,12 +56,13 @@ object ToastDialogBridge {
     fun show(message: String, title: String = DEFAULT_TITLE, mode: ToastMode = ToastMode.INFO) {
         if (message.isBlank()) return
 
-        val event = ToastDialogEvent(
-            id = nextId.getAndIncrement(),
-            title = title,
-            message = message,
-            mode = mode,
-        )
+        val event =
+            ToastDialogEvent(
+                id = nextId.getAndIncrement(),
+                title = title,
+                message = message,
+                mode = mode,
+            )
 
         synchronized(lock) {
             if (_event.value == null) {
@@ -96,16 +95,13 @@ fun showToastDialog(
 fun Context.toast(
     message: String,
     duration: Int = Toast.LENGTH_SHORT,
-    mode: ToastMode = ToastMode.INFO
+    mode: ToastMode = ToastMode.INFO,
 ) {
-    @Suppress("UNUSED_VARIABLE")
-    val ignored = duration
+    @Suppress("UNUSED_VARIABLE") val ignored = duration
     showToastDialog(message, mode = mode)
 }
 
 @Composable
 fun ShowToast(message: String, mode: ToastMode = ToastMode.INFO) {
-    LaunchedEffect(message) {
-        showToastDialog(message, mode = mode)
-    }
+    LaunchedEffect(message) { showToastDialog(message, mode = mode) }
 }

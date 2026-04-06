@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.*
@@ -63,9 +61,13 @@ fun OverridePresetTemplateSheet(
 
     LaunchedEffect(show, initialSelection) {
         selectedRegions.clear()
-        selectedRegions.addAll(initialSelection.regions.toList().sortedBy(OverridePresetRegion::ordinal))
+        selectedRegions.addAll(
+            initialSelection.regions.toList().sortedBy(OverridePresetRegion::ordinal)
+        )
         enabledItems.clear()
-        enabledItems.addAll(initialSelection.enabledItems.toList().sortedBy(OverridePresetItem::ordinal))
+        enabledItems.addAll(
+            initialSelection.enabledItems.toList().sortedBy(OverridePresetItem::ordinal)
+        )
     }
 
     AppActionBottomSheet(
@@ -74,9 +76,7 @@ fun OverridePresetTemplateSheet(
         title = MLang.Override.Draft.PresetTemplate,
         enableNestedScroll = false,
         dragHandleColor = Color.Transparent,
-        startAction = {
-            AppBottomSheetCloseAction(onClick = onDismiss)
-        },
+        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         endAction = {
             AppBottomSheetConfirmAction(
                 contentDescription = MLang.Override.Draft.Apply,
@@ -86,7 +86,7 @@ fun OverridePresetTemplateSheet(
                             templateId = templateId,
                             regions = selectedRegions.toSet(),
                             enabledItems = enabledItems.toSet(),
-                        ),
+                        )
                     )
                 },
             )
@@ -94,21 +94,21 @@ fun OverridePresetTemplateSheet(
         onDismissRequest = onDismiss,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = PresetTemplateSheetMetrics.ListMaxHeight)
-                .padding(bottom = PresetTemplateSheetMetrics.BottomPadding),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .heightIn(max = PresetTemplateSheetMetrics.ListMaxHeight)
+                    .padding(bottom = PresetTemplateSheetMetrics.BottomPadding),
             verticalArrangement = Arrangement.spacedBy(PresetTemplateSheetMetrics.SectionSpacing),
         ) {
             item(key = "preset-template-intro") {
                 Card(applyHorizontalPadding = false) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = PresetTemplateSheetMetrics.IntroHorizontalPadding,
-                                vertical = PresetTemplateSheetMetrics.IntroVerticalPadding,
-                            ),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(
+                                    horizontal = PresetTemplateSheetMetrics.IntroHorizontalPadding,
+                                    vertical = PresetTemplateSheetMetrics.IntroVerticalPadding,
+                                ),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
@@ -221,14 +221,9 @@ private fun <T> LazyListScope.presetSwitchCard(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            SmallTitle(
-                text = title,
-                insideMargin = PresetTemplateSheetMetrics.SectionTitlePadding,
-            )
+            SmallTitle(text = title, insideMargin = PresetTemplateSheetMetrics.SectionTitlePadding)
             Card(applyHorizontalPadding = false) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     items.forEach { item ->
                         SuperSwitch(
                             title = itemTitle(item),

@@ -18,48 +18,47 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.clash.module
 
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageInfo
 import com.github.yumelira.yumebox.core.Clash
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 class AppListCacheModule(service: Service) : Module<Unit>(service) {
     private fun PackageInfo.uniqueUidName(): String =
         if (sharedUserId?.isNotBlank() == true) sharedUserId ?: packageName else packageName
 
     private fun reload() {
-        val packages = service.packageManager.getInstalledPackages(0)
-            .mapNotNull { info ->
-                info.applicationInfo?.let { appInfo -> info to appInfo.uid }
-            }
-            .groupBy { (info, _) -> info.uniqueUidName() }
-            .map { (_, v) ->
-                val (info, uid) = v[0]
+        val packages =
+            service.packageManager
+                .getInstalledPackages(0)
+                .mapNotNull { info -> info.applicationInfo?.let { appInfo -> info to appInfo.uid } }
+                .groupBy { (info, _) -> info.uniqueUidName() }
+                .map { (_, v) ->
+                    val (info, uid) = v[0]
 
-                if (v.size == 1) {
+                    if (v.size == 1) {
 
-                    uid to info.packageName
-                } else {
-                    uid to info.uniqueUidName()
+                        uid to info.packageName
+                    } else {
+                        uid to info.uniqueUidName()
+                    }
                 }
-            }
 
         Clash.notifyInstalledAppsChanged(packages)
     }
 
     override suspend fun run() {
-        val packageChanged = receiveBroadcast(Channel.CONFLATED) {
-            addAction(Intent.ACTION_PACKAGE_ADDED)
-            addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addDataScheme("package")
-        }
+        val packageChanged =
+            receiveBroadcast(Channel.CONFLATED) {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addDataScheme("package")
+            }
 
         while (true) {
             reload()

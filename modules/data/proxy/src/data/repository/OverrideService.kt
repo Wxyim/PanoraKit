@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
@@ -29,10 +27,7 @@ import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import timber.log.Timber
 
-class OverrideService(
-    context: Context,
-    private val resolver: OverrideResolver,
-) {
+class OverrideService(context: Context, private val resolver: OverrideResolver) {
     private val appContext = context.appContextOrSelf
 
     suspend fun applyOverride(profileId: String): Boolean {
@@ -70,7 +65,7 @@ class OverrideService(
     private fun notifyRuntimeOverrideChanged() {
         appContext.sendBroadcast(
             Intent(Intents.actionOverrideChanged(appContext.packageName))
-                .setPackage(appContext.packageName),
+                .setPackage(appContext.packageName)
         )
         RootTunReloadScheduler.schedule(
             appContext,

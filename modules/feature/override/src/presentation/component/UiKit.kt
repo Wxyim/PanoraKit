@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
@@ -78,12 +76,7 @@ fun OverrideCardSection(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    OverrideSection(
-        title = title,
-        modifier = modifier,
-    ) {
-        OverrideSelectorCard(content = content)
-    }
+    OverrideSection(title = title, modifier = modifier) { OverrideSelectorCard(content = content) }
 }
 
 @Composable
@@ -92,12 +85,7 @@ fun OverrideFormSection(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    OverrideSection(
-        title = title,
-        modifier = modifier,
-    ) {
-        OverrideSelectorCard(content = content)
-    }
+    OverrideSection(title = title, modifier = modifier) { OverrideSelectorCard(content = content) }
 }
 
 @Composable
@@ -106,23 +94,15 @@ fun OverridePlainFormSection(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    OverrideSection(
-        title = title,
-        modifier = modifier,
-    ) {
+    OverrideSection(title = title, modifier = modifier) {
         OverrideFormFieldColumn(content = content)
     }
 }
 
 @Composable
-fun OverrideFormFieldColumn(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
+fun OverrideFormFieldColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         content()
@@ -139,23 +119,20 @@ fun OverrideFormField(
     errorText: String? = null,
     maxLines: Int = 1,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(0.dp)) {
         TextField(
             value = value,
             onValueChange = onValueChange,
             label = label,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (maxLines > 1) {
-                        Modifier.heightIn(min = 0.dp)
-                    } else {
-                        Modifier
-                    },
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .then(
+                        if (maxLines > 1) {
+                            Modifier.heightIn(min = 0.dp)
+                        } else {
+                            Modifier
+                        }
+                    ),
             maxLines = maxLines,
         )
         supportText?.takeIf(String::isNotBlank)?.let { helper ->
@@ -165,42 +142,29 @@ fun OverrideFormField(
             )
         }
         errorText?.takeIf(String::isNotBlank)?.let { message ->
-            OverrideFieldAssistText(
-                text = message,
-                color = MiuixTheme.colorScheme.error,
-            )
+            OverrideFieldAssistText(text = message, color = MiuixTheme.colorScheme.error)
         }
     }
 }
 
 @Composable
-fun OverrideFieldAssistText(
-    text: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
+fun OverrideFieldAssistText(text: String, color: Color, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MiuixTheme.textStyles.body2,
         color = color,
-        modifier = modifier.padding(
-            start = OverrideFieldAssistIndent,
-            top = OverrideFieldAssistVerticalPadding,
-            bottom = OverrideFieldAssistVerticalPadding,
-        ),
+        modifier =
+            modifier.padding(
+                start = OverrideFieldAssistIndent,
+                top = OverrideFieldAssistVerticalPadding,
+                bottom = OverrideFieldAssistVerticalPadding,
+            ),
     )
 }
 
 @Composable
-fun OverrideSelectorCard(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = modifier,
-        insideMargin = PaddingValues(0.dp),
-        content = content,
-    )
+fun OverrideSelectorCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(modifier = modifier, insideMargin = PaddingValues(0.dp), content = content)
 }
 
 @Composable
@@ -211,18 +175,17 @@ fun OverrideSectionCardHeader(
     onClick: () -> Unit,
     showIndicator: Boolean = true,
 ) {
-    val indicatorRotation = animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(durationMillis = 180),
-        label = "override_section_indicator_rotation",
-    )
+    val indicatorRotation =
+        animateFloatAsState(
+            targetValue = if (expanded) 90f else 0f,
+            animationSpec = tween(durationMillis = 180),
+            label = "override_section_indicator_rotation",
+        )
 
     BasicComponent(
         title = title,
         summary = summary.orEmpty(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 72.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
         endActions = {
             if (showIndicator) {
                 Icon(
@@ -238,20 +201,19 @@ fun OverrideSectionCardHeader(
 }
 
 @Composable
-fun OverrideSectionVisibility(
-    visible: Boolean,
-    content: @Composable () -> Unit,
-) {
+fun OverrideSectionVisibility(visible: Boolean, content: @Composable () -> Unit) {
     AnimatedVisibility(
         visible = visible,
-        enter = expandVertically(
-            animationSpec = tween(durationMillis = 260),
-            expandFrom = Alignment.Top,
-        ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-        exit = shrinkVertically(
-            animationSpec = tween(durationMillis = 220),
-            shrinkTowards = Alignment.Top,
-        ) + fadeOut(animationSpec = tween(durationMillis = 120)),
+        enter =
+            expandVertically(
+                animationSpec = tween(durationMillis = 260),
+                expandFrom = Alignment.Top,
+            ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+        exit =
+            shrinkVertically(
+                animationSpec = tween(durationMillis = 220),
+                shrinkTowards = Alignment.Top,
+            ) + fadeOut(animationSpec = tween(durationMillis = 120)),
         label = "override_section_visibility",
     ) {
         content()
@@ -276,9 +238,8 @@ fun OverrideAdvancedCard(
         )
         OverrideSectionVisibility(visible = expanded) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                modifier =
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 content()
@@ -297,22 +258,23 @@ fun OverrideCardActionIconButton(
     enabled: Boolean = true,
 ) {
     val colorScheme = MiuixTheme.colorScheme
-    val (backgroundColor, iconTint) = when (tone) {
-        OverrideActionTone.Neutral -> {
-            colorScheme.secondaryContainer.copy(alpha = 0.78f) to
-                colorScheme.onSurface.copy(alpha = if (enabled) 0.85f else 0.45f)
-        }
+    val (backgroundColor, iconTint) =
+        when (tone) {
+            OverrideActionTone.Neutral -> {
+                colorScheme.secondaryContainer.copy(alpha = 0.78f) to
+                    colorScheme.onSurface.copy(alpha = if (enabled) 0.85f else 0.45f)
+            }
 
-        OverrideActionTone.Primary -> {
-            colorScheme.primary.copy(alpha = 0.1f) to
-                colorScheme.primary.copy(alpha = if (enabled) 1f else 0.45f)
-        }
+            OverrideActionTone.Primary -> {
+                colorScheme.primary.copy(alpha = 0.1f) to
+                    colorScheme.primary.copy(alpha = if (enabled) 1f else 0.45f)
+            }
 
-        OverrideActionTone.Danger -> {
-            colorScheme.error.copy(alpha = 0.1f) to
-                colorScheme.error.copy(alpha = if (enabled) 1f else 0.45f)
+            OverrideActionTone.Danger -> {
+                colorScheme.error.copy(alpha = 0.1f) to
+                    colorScheme.error.copy(alpha = if (enabled) 1f else 0.45f)
+            }
         }
-    }
 
     IconButton(
         modifier = modifier,
@@ -340,12 +302,10 @@ fun OverrideStatusBadge(
     backgroundColor: Color = MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f),
 ) {
     Box(
-        modifier = modifier
-            .size(OverrideStatusBadgeSize)
-            .background(
-                color = backgroundColor,
-                shape = CircleShape,
-            ),
+        modifier =
+            modifier
+                .size(OverrideStatusBadgeSize)
+                .background(color = backgroundColor, shape = CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

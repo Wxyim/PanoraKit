@@ -35,8 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -50,10 +50,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun HomeRoute(
-    mainInnerPadding: PaddingValues,
-    isActive: Boolean,
-) {
+fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -77,17 +74,15 @@ fun HomeRoute(
     val currentTunnelMode by proxyViewModel.currentMode.collectAsState()
 
     var pendingProfileId by remember { mutableStateOf<String?>(null) }
-    var pendingProxyMode by remember { mutableStateOf<com.github.yumelira.yumebox.data.model.ProxyMode?>(null) }
+    var pendingProxyMode by remember {
+        mutableStateOf<com.github.yumelira.yumebox.data.model.ProxyMode?>(null)
+    }
     var showQuickModePanel by remember { mutableStateOf(false) }
     var modeBadgeBounds by remember { mutableStateOf<Rect?>(null) }
 
-    LaunchedEffect(Unit) {
-        homeViewModel.refreshProxyMode()
-    }
+    LaunchedEffect(Unit) { homeViewModel.refreshProxyMode() }
 
-    LaunchedEffect(isActive) {
-        homeViewModel.setScreenActive(isActive)
-    }
+    LaunchedEffect(isActive) { homeViewModel.setScreenActive(isActive) }
 
     DisposableEffect(lifecycleOwner, homeViewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -96,85 +91,91 @@ fun HomeRoute(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val vpnPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            pendingProfileId?.let { profileId ->
-                homeViewModel.startProxy(profileId, mode = pendingProxyMode)
+    val vpnPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                pendingProfileId?.let { profileId ->
+                    homeViewModel.startProxy(profileId, mode = pendingProxyMode)
+                }
             }
+            pendingProfileId = null
+            pendingProxyMode = null
         }
-        pendingProfileId = null
-        pendingProxyMode = null
-    }
 
     LaunchedEffect(homeViewModel) {
-        homeViewModel.vpnPrepareIntent.collect { intent ->
-            vpnPermissionLauncher.launch(intent)
-        }
+        homeViewModel.vpnPrepareIntent.collect { intent -> vpnPermissionLauncher.launch(intent) }
     }
 
-    val requestProxyToggle: (Boolean, com.github.yumelira.yumebox.service.runtime.entity.Profile?, com.github.yumelira.yumebox.data.model.ProxyMode) -> Unit = remember(
-        context,
-        coroutineScope,
-        displayRunning,
-        hasEnabledProfile,
-        isToggling,
-        profilesLoaded,
-        profiles,
-        recommendedProfile,
-    ) {
-        proxyToggleRequest@{ isRunning: Boolean, profile: com.github.yumelira.yumebox.service.runtime.entity.Profile?, proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode ->
-            if (!profilesLoaded || isToggling) return@proxyToggleRequest
-            if (!hasEnabledProfile || profiles.isEmpty() || profile == null) {
-                context.toast(MLang.ProfilesVM.Error.ProfileNotExist, Toast.LENGTH_LONG)
-                return@proxyToggleRequest
-            }
-            if (!isRunning) {
-                pendingProfileId = profile.uuid.toString()
-                pendingProxyMode = proxyMode
-                homeViewModel.startProxy(profileId = profile.uuid.toString(), mode = null)
-            } else {
-                coroutineScope.launch { homeViewModel.stopProxy() }
+    val requestProxyToggle:
+        (
+            Boolean,
+            com.github.yumelira.yumebox.service.runtime.entity.Profile?,
+            com.github.yumelira.yumebox.data.model.ProxyMode,
+        ) -> Unit =
+        remember(
+            context,
+            coroutineScope,
+            displayRunning,
+            hasEnabledProfile,
+            isToggling,
+            profilesLoaded,
+            profiles,
+            recommendedProfile,
+        ) {
+            proxyToggleRequest@{
+                isRunning: Boolean,
+                profile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
+                proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode ->
+                if (!profilesLoaded || isToggling) return@proxyToggleRequest
+                if (!hasEnabledProfile || profiles.isEmpty() || profile == null) {
+                    context.toast(MLang.ProfilesVM.Error.ProfileNotExist, Toast.LENGTH_LONG)
+                    return@proxyToggleRequest
+                }
+                if (!isRunning) {
+                    pendingProfileId = profile.uuid.toString()
+                    pendingProxyMode = proxyMode
+                    homeViewModel.startProxy(profileId = profile.uuid.toString(), mode = null)
+                } else {
+                    coroutineScope.launch { homeViewModel.stopProxy() }
+                }
             }
         }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-    HomePager(
-        mainInnerPadding = mainInnerPadding,
-        trafficNow = TrafficData.from(trafficNow),
-        displayRunning = displayRunning,
+        HomePager(
+            mainInnerPadding = mainInnerPadding,
+            trafficNow = TrafficData.from(trafficNow),
+            displayRunning = displayRunning,
             isToggling = isToggling,
             profilesLoaded = profilesLoaded,
-        hasProfiles = profiles.isNotEmpty(),
-        hasEnabledProfile = hasEnabledProfile,
-        recommendedProfile = recommendedProfile,
-        currentProfileName = currentProfile?.name,
-        currentTunnelMode = currentTunnelMode,
-        selectedServer = selectedServer,
-        ipMonitoringState = ipMonitoringState,
-        speedHistory = speedHistory,
-        proxyMode = currentProxyMode,
-        uiError = uiState.error ?: proxyUiState.error,
-        uiMessage = uiState.message ?: proxyUiState.message,
-        onConsumeError = {
-            homeViewModel.consumeError()
-            proxyViewModel.clearError()
-        },
-        onConsumeMessage = {
-            homeViewModel.consumeMessage()
-            proxyViewModel.clearMessage()
-        },
-        onProxyToggleRequest = requestProxyToggle,
-        onModeSwitchRequest = { showQuickModePanel = true },
-        onModeBadgeBoundsChanged = { bounds -> modeBadgeBounds = bounds },
-    )
+            hasProfiles = profiles.isNotEmpty(),
+            hasEnabledProfile = hasEnabledProfile,
+            recommendedProfile = recommendedProfile,
+            currentProfileName = currentProfile?.name,
+            currentTunnelMode = currentTunnelMode,
+            selectedServer = selectedServer,
+            ipMonitoringState = ipMonitoringState,
+            speedHistory = speedHistory,
+            proxyMode = currentProxyMode,
+            uiError = uiState.error ?: proxyUiState.error,
+            uiMessage = uiState.message ?: proxyUiState.message,
+            onConsumeError = {
+                homeViewModel.consumeError()
+                proxyViewModel.clearError()
+            },
+            onConsumeMessage = {
+                homeViewModel.consumeMessage()
+                proxyViewModel.clearMessage()
+            },
+            onProxyToggleRequest = requestProxyToggle,
+            onModeSwitchRequest = { showQuickModePanel = true },
+            onModeBadgeBoundsChanged = { bounds -> modeBadgeBounds = bounds },
+        )
 
         HomeModeSwitchOverlay(
             visible = showQuickModePanel,

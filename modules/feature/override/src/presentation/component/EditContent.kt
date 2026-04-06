@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.*
@@ -56,9 +54,7 @@ fun LazyListScope.OverrideEditContent(
     onEditSubRules: OpenSubRulesEditor,
 ) {
     item(key = "override-basic-info-section") {
-        OverrideCardSection(
-            title = MLang.Override.Draft.BasicInfo,
-        ) {
+        OverrideCardSection(title = MLang.Override.Draft.BasicInfo) {
             StringInputContent(
                 title = MLang.Override.Draft.ConfigName,
                 value = name,
@@ -90,9 +86,7 @@ fun LazyListScope.OverrideEditContent(
 
     if (!isRemoteResource) {
         item(key = "override-preset-template-section") {
-            OverrideCardSection(
-                title = MLang.Override.Draft.PresetTemplate,
-            ) {
+            OverrideCardSection(title = MLang.Override.Draft.PresetTemplate) {
                 BasicComponent(
                     title = MLang.Override.Draft.OfficialMrs,
                     summary = MLang.Override.Draft.OfficialMrsSummary,
@@ -180,12 +174,13 @@ private fun OverrideSectionContent(
 ) {
     when (section) {
         OverrideEditorSection.General -> GeneralEditor(config, onConfigChange, onEditStringList)
-        OverrideEditorSection.Dns -> DnsEditor(
-            config = config,
-            onConfigChange = onConfigChange,
-            onEditStringList = onEditStringList,
-            onEditStringMap = onEditStringMap,
-        )
+        OverrideEditorSection.Dns ->
+            DnsEditor(
+                config = config,
+                onConfigChange = onConfigChange,
+                onEditStringList = onEditStringList,
+                onEditStringMap = onEditStringMap,
+            )
         OverrideEditorSection.Sniffer -> SnifferEditor(config, onConfigChange, onEditStringList)
         OverrideEditorSection.Inbound -> InboundEditor(config, onConfigChange, onEditStringList)
         OverrideEditorSection.Tun -> TunEditor(config, onConfigChange, onEditStringList)
@@ -194,8 +189,7 @@ private fun OverrideSectionContent(
         OverrideEditorSection.ProxyGroups,
         OverrideEditorSection.Rules,
         OverrideEditorSection.RuleProviders,
-        OverrideEditorSection.SubRules,
-        -> Unit
+        OverrideEditorSection.SubRules -> Unit
     }
 }
 
@@ -205,16 +199,14 @@ private fun OverrideEditorSection.isDirectEntry(): Boolean {
         OverrideEditorSection.Dns,
         OverrideEditorSection.Sniffer,
         OverrideEditorSection.Inbound,
-        OverrideEditorSection.Tun,
-        -> false
+        OverrideEditorSection.Tun -> false
 
         OverrideEditorSection.Rules,
         OverrideEditorSection.Proxies,
         OverrideEditorSection.ProxyProviders,
         OverrideEditorSection.ProxyGroups,
         OverrideEditorSection.RuleProviders,
-        OverrideEditorSection.SubRules,
-        -> true
+        OverrideEditorSection.SubRules -> true
     }
 }
 
@@ -230,17 +222,19 @@ private fun openDirectSectionEditor(
 ) {
     when (section) {
         OverrideEditorSection.Rules -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.rules,
-                startValue = config.rulesStart,
-                endValue = config.rulesEnd,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.rules,
+                    startValue = config.rulesStart,
+                    endValue = config.rulesEnd,
+                )
             val referenceCatalog = buildOverrideReferenceCatalog(currentConfigProvider())
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Start,
-                OverrideListEditorMode.End,
-            )
+            val availableModes =
+                listOf(
+                    OverrideListEditorMode.Replace,
+                    OverrideListEditorMode.Start,
+                    OverrideListEditorMode.End,
+                )
             onEditRuleList(
                 "Rules",
                 values,
@@ -249,27 +243,30 @@ private fun openDirectSectionEditor(
                 referenceCatalog,
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        rules = updatedValues.replaceValue,
-                        rulesStart = updatedValues.startValue,
-                        rulesEnd = updatedValues.endValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            rules = updatedValues.replaceValue,
+                            rulesStart = updatedValues.startValue,
+                            rulesEnd = updatedValues.endValue,
+                        )
                 )
             }
         }
 
         OverrideEditorSection.Proxies -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.proxies,
-                startValue = config.proxiesStart,
-                endValue = config.proxiesEnd,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.proxies,
+                    startValue = config.proxiesStart,
+                    endValue = config.proxiesEnd,
+                )
             val referenceCatalog = buildOverrideReferenceCatalog(currentConfigProvider())
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Start,
-                OverrideListEditorMode.End,
-            )
+            val availableModes =
+                listOf(
+                    OverrideListEditorMode.Replace,
+                    OverrideListEditorMode.Start,
+                    OverrideListEditorMode.End,
+                )
             onEditObjectList(
                 OverrideStructuredObjectType.Proxies,
                 MLang.Override.Form.ProxyNodes,
@@ -279,27 +276,30 @@ private fun openDirectSectionEditor(
                 referenceCatalog,
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        proxies = updatedValues.replaceValue,
-                        proxiesStart = updatedValues.startValue,
-                        proxiesEnd = updatedValues.endValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            proxies = updatedValues.replaceValue,
+                            proxiesStart = updatedValues.startValue,
+                            proxiesEnd = updatedValues.endValue,
+                        )
                 )
             }
         }
 
         OverrideEditorSection.ProxyGroups -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.proxyGroups,
-                startValue = config.proxyGroupsStart,
-                endValue = config.proxyGroupsEnd,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.proxyGroups,
+                    startValue = config.proxyGroupsStart,
+                    endValue = config.proxyGroupsEnd,
+                )
             val referenceCatalog = buildOverrideReferenceCatalog(currentConfigProvider())
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Start,
-                OverrideListEditorMode.End,
-            )
+            val availableModes =
+                listOf(
+                    OverrideListEditorMode.Replace,
+                    OverrideListEditorMode.Start,
+                    OverrideListEditorMode.End,
+                )
             onEditObjectList(
                 OverrideStructuredObjectType.ProxyGroups,
                 MLang.Override.Form.ProxyGroups,
@@ -309,24 +309,24 @@ private fun openDirectSectionEditor(
                 referenceCatalog,
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        proxyGroups = updatedValues.replaceValue,
-                        proxyGroupsStart = updatedValues.startValue,
-                        proxyGroupsEnd = updatedValues.endValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            proxyGroups = updatedValues.replaceValue,
+                            proxyGroupsStart = updatedValues.startValue,
+                            proxyGroupsEnd = updatedValues.endValue,
+                        )
                 )
             }
         }
 
         OverrideEditorSection.ProxyProviders -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.proxyProviders,
-                mergeValue = config.proxyProvidersMerge,
-            )
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Merge,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.proxyProviders,
+                    mergeValue = config.proxyProvidersMerge,
+                )
+            val availableModes =
+                listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge)
             onEditObjectMap(
                 OverrideStructuredMapType.ProxyProviders,
                 MLang.Override.Form.ProxyProviders,
@@ -335,23 +335,23 @@ private fun openDirectSectionEditor(
                 resolveInitialEditorMode(availableModes, values),
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        proxyProviders = updatedValues.replaceValue,
-                        proxyProvidersMerge = updatedValues.mergeValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            proxyProviders = updatedValues.replaceValue,
+                            proxyProvidersMerge = updatedValues.mergeValue,
+                        )
                 )
             }
         }
 
         OverrideEditorSection.RuleProviders -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.ruleProviders,
-                mergeValue = config.ruleProvidersMerge,
-            )
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Merge,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.ruleProviders,
+                    mergeValue = config.ruleProvidersMerge,
+                )
+            val availableModes =
+                listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge)
             onEditObjectMap(
                 OverrideStructuredMapType.RuleProviders,
                 MLang.Override.Form.RuleProviders,
@@ -360,24 +360,24 @@ private fun openDirectSectionEditor(
                 resolveInitialEditorMode(availableModes, values),
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        ruleProviders = updatedValues.replaceValue,
-                        ruleProvidersMerge = updatedValues.mergeValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            ruleProviders = updatedValues.replaceValue,
+                            ruleProvidersMerge = updatedValues.mergeValue,
+                        )
                 )
             }
         }
 
         OverrideEditorSection.SubRules -> {
-            val values = OverrideListModeValues(
-                replaceValue = config.subRules,
-                mergeValue = config.subRulesMerge,
-            )
+            val values =
+                OverrideListModeValues(
+                    replaceValue = config.subRules,
+                    mergeValue = config.subRulesMerge,
+                )
             val referenceCatalog = buildOverrideReferenceCatalog(currentConfigProvider())
-            val availableModes = listOf(
-                OverrideListEditorMode.Replace,
-                OverrideListEditorMode.Merge,
-            )
+            val availableModes =
+                listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge)
             onEditSubRules(
                 MLang.Override.Form.SubRules,
                 values,
@@ -386,10 +386,11 @@ private fun openDirectSectionEditor(
                 referenceCatalog,
             ) { updatedValues ->
                 onConfigChange(
-                    currentConfigProvider().copy(
-                        subRules = updatedValues.replaceValue,
-                        subRulesMerge = updatedValues.mergeValue,
-                    ),
+                    currentConfigProvider()
+                        .copy(
+                            subRules = updatedValues.replaceValue,
+                            subRulesMerge = updatedValues.mergeValue,
+                        )
                 )
             }
         }
@@ -398,7 +399,6 @@ private fun openDirectSectionEditor(
         OverrideEditorSection.Dns,
         OverrideEditorSection.Sniffer,
         OverrideEditorSection.Inbound,
-        OverrideEditorSection.Tun,
-        -> Unit
+        OverrideEditorSection.Tun -> Unit
     }
 }

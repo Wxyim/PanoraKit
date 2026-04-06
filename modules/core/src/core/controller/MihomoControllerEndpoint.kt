@@ -1,8 +1,6 @@
 package com.github.yumelira.yumebox.core.controller
 
 import com.github.yumelira.yumebox.core.model.UiConfiguration
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 object MihomoControllerEndpoint {
     data class Diagnostics(
@@ -13,14 +11,15 @@ object MihomoControllerEndpoint {
         val runtimeConfigSource: String = "",
         val runtimeConfigPath: String = "",
     ) {
-        val runtimePort: Int? = runtimeControllerUrl
-            ?.substringAfterLast(':', "")
-            ?.toIntOrNull()
+        val runtimePort: Int? = runtimeControllerUrl?.substringAfterLast(':', "")?.toIntOrNull()
 
-        fun configsUrl(fallbackPort: Int? = expectedPort, fallbackHost: String = "127.0.0.1"): String? {
-            val controllerUrl = runtimeControllerUrl ?: fallbackPort?.let {
-                buildControllerUrl(port = it, host = fallbackHost)
-            }
+        fun configsUrl(
+            fallbackPort: Int? = expectedPort,
+            fallbackHost: String = "127.0.0.1",
+        ): String? {
+            val controllerUrl =
+                runtimeControllerUrl
+                    ?: fallbackPort?.let { buildControllerUrl(port = it, host = fallbackHost) }
             return controllerUrl?.let { "$it/configs" }
         }
 
@@ -30,14 +29,18 @@ object MihomoControllerEndpoint {
                 append(runtimeControllerUrl ?: "unavailable")
                 append(" secretLength=")
                 append(runtimeSecret.length)
-                runtimeConfigSource.takeIf { it.isNotBlank() }?.let {
-                    append(" source=")
-                    append(it)
-                }
-                runtimeConfigPath.takeIf { it.isNotBlank() }?.let {
-                    append(" path=")
-                    append(it)
-                }
+                runtimeConfigSource
+                    .takeIf { it.isNotBlank() }
+                    ?.let {
+                        append(" source=")
+                        append(it)
+                    }
+                runtimeConfigPath
+                    .takeIf { it.isNotBlank() }
+                    ?.let {
+                        append(" path=")
+                        append(it)
+                    }
                 expectedPort?.let {
                     append(" expectedPort=")
                     append(it)
@@ -54,21 +57,17 @@ object MihomoControllerEndpoint {
         return "Bearer $secret"
     }
 
-    fun buildControllerUrl(
-        port: Int,
-        host: String = "127.0.0.1",
-        secure: Boolean = false,
-    ): String {
+    fun buildControllerUrl(port: Int, host: String = "127.0.0.1", secure: Boolean = false): String {
         val scheme = if (secure) "https" else "http"
         return "$scheme://$host:$port"
     }
 
-
     fun resolveControllerUrl(configuration: UiConfiguration): String? {
-        val httpAddress = configuration.externalController
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { normalizeControllerAddress(it, secure = false) }
+        val httpAddress =
+            configuration.externalController
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { normalizeControllerAddress(it, secure = false) }
         if (httpAddress != null) return httpAddress
 
         return configuration.externalControllerTls
@@ -93,30 +92,35 @@ object MihomoControllerEndpoint {
     }
 
     private fun normalizeControllerAddress(address: String, secure: Boolean): String {
-        if (address.startsWith("http://", ignoreCase = true) || address.startsWith("https://", ignoreCase = true)) {
+        if (
+            address.startsWith("http://", ignoreCase = true) ||
+                address.startsWith("https://", ignoreCase = true)
+        ) {
             return address.trimEnd('/')
         }
 
-        val normalizedHost = address.substringBeforeLast(":", missingDelimiterValue = address)
-            .ifBlank { "127.0.0.1" }
-            .let { host ->
-                when (host) {
-                    "0.0.0.0", "::", "*" -> "127.0.0.1"
-                    else -> host
+        val normalizedHost =
+            address
+                .substringBeforeLast(":", missingDelimiterValue = address)
+                .ifBlank { "127.0.0.1" }
+                .let { host ->
+                    when (host) {
+                        "0.0.0.0",
+                        "::",
+                        "*" -> "127.0.0.1"
+                        else -> host
+                    }
                 }
-            }
         val port = address.substringAfterLast(":", missingDelimiterValue = "")
         val scheme = if (secure) "https" else "http"
-        return if (port.isNotBlank()) "$scheme://$normalizedHost:$port" else "$scheme://$normalizedHost"
+        return if (port.isNotBlank()) "$scheme://$normalizedHost:$port"
+        else "$scheme://$normalizedHost"
     }
 
     private fun extractControllerPort(configuration: UiConfiguration?): Int? {
-        val raw = configuration?.externalController
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?: configuration?.externalControllerTls
-                ?.trim()
-                .orEmpty()
+        val raw =
+            configuration?.externalController?.trim()?.takeIf { it.isNotEmpty() }
+                ?: configuration?.externalControllerTls?.trim().orEmpty()
         if (raw.isEmpty()) return null
         return raw.substringAfterLast(':', "").toIntOrNull()
     }

@@ -18,21 +18,19 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
 import android.net.Uri
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.Provider
-import dev.oom_wg.purejoy.mlang.MLang
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
 import com.github.yumelira.yumebox.remote.ServiceClient
+import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
+import dev.oom_wg.purejoy.mlang.MLang
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class ProvidersRepository(private val context: Context) {
 
@@ -41,7 +39,12 @@ class ProvidersRepository(private val context: Context) {
             ServiceClient.connect(context)
             Result.success(ServiceClient.clash().queryProviders())
         } catch (e: Exception) {
-            Result.failure(e.asRuntimeGatewayException(RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED, "Failed to query providers"))
+            Result.failure(
+                e.asRuntimeGatewayException(
+                    RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
+                    "Failed to query providers",
+                )
+            )
         }
     }
 
@@ -66,29 +69,32 @@ class ProvidersRepository(private val context: Context) {
         context: Context,
         provider: Provider,
         uri: Uri,
-        maxBytes: Long = MAX_UPLOAD_SIZE_BYTES
+        maxBytes: Long = MAX_UPLOAD_SIZE_BYTES,
     ): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
                 val targetFile = buildTargetFile(provider)
-                val inputStream = context.contentResolver.openInputStream(uri)
-                    ?: return@withContext Result.failure(
-                        IllegalStateException(MLang.Providers.Message.ReadFileFailed.format(uri.toString())),
-                    )
+                val inputStream =
+                    context.contentResolver.openInputStream(uri)
+                        ?: return@withContext Result.failure(
+                            IllegalStateException(
+                                MLang.Providers.Message.ReadFileFailed.format(uri.toString())
+                            )
+                        )
 
                 inputStream.use { input ->
                     val size = input.available().toLong()
                     if (size > maxBytes) {
                         return@withContext Result.failure(
                             IllegalStateException(
-                                MLang.Providers.Message.UploadSizeExceeded.format(maxBytes / (1024 * 1024)),
-                            ),
+                                MLang.Providers.Message.UploadSizeExceeded.format(
+                                    maxBytes / (1024 * 1024)
+                                )
+                            )
                         )
                     }
 
-                    targetFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
+                    targetFile.outputStream().use { output -> input.copyTo(output) }
                 }
 
                 Result.success(Unit)
@@ -103,7 +109,12 @@ class ProvidersRepository(private val context: Context) {
             Clash.updateProvider(type, name).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e.asRuntimeGatewayException(RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED, "Failed to update provider"))
+            Result.failure(
+                e.asRuntimeGatewayException(
+                    RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
+                    "Failed to update provider",
+                )
+            )
         }
     }
 
@@ -116,9 +127,7 @@ class ProvidersRepository(private val context: Context) {
         return targetFile
     }
 
-    data class UpdateProvidersResult(
-        val failedProviders: List<String>
-    )
+    data class UpdateProvidersResult(val failedProviders: List<String>)
 
     companion object {
         private const val MAX_UPLOAD_SIZE_BYTES = 50L * 1024 * 1024

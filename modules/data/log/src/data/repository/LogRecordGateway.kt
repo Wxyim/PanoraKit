@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.app.Application
@@ -32,6 +30,8 @@ interface LogRecordGateway {
     val logSuffix: String
 
     fun start(application: Application)
+
     fun stop(application: Application)
+
     fun getLogDir(application: Application): File
 }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.util
 
 import androidx.compose.runtime.getValue
@@ -39,47 +37,67 @@ object OverrideStructuredEditorStore {
 
     var stringListEditorTitle: String by mutableStateOf("")
     var stringListEditorPlaceholder: String by mutableStateOf("")
-    var stringListEditorAvailableModes: List<OverrideListEditorMode> by mutableStateOf(listOf(OverrideListEditorMode.Replace))
-    var stringListEditorSelectedMode: OverrideListEditorMode by mutableStateOf(OverrideListEditorMode.Replace)
-    var stringListEditorValues: OverrideListModeValues<List<String>> by mutableStateOf(OverrideListModeValues())
+    var stringListEditorAvailableModes: List<OverrideListEditorMode> by
+        mutableStateOf(listOf(OverrideListEditorMode.Replace))
+    var stringListEditorSelectedMode: OverrideListEditorMode by
+        mutableStateOf(OverrideListEditorMode.Replace)
+    var stringListEditorValues: OverrideListModeValues<List<String>> by
+        mutableStateOf(OverrideListModeValues())
     var stringListEditorCallback: ((OverrideListModeValues<List<String>>) -> Unit)? = null
 
     var ruleEditorTitle: String by mutableStateOf("")
-    var ruleEditorAvailableModes: List<OverrideListEditorMode> by mutableStateOf(listOf(OverrideListEditorMode.Replace))
-    var ruleEditorSelectedMode: OverrideListEditorMode by mutableStateOf(OverrideListEditorMode.Replace)
-    var ruleEditorValues: OverrideListModeValues<List<String>> by mutableStateOf(OverrideListModeValues())
-    var ruleEditorDraftValues: OverrideListModeValues<List<OverrideRuleDraft>> by mutableStateOf(OverrideListModeValues())
+    var ruleEditorAvailableModes: List<OverrideListEditorMode> by
+        mutableStateOf(listOf(OverrideListEditorMode.Replace))
+    var ruleEditorSelectedMode: OverrideListEditorMode by
+        mutableStateOf(OverrideListEditorMode.Replace)
+    var ruleEditorValues: OverrideListModeValues<List<String>> by
+        mutableStateOf(OverrideListModeValues())
+    var ruleEditorDraftValues: OverrideListModeValues<List<OverrideRuleDraft>> by
+        mutableStateOf(OverrideListModeValues())
     var ruleEditorCallback: ((OverrideListModeValues<List<String>>) -> Unit)? = null
 
     var objectEditorTitle: String by mutableStateOf("")
-    var objectEditorType: OverrideStructuredObjectType by mutableStateOf(OverrideStructuredObjectType.Proxies)
-    var objectEditorAvailableModes: List<OverrideListEditorMode> by mutableStateOf(listOf(OverrideListEditorMode.Replace))
-    var objectEditorSelectedMode: OverrideListEditorMode by mutableStateOf(OverrideListEditorMode.Replace)
-    var objectEditorValues: OverrideListModeValues<List<Map<String, JsonElement>>> by mutableStateOf(OverrideListModeValues())
-    var objectEditorProxyDraftValues: OverrideListModeValues<List<OverrideProxyDraft>> by mutableStateOf(OverrideListModeValues())
-    var objectEditorProxyGroupDraftValues: OverrideListModeValues<List<OverrideProxyGroupDraft>> by mutableStateOf(OverrideListModeValues())
-    var objectEditorCallback: ((OverrideListModeValues<List<Map<String, JsonElement>>>) -> Unit)? = null
+    var objectEditorType: OverrideStructuredObjectType by
+        mutableStateOf(OverrideStructuredObjectType.Proxies)
+    var objectEditorAvailableModes: List<OverrideListEditorMode> by
+        mutableStateOf(listOf(OverrideListEditorMode.Replace))
+    var objectEditorSelectedMode: OverrideListEditorMode by
+        mutableStateOf(OverrideListEditorMode.Replace)
+    var objectEditorValues: OverrideListModeValues<List<Map<String, JsonElement>>> by
+        mutableStateOf(OverrideListModeValues())
+    var objectEditorProxyDraftValues: OverrideListModeValues<List<OverrideProxyDraft>> by
+        mutableStateOf(OverrideListModeValues())
+    var objectEditorProxyGroupDraftValues: OverrideListModeValues<List<OverrideProxyGroupDraft>> by
+        mutableStateOf(OverrideListModeValues())
+    var objectEditorCallback: ((OverrideListModeValues<List<Map<String, JsonElement>>>) -> Unit)? =
+        null
 
     var keyedObjectMapEditorTitle: String by mutableStateOf("")
-    var keyedObjectMapEditorType: OverrideStructuredMapType by mutableStateOf(OverrideStructuredMapType.RuleProviders)
-    var keyedObjectMapEditorAvailableModes: List<OverrideListEditorMode> by mutableStateOf(listOf(OverrideListEditorMode.Replace))
-    var keyedObjectMapEditorSelectedMode: OverrideListEditorMode by mutableStateOf(OverrideListEditorMode.Replace)
-    var keyedObjectMapEditorValues: OverrideListModeValues<Map<String, Map<String, JsonElement>>> by mutableStateOf(
-        OverrideListModeValues(),
-        neverEqualPolicy(),
-    )
-    var keyedObjectMapEditorDraftValues: OverrideListModeValues<List<OverrideKeyedObjectDraft>> by mutableStateOf(OverrideListModeValues())
-    var keyedObjectMapEditorCallback: ((OverrideListModeValues<Map<String, Map<String, JsonElement>>>) -> Unit)? = null
+    var keyedObjectMapEditorType: OverrideStructuredMapType by
+        mutableStateOf(OverrideStructuredMapType.RuleProviders)
+    var keyedObjectMapEditorAvailableModes: List<OverrideListEditorMode> by
+        mutableStateOf(listOf(OverrideListEditorMode.Replace))
+    var keyedObjectMapEditorSelectedMode: OverrideListEditorMode by
+        mutableStateOf(OverrideListEditorMode.Replace)
+    var keyedObjectMapEditorValues: OverrideListModeValues<Map<String, Map<String, JsonElement>>> by
+        mutableStateOf(OverrideListModeValues(), neverEqualPolicy())
+    var keyedObjectMapEditorDraftValues: OverrideListModeValues<List<OverrideKeyedObjectDraft>> by
+        mutableStateOf(OverrideListModeValues())
+    var keyedObjectMapEditorCallback:
+        ((OverrideListModeValues<Map<String, Map<String, JsonElement>>>) -> Unit)? =
+        null
 
     var subRuleGroupEditorTitle: String by mutableStateOf("")
-    var subRuleGroupEditorAvailableModes: List<OverrideListEditorMode> by mutableStateOf(listOf(OverrideListEditorMode.Replace))
-    var subRuleGroupEditorSelectedMode: OverrideListEditorMode by mutableStateOf(OverrideListEditorMode.Replace)
-    var subRuleGroupEditorValues: OverrideListModeValues<Map<String, List<String>>> by mutableStateOf(
-        OverrideListModeValues(),
-        neverEqualPolicy(),
-    )
-    var subRuleGroupEditorDraftValues: OverrideListModeValues<List<OverrideSubRuleGroupDraft>> by mutableStateOf(OverrideListModeValues())
-    var subRuleGroupEditorCallback: ((OverrideListModeValues<Map<String, List<String>>>) -> Unit)? = null
+    var subRuleGroupEditorAvailableModes: List<OverrideListEditorMode> by
+        mutableStateOf(listOf(OverrideListEditorMode.Replace))
+    var subRuleGroupEditorSelectedMode: OverrideListEditorMode by
+        mutableStateOf(OverrideListEditorMode.Replace)
+    var subRuleGroupEditorValues: OverrideListModeValues<Map<String, List<String>>> by
+        mutableStateOf(OverrideListModeValues(), neverEqualPolicy())
+    var subRuleGroupEditorDraftValues: OverrideListModeValues<List<OverrideSubRuleGroupDraft>> by
+        mutableStateOf(OverrideListModeValues())
+    var subRuleGroupEditorCallback: ((OverrideListModeValues<Map<String, List<String>>>) -> Unit)? =
+        null
 
     var ruleDraftEditorTitle: String by mutableStateOf("")
     var ruleDraftEditorValue: OverrideRuleDraft? by mutableStateOf(null)
@@ -94,7 +112,8 @@ object OverrideStructuredEditorStore {
     var proxyGroupDraftEditorCallback: ((OverrideProxyGroupDraft) -> Unit)? = null
 
     var keyedObjectDraftEditorTitle: String by mutableStateOf("")
-    var keyedObjectDraftEditorType: OverrideStructuredMapType by mutableStateOf(OverrideStructuredMapType.RuleProviders)
+    var keyedObjectDraftEditorType: OverrideStructuredMapType by
+        mutableStateOf(OverrideStructuredMapType.RuleProviders)
     var keyedObjectDraftEditorValue: OverrideKeyedObjectDraft? by mutableStateOf(null)
     var keyedObjectDraftEditorCallback: ((OverrideKeyedObjectDraft) -> Unit)? = null
 
@@ -103,7 +122,7 @@ object OverrideStructuredEditorStore {
     var subRuleDraftEditorCallback: ((OverrideSubRuleGroupDraft) -> Unit)? = null
 
     private inline fun <T, R> OverrideListModeValues<T>.mapModeValues(
-        transform: (T) -> R,
+        transform: (T) -> R
     ): OverrideListModeValues<R> {
         return OverrideListModeValues(
             replaceValue = replaceValue?.let(transform),
@@ -114,7 +133,7 @@ object OverrideStructuredEditorStore {
     }
 
     private inline fun <T, R> OverrideListModeValues<T>.mapNullableModeValues(
-        transform: (T) -> R?,
+        transform: (T) -> R?
     ): OverrideListModeValues<R> {
         return OverrideListModeValues(
             replaceValue = replaceValue?.let(transform),
@@ -124,17 +143,11 @@ object OverrideStructuredEditorStore {
         )
     }
 
-    private inline fun <T> copyDraftValue(
-        value: T?,
-        transform: (T) -> T,
-    ): T? {
+    private inline fun <T> copyDraftValue(value: T?, transform: (T) -> T): T? {
         return value?.let(transform)
     }
 
-    private inline fun <T> copyListValue(
-        value: List<T>?,
-        transform: (T) -> T,
-    ): List<T>? {
+    private inline fun <T> copyListValue(value: List<T>?, transform: (T) -> T): List<T>? {
         return value?.map(transform)
     }
 
@@ -142,9 +155,7 @@ object OverrideStructuredEditorStore {
         value: OverrideListModeValues<List<T>>,
         crossinline transform: (T) -> T,
     ): OverrideListModeValues<List<T>> {
-        return value.mapModeValues { list ->
-            list.map(transform)
-        }
+        return value.mapModeValues { list -> list.map(transform) }
     }
 
     private inline fun <T> updateOrAppendDraft(
@@ -159,16 +170,17 @@ object OverrideStructuredEditorStore {
 
         val targetId = draftId(draft)
         var draftMatched = false
-        val updatedValues = values.mapModeValues { entries ->
-            entries.map { current ->
-                if (draftId(current) == targetId) {
-                    draftMatched = true
-                    draft
-                } else {
-                    current
+        val updatedValues =
+            values.mapModeValues { entries ->
+                entries.map { current ->
+                    if (draftId(current) == targetId) {
+                        draftMatched = true
+                        draft
+                    } else {
+                        current
+                    }
                 }
             }
-        }
 
         return if (draftMatched) {
             updatedValues
@@ -181,19 +193,19 @@ object OverrideStructuredEditorStore {
     }
 
     private fun copyOrderedObjectList(
-        value: List<Map<String, JsonElement>>?,
+        value: List<Map<String, JsonElement>>?
     ): List<Map<String, JsonElement>>? {
         return value?.map(::toOrderedJsonElementMap)
     }
 
     private fun copyOrderedObjectMap(
-        value: Map<String, Map<String, JsonElement>>?,
+        value: Map<String, Map<String, JsonElement>>?
     ): Map<String, Map<String, JsonElement>>? {
         return toOrderedObjectMap(value)
     }
 
     private fun copyOrderedSubRuleMap(
-        value: Map<String, List<String>>?,
+        value: Map<String, List<String>>?
     ): Map<String, List<String>>? {
         return toOrderedSubRuleMap(value)
     }
@@ -224,28 +236,18 @@ object OverrideStructuredEditorStore {
         )
     }
 
-    private fun copyRuleDraftList(
-        value: List<OverrideRuleDraft>?,
-    ): List<OverrideRuleDraft>? {
-        return copyListValue(value) { draft ->
-            draft.copy(
-                extras = draft.extras.toList(),
-            )
-        }
+    private fun copyRuleDraftList(value: List<OverrideRuleDraft>?): List<OverrideRuleDraft>? {
+        return copyListValue(value) { draft -> draft.copy(extras = draft.extras.toList()) }
     }
 
-    private fun copyProxyDraftList(
-        value: List<OverrideProxyDraft>?,
-    ): List<OverrideProxyDraft>? {
+    private fun copyProxyDraftList(value: List<OverrideProxyDraft>?): List<OverrideProxyDraft>? {
         return copyListValue(value) { draft ->
-            draft.copy(
-                extraFields = toOrderedJsonElementMap(draft.extraFields),
-            )
+            draft.copy(extraFields = toOrderedJsonElementMap(draft.extraFields))
         }
     }
 
     private fun copyProxyGroupDraftList(
-        value: List<OverrideProxyGroupDraft>?,
+        value: List<OverrideProxyGroupDraft>?
     ): List<OverrideProxyGroupDraft>? {
         return copyListValue(value) { draft ->
             draft.copy(
@@ -257,35 +259,27 @@ object OverrideStructuredEditorStore {
     }
 
     private fun copyKeyedObjectDraftList(
-        value: List<OverrideKeyedObjectDraft>?,
+        value: List<OverrideKeyedObjectDraft>?
     ): List<OverrideKeyedObjectDraft>? {
         return copyListValue(value) { draft ->
-            draft.copy(
-                fields = toOrderedJsonElementMap(draft.fields),
-            )
+            draft.copy(fields = toOrderedJsonElementMap(draft.fields))
         }
     }
 
     private fun copySubRuleGroupDraftList(
-        value: List<OverrideSubRuleGroupDraft>?,
+        value: List<OverrideSubRuleGroupDraft>?
     ): List<OverrideSubRuleGroupDraft>? {
-        return copyListValue(value) { draft ->
-            draft.copy(
-                rules = draft.rules.toList(),
-            )
-        }
+        return copyListValue(value) { draft -> draft.copy(rules = draft.rules.toList()) }
     }
 
     private fun copyRuleDraftValues(
-        value: OverrideListModeValues<List<OverrideRuleDraft>>,
+        value: OverrideListModeValues<List<OverrideRuleDraft>>
     ): OverrideListModeValues<List<OverrideRuleDraft>> {
-        return copyListModeValues(value) { draft ->
-            draft.copy(extras = draft.extras.toList())
-        }
+        return copyListModeValues(value) { draft -> draft.copy(extras = draft.extras.toList()) }
     }
 
     private fun copyProxyDraftValues(
-        value: OverrideListModeValues<List<OverrideProxyDraft>>,
+        value: OverrideListModeValues<List<OverrideProxyDraft>>
     ): OverrideListModeValues<List<OverrideProxyDraft>> {
         return copyListModeValues(value) { draft ->
             draft.copy(extraFields = toOrderedJsonElementMap(draft.extraFields))
@@ -293,7 +287,7 @@ object OverrideStructuredEditorStore {
     }
 
     private fun copyProxyGroupDraftValues(
-        value: OverrideListModeValues<List<OverrideProxyGroupDraft>>,
+        value: OverrideListModeValues<List<OverrideProxyGroupDraft>>
     ): OverrideListModeValues<List<OverrideProxyGroupDraft>> {
         return copyListModeValues(value) { draft ->
             draft.copy(
@@ -305,7 +299,7 @@ object OverrideStructuredEditorStore {
     }
 
     private fun copyKeyedObjectDraftValues(
-        value: OverrideListModeValues<List<OverrideKeyedObjectDraft>>,
+        value: OverrideListModeValues<List<OverrideKeyedObjectDraft>>
     ): OverrideListModeValues<List<OverrideKeyedObjectDraft>> {
         return copyListModeValues(value) { draft ->
             draft.copy(fields = toOrderedJsonElementMap(draft.fields))
@@ -313,69 +307,67 @@ object OverrideStructuredEditorStore {
     }
 
     private fun copySubRuleGroupDraftValues(
-        value: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>,
+        value: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>
     ): OverrideListModeValues<List<OverrideSubRuleGroupDraft>> {
-        return copyListModeValues(value) { draft ->
-            draft.copy(rules = draft.rules.toList())
-        }
+        return copyListModeValues(value) { draft -> draft.copy(rules = draft.rules.toList()) }
     }
 
     private fun parseRuleDraftValues(
-        value: OverrideListModeValues<List<String>>,
+        value: OverrideListModeValues<List<String>>
     ): OverrideListModeValues<List<OverrideRuleDraft>> {
         return value.mapModeValues(::parseRuleDrafts)
     }
 
     private fun parseProxyDraftValues(
-        value: OverrideListModeValues<List<Map<String, JsonElement>>>,
+        value: OverrideListModeValues<List<Map<String, JsonElement>>>
     ): OverrideListModeValues<List<OverrideProxyDraft>> {
         return value.mapModeValues(::parseProxyDrafts)
     }
 
     private fun parseProxyGroupDraftValues(
-        value: OverrideListModeValues<List<Map<String, JsonElement>>>,
+        value: OverrideListModeValues<List<Map<String, JsonElement>>>
     ): OverrideListModeValues<List<OverrideProxyGroupDraft>> {
         return value.mapModeValues(::parseProxyGroupDrafts)
     }
 
     private fun parseKeyedObjectDraftValues(
-        value: OverrideListModeValues<Map<String, Map<String, JsonElement>>>,
+        value: OverrideListModeValues<Map<String, Map<String, JsonElement>>>
     ): OverrideListModeValues<List<OverrideKeyedObjectDraft>> {
         return value.mapModeValues(::parseKeyedObjectDrafts)
     }
 
     private fun parseSubRuleGroupDraftValues(
-        value: OverrideListModeValues<Map<String, List<String>>>,
+        value: OverrideListModeValues<Map<String, List<String>>>
     ): OverrideListModeValues<List<OverrideSubRuleGroupDraft>> {
         return value.mapModeValues(::parseSubRuleGroupDrafts)
     }
 
     private fun formatRuleDraftValues(
-        value: OverrideListModeValues<List<OverrideRuleDraft>>,
+        value: OverrideListModeValues<List<OverrideRuleDraft>>
     ): OverrideListModeValues<List<String>> {
         return value.mapNullableModeValues(::formatRuleDrafts)
     }
 
     private fun formatProxyDraftValues(
-        value: OverrideListModeValues<List<OverrideProxyDraft>>,
+        value: OverrideListModeValues<List<OverrideProxyDraft>>
     ): OverrideListModeValues<List<Map<String, JsonElement>>> {
         return value.mapNullableModeValues(::formatProxyDrafts)
     }
 
     private fun formatProxyGroupDraftValues(
-        value: OverrideListModeValues<List<OverrideProxyGroupDraft>>,
+        value: OverrideListModeValues<List<OverrideProxyGroupDraft>>
     ): OverrideListModeValues<List<Map<String, JsonElement>>> {
         return value.mapNullableModeValues(::formatProxyGroupDrafts)
     }
 
     private fun formatKeyedObjectDraftValues(
-        value: OverrideListModeValues<List<OverrideKeyedObjectDraft>>,
+        value: OverrideListModeValues<List<OverrideKeyedObjectDraft>>
     ): OverrideListModeValues<Map<String, Map<String, JsonElement>>> {
         return value.mapNullableModeValues(::formatKeyedObjectDrafts)
     }
 
     private fun formatSubRuleGroupDraftValues(
-        value: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>,
+        value: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>
     ): OverrideListModeValues<Map<String, List<String>>> {
         return value.mapNullableModeValues(::formatSubRuleGroupDrafts)
     }
@@ -392,12 +384,13 @@ object OverrideStructuredEditorStore {
         stringListEditorPlaceholder = placeholder
         stringListEditorAvailableModes = availableModes
         stringListEditorSelectedMode = selectedMode
-        stringListEditorValues = values.copy(
-            replaceValue = values.replaceValue?.toList(),
-            mergeValue = values.mergeValue?.toList(),
-            startValue = values.startValue?.toList(),
-            endValue = values.endValue?.toList(),
-        )
+        stringListEditorValues =
+            values.copy(
+                replaceValue = values.replaceValue?.toList(),
+                mergeValue = values.mergeValue?.toList(),
+                startValue = values.startValue?.toList(),
+                endValue = values.endValue?.toList(),
+            )
         stringListEditorCallback = callback
     }
 
@@ -406,12 +399,13 @@ object OverrideStructuredEditorStore {
         values: OverrideListModeValues<List<String>> = stringListEditorValues,
     ) {
         stringListEditorSelectedMode = selectedMode
-        stringListEditorValues = values.copy(
-            replaceValue = values.replaceValue?.toList(),
-            mergeValue = values.mergeValue?.toList(),
-            startValue = values.startValue?.toList(),
-            endValue = values.endValue?.toList(),
-        )
+        stringListEditorValues =
+            values.copy(
+                replaceValue = values.replaceValue?.toList(),
+                mergeValue = values.mergeValue?.toList(),
+                startValue = values.startValue?.toList(),
+                endValue = values.endValue?.toList(),
+            )
     }
 
     fun setupRuleEditor(
@@ -426,12 +420,13 @@ object OverrideStructuredEditorStore {
         ruleEditorTitle = title
         ruleEditorAvailableModes = availableModes
         ruleEditorSelectedMode = selectedMode
-        ruleEditorValues = values.copy(
-            replaceValue = values.replaceValue?.toList(),
-            mergeValue = values.mergeValue?.toList(),
-            startValue = values.startValue?.toList(),
-            endValue = values.endValue?.toList(),
-        )
+        ruleEditorValues =
+            values.copy(
+                replaceValue = values.replaceValue?.toList(),
+                mergeValue = values.mergeValue?.toList(),
+                startValue = values.startValue?.toList(),
+                endValue = values.endValue?.toList(),
+            )
         ruleEditorDraftValues = parseRuleDraftValues(ruleEditorValues)
         ruleEditorCallback = callback
     }
@@ -441,12 +436,13 @@ object OverrideStructuredEditorStore {
         values: OverrideListModeValues<List<String>> = ruleEditorValues,
     ) {
         ruleEditorSelectedMode = selectedMode
-        ruleEditorValues = values.copy(
-            replaceValue = values.replaceValue?.toList(),
-            mergeValue = values.mergeValue?.toList(),
-            startValue = values.startValue?.toList(),
-            endValue = values.endValue?.toList(),
-        )
+        ruleEditorValues =
+            values.copy(
+                replaceValue = values.replaceValue?.toList(),
+                mergeValue = values.mergeValue?.toList(),
+                startValue = values.startValue?.toList(),
+                endValue = values.endValue?.toList(),
+            )
     }
 
     fun setupObjectEditor(
@@ -463,22 +459,25 @@ object OverrideStructuredEditorStore {
         objectEditorType = type
         objectEditorAvailableModes = availableModes
         objectEditorSelectedMode = selectedMode
-        objectEditorValues = values.copy(
-            replaceValue = copyOrderedObjectList(values.replaceValue),
-            mergeValue = copyOrderedObjectList(values.mergeValue),
-            startValue = copyOrderedObjectList(values.startValue),
-            endValue = copyOrderedObjectList(values.endValue),
-        )
-        objectEditorProxyDraftValues = if (type == OverrideStructuredObjectType.Proxies) {
-            parseProxyDraftValues(objectEditorValues)
-        } else {
-            OverrideListModeValues()
-        }
-        objectEditorProxyGroupDraftValues = if (type == OverrideStructuredObjectType.ProxyGroups) {
-            parseProxyGroupDraftValues(objectEditorValues)
-        } else {
-            OverrideListModeValues()
-        }
+        objectEditorValues =
+            values.copy(
+                replaceValue = copyOrderedObjectList(values.replaceValue),
+                mergeValue = copyOrderedObjectList(values.mergeValue),
+                startValue = copyOrderedObjectList(values.startValue),
+                endValue = copyOrderedObjectList(values.endValue),
+            )
+        objectEditorProxyDraftValues =
+            if (type == OverrideStructuredObjectType.Proxies) {
+                parseProxyDraftValues(objectEditorValues)
+            } else {
+                OverrideListModeValues()
+            }
+        objectEditorProxyGroupDraftValues =
+            if (type == OverrideStructuredObjectType.ProxyGroups) {
+                parseProxyGroupDraftValues(objectEditorValues)
+            } else {
+                OverrideListModeValues()
+            }
         objectEditorCallback = callback
     }
 
@@ -487,12 +486,13 @@ object OverrideStructuredEditorStore {
         values: OverrideListModeValues<List<Map<String, JsonElement>>> = objectEditorValues,
     ) {
         objectEditorSelectedMode = selectedMode
-        objectEditorValues = values.copy(
-            replaceValue = copyOrderedObjectList(values.replaceValue),
-            mergeValue = copyOrderedObjectList(values.mergeValue),
-            startValue = copyOrderedObjectList(values.startValue),
-            endValue = copyOrderedObjectList(values.endValue),
-        )
+        objectEditorValues =
+            values.copy(
+                replaceValue = copyOrderedObjectList(values.replaceValue),
+                mergeValue = copyOrderedObjectList(values.mergeValue),
+                startValue = copyOrderedObjectList(values.startValue),
+                endValue = copyOrderedObjectList(values.endValue),
+            )
     }
 
     fun setupKeyedObjectMapEditor(
@@ -507,27 +507,30 @@ object OverrideStructuredEditorStore {
         keyedObjectMapEditorType = type
         keyedObjectMapEditorAvailableModes = availableModes
         keyedObjectMapEditorSelectedMode = selectedMode
-        keyedObjectMapEditorValues = values.copy(
-            replaceValue = copyOrderedObjectMap(values.replaceValue),
-            mergeValue = copyOrderedObjectMap(values.mergeValue),
-            startValue = copyOrderedObjectMap(values.startValue),
-            endValue = copyOrderedObjectMap(values.endValue),
-        )
+        keyedObjectMapEditorValues =
+            values.copy(
+                replaceValue = copyOrderedObjectMap(values.replaceValue),
+                mergeValue = copyOrderedObjectMap(values.mergeValue),
+                startValue = copyOrderedObjectMap(values.startValue),
+                endValue = copyOrderedObjectMap(values.endValue),
+            )
         keyedObjectMapEditorDraftValues = parseKeyedObjectDraftValues(keyedObjectMapEditorValues)
         keyedObjectMapEditorCallback = callback
     }
 
     fun updateKeyedObjectMapEditorSession(
         selectedMode: OverrideListEditorMode = keyedObjectMapEditorSelectedMode,
-        values: OverrideListModeValues<Map<String, Map<String, JsonElement>>> = keyedObjectMapEditorValues,
+        values: OverrideListModeValues<Map<String, Map<String, JsonElement>>> =
+            keyedObjectMapEditorValues,
     ) {
         keyedObjectMapEditorSelectedMode = selectedMode
-        keyedObjectMapEditorValues = values.copy(
-            replaceValue = copyOrderedObjectMap(values.replaceValue),
-            mergeValue = copyOrderedObjectMap(values.mergeValue),
-            startValue = copyOrderedObjectMap(values.startValue),
-            endValue = copyOrderedObjectMap(values.endValue),
-        )
+        keyedObjectMapEditorValues =
+            values.copy(
+                replaceValue = copyOrderedObjectMap(values.replaceValue),
+                mergeValue = copyOrderedObjectMap(values.mergeValue),
+                startValue = copyOrderedObjectMap(values.startValue),
+                endValue = copyOrderedObjectMap(values.endValue),
+            )
     }
 
     fun setupSubRuleGroupEditor(
@@ -542,12 +545,13 @@ object OverrideStructuredEditorStore {
         subRuleGroupEditorTitle = title
         subRuleGroupEditorAvailableModes = availableModes
         subRuleGroupEditorSelectedMode = selectedMode
-        subRuleGroupEditorValues = values.copy(
-            replaceValue = copyOrderedSubRuleMap(values.replaceValue),
-            mergeValue = copyOrderedSubRuleMap(values.mergeValue),
-            startValue = copyOrderedSubRuleMap(values.startValue),
-            endValue = copyOrderedSubRuleMap(values.endValue),
-        )
+        subRuleGroupEditorValues =
+            values.copy(
+                replaceValue = copyOrderedSubRuleMap(values.replaceValue),
+                mergeValue = copyOrderedSubRuleMap(values.mergeValue),
+                startValue = copyOrderedSubRuleMap(values.startValue),
+                endValue = copyOrderedSubRuleMap(values.endValue),
+            )
         subRuleGroupEditorDraftValues = parseSubRuleGroupDraftValues(subRuleGroupEditorValues)
         subRuleGroupEditorCallback = callback
     }
@@ -557,31 +561,26 @@ object OverrideStructuredEditorStore {
         values: OverrideListModeValues<Map<String, List<String>>> = subRuleGroupEditorValues,
     ) {
         subRuleGroupEditorSelectedMode = selectedMode
-        subRuleGroupEditorValues = values.copy(
-            replaceValue = copyOrderedSubRuleMap(values.replaceValue),
-            mergeValue = copyOrderedSubRuleMap(values.mergeValue),
-            startValue = copyOrderedSubRuleMap(values.startValue),
-            endValue = copyOrderedSubRuleMap(values.endValue),
-        )
+        subRuleGroupEditorValues =
+            values.copy(
+                replaceValue = copyOrderedSubRuleMap(values.replaceValue),
+                mergeValue = copyOrderedSubRuleMap(values.mergeValue),
+                startValue = copyOrderedSubRuleMap(values.startValue),
+                endValue = copyOrderedSubRuleMap(values.endValue),
+            )
     }
 
-    fun applyStringListValues(
-        values: OverrideListModeValues<List<String>>,
-    ) {
+    fun applyStringListValues(values: OverrideListModeValues<List<String>>) {
         updateStringListEditorSession(values = values)
         stringListEditorCallback?.invoke(stringListEditorValues)
     }
 
-    fun applyRuleValues(
-        values: OverrideListModeValues<List<String>>,
-    ) {
+    fun applyRuleValues(values: OverrideListModeValues<List<String>>) {
         updateRuleEditorSession(values = values)
         ruleEditorCallback?.invoke(ruleEditorValues)
     }
 
-    fun applyRuleDraftValues(
-        values: OverrideListModeValues<List<OverrideRuleDraft>>,
-    ) {
+    fun applyRuleDraftValues(values: OverrideListModeValues<List<OverrideRuleDraft>>) {
         val copiedValues = copyRuleDraftValues(values)
         val formattedValues = formatRuleDraftValues(copiedValues)
         ruleEditorDraftValues = copiedValues
@@ -589,16 +588,12 @@ object OverrideStructuredEditorStore {
         ruleEditorCallback?.invoke(formattedValues)
     }
 
-    fun applyObjectValues(
-        values: OverrideListModeValues<List<Map<String, JsonElement>>>,
-    ) {
+    fun applyObjectValues(values: OverrideListModeValues<List<Map<String, JsonElement>>>) {
         updateObjectEditorSession(values = values)
         objectEditorCallback?.invoke(objectEditorValues)
     }
 
-    fun applyProxyDraftValues(
-        values: OverrideListModeValues<List<OverrideProxyDraft>>,
-    ) {
+    fun applyProxyDraftValues(values: OverrideListModeValues<List<OverrideProxyDraft>>) {
         val copiedValues = copyProxyDraftValues(values)
         val formattedValues = formatProxyDraftValues(copiedValues)
         objectEditorProxyDraftValues = copiedValues
@@ -606,9 +601,7 @@ object OverrideStructuredEditorStore {
         objectEditorCallback?.invoke(formattedValues)
     }
 
-    fun applyProxyGroupDraftValues(
-        values: OverrideListModeValues<List<OverrideProxyGroupDraft>>,
-    ) {
+    fun applyProxyGroupDraftValues(values: OverrideListModeValues<List<OverrideProxyGroupDraft>>) {
         val copiedValues = copyProxyGroupDraftValues(values)
         val formattedValues = formatProxyGroupDraftValues(copiedValues)
         objectEditorProxyGroupDraftValues = copiedValues
@@ -617,14 +610,14 @@ object OverrideStructuredEditorStore {
     }
 
     fun applyKeyedObjectValues(
-        values: OverrideListModeValues<Map<String, Map<String, JsonElement>>>,
+        values: OverrideListModeValues<Map<String, Map<String, JsonElement>>>
     ) {
         updateKeyedObjectMapEditorSession(values = values)
         keyedObjectMapEditorCallback?.invoke(keyedObjectMapEditorValues)
     }
 
     fun applyKeyedObjectDraftValues(
-        values: OverrideListModeValues<List<OverrideKeyedObjectDraft>>,
+        values: OverrideListModeValues<List<OverrideKeyedObjectDraft>>
     ) {
         val copiedValues = copyKeyedObjectDraftValues(values)
         val formattedValues = formatKeyedObjectDraftValues(copiedValues)
@@ -633,16 +626,12 @@ object OverrideStructuredEditorStore {
         keyedObjectMapEditorCallback?.invoke(formattedValues)
     }
 
-    fun applySubRuleValues(
-        values: OverrideListModeValues<Map<String, List<String>>>,
-    ) {
+    fun applySubRuleValues(values: OverrideListModeValues<Map<String, List<String>>>) {
         updateSubRuleGroupEditorSession(values = values)
         subRuleGroupEditorCallback?.invoke(subRuleGroupEditorValues)
     }
 
-    fun applySubRuleDraftValues(
-        values: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>,
-    ) {
+    fun applySubRuleDraftValues(values: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>) {
         val copiedValues = copySubRuleGroupDraftValues(values)
         val formattedValues = formatSubRuleGroupDraftValues(copiedValues)
         subRuleGroupEditorDraftValues = copiedValues
@@ -656,18 +645,12 @@ object OverrideStructuredEditorStore {
         callback: (OverrideRuleDraft) -> Unit,
     ) {
         ruleDraftEditorTitle = title
-        ruleDraftEditorValue = copyDraftValue(value) {
-            it.copy(
-                extras = it.extras.toList(),
-            )
-        }
+        ruleDraftEditorValue = copyDraftValue(value) { it.copy(extras = it.extras.toList()) }
         ruleDraftEditorCallback = callback
     }
 
     fun updateRuleDraftEditorSession(value: OverrideRuleDraft?) {
-        ruleDraftEditorValue = copyDraftValue(value) {
-            it.copy(extras = it.extras.toList())
-        }
+        ruleDraftEditorValue = copyDraftValue(value) { it.copy(extras = it.extras.toList()) }
     }
 
     fun setupProxyDraftEditor(
@@ -676,16 +659,14 @@ object OverrideStructuredEditorStore {
         callback: (OverrideProxyDraft) -> Unit,
     ) {
         proxyDraftEditorTitle = title
-        proxyDraftEditorValue = copyDraftValue(value) {
-            it.copy(extraFields = toOrderedJsonElementMap(it.extraFields))
-        }
+        proxyDraftEditorValue =
+            copyDraftValue(value) { it.copy(extraFields = toOrderedJsonElementMap(it.extraFields)) }
         proxyDraftEditorCallback = callback
     }
 
     fun updateProxyDraftEditorSession(value: OverrideProxyDraft?) {
-        proxyDraftEditorValue = copyDraftValue(value) {
-            it.copy(extraFields = toOrderedJsonElementMap(it.extraFields))
-        }
+        proxyDraftEditorValue =
+            copyDraftValue(value) { it.copy(extraFields = toOrderedJsonElementMap(it.extraFields)) }
     }
 
     fun setupProxyGroupDraftEditor(
@@ -694,24 +675,26 @@ object OverrideStructuredEditorStore {
         callback: (OverrideProxyGroupDraft) -> Unit,
     ) {
         proxyGroupDraftEditorTitle = title
-        proxyGroupDraftEditorValue = copyDraftValue(value) {
-            it.copy(
-                proxies = it.proxies.toList(),
-                use = it.use.toList(),
-                extraFields = toOrderedJsonElementMap(it.extraFields),
-            )
-        }
+        proxyGroupDraftEditorValue =
+            copyDraftValue(value) {
+                it.copy(
+                    proxies = it.proxies.toList(),
+                    use = it.use.toList(),
+                    extraFields = toOrderedJsonElementMap(it.extraFields),
+                )
+            }
         proxyGroupDraftEditorCallback = callback
     }
 
     fun updateProxyGroupDraftEditorSession(value: OverrideProxyGroupDraft?) {
-        proxyGroupDraftEditorValue = copyDraftValue(value) {
-            it.copy(
-                proxies = it.proxies.toList(),
-                use = it.use.toList(),
-                extraFields = toOrderedJsonElementMap(it.extraFields),
-            )
-        }
+        proxyGroupDraftEditorValue =
+            copyDraftValue(value) {
+                it.copy(
+                    proxies = it.proxies.toList(),
+                    use = it.use.toList(),
+                    extraFields = toOrderedJsonElementMap(it.extraFields),
+                )
+            }
     }
 
     fun setupKeyedObjectDraftEditor(
@@ -722,16 +705,14 @@ object OverrideStructuredEditorStore {
     ) {
         keyedObjectDraftEditorTitle = title
         keyedObjectDraftEditorType = type
-        keyedObjectDraftEditorValue = copyDraftValue(value) {
-            it.copy(fields = toOrderedJsonElementMap(it.fields))
-        }
+        keyedObjectDraftEditorValue =
+            copyDraftValue(value) { it.copy(fields = toOrderedJsonElementMap(it.fields)) }
         keyedObjectDraftEditorCallback = callback
     }
 
     fun updateKeyedObjectDraftEditorSession(value: OverrideKeyedObjectDraft?) {
-        keyedObjectDraftEditorValue = copyDraftValue(value) {
-            it.copy(fields = toOrderedJsonElementMap(it.fields))
-        }
+        keyedObjectDraftEditorValue =
+            copyDraftValue(value) { it.copy(fields = toOrderedJsonElementMap(it.fields)) }
     }
 
     fun setupSubRuleDraftEditor(
@@ -740,58 +721,61 @@ object OverrideStructuredEditorStore {
         callback: (OverrideSubRuleGroupDraft) -> Unit,
     ) {
         subRuleDraftEditorTitle = title
-        subRuleDraftEditorValue = copyDraftValue(value) {
-            it.copy(rules = it.rules.toList())
-        }
+        subRuleDraftEditorValue = copyDraftValue(value) { it.copy(rules = it.rules.toList()) }
         subRuleDraftEditorCallback = callback
     }
 
     fun updateSubRuleDraftEditorSession(value: OverrideSubRuleGroupDraft?) {
-        subRuleDraftEditorValue = copyDraftValue(value) {
-            it.copy(rules = it.rules.toList())
-        }
+        subRuleDraftEditorValue = copyDraftValue(value) { it.copy(rules = it.rules.toList()) }
     }
 
     fun currentReferenceCatalog(): OverrideReferenceCatalog {
         var currentCatalog = referenceCatalog
 
         if (objectEditorCallback != null) {
-            currentCatalog = when (objectEditorType) {
-                OverrideStructuredObjectType.Proxies -> currentCatalog.copy(
-                    proxyNames = collectProxyNames(objectEditorProxyDraftValues),
-                )
+            currentCatalog =
+                when (objectEditorType) {
+                    OverrideStructuredObjectType.Proxies ->
+                        currentCatalog.copy(
+                            proxyNames = collectProxyNames(objectEditorProxyDraftValues)
+                        )
 
-                OverrideStructuredObjectType.ProxyGroups -> currentCatalog.copy(
-                    proxyGroupNames = collectProxyGroupNames(
-                        withUpdatedProxyGroupDraft(
-                            values = objectEditorProxyGroupDraftValues,
-                            selectedMode = objectEditorSelectedMode,
-                            draft = proxyGroupDraftEditorValue,
-                        ),
-                    ),
-                )
-            }
+                    OverrideStructuredObjectType.ProxyGroups ->
+                        currentCatalog.copy(
+                            proxyGroupNames =
+                                collectProxyGroupNames(
+                                    withUpdatedProxyGroupDraft(
+                                        values = objectEditorProxyGroupDraftValues,
+                                        selectedMode = objectEditorSelectedMode,
+                                        draft = proxyGroupDraftEditorValue,
+                                    )
+                                )
+                        )
+                }
         }
 
         if (subRuleGroupEditorCallback != null) {
-            currentCatalog = currentCatalog.copy(
-                subRuleNames = collectSubRuleNames(
-                    withUpdatedSubRuleDraft(
-                        values = subRuleGroupEditorDraftValues,
-                        selectedMode = subRuleGroupEditorSelectedMode,
-                        draft = subRuleDraftEditorValue,
-                    ),
-                ),
-            )
+            currentCatalog =
+                currentCatalog.copy(
+                    subRuleNames =
+                        collectSubRuleNames(
+                            withUpdatedSubRuleDraft(
+                                values = subRuleGroupEditorDraftValues,
+                                selectedMode = subRuleGroupEditorSelectedMode,
+                                draft = subRuleDraftEditorValue,
+                            )
+                        )
+                )
         }
 
         if (
             keyedObjectMapEditorCallback != null &&
-            keyedObjectMapEditorType == OverrideStructuredMapType.RuleProviders
+                keyedObjectMapEditorType == OverrideStructuredMapType.RuleProviders
         ) {
-            currentCatalog = currentCatalog.copy(
-                ruleProviderNames = collectRuleProviderNames(keyedObjectMapEditorDraftValues),
-            )
+            currentCatalog =
+                currentCatalog.copy(
+                    ruleProviderNames = collectRuleProviderNames(keyedObjectMapEditorDraftValues)
+                )
         }
 
         return currentCatalog

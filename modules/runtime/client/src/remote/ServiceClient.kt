@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.remote
 
 import android.content.Context
@@ -85,20 +83,20 @@ object ServiceClient {
     }
 
     suspend fun clash(): IClashManager {
-        return clashManager ?: throw RuntimeGatewayException(
-            code = RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
-            message = "ServiceClient not connected",
-        )
+        return clashManager
+            ?: throw RuntimeGatewayException(
+                code = RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+                message = "ServiceClient not connected",
+            )
     }
 
     suspend fun profile(): IProfileManager {
-        return profileManager ?: throw RuntimeGatewayException(
-            code = RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
-            message = "ServiceClient not connected",
-        )
+        return profileManager
+            ?: throw RuntimeGatewayException(
+                code = RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+                message = "ServiceClient not connected",
+            )
     }
 
     fun isConnected(): Boolean = initialized && clashManager != null && profileManager != null
-
-
 }

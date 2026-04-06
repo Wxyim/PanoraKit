@@ -18,24 +18,32 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.util
 
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.serialization.json.*
 import java.util.*
+import kotlinx.serialization.json.*
 
 enum class OverrideStructuredObjectType {
     Proxies {
-        override val title: String get() = MLang.Override.Structured.Proxies.Title
-        override val itemLabel: String get() = MLang.Override.Structured.Proxies.ItemLabel
-        override val emptyHint: String get() = MLang.Override.Structured.Proxies.EmptyHint
+        override val title: String
+            get() = MLang.Override.Structured.Proxies.Title
+
+        override val itemLabel: String
+            get() = MLang.Override.Structured.Proxies.ItemLabel
+
+        override val emptyHint: String
+            get() = MLang.Override.Structured.Proxies.EmptyHint
     },
     ProxyGroups {
-        override val title: String get() = MLang.Override.Structured.ProxyGroups.Title
-        override val itemLabel: String get() = MLang.Override.Structured.ProxyGroups.ItemLabel
-        override val emptyHint: String get() = MLang.Override.Structured.ProxyGroups.EmptyHint
+        override val title: String
+            get() = MLang.Override.Structured.ProxyGroups.Title
+
+        override val itemLabel: String
+            get() = MLang.Override.Structured.ProxyGroups.ItemLabel
+
+        override val emptyHint: String
+            get() = MLang.Override.Structured.ProxyGroups.EmptyHint
     };
 
     abstract val title: String
@@ -45,16 +53,25 @@ enum class OverrideStructuredObjectType {
 
 enum class OverrideStructuredMapType {
     RuleProviders {
-        override val title: String get() = MLang.Override.Structured.RuleProviders.Title
-        override val itemLabel: String get() = MLang.Override.Structured.RuleProviders.ItemLabel
+        override val title: String
+            get() = MLang.Override.Structured.RuleProviders.Title
+
+        override val itemLabel: String
+            get() = MLang.Override.Structured.RuleProviders.ItemLabel
     },
     ProxyProviders {
-        override val title: String get() = MLang.Override.Structured.ProxyProviders.Title
-        override val itemLabel: String get() = MLang.Override.Structured.ProxyProviders.ItemLabel
+        override val title: String
+            get() = MLang.Override.Structured.ProxyProviders.Title
+
+        override val itemLabel: String
+            get() = MLang.Override.Structured.ProxyProviders.ItemLabel
     },
     SubRules {
-        override val title: String get() = MLang.Override.Structured.SubRules.Title
-        override val itemLabel: String get() = MLang.Override.Structured.SubRules.ItemLabel
+        override val title: String
+            get() = MLang.Override.Structured.SubRules.Title
+
+        override val itemLabel: String
+            get() = MLang.Override.Structured.SubRules.ItemLabel
     };
 
     abstract val title: String
@@ -63,16 +80,20 @@ enum class OverrideStructuredMapType {
 
 enum class OverrideListEditorMode {
     Replace {
-        override val label: String get() = MLang.Override.Modifier.Replace
+        override val label: String
+            get() = MLang.Override.Modifier.Replace
     },
     Merge {
-        override val label: String get() = MLang.Override.Modifier.Merge
+        override val label: String
+            get() = MLang.Override.Modifier.Merge
     },
     Start {
-        override val label: String get() = MLang.Override.Modifier.Start
+        override val label: String
+            get() = MLang.Override.Modifier.Start
     },
     End {
-        override val label: String get() = MLang.Override.Modifier.End
+        override val label: String
+            get() = MLang.Override.Modifier.End
     };
 
     abstract val label: String
@@ -93,10 +114,7 @@ data class OverrideListModeValues<T>(
         }
     }
 
-    fun update(
-        mode: OverrideListEditorMode,
-        value: T?,
-    ): OverrideListModeValues<T> {
+    fun update(mode: OverrideListEditorMode, value: T?): OverrideListModeValues<T> {
         return when (mode) {
             OverrideListEditorMode.Replace -> copy(replaceValue = value)
             OverrideListEditorMode.Merge -> copy(mergeValue = value)
@@ -170,121 +188,114 @@ data class OverrideSubRuleGroupDraft(
 
 private fun generateOverrideUiId(): String = UUID.randomUUID().toString()
 
-val OverrideRuleTypePresets = listOf(
-    "DOMAIN",
-    "DOMAIN-SUFFIX",
-    "DOMAIN-KEYWORD",
-    "DOMAIN-WILDCARD",
-    "DOMAIN-REGEX",
-    "GEOSITE",
-    "IP-CIDR",
-    "IP-CIDR6",
-    "IP-SUFFIX",
-    "IP-ASN",
-    "GEOIP",
-    "SRC-GEOIP",
-    "SRC-IP-ASN",
-    "SRC-IP-CIDR",
-    "SRC-IP-SUFFIX",
-    "DST-PORT",
-    "SRC-PORT",
-    "IN-PORT",
-    "IN-TYPE",
-    "IN-USER",
-    "IN-NAME",
-    "PROCESS-PATH",
-    "PROCESS-PATH-WILDCARD",
-    "PROCESS-PATH-REGEX",
-    "PROCESS-NAME",
-    "PROCESS-NAME-WILDCARD",
-    "PROCESS-NAME-REGEX",
-    "UID",
-    "NETWORK",
-    "DSCP",
-    "RULE-SET",
-    "AND",
-    "OR",
-    "NOT",
-    "SUB-RULE",
-    "MATCH",
-)
+val OverrideRuleTypePresets =
+    listOf(
+        "DOMAIN",
+        "DOMAIN-SUFFIX",
+        "DOMAIN-KEYWORD",
+        "DOMAIN-WILDCARD",
+        "DOMAIN-REGEX",
+        "GEOSITE",
+        "IP-CIDR",
+        "IP-CIDR6",
+        "IP-SUFFIX",
+        "IP-ASN",
+        "GEOIP",
+        "SRC-GEOIP",
+        "SRC-IP-ASN",
+        "SRC-IP-CIDR",
+        "SRC-IP-SUFFIX",
+        "DST-PORT",
+        "SRC-PORT",
+        "IN-PORT",
+        "IN-TYPE",
+        "IN-USER",
+        "IN-NAME",
+        "PROCESS-PATH",
+        "PROCESS-PATH-WILDCARD",
+        "PROCESS-PATH-REGEX",
+        "PROCESS-NAME",
+        "PROCESS-NAME-WILDCARD",
+        "PROCESS-NAME-REGEX",
+        "UID",
+        "NETWORK",
+        "DSCP",
+        "RULE-SET",
+        "AND",
+        "OR",
+        "NOT",
+        "SUB-RULE",
+        "MATCH",
+    )
 
-val OverrideProxyTypePresets = listOf(
-    "direct",
-    "dns",
-    "http",
-    "socks5",
-    "ss",
-    "ssr",
-    "snell",
-    "vmess",
-    "vless",
-    "trojan",
-    "anytls",
-    "mieru",
-    "sudoku",
-    "hysteria",
-    "hysteria2",
-    "tuic",
-    "wireguard",
-    "ssh",
-    "masque",
-    "trusttunnel",
-)
+val OverrideProxyTypePresets =
+    listOf(
+        "direct",
+        "dns",
+        "http",
+        "socks5",
+        "ss",
+        "ssr",
+        "snell",
+        "vmess",
+        "vless",
+        "trojan",
+        "anytls",
+        "mieru",
+        "sudoku",
+        "hysteria",
+        "hysteria2",
+        "tuic",
+        "wireguard",
+        "ssh",
+        "masque",
+        "trusttunnel",
+    )
 
-val OverrideProxyGroupTypePresets = listOf(
-    "select",
-    "url-test",
-    "fallback",
-    "load-balance",
-    "relay",
-)
+val OverrideProxyGroupTypePresets =
+    listOf("select", "url-test", "fallback", "load-balance", "relay")
 
-private val RuleExtraSupportedTypes = setOf(
-    "IP-CIDR",
-    "IP-CIDR6",
-    "IP-SUFFIX",
-    "IP-ASN",
-    "GEOIP",
-)
+private val RuleExtraSupportedTypes = setOf("IP-CIDR", "IP-CIDR6", "IP-SUFFIX", "IP-ASN", "GEOIP")
 
-private val ProxyKnownKeys = setOf(
-    "name",
-    "type",
-    "server",
-    "port",
-    "ip-version",
-    "udp",
-    "interface-name",
-    "routing-mark",
-    "tfo",
-    "mptcp",
-    "dialer-proxy",
-)
+private val ProxyKnownKeys =
+    setOf(
+        "name",
+        "type",
+        "server",
+        "port",
+        "ip-version",
+        "udp",
+        "interface-name",
+        "routing-mark",
+        "tfo",
+        "mptcp",
+        "dialer-proxy",
+    )
 
-private val ProxyGroupKnownKeys = setOf(
-    "name",
-    "type",
-    "proxies",
-    "use",
-    "url",
-    "interval",
-    "lazy",
-    "timeout",
-    "max-failed-times",
-    "disable-udp",
-    "interface-name",
-    "routing-mark",
-    "include-all",
-    "include-all-proxies",
-    "include-all-providers",
-    "filter",
-    "exclude-filter",
-    "exclude-type",
-    "expected-status",
-    "hidden",
-    "icon",
-)
+private val ProxyGroupKnownKeys =
+    setOf(
+        "name",
+        "type",
+        "proxies",
+        "use",
+        "url",
+        "interval",
+        "lazy",
+        "timeout",
+        "max-failed-times",
+        "disable-udp",
+        "interface-name",
+        "routing-mark",
+        "include-all",
+        "include-all-proxies",
+        "include-all-providers",
+        "filter",
+        "exclude-filter",
+        "exclude-type",
+        "expected-status",
+        "hidden",
+        "icon",
+    )
 
 fun supportsRuleExtra(ruleType: String): Boolean {
     return RuleExtraSupportedTypes.contains(ruleType.trim().uppercase())
@@ -304,11 +315,7 @@ fun <T> resolveInitialEditorMode(
     } ?: availableModes.firstOrNull() ?: OverrideListEditorMode.Replace
 }
 
-fun <T> reorderDraftList(
-    value: List<T>,
-    fromIndex: Int,
-    toIndex: Int,
-): List<T> {
+fun <T> reorderDraftList(value: List<T>, fromIndex: Int, toIndex: Int): List<T> {
     if (fromIndex !in value.indices) {
         return value.toList()
     }
@@ -320,32 +327,24 @@ fun <T> reorderDraftList(
 
 fun toOrderedJsonElementMap(value: Map<String, JsonElement>): LinkedHashMap<String, JsonElement> {
     val orderedMap = LinkedHashMap<String, JsonElement>(value.size)
-    value.forEach { (key, element) ->
-        orderedMap[key] = element
-    }
+    value.forEach { (key, element) -> orderedMap[key] = element }
     return orderedMap
 }
 
 fun toOrderedObjectMap(
-    value: Map<String, Map<String, JsonElement>>?,
+    value: Map<String, Map<String, JsonElement>>?
 ): LinkedHashMap<String, Map<String, JsonElement>>? {
     return value?.let { source ->
         LinkedHashMap<String, Map<String, JsonElement>>(source.size).apply {
-            source.forEach { (key, fields) ->
-                put(key, toOrderedJsonElementMap(fields))
-            }
+            source.forEach { (key, fields) -> put(key, toOrderedJsonElementMap(fields)) }
         }
     }
 }
 
-fun toOrderedSubRuleMap(
-    value: Map<String, List<String>>?,
-): LinkedHashMap<String, List<String>>? {
+fun toOrderedSubRuleMap(value: Map<String, List<String>>?): LinkedHashMap<String, List<String>>? {
     return value?.let { source ->
         LinkedHashMap<String, List<String>>(source.size).apply {
-            source.forEach { (key, rules) ->
-                put(key, rules.toList())
-            }
+            source.forEach { (key, rules) -> put(key, rules.toList()) }
         }
     }
 }
@@ -355,11 +354,9 @@ fun parseRuleDrafts(value: List<String>?): List<OverrideRuleDraft> {
 }
 
 fun formatRuleDrafts(value: List<OverrideRuleDraft>): List<String>? {
-    return value
-        .map(::formatRuleDraft)
-        .map(String::trim)
-        .filter(String::isNotBlank)
-        .ifEmpty { null }
+    return value.map(::formatRuleDraft).map(String::trim).filter(String::isNotBlank).ifEmpty {
+        null
+    }
 }
 
 fun parseRuleDraft(rawRule: String): OverrideRuleDraft {
@@ -388,24 +385,24 @@ fun formatRuleDraft(draft: OverrideRuleDraft): String {
     if (normalizedType.isBlank()) {
         return ""
     }
-    val cleanedExtras = draft.extras
-        .map(String::trim)
-        .filter(String::isNotBlank)
+    val cleanedExtras = draft.extras.map(String::trim).filter(String::isNotBlank)
 
     if (normalizedType == "MATCH") {
         return buildList {
-            add(normalizedType)
-            draft.target.trim().takeIf(String::isNotBlank)?.let(::add)
-            addAll(cleanedExtras)
-        }.joinToString(",")
+                add(normalizedType)
+                draft.target.trim().takeIf(String::isNotBlank)?.let(::add)
+                addAll(cleanedExtras)
+            }
+            .joinToString(",")
     }
 
     return buildList {
-        add(normalizedType)
-        draft.payload.trim().takeIf(String::isNotBlank)?.let(::add)
-        draft.target.trim().takeIf(String::isNotBlank)?.let(::add)
-        addAll(cleanedExtras)
-    }.joinToString(",")
+            add(normalizedType)
+            draft.payload.trim().takeIf(String::isNotBlank)?.let(::add)
+            draft.target.trim().takeIf(String::isNotBlank)?.let(::add)
+            addAll(cleanedExtras)
+        }
+        .joinToString(",")
 }
 
 fun splitRuleTokens(rawRule: String): List<String> {
@@ -450,10 +447,9 @@ fun parseProxyDrafts(value: List<Map<String, JsonElement>>?): List<OverrideProxy
 }
 
 fun formatProxyDrafts(value: List<OverrideProxyDraft>): List<Map<String, JsonElement>>? {
-    return value
-        .map(::formatProxyDraft)
-        .filter(Map<String, JsonElement>::isNotEmpty)
-        .ifEmpty { null }
+    return value.map(::formatProxyDraft).filter(Map<String, JsonElement>::isNotEmpty).ifEmpty {
+        null
+    }
 }
 
 fun parseProxyDraft(value: Map<String, JsonElement>): OverrideProxyDraft {
@@ -495,10 +491,9 @@ fun parseProxyGroupDrafts(value: List<Map<String, JsonElement>>?): List<Override
 }
 
 fun formatProxyGroupDrafts(value: List<OverrideProxyGroupDraft>): List<Map<String, JsonElement>>? {
-    return value
-        .map(::formatProxyGroupDraft)
-        .filter(Map<String, JsonElement>::isNotEmpty)
-        .ifEmpty { null }
+    return value.map(::formatProxyGroupDraft).filter(Map<String, JsonElement>::isNotEmpty).ifEmpty {
+        null
+    }
 }
 
 fun parseProxyGroupDraft(value: Map<String, JsonElement>): OverrideProxyGroupDraft {
@@ -556,18 +551,15 @@ fun formatProxyGroupDraft(value: OverrideProxyGroupDraft): Map<String, JsonEleme
 }
 
 fun parseKeyedObjectDrafts(
-    value: Map<String, Map<String, JsonElement>>?,
+    value: Map<String, Map<String, JsonElement>>?
 ): List<OverrideKeyedObjectDraft> {
     return value.orEmpty().map { (key, fields) ->
-        OverrideKeyedObjectDraft(
-            key = key,
-            fields = toOrderedJsonElementMap(fields),
-        )
+        OverrideKeyedObjectDraft(key = key, fields = toOrderedJsonElementMap(fields))
     }
 }
 
 fun formatKeyedObjectDrafts(
-    value: List<OverrideKeyedObjectDraft>,
+    value: List<OverrideKeyedObjectDraft>
 ): Map<String, Map<String, JsonElement>>? {
     val linkedMap = linkedMapOf<String, Map<String, JsonElement>>()
     value.forEach { draft ->
@@ -579,63 +571,36 @@ fun formatKeyedObjectDrafts(
     return linkedMap.ifEmpty { null }
 }
 
-fun parseSubRuleGroupDrafts(
-    value: Map<String, List<String>>?,
-): List<OverrideSubRuleGroupDraft> {
+fun parseSubRuleGroupDrafts(value: Map<String, List<String>>?): List<OverrideSubRuleGroupDraft> {
     return value.orEmpty().map { (key, rules) ->
-        OverrideSubRuleGroupDraft(
-            name = key,
-            rules = rules.toList(),
-        )
+        OverrideSubRuleGroupDraft(name = key, rules = rules.toList())
     }
 }
 
-fun formatSubRuleGroupDrafts(
-    value: List<OverrideSubRuleGroupDraft>,
-): Map<String, List<String>>? {
+fun formatSubRuleGroupDrafts(value: List<OverrideSubRuleGroupDraft>): Map<String, List<String>>? {
     val linkedMap = linkedMapOf<String, List<String>>()
     value.forEach { draft ->
         val normalizedName = draft.name.trim()
         if (normalizedName.isNotEmpty()) {
-            linkedMap[normalizedName] = draft.rules
-                .map(String::trim)
-                .filter(String::isNotBlank)
+            linkedMap[normalizedName] = draft.rules.map(String::trim).filter(String::isNotBlank)
         }
     }
     return linkedMap.ifEmpty { null }
 }
 
-private fun MutableMap<String, JsonElement>.putStringField(
-    key: String,
-    value: String,
-) {
-    value.trim().takeIf(String::isNotBlank)?.let {
-        put(key, JsonPrimitive(it))
-    }
+private fun MutableMap<String, JsonElement>.putStringField(key: String, value: String) {
+    value.trim().takeIf(String::isNotBlank)?.let { put(key, JsonPrimitive(it)) }
 }
 
-private fun MutableMap<String, JsonElement>.putIntField(
-    key: String,
-    value: Int?,
-) {
-    value?.let {
-        put(key, JsonPrimitive(it))
-    }
+private fun MutableMap<String, JsonElement>.putIntField(key: String, value: Int?) {
+    value?.let { put(key, JsonPrimitive(it)) }
 }
 
-private fun MutableMap<String, JsonElement>.putBooleanField(
-    key: String,
-    value: Boolean?,
-) {
-    value?.let {
-        put(key, JsonPrimitive(it))
-    }
+private fun MutableMap<String, JsonElement>.putBooleanField(key: String, value: Boolean?) {
+    value?.let { put(key, JsonPrimitive(it)) }
 }
 
-private fun MutableMap<String, JsonElement>.putStringListField(
-    key: String,
-    value: List<String>,
-) {
+private fun MutableMap<String, JsonElement>.putStringListField(key: String, value: List<String>) {
     val cleanedValue = value.map(String::trim).filter(String::isNotBlank)
     if (cleanedValue.isNotEmpty()) {
         put(key, JsonArray(cleanedValue.map(::JsonPrimitive)))
@@ -662,10 +627,11 @@ private fun Map<String, JsonElement>.booleanField(key: String): Boolean? {
 private fun Map<String, JsonElement>.stringListField(key: String): List<String> {
     val element = get(key) ?: return emptyList()
     return when (element) {
-        is JsonArray -> element.jsonArray.mapNotNull { item ->
-            val primitive = item as? JsonPrimitive ?: return@mapNotNull null
-            primitive.content.trim().takeIf(String::isNotBlank)
-        }
+        is JsonArray ->
+            element.jsonArray.mapNotNull { item ->
+                val primitive = item as? JsonPrimitive ?: return@mapNotNull null
+                primitive.content.trim().takeIf(String::isNotBlank)
+            }
 
         is JsonPrimitive -> listOf(element.content).filter(String::isNotBlank)
         else -> emptyList()

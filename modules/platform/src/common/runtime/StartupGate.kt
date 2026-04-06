@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.common.runtime
 
 import android.app.Application
@@ -30,7 +28,6 @@ import android.os.Build
 import android.os.Process
 import com.android.apksig.ApkVerifier
 import com.github.yumelira.yumebox.core.android.BuildConfig
-import timber.log.Timber
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.security.MessageDigest
@@ -38,6 +35,7 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.util.*
 import kotlin.system.exitProcess
+import timber.log.Timber
 
 object StartupGate {
     private const val PREFS_NAME = "startup_gate"
@@ -53,30 +51,47 @@ object StartupGate {
             return
         }
         runCatching {
-            val ctx = application.applicationContext
-            if (!checkPkg(ctx.packageName, BuildConfig.STARTUP_GATE_EXPECTED_PACKAGE)) die()
-            if (!checkAppClass(ctx::class.java.name, BuildConfig.STARTUP_GATE_EXPECTED_APP_CLASS)) die()
-            if (!checkAppParent(ctx::class.java.superclass?.name, BuildConfig.STARTUP_GATE_EXPECTED_APP_PARENT)) die()
-            if (!checkSigner(
-                    pm = application.packageManager,
-                    packageName = ctx.packageName,
-                    expectedFingerprint = BuildConfig.STARTUP_GATE_RELEASE_FINGERPRINT,
-                    requireSigner = requireSigner,
+                val ctx = application.applicationContext
+                if (!checkPkg(ctx.packageName, BuildConfig.STARTUP_GATE_EXPECTED_PACKAGE)) die()
+                if (
+                    !checkAppClass(
+                        ctx::class.java.name,
+                        BuildConfig.STARTUP_GATE_EXPECTED_APP_CLASS,
+                    )
                 )
-            ) die()
-            if (!checkApkV2(
-                    sourceDir = application.applicationInfo.sourceDir,
-                    isDebuggable = isDebuggable,
-                    requireApkV2 = requireApkV2,
+                    die()
+                if (
+                    !checkAppParent(
+                        ctx::class.java.superclass?.name,
+                        BuildConfig.STARTUP_GATE_EXPECTED_APP_PARENT,
+                    )
                 )
-            ) die()
-            cacheVerification(application)
-        }.getOrElse { throwable ->
-            if (isDebuggable) {
-                Timber.e(throwable, "startup gate failed")
+                    die()
+                if (
+                    !checkSigner(
+                        pm = application.packageManager,
+                        packageName = ctx.packageName,
+                        expectedFingerprint = BuildConfig.STARTUP_GATE_RELEASE_FINGERPRINT,
+                        requireSigner = requireSigner,
+                    )
+                )
+                    die()
+                if (
+                    !checkApkV2(
+                        sourceDir = application.applicationInfo.sourceDir,
+                        isDebuggable = isDebuggable,
+                        requireApkV2 = requireApkV2,
+                    )
+                )
+                    die()
+                cacheVerification(application)
             }
-            die()
-        }
+            .getOrElse { throwable ->
+                if (isDebuggable) {
+                    Timber.e(throwable, "startup gate failed")
+                }
+                die()
+            }
     }
 
     fun loadPrimary() {
@@ -86,17 +101,22 @@ object StartupGate {
 
     private fun checkPkg(actual: String, expected: String): Boolean = actual == expected
 
-    private fun checkApkV2(sourceDir: String?, isDebuggable: Boolean, requireApkV2: Boolean): Boolean {
+    private fun checkApkV2(
+        sourceDir: String?,
+        isDebuggable: Boolean,
+        requireApkV2: Boolean,
+    ): Boolean {
         if (!requireApkV2) return true
         if (sourceDir.isNullOrBlank()) return false
         return runCatching {
-            ApkVerifier.Builder(File(sourceDir)).build().verify().isVerifiedUsingV2Scheme
-        }.getOrElse { error ->
-            if (isDebuggable) {
-                Timber.w(error, "startup gate apk v2 verification failed")
+                ApkVerifier.Builder(File(sourceDir)).build().verify().isVerifiedUsingV2Scheme
             }
-            false
-        }
+            .getOrElse { error ->
+                if (isDebuggable) {
+                    Timber.w(error, "startup gate apk v2 verification failed")
+                }
+                false
+            }
     }
 
     private fun checkSigner(
@@ -115,23 +135,24 @@ object StartupGate {
     }
 
     private fun isDebuggablePackage(pm: PackageManager, packageName: String): Boolean {
-        val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getApplicationInfo(packageName, 0)
-        }
+        val appInfo =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION") pm.getApplicationInfo(packageName, 0)
+            }
         return (appInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
 
     private fun getSignerSha256(pm: PackageManager, packageName: String): List<String> {
-        val pkg = runCatching { getPackageInfoCompat(pm, packageName) }.getOrNull() ?: return emptyList()
-        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            pkg.signingInfo?.apkContentsSigners?.map { it.toByteArray() }.orEmpty()
-        } else {
-            @Suppress("DEPRECATION")
-            pkg.signatures?.map { it.toByteArray() }.orEmpty()
-        }
+        val pkg =
+            runCatching { getPackageInfoCompat(pm, packageName) }.getOrNull() ?: return emptyList()
+        val signatures =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pkg.signingInfo?.apkContentsSigners?.map { it.toByteArray() }.orEmpty()
+            } else {
+                @Suppress("DEPRECATION") pkg.signatures?.map { it.toByteArray() }.orEmpty()
+            }
         if (signatures.isEmpty()) return emptyList()
 
         val md = MessageDigest.getInstance("SHA-256")
@@ -153,8 +174,7 @@ object StartupGate {
             @Suppress("DEPRECATION")
             pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
         } else {
-            @Suppress("DEPRECATION")
-            pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+            @Suppress("DEPRECATION") pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
         }
     }
 
@@ -170,7 +190,8 @@ object StartupGate {
 
     private fun cacheVerification(application: Application) {
         val stamp = buildVerificationStamp(application) ?: return
-        application.getSharedPreferences(PREFS_NAME, Application.MODE_PRIVATE)
+        application
+            .getSharedPreferences(PREFS_NAME, Application.MODE_PRIVATE)
             .edit()
             .putString(VERIFIED_STAMP_KEY, stamp)
             .apply()
@@ -179,22 +200,25 @@ object StartupGate {
     private fun buildVerificationStamp(application: Application): String? {
         val sourceDir = application.applicationInfo.sourceDir ?: return null
         val apkFile = File(sourceDir)
-        val packageInfo = runCatching {
-            getPackageInfoCompat(application.packageManager, application.packageName)
-        }.getOrNull() ?: return null
-        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageInfo.longVersionCode
-        } else {
-            @Suppress("DEPRECATION")
-            packageInfo.versionCode.toLong()
-        }
+        val packageInfo =
+            runCatching {
+                    getPackageInfoCompat(application.packageManager, application.packageName)
+                }
+                .getOrNull() ?: return null
+        val versionCode =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION") packageInfo.versionCode.toLong()
+            }
         return listOf(
-            application.packageName,
-            versionCode,
-            packageInfo.lastUpdateTime,
-            apkFile.length(),
-            apkFile.lastModified(),
-        ).joinToString(separator = ":")
+                application.packageName,
+                versionCode,
+                packageInfo.lastUpdateTime,
+                apkFile.length(),
+                apkFile.lastModified(),
+            )
+            .joinToString(separator = ":")
     }
 
     private fun die(): Nothing {

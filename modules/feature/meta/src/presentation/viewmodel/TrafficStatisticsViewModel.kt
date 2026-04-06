@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -31,13 +29,13 @@ import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.presentation.component.BarChartItem
+import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.coroutines.flow.*
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
+import kotlinx.coroutines.flow.*
 
 data class RecentRequestRecord(
     val connection: ConnectionInfo,
@@ -60,68 +58,78 @@ class TrafficStatisticsViewModel(
 
     val recentRequests: StateFlow<List<RecentRequestRecord>> =
         combine(
-            connectionActivityRepository.activeConnections,
-            connectionActivityRepository.closedConnections,
-            proxyFacade.proxyGroups,
-        ) { activeConnections, closedConnections, proxyGroups ->
-            val activeIds = activeConnections.asSequence().map(ConnectionInfo::id).toSet()
-            val closedRequests = closedConnections
-                .asSequence()
-                .filterNot { it.id in activeIds }
-                .map { connection ->
-                    RecentRequestRecord(
-                        connection = connection,
-                        isActive = false,
-                        topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
-                        bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
-                    )
+                connectionActivityRepository.activeConnections,
+                connectionActivityRepository.closedConnections,
+                proxyFacade.proxyGroups,
+            ) { activeConnections, closedConnections, proxyGroups ->
+                val activeIds = activeConnections.asSequence().map(ConnectionInfo::id).toSet()
+                val closedRequests =
+                    closedConnections
+                        .asSequence()
+                        .filterNot { it.id in activeIds }
+                        .map { connection ->
+                            RecentRequestRecord(
+                                connection = connection,
+                                isActive = false,
+                                topLevelGroupName =
+                                    resolveTopLevelGroupName(connection, proxyGroups),
+                                bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                            )
+                        }
+                val activeRequests =
+                    activeConnections.asSequence().map { connection ->
+                        RecentRequestRecord(
+                            connection = connection,
+                            isActive = true,
+                            topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
+                            bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                        )
+                    }
+
+                (activeRequests + closedRequests)
+                    .sortedByDescending { parseConnectionStartMillis(it.connection.start) }
+                    .take(MAX_RECENT_REQUESTS)
+                    .toList()
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val todaySummary: StateFlow<DailyTrafficSummary> =
+        flow { emit(trafficStatisticsStore.getTodaySummary()) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                DailyTrafficSummary.EMPTY,
+            )
+
+    val yesterdaySummary: StateFlow<DailyTrafficSummary> =
+        flow { emit(trafficStatisticsStore.getYesterdaySummary()) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                DailyTrafficSummary.EMPTY,
+            )
+
+    val weekSummary: StateFlow<Long> =
+        flow {
+                val summaries = trafficStatisticsStore.getDailySummaries(7)
+                emit(summaries.sumOf { it.total })
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val trafficDifference: StateFlow<Long> =
+        combine(todaySummary, yesterdaySummary) { today, yesterday ->
+                today.total - yesterday.total
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val chartItems: StateFlow<List<BarChartItem>> =
+        combine(_selectedTimeRange, todaySummary) { timeRange, _ ->
+                when (timeRange) {
+                    StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
+                    StatisticsTimeRange.WEEK -> getDailyChartItems()
                 }
-            val activeRequests = activeConnections
-                .asSequence()
-                .map { connection ->
-                    RecentRequestRecord(
-                        connection = connection,
-                        isActive = true,
-                        topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
-                        bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
-                    )
-                }
-
-            (activeRequests + closedRequests)
-                .sortedByDescending { parseConnectionStartMillis(it.connection.start) }
-                .take(MAX_RECENT_REQUESTS)
-                .toList()
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    val todaySummary: StateFlow<DailyTrafficSummary> = flow {
-        emit(trafficStatisticsStore.getTodaySummary())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
-
-    val yesterdaySummary: StateFlow<DailyTrafficSummary> = flow {
-        emit(trafficStatisticsStore.getYesterdaySummary())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
-
-    val weekSummary: StateFlow<Long> = flow {
-        val summaries = trafficStatisticsStore.getDailySummaries(7)
-        emit(summaries.sumOf { it.total })
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
-
-    val trafficDifference: StateFlow<Long> = combine(
-        todaySummary,
-        yesterdaySummary
-    ) { today, yesterday ->
-        today.total - yesterday.total
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
-
-    val chartItems: StateFlow<List<BarChartItem>> = combine(
-        _selectedTimeRange,
-        todaySummary
-    ) { timeRange, _ ->
-        when (timeRange) {
-            StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
-            StatisticsTimeRange.WEEK -> getDailyChartItems()
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setTimeRange(range: StatisticsTimeRange) {
         _selectedTimeRange.value = range
@@ -142,7 +150,7 @@ class TrafficStatisticsViewModel(
             BarChartItem(
                 label = slot.label,
                 value = slotData.total,
-                isHighlighted = slot == currentSlot
+                isHighlighted = slot == currentSlot,
             )
         }
     }
@@ -155,15 +163,16 @@ class TrafficStatisticsViewModel(
 
         return summaries.map { summary ->
             calendar.timeInMillis = summary.dateMillis
-            val label = if (summary.dateMillis == todayKey) {
-                MLang.TrafficStatistics.TimeRange.Today
-            } else {
-                dateFormat.format(calendar.time)
-            }
+            val label =
+                if (summary.dateMillis == todayKey) {
+                    MLang.TrafficStatistics.TimeRange.Today
+                } else {
+                    dateFormat.format(calendar.time)
+                }
             BarChartItem(
                 label = label,
                 value = summary.total,
-                isHighlighted = summary.dateMillis == todayKey
+                isHighlighted = summary.dateMillis == todayKey,
             )
         }
     }
@@ -179,36 +188,31 @@ class TrafficStatisticsViewModel(
 
     private fun parseConnectionStartMillis(start: String): Long {
         if (start.isBlank()) return Long.MIN_VALUE
-        return runCatching {
-            OffsetDateTime.parse(start).toInstant().toEpochMilli()
-        }.getOrDefault(Long.MIN_VALUE)
+        return runCatching { OffsetDateTime.parse(start).toInstant().toEpochMilli() }
+            .getOrDefault(Long.MIN_VALUE)
     }
 
     private fun resolveTopLevelGroupName(
         connection: ConnectionInfo,
         proxyGroups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
     ): String? {
-        val chains = connection.chains
-            .map(String::trim)
-            .filter(String::isNotEmpty)
+        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return null
 
-        return chains
-            .asReversed()
-            .firstNotNullOfOrNull { chainName ->
-                proxyGroups.firstOrNull { group ->
+        return chains.asReversed().firstNotNullOfOrNull { chainName ->
+            proxyGroups
+                .firstOrNull { group ->
                     group.type.group && group.name.equals(chainName, ignoreCase = true)
-                }?.name
-            }
+                }
+                ?.name
+        }
     }
 
     private fun resolveBottomNodeName(
         connection: ConnectionInfo,
         proxyGroups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
     ): String? {
-        val chains = connection.chains
-            .map(String::trim)
-            .filter(String::isNotEmpty)
+        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return localizeBuiltInProxyName("DIRECT")
 
         val resolved = proxyChainResolver.resolveEndNode(chains.last(), proxyGroups)?.name
@@ -218,9 +222,15 @@ class TrafficStatisticsViewModel(
     private fun localizeBuiltInProxyName(name: String): String {
         val normalized = name.trim().uppercase(Locale.ROOT)
         return when (normalized) {
-            "DIRECT", "直连" -> MLang.Home.Profile.Direct
-            "REJECT", "REJECT-DROP", "REJECTDROP", "拦截" -> MLang.Home.Profile.Reject
-            "PROXY", "COMPATIBLE", "代理" -> MLang.Home.Profile.Proxy
+            "DIRECT",
+            "直连" -> MLang.Home.Profile.Direct
+            "REJECT",
+            "REJECT-DROP",
+            "REJECTDROP",
+            "拦截" -> MLang.Home.Profile.Reject
+            "PROXY",
+            "COMPATIBLE",
+            "代理" -> MLang.Home.Profile.Proxy
             else -> name
         }
     }

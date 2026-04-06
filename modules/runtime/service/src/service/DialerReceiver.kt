@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.BroadcastReceiver
@@ -38,13 +36,13 @@ class DialerReceiver : BroadcastReceiver() {
 
     private fun startMainActivity(context: Context) {
         runCatching {
-            val launchIntent = Intent(Intent.ACTION_MAIN).apply {
-                component = Components.MAIN_ACTIVITY
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                val launchIntent =
+                    Intent(Intent.ACTION_MAIN).apply {
+                        component = Components.MAIN_ACTIVITY
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                context.startActivity(launchIntent)
             }
-            context.startActivity(launchIntent)
-        }.onFailure { e ->
-            Timber.e(e, "Open main activity failed")
-        }
+            .onFailure { e -> Timber.e(e, "Open main activity failed") }
     }
 }

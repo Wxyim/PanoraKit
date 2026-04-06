@@ -18,25 +18,40 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.common.constants
 
 import com.github.yumelira.yumebox.service.common.util.packageName
 
 object Intents {
     fun actionProvideUrl(packageName: String): String = "$packageName.action.PROVIDE_URL"
+
     fun actionStartClash(packageName: String): String = "$packageName.action.START_CLASH"
+
     fun actionStopClash(packageName: String): String = "$packageName.action.STOP_CLASH"
+
     fun actionToggleClash(packageName: String): String = "$packageName.action.TOGGLE_CLASH"
-    fun actionServiceRecreated(packageName: String): String = "$packageName.intent.action.CLASH_RECREATED"
+
+    fun actionServiceRecreated(packageName: String): String =
+        "$packageName.intent.action.CLASH_RECREATED"
+
     fun actionClashStarted(packageName: String): String = "$packageName.intent.action.CLASH_STARTED"
+
     fun actionClashStopped(packageName: String): String = "$packageName.intent.action.CLASH_STOPPED"
-    fun actionClashRequestStop(packageName: String): String = "$packageName.intent.action.CLASH_REQUEST_STOP"
-    fun actionProfileChanged(packageName: String): String = "$packageName.intent.action.PROFILE_CHANGED"
-    fun actionProfileLoaded(packageName: String): String = "$packageName.intent.action.PROFILE_LOADED"
-    fun actionOverrideChanged(packageName: String): String = "$packageName.intent.action.OVERRIDE_CHANGED"
-    fun actionRootRuntimeFailed(packageName: String): String = "$packageName.intent.action.ROOT_RUNTIME_FAILED"
+
+    fun actionClashRequestStop(packageName: String): String =
+        "$packageName.intent.action.CLASH_REQUEST_STOP"
+
+    fun actionProfileChanged(packageName: String): String =
+        "$packageName.intent.action.PROFILE_CHANGED"
+
+    fun actionProfileLoaded(packageName: String): String =
+        "$packageName.intent.action.PROFILE_LOADED"
+
+    fun actionOverrideChanged(packageName: String): String =
+        "$packageName.intent.action.OVERRIDE_CHANGED"
+
+    fun actionRootRuntimeFailed(packageName: String): String =
+        "$packageName.intent.action.ROOT_RUNTIME_FAILED"
 
     val ACTION_PROVIDE_URL: String
         get() = actionProvideUrl(packageName)

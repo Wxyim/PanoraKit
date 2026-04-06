@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -42,11 +40,7 @@ import com.github.yumelira.yumebox.common.util.formatBytes
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-data class BarChartItem(
-    val label: String,
-    val value: Long,
-    val isHighlighted: Boolean = false
-)
+data class BarChartItem(val label: String, val value: Long, val isHighlighted: Boolean = false)
 
 @Composable
 fun TrafficBarChart(
@@ -58,90 +52,84 @@ fun TrafficBarChart(
     barColor: Color = MiuixTheme.colorScheme.primary.copy(alpha = 0.5f),
     highlightColor: Color = MiuixTheme.colorScheme.primary,
     chartHeight: Dp = 140.dp,
-    barWidth: Dp = 20.dp
+    barWidth: Dp = 20.dp,
 ) {
     val computedMaxValue = maxDisplayValue ?: items.maxOfOrNull { it.value } ?: 1L
     val safeMaxValue = if (computedMaxValue <= 0L) 1L else computedMaxValue
 
-    val animatedMaxValue by animateFloatAsState(
-        targetValue = safeMaxValue.toFloat(),
-        animationSpec = spring(
-            dampingRatio = 0.85f,
-            stiffness = 380f
-        ),
-        label = "maxValue"
-    )
+    val animatedMaxValue by
+        animateFloatAsState(
+            targetValue = safeMaxValue.toFloat(),
+            animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f),
+            label = "maxValue",
+        )
 
-    val displayItems = remember(items) {
-        if (items.size <= 7) {
-            items + List(7 - items.size) { BarChartItem("", 0L) }
-        } else {
-            items.take(7)
+    val displayItems =
+        remember(items) {
+            if (items.size <= 7) {
+                items + List(7 - items.size) { BarChartItem("", 0L) }
+            } else {
+                items.take(7)
+            }
         }
-    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(18.dp),
-            contentAlignment = Alignment.CenterEnd
+            modifier = Modifier.fillMaxWidth().height(18.dp),
+            contentAlignment = Alignment.CenterEnd,
         ) {
             Text(
                 text = formatBytes(animatedMaxValue.toLong()),
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 10.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                maxLines = 1
+                maxLines = 1,
             )
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(chartHeight),
+            modifier = Modifier.fillMaxWidth().height(chartHeight),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Bottom,
         ) {
             displayItems.forEachIndexed { index, item ->
                 val isSelected = index == selectedIndex || item.isHighlighted
                 val isValidItem = item.label.isNotEmpty()
 
-                val targetHeight = if (animatedMaxValue > 0 && item.value > 0) {
-                    (item.value.toFloat() / animatedMaxValue).coerceIn(0.04f, 1f)
-                } else {
-                    0.04f
-                }
+                val targetHeight =
+                    if (animatedMaxValue > 0 && item.value > 0) {
+                        (item.value.toFloat() / animatedMaxValue).coerceIn(0.04f, 1f)
+                    } else {
+                        0.04f
+                    }
 
-                val animatedHeight by animateFloatAsState(
-                    targetValue = if (isValidItem) targetHeight else 0f,
-                    animationSpec = spring(
-                        dampingRatio = 0.82f,
-                        stiffness = 400f
-                    ),
-                    label = "barHeight_$index"
-                )
+                val animatedHeight by
+                    animateFloatAsState(
+                        targetValue = if (isValidItem) targetHeight else 0f,
+                        animationSpec = spring(dampingRatio = 0.82f, stiffness = 400f),
+                        label = "barHeight_$index",
+                    )
 
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom
+                    verticalArrangement = Arrangement.Bottom,
                 ) {
                     if (isValidItem && animatedHeight > 0f) {
                         Box(
-                            modifier = Modifier
-                                .width(barWidth)
-                                .fillMaxHeight(animatedHeight)
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(if (isSelected) highlightColor else barColor)
-                                .then(
-                                    if (onItemClick != null) {
-                                        Modifier.clickable { onItemClick(index) }
-                                    } else {
-                                        Modifier
-                                    }
-                                )
+                            modifier =
+                                Modifier.width(barWidth)
+                                    .fillMaxHeight(animatedHeight)
+                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                    .background(if (isSelected) highlightColor else barColor)
+                                    .then(
+                                        if (onItemClick != null) {
+                                            Modifier.clickable { onItemClick(index) }
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
                         )
                     }
                 }
@@ -151,27 +139,23 @@ fun TrafficBarChart(
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(18.dp),
+            modifier = Modifier.fillMaxWidth().height(18.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             displayItems.forEachIndexed { index, item ->
                 val isSelected = index == selectedIndex || item.isHighlighted
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = item.label,
                         style = MiuixTheme.textStyles.footnote1.copy(fontSize = 9.sp),
-                        color = if (isSelected) {
-                            MiuixTheme.colorScheme.primary
-                        } else {
-                            MiuixTheme.colorScheme.onSurfaceVariantSummary
-                        },
-                        maxLines = 1
+                        color =
+                            if (isSelected) {
+                                MiuixTheme.colorScheme.primary
+                            } else {
+                                MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            },
+                        maxLines = 1,
                     )
                 }
             }

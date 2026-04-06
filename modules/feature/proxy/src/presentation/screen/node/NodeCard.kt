@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen.node
 
 import androidx.compose.animation.core.*
@@ -46,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -66,7 +65,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 
 internal object NodeCardDefaults {
     val CornerRadius = 24.dp
@@ -91,15 +89,16 @@ private data class BuiltInNodeVisual(
     val containerColor: Color,
 )
 
-internal fun nodeLatencyLabel(delay: Int?): Pair<String, Color>? = when {
-    delay == null -> null
-    delay < 0 -> "TIMEOUT" to Color(0xFF9E9E9E)
-    delay == 0 -> null
-    delay in 1..300 -> "${delay}ms" to Color(0xFF007906)
-    delay in 301..1000 -> "${delay}ms" to Color(0xFFFFB300)
-    delay in 1001..3000 -> "${delay}ms" to Color(0xFFE53935)
-    else -> null
-}
+internal fun nodeLatencyLabel(delay: Int?): Pair<String, Color>? =
+    when {
+        delay == null -> null
+        delay < 0 -> "TIMEOUT" to Color(0xFF9E9E9E)
+        delay == 0 -> null
+        delay in 1..300 -> "${delay}ms" to Color(0xFF007906)
+        delay in 301..1000 -> "${delay}ms" to Color(0xFFFFB300)
+        delay in 1001..3000 -> "${delay}ms" to Color(0xFFE53935)
+        else -> null
+    }
 
 @Composable
 internal fun RotatingCircleGauge(
@@ -109,14 +108,14 @@ internal fun RotatingCircleGauge(
     contentDescription: String? = MLang.Proxy.Action.Test,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "circle_gauge_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = LinearEasing),
-        ),
-        label = "circle_gauge_rotation_value",
-    )
+    val rotation by
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec =
+                infiniteRepeatable(animation = tween(durationMillis = 1000, easing = LinearEasing)),
+            label = "circle_gauge_rotation_value",
+        )
 
     Icon(
         imageVector = Yume.CircleGauge,
@@ -141,23 +140,33 @@ internal fun NodeSelectableCard(
     val borderColor = if (isSelected) primary.copy(alpha = 0.38f) else Color.Transparent
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .let {
-                if (onClick != null) it.pressable(interactionSource = interactionSource, indication = SinkFeedback())
-                else it
-            }
-            .clip(shape)
-            .background(backgroundColor)
-            .border(1.dp, borderColor, shape)
-            .let {
-                if (onClick != null) it.clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ) else it
-            }
-            .padding(horizontal = NodeCardDefaults.PaddingHorizontal, vertical = paddingVertical),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .let {
+                    if (onClick != null)
+                        it.pressable(
+                            interactionSource = interactionSource,
+                            indication = SinkFeedback(),
+                        )
+                    else it
+                }
+                .clip(shape)
+                .background(backgroundColor)
+                .border(1.dp, borderColor, shape)
+                .let {
+                    if (onClick != null)
+                        it.clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = onClick,
+                        )
+                    else it
+                }
+                .padding(
+                    horizontal = NodeCardDefaults.PaddingHorizontal,
+                    vertical = paddingVertical,
+                ),
         content = content,
     )
 }
@@ -175,9 +184,8 @@ internal fun NodeCard(
     showCountryFlag: Boolean = true,
     singleNodeTestEnabled: Boolean = true,
 ) {
-    val onCardClick = remember(proxy.name, onClick) {
-        onClick?.let { click -> { click(proxy.name) } }
-    }
+    val onCardClick =
+        remember(proxy.name, onClick) { onClick?.let { click -> { click(proxy.name) } } }
 
     NodeSelectableCard(
         isSelected = isSelected,
@@ -188,16 +196,16 @@ internal fun NodeCard(
         val flagged = remember(proxy.name) { extractFlaggedName(proxy.name) }
         val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
         val delayLabel = remember(proxy.delay) { nodeLatencyLabel(proxy.delay) }
-        val iconUri = remember(proxy.icon) {
-            proxy.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeIconUri)
-        }
+        val iconUri =
+            remember(proxy.icon) {
+                proxy.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeIconUri)
+            }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
             NodeLargeIcon(
                 countryCode = flagged.countryCode.takeIf { showCountryFlag },
                 proxyName = proxy.name,
@@ -229,9 +237,7 @@ internal fun NodeCard(
                     ) {
                         NodeTagChip(label = proxy.type.name)
                         tags.keywords.forEach { kw -> NodeTagChip(label = kw) }
-                        tags.multiplier?.let { m ->
-                            if (m > 0f) NodeMultiplierChip(multiplier = m)
-                        }
+                        tags.multiplier?.let { m -> if (m > 0f) NodeMultiplierChip(multiplier = m) }
                     }
                     when {
                         delayLabel != null -> {
@@ -242,14 +248,16 @@ internal fun NodeCard(
                                 color = delayColor,
                                 maxLines = 1,
                                 textAlign = TextAlign.End,
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .let { m ->
-                                        if (onSingleNodeTestClick != null && singleNodeTestEnabled) m.clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            onClick = onSingleNodeTestClick,
-                                        ) else m
+                                modifier =
+                                    Modifier.padding(start = 8.dp).let { m ->
+                                        if (onSingleNodeTestClick != null && singleNodeTestEnabled)
+                                            m.clickable(
+                                                interactionSource =
+                                                    remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = onSingleNodeTestClick,
+                                            )
+                                        else m
                                     },
                             )
                         }
@@ -258,9 +266,9 @@ internal fun NodeCard(
                             if (isThisProxyTesting) {
                                 RotatingCircleGauge(
                                     isRotating = true,
-                                    modifier = Modifier
-                                        .padding(start = 8.dp)
-                                        .size(NodeCardDefaults.ActionIconSize),
+                                    modifier =
+                                        Modifier.padding(start = 8.dp)
+                                            .size(NodeCardDefaults.ActionIconSize),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             } else {
@@ -268,14 +276,15 @@ internal fun NodeCard(
                                     imageVector = Yume.Cloud,
                                     contentDescription = MLang.Proxy.Action.Test,
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    modifier = Modifier
-                                        .padding(start = 8.dp)
-                                        .size(NodeCardDefaults.ActionIconSize)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            onClick = onSingleNodeTestClick,
-                                        ),
+                                    modifier =
+                                        Modifier.padding(start = 8.dp)
+                                            .size(NodeCardDefaults.ActionIconSize)
+                                            .clickable(
+                                                interactionSource =
+                                                    remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = onSingleNodeTestClick,
+                                            ),
                                 )
                             }
                         }
@@ -295,14 +304,19 @@ internal fun NodeLargeIcon(
     isSelected: Boolean,
 ) {
     val neutral = MiuixTheme.colorScheme.onSurface
-    val builtInVisual = remember(proxyName, typeName) {
-        resolveBuiltInNodeVisual(proxyName = proxyName, typeName = typeName)
-    }
+    val builtInVisual =
+        remember(proxyName, typeName) {
+            resolveBuiltInNodeVisual(proxyName = proxyName, typeName = typeName)
+        }
     Box(
-        modifier = Modifier
-            .size(NodeCardDefaults.LeadingContainerSize)
-            .clip(RoundedCornerShape(NodeCardDefaults.LeadingContainerCornerRadius))
-            .background((builtInVisual?.containerColor ?: neutral).copy(alpha = if (builtInVisual != null) 0.12f else 0.06f)),
+        modifier =
+            Modifier.size(NodeCardDefaults.LeadingContainerSize)
+                .clip(RoundedCornerShape(NodeCardDefaults.LeadingContainerCornerRadius))
+                .background(
+                    (builtInVisual?.containerColor ?: neutral).copy(
+                        alpha = if (builtInVisual != null) 0.12f else 0.06f
+                    )
+                ),
         contentAlignment = Alignment.Center,
     ) {
         if (iconUri != null) {
@@ -336,19 +350,17 @@ private fun normalizeNodeIconUri(raw: String): String {
 }
 
 @Composable
-private fun RemoteNodeIcon(
-    iconUri: String,
-    modifier: Modifier = Modifier,
-) {
+private fun RemoteNodeIcon(iconUri: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val placeholderColorInt = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f).toArgb()
-    val request = remember(context, iconUri, placeholderColorInt) {
-        ImageRequest(context, iconUri) {
-            placeholder(IntColorDrawableStateImage(placeholderColorInt))
-            error(IntColorDrawableStateImage(placeholderColorInt))
-            crossfade(true)
+    val request =
+        remember(context, iconUri, placeholderColorInt) {
+            ImageRequest(context, iconUri) {
+                placeholder(IntColorDrawableStateImage(placeholderColorInt))
+                error(IntColorDrawableStateImage(placeholderColorInt))
+                crossfade(true)
+            }
         }
-    }
 
     SketchAsyncImage(
         request = request,
@@ -358,10 +370,7 @@ private fun RemoteNodeIcon(
     )
 }
 
-private fun resolveBuiltInNodeVisual(
-    proxyName: String,
-    typeName: String,
-): BuiltInNodeVisual? {
+private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): BuiltInNodeVisual? {
     val normalizedName = proxyName.trim().uppercase()
     val normalizedType = typeName.trim().uppercase()
     return when {
@@ -414,13 +423,13 @@ private fun NodeTagChip(label: String) {
         text = label,
         style = MiuixTheme.textStyles.footnote1.copy(fontSize = NodeCardDefaults.ChipFontSize),
         color = primary,
-        modifier = Modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(primary.copy(alpha = 0.1f))
-            .padding(
-                horizontal = NodeCardDefaults.ChipHorizontalPadding,
-                vertical = NodeCardDefaults.ChipVerticalPadding,
-            ),
+        modifier =
+            Modifier.clip(RoundedCornerShape(100.dp))
+                .background(primary.copy(alpha = 0.1f))
+                .padding(
+                    horizontal = NodeCardDefaults.ChipHorizontalPadding,
+                    vertical = NodeCardDefaults.ChipVerticalPadding,
+                ),
     )
 }
 
@@ -430,16 +439,18 @@ private fun NodeMultiplierChip(multiplier: Float) {
     val primary = MiuixTheme.colorScheme.primary
     val chipBg = if (isHigh) Color(0x1AFF3B30) else primary.copy(alpha = 0.1f)
     val chipColor = if (isHigh) Color(0xFFFF3B30) else primary
-    val label = if (multiplier == multiplier.toLong().toFloat()) "x${multiplier.toLong()}" else "x$multiplier"
+    val label =
+        if (multiplier == multiplier.toLong().toFloat()) "x${multiplier.toLong()}"
+        else "x$multiplier"
 
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(chipBg)
-            .padding(
-                horizontal = NodeCardDefaults.ChipHorizontalPadding,
-                vertical = NodeCardDefaults.ChipVerticalPadding,
-            ),
+        modifier =
+            Modifier.clip(RoundedCornerShape(100.dp))
+                .background(chipBg)
+                .padding(
+                    horizontal = NodeCardDefaults.ChipHorizontalPadding,
+                    vertical = NodeCardDefaults.ChipVerticalPadding,
+                ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {

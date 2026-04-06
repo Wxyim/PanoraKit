@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.util
 
 import dev.oom_wg.purejoy.mlang.MLang
@@ -35,11 +33,7 @@ fun encodeObjectList(value: List<Map<String, JsonElement>>?): String? {
     if (value.isNullOrEmpty()) return null
     return OverrideEditorJson.encodeToString(
         JsonElement.serializer(),
-        JsonArray(
-            value.map { fields ->
-                JsonObject(toOrderedJsonElementMap(fields))
-            },
-        ),
+        JsonArray(value.map { fields -> JsonObject(toOrderedJsonElementMap(fields)) }),
     )
 }
 
@@ -60,7 +54,7 @@ fun encodeObjectMap(value: Map<String, Map<String, JsonElement>>?): String? {
                 toOrderedObjectMap(value)?.forEach { (key, fields) ->
                     put(key, JsonObject(toOrderedJsonElementMap(fields)))
                 }
-            },
+            }
         ),
     )
 }
@@ -82,7 +76,7 @@ fun encodeSubRules(value: Map<String, List<String>>?): String? {
                 toOrderedSubRuleMap(value)?.forEach { (key, rules) ->
                     put(key, JsonArray(rules.map(::JsonPrimitive)))
                 }
-            },
+            }
         ),
     )
 }
@@ -113,14 +107,12 @@ fun decodeObjectFields(value: String?): Map<String, JsonElement>? {
 
 private fun orderedJsonObjectFields(value: JsonObject): LinkedHashMap<String, JsonElement> {
     val orderedMap = LinkedHashMap<String, JsonElement>(value.size)
-    value.forEach { (key, element) ->
-        orderedMap[key] = element
-    }
+    value.forEach { (key, element) -> orderedMap[key] = element }
     return orderedMap
 }
 
 private fun orderedObjectMapFromJson(
-    value: JsonObject,
+    value: JsonObject
 ): LinkedHashMap<String, Map<String, JsonElement>> {
     val orderedMap = LinkedHashMap<String, Map<String, JsonElement>>(value.size)
     value.forEach { (key, element) ->
@@ -129,9 +121,7 @@ private fun orderedObjectMapFromJson(
     return orderedMap
 }
 
-private fun orderedSubRuleMapFromJson(
-    value: JsonObject,
-): LinkedHashMap<String, List<String>> {
+private fun orderedSubRuleMapFromJson(value: JsonObject): LinkedHashMap<String, List<String>> {
     val orderedMap = LinkedHashMap<String, List<String>>(value.size)
     value.forEach { (key, element) ->
         orderedMap[key] = element.jsonArray.map { it.jsonPrimitive.content }
@@ -161,9 +151,8 @@ fun editorValueToJsonElement(rawValue: String): JsonElement {
     if (trimmedValue == "null") {
         return JsonNull
     }
-    val parsedElement = runCatching {
-        OverrideEditorJson.parseToJsonElement(trimmedValue)
-    }.getOrNull()
+    val parsedElement =
+        runCatching { OverrideEditorJson.parseToJsonElement(trimmedValue) }.getOrNull()
     if (parsedElement != null) {
         return parsedElement
     }
@@ -192,76 +181,79 @@ data class OverrideExtraFieldDraft(
     val value: String = "",
 )
 
-fun jsonElementToExtraFieldDraft(
-    key: String,
-    value: JsonElement,
-): OverrideExtraFieldDraft {
+fun jsonElementToExtraFieldDraft(key: String, value: JsonElement): OverrideExtraFieldDraft {
     return when (value) {
-        JsonNull -> OverrideExtraFieldDraft(
-            key = key,
-            valueType = OverrideExtraFieldValueType.Null,
-        )
+        JsonNull -> OverrideExtraFieldDraft(key = key, valueType = OverrideExtraFieldValueType.Null)
 
-        is JsonPrimitive -> when {
-            value.isString -> OverrideExtraFieldDraft(
+        is JsonPrimitive ->
+            when {
+                value.isString ->
+                    OverrideExtraFieldDraft(
+                        key = key,
+                        valueType = OverrideExtraFieldValueType.String,
+                        value = value.content,
+                    )
+
+                value.booleanOrNull != null ->
+                    OverrideExtraFieldDraft(
+                        key = key,
+                        valueType = OverrideExtraFieldValueType.Boolean,
+                        value = value.content,
+                    )
+
+                value.intOrNull != null ->
+                    OverrideExtraFieldDraft(
+                        key = key,
+                        valueType = OverrideExtraFieldValueType.Int,
+                        value = value.content,
+                    )
+
+                value.doubleOrNull != null ->
+                    OverrideExtraFieldDraft(
+                        key = key,
+                        valueType = OverrideExtraFieldValueType.Double,
+                        value = value.content,
+                    )
+
+                else ->
+                    OverrideExtraFieldDraft(
+                        key = key,
+                        valueType = OverrideExtraFieldValueType.String,
+                        value = value.content,
+                    )
+            }
+
+        else ->
+            OverrideExtraFieldDraft(
                 key = key,
-                valueType = OverrideExtraFieldValueType.String,
-                value = value.content,
+                valueType = OverrideExtraFieldValueType.JsonFragment,
+                value = OverrideEditorJson.encodeToString(JsonElement.serializer(), value),
             )
-
-            value.booleanOrNull != null -> OverrideExtraFieldDraft(
-                key = key,
-                valueType = OverrideExtraFieldValueType.Boolean,
-                value = value.content,
-            )
-
-            value.intOrNull != null -> OverrideExtraFieldDraft(
-                key = key,
-                valueType = OverrideExtraFieldValueType.Int,
-                value = value.content,
-            )
-
-            value.doubleOrNull != null -> OverrideExtraFieldDraft(
-                key = key,
-                valueType = OverrideExtraFieldValueType.Double,
-                value = value.content,
-            )
-
-            else -> OverrideExtraFieldDraft(
-                key = key,
-                valueType = OverrideExtraFieldValueType.String,
-                value = value.content,
-            )
-        }
-
-        else -> OverrideExtraFieldDraft(
-            key = key,
-            valueType = OverrideExtraFieldValueType.JsonFragment,
-            value = OverrideEditorJson.encodeToString(JsonElement.serializer(), value),
-        )
     }
 }
 
 fun extraFieldDraftToJsonElement(draft: OverrideExtraFieldDraft): JsonElement? {
     return when (draft.valueType) {
         OverrideExtraFieldValueType.String -> JsonPrimitive(draft.value)
-        OverrideExtraFieldValueType.Boolean -> draft.value.trim().toBooleanStrictOrNull()?.let(::JsonPrimitive)
+        OverrideExtraFieldValueType.Boolean ->
+            draft.value.trim().toBooleanStrictOrNull()?.let(::JsonPrimitive)
         OverrideExtraFieldValueType.Int -> draft.value.trim().toIntOrNull()?.let(::JsonPrimitive)
-        OverrideExtraFieldValueType.Double -> draft.value.trim().toDoubleOrNull()?.let(::JsonPrimitive)
+        OverrideExtraFieldValueType.Double ->
+            draft.value.trim().toDoubleOrNull()?.let(::JsonPrimitive)
         OverrideExtraFieldValueType.Null -> JsonNull
-        OverrideExtraFieldValueType.JsonFragment -> runCatching {
-            OverrideEditorJson.parseToJsonElement(draft.value.trim())
-        }.getOrNull()
+        OverrideExtraFieldValueType.JsonFragment ->
+            runCatching { OverrideEditorJson.parseToJsonElement(draft.value.trim()) }.getOrNull()
     }
 }
 
 fun summarizeExtraFieldValue(element: JsonElement): String {
     return when (element) {
         JsonNull -> "Null"
-        is JsonPrimitive -> when {
-            element.isString -> element.content.ifBlank { MLang.Override.Editor.EmptyString }
-            else -> element.content
-        }
+        is JsonPrimitive ->
+            when {
+                element.isString -> element.content.ifBlank { MLang.Override.Editor.EmptyString }
+                else -> element.content
+            }
 
         is JsonArray -> MLang.Override.Editor.ArrayItems.format(element.size)
         is JsonObject -> MLang.Override.Editor.ObjectFields.format(element.size)

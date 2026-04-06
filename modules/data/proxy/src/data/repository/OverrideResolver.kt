@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
@@ -91,18 +89,17 @@ class OverrideResolver(
             return emptyList()
         }
         return buildList {
-            if (binding.enabled) {
-                add(OverrideMetadata.SYSTEM_PRESET_ID)
+                if (binding.enabled) {
+                    add(OverrideMetadata.SYSTEM_PRESET_ID)
+                }
+                addAll(
+                    binding.overrideIds.filterNot(OverrideConfigRepository::isInternalRuntimeConfig)
+                )
             }
-            addAll(binding.overrideIds.filterNot(OverrideConfigRepository::isInternalRuntimeConfig))
-        }.distinct()
+            .distinct()
     }
 
-    private suspend fun resolveOrderedConfigs(
-        overrideIds: List<String>,
-    ): List<OverrideConfig> {
-        return overrideIds.mapNotNull { overrideId ->
-            configProvider.getById(overrideId)
-        }
+    private suspend fun resolveOrderedConfigs(overrideIds: List<String>): List<OverrideConfig> {
+        return overrideIds.mapNotNull { overrideId -> configProvider.getById(overrideId) }
     }
 }

@@ -18,12 +18,9 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.diagnostic
 
 import dev.oom_wg.purejoy.mlang.MLang
-
 import io.github.rosemoe.sora.lang.diagnostic.DiagnosticDetail
 import io.github.rosemoe.sora.lang.diagnostic.DiagnosticRegion
 import io.github.rosemoe.sora.lang.diagnostic.DiagnosticsContainer
@@ -58,8 +55,8 @@ object JsonDiagnosticsProvider {
                             0,
                             DiagnosticDetail(
                                 briefMessage = "JSON 格式错误",
-                                detailedMessage = "JSON 必须以 '{' 或 '[' 开头"
-                            )
+                                detailedMessage = "JSON 必须以 '{' 或 '[' 开头",
+                            ),
                         )
                     )
                 }
@@ -106,8 +103,9 @@ object JsonDiagnosticsProvider {
             message.contains("Expected") -> {
 
                 val expectedPattern = "Expected (\\S+)".toRegex()
-                val expected = expectedPattern.find(message)?.groupValues?.get(1)
-                    ?: MLang.Component.Editor.Error.Unknown
+                val expected =
+                    expectedPattern.find(message)?.groupValues?.get(1)
+                        ?: MLang.Component.Editor.Error.Unknown
                 MLang.Component.Editor.Error.Expected.format(expected)
             }
             message.contains("No value") -> MLang.Component.Editor.Error.MissingValue

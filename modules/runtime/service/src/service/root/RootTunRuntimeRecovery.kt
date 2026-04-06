@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.root
 
 import android.content.Context
@@ -36,11 +34,8 @@ import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.topjohnwu.superuser.ipc.RootService
 
 object RootTunRuntimeRecovery {
-    private val bindingFailureMarkers = listOf(
-        "root tun binder is null",
-        "root tun service returned null binding",
-        "binding died",
-    )
+    private val bindingFailureMarkers =
+        listOf("root tun binder is null", "root tun service returned null binding", "binding died")
 
     fun isBinderAlive(service: IInterface?): Boolean {
         val remote = service?.asBinder() ?: return false
@@ -48,20 +43,21 @@ object RootTunRuntimeRecovery {
     }
 
     fun isBinderConnectionFailure(error: Throwable): Boolean {
-        return generateSequence(error) { it.cause }.any { cause ->
-            cause is DeadObjectException ||
-                cause is RemoteException ||
-                (cause is IllegalStateException && bindingFailureMarkers.any { marker ->
-                    cause.message?.contains(marker, ignoreCase = true) == true
-                })
-        }
+        return generateSequence(error) { it.cause }
+            .any { cause ->
+                cause is DeadObjectException ||
+                    cause is RemoteException ||
+                    (cause is IllegalStateException &&
+                        bindingFailureMarkers.any { marker ->
+                            cause.message?.contains(marker, ignoreCase = true) == true
+                        })
+            }
     }
 
     fun binderFailureReason(error: Throwable): String {
         return generateSequence(error) { it.cause }
             .mapNotNull { cause -> cause.message?.trim()?.takeIf(String::isNotEmpty) }
-            .firstOrNull()
-            ?: "RootTun IPC disconnected"
+            .firstOrNull() ?: "RootTun IPC disconnected"
     }
 
     fun handleBinderGone(context: Context, reason: String?) {
@@ -88,7 +84,7 @@ object RootTunRuntimeRecovery {
             appContext.sendBroadcast(
                 Intent(Intents.actionClashStopped(appContext.packageName))
                     .setPackage(appContext.packageName)
-                    .putExtra(Intents.EXTRA_STOP_REASON, message),
+                    .putExtra(Intents.EXTRA_STOP_REASON, message)
             )
         }
     }

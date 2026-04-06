@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.activity.compose.BackHandler
@@ -41,7 +39,6 @@ import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperDialog
 
 @Composable
 fun OverrideEditScreen(
@@ -79,26 +76,29 @@ fun OverrideEditScreen(
     val scrollBehavior = MiuixScrollBehavior()
     val editorListState = rememberLazyListState()
     var expandedSectionNames by rememberSaveable { mutableStateOf(setOf<String>()) }
-    val expandedSections = remember(expandedSectionNames) {
-        expandedSectionNames.mapNotNull { sectionName ->
-            OverrideEditorSection.entries.firstOrNull { it.name == sectionName }
-        }.toSet()
-    }
-    val presetTemplateSelection = remember(editSession?.draftSnapshot) {
-        editSession?.config?.let(::inferPresetTemplateSelection)
-            ?: defaultOverridePresetTemplateSelection()
-    }
+    val expandedSections =
+        remember(expandedSectionNames) {
+            expandedSectionNames
+                .mapNotNull { sectionName ->
+                    OverrideEditorSection.entries.firstOrNull { it.name == sectionName }
+                }
+                .toSet()
+        }
+    val presetTemplateSelection =
+        remember(editSession?.draftSnapshot) {
+            editSession?.config?.let(::inferPresetTemplateSelection)
+                ?: defaultOverridePresetTemplateSelection()
+        }
 
-    LaunchedEffect(configId) {
-        viewModel.startEditSession(configId)
-    }
+    LaunchedEffect(configId) { viewModel.startEditSession(configId) }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 is OverrideSaveEvent.Saved -> Unit
                 is OverrideSaveEvent.Failed -> {
-                    Timber.tag("OverrideEditScreen").d("Suppress override save toast: %s", event.message)
+                    Timber.tag("OverrideEditScreen")
+                        .d("Suppress override save toast: %s", event.message)
                 }
             }
         }
@@ -123,17 +123,17 @@ fun OverrideEditScreen(
         }
     }
 
-    BackHandler {
-        requestExit()
-    }
+    BackHandler { requestExit() }
 
     Scaffold(
         topBar = {
             TopBar(
-                title = if (isNewConfig) MLang.Override.Edit.TitleNew else MLang.Override.Edit.TitleEdit,
+                title =
+                    if (isNewConfig) MLang.Override.Edit.TitleNew
+                    else MLang.Override.Edit.TitleEdit,
                 scrollBehavior = scrollBehavior,
             )
-        },
+        }
     ) { paddingValues ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -163,17 +163,22 @@ fun OverrideEditScreen(
                         )
                     },
                     onSectionToggle = { section ->
-                        expandedSectionNames = if (section.name in expandedSectionNames) {
-                            expandedSectionNames - section.name
-                        } else {
-                            expandedSectionNames + section.name
-                        }
+                        expandedSectionNames =
+                            if (section.name in expandedSectionNames) {
+                                expandedSectionNames - section.name
+                            } else {
+                                expandedSectionNames + section.name
+                            }
                     },
-                    onOpenPresetTemplate = {
-                        showPresetTemplateSheet.value = true
-                    },
+                    onOpenPresetTemplate = { showPresetTemplateSheet.value = true },
                     onEditStringList = onOpenStringListEditor,
-                    onEditRuleList = { title, values, availableModes, selectedMode, referenceCatalog, callback ->
+                    onEditRuleList = {
+                        title,
+                        values,
+                        availableModes,
+                        selectedMode,
+                        referenceCatalog,
+                        callback ->
                         onOpenRuleListEditor(
                             title,
                             values,
@@ -198,7 +203,14 @@ fun OverrideEditScreen(
                         currentJsonEditorCallback = callback
                         showJsonEditor.value = true
                     },
-                    onEditObjectList = { type, title, values, availableModes, selectedMode, referenceCatalog, callback ->
+                    onEditObjectList = {
+                        type,
+                        title,
+                        values,
+                        availableModes,
+                        selectedMode,
+                        referenceCatalog,
+                        callback ->
                         onOpenObjectListEditor(
                             type,
                             title,
@@ -209,7 +221,8 @@ fun OverrideEditScreen(
                             callback,
                         )
                     },
-                    onEditObjectMap = { type, title, values, availableModes, selectedMode, callback ->
+                    onEditObjectMap = { type, title, values, availableModes, selectedMode, callback
+                        ->
                         onOpenObjectMapEditor(
                             type,
                             title,
@@ -219,7 +232,13 @@ fun OverrideEditScreen(
                             callback,
                         )
                     },
-                    onEditSubRules = { title, values, availableModes, selectedMode, referenceCatalog, callback ->
+                    onEditSubRules = {
+                        title,
+                        values,
+                        availableModes,
+                        selectedMode,
+                        referenceCatalog,
+                        callback ->
                         onOpenSubRulesEditor(
                             title,
                             values,
@@ -232,7 +251,7 @@ fun OverrideEditScreen(
                 )
             }
         }
-    AppDialog(
+        AppDialog(
             show = showDiscardDialog.value,
             title = MLang.Override.Edit.EmptyName.Title,
             summary = MLang.Override.Edit.EmptyName.Summary,

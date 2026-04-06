@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.Column
@@ -30,42 +28,46 @@ import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.JsonElement
 import top.yukonga.miuix.kmp.extra.SuperArrow
 
-typealias OpenRuleListEditor = (
-    title: String,
-    values: OverrideListModeValues<List<String>>,
-    availableModes: List<OverrideListEditorMode>,
-    selectedMode: OverrideListEditorMode,
-    referenceCatalog: OverrideReferenceCatalog,
-    onValueChange: (OverrideListModeValues<List<String>>) -> Unit,
-) -> Unit
+typealias OpenRuleListEditor =
+    (
+        title: String,
+        values: OverrideListModeValues<List<String>>,
+        availableModes: List<OverrideListEditorMode>,
+        selectedMode: OverrideListEditorMode,
+        referenceCatalog: OverrideReferenceCatalog,
+        onValueChange: (OverrideListModeValues<List<String>>) -> Unit,
+    ) -> Unit
 
-typealias OpenStructuredObjectListEditor = (
-    type: OverrideStructuredObjectType,
-    title: String,
-    values: OverrideListModeValues<List<Map<String, JsonElement>>>,
-    availableModes: List<OverrideListEditorMode>,
-    selectedMode: OverrideListEditorMode,
-    referenceCatalog: OverrideReferenceCatalog,
-    onValueChange: (OverrideListModeValues<List<Map<String, JsonElement>>>) -> Unit,
-) -> Unit
+typealias OpenStructuredObjectListEditor =
+    (
+        type: OverrideStructuredObjectType,
+        title: String,
+        values: OverrideListModeValues<List<Map<String, JsonElement>>>,
+        availableModes: List<OverrideListEditorMode>,
+        selectedMode: OverrideListEditorMode,
+        referenceCatalog: OverrideReferenceCatalog,
+        onValueChange: (OverrideListModeValues<List<Map<String, JsonElement>>>) -> Unit,
+    ) -> Unit
 
-typealias OpenObjectMapEditor = (
-    type: OverrideStructuredMapType,
-    title: String,
-    values: OverrideListModeValues<Map<String, Map<String, JsonElement>>>,
-    availableModes: List<OverrideListEditorMode>,
-    selectedMode: OverrideListEditorMode,
-    onValueChange: (OverrideListModeValues<Map<String, Map<String, JsonElement>>>) -> Unit,
-) -> Unit
+typealias OpenObjectMapEditor =
+    (
+        type: OverrideStructuredMapType,
+        title: String,
+        values: OverrideListModeValues<Map<String, Map<String, JsonElement>>>,
+        availableModes: List<OverrideListEditorMode>,
+        selectedMode: OverrideListEditorMode,
+        onValueChange: (OverrideListModeValues<Map<String, Map<String, JsonElement>>>) -> Unit,
+    ) -> Unit
 
-typealias OpenSubRulesEditor = (
-    title: String,
-    values: OverrideListModeValues<Map<String, List<String>>>,
-    availableModes: List<OverrideListEditorMode>,
-    selectedMode: OverrideListEditorMode,
-    referenceCatalog: OverrideReferenceCatalog,
-    onValueChange: (OverrideListModeValues<Map<String, List<String>>>) -> Unit,
-) -> Unit
+typealias OpenSubRulesEditor =
+    (
+        title: String,
+        values: OverrideListModeValues<Map<String, List<String>>>,
+        availableModes: List<OverrideListEditorMode>,
+        selectedMode: OverrideListEditorMode,
+        referenceCatalog: OverrideReferenceCatalog,
+        onValueChange: (OverrideListModeValues<Map<String, List<String>>>) -> Unit,
+    ) -> Unit
 
 @Composable
 fun RulesEditor(
@@ -78,18 +80,20 @@ fun RulesEditor(
         OverrideSelectorCard {
             StructuredEditorEntry(
                 title = "Rules",
-                summary = buildModifierSummary(
-                    replaceCount = config.rules?.size ?: 0,
-                    startCount = config.rulesStart?.size ?: 0,
-                    endCount = config.rulesEnd?.size ?: 0,
-                    emptyHint = MLang.Override.Form.RuleChainNotSet,
-                ),
+                summary =
+                    buildModifierSummary(
+                        replaceCount = config.rules?.size ?: 0,
+                        startCount = config.rulesStart?.size ?: 0,
+                        endCount = config.rulesEnd?.size ?: 0,
+                        emptyHint = MLang.Override.Form.RuleChainNotSet,
+                    ),
                 onClick = {
-                    val values = OverrideListModeValues(
-                        replaceValue = config.rules,
-                        startValue = config.rulesStart,
-                        endValue = config.rulesEnd,
-                    )
+                    val values =
+                        OverrideListModeValues(
+                            replaceValue = config.rules,
+                            startValue = config.rulesStart,
+                            endValue = config.rulesEnd,
+                        )
                     onEditRuleList(
                         "Rules",
                         values,
@@ -99,11 +103,12 @@ fun RulesEditor(
                             OverrideListEditorMode.End,
                         ),
                         resolveInitialEditorMode(
-                            availableModes = listOf(
-                                OverrideListEditorMode.Replace,
-                                OverrideListEditorMode.Start,
-                                OverrideListEditorMode.End,
-                            ),
+                            availableModes =
+                                listOf(
+                                    OverrideListEditorMode.Replace,
+                                    OverrideListEditorMode.Start,
+                                    OverrideListEditorMode.End,
+                                ),
                             values = values,
                         ),
                         buildOverrideReferenceCatalog(config),
@@ -113,7 +118,7 @@ fun RulesEditor(
                                 rules = updatedValues.replaceValue,
                                 rulesStart = updatedValues.startValue,
                                 rulesEnd = updatedValues.endValue,
-                            ),
+                            )
                         )
                     }
                 },
@@ -133,38 +138,35 @@ fun SubRulesEditorSection(
         SmallTitle(MLang.Override.Form.SubRules)
         StructuredInputContent(
             title = MLang.Override.Form.SubRules,
-            summary = buildMergeModifierSummary(
-                replaceCount = config.subRules?.size ?: 0,
-                mergeCount = config.subRulesMerge?.size ?: 0,
-                emptyHint = MLang.Override.Form.SubRulesHint,
-            ),
+            summary =
+                buildMergeModifierSummary(
+                    replaceCount = config.subRules?.size ?: 0,
+                    mergeCount = config.subRulesMerge?.size ?: 0,
+                    emptyHint = MLang.Override.Form.SubRulesHint,
+                ),
             advancedSummary = MLang.Override.Form.SubRulesAdvanced,
             onStructuredClick = {
-                val values = OverrideListModeValues(
-                    replaceValue = config.subRules,
-                    mergeValue = config.subRulesMerge,
-                )
-                    onEditSubRules(
-                        MLang.Override.Form.SubRules,
-                        values,
-                        listOf(
-                            OverrideListEditorMode.Replace,
-                        OverrideListEditorMode.Merge,
+                val values =
+                    OverrideListModeValues(
+                        replaceValue = config.subRules,
+                        mergeValue = config.subRulesMerge,
+                    )
+                onEditSubRules(
+                    MLang.Override.Form.SubRules,
+                    values,
+                    listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
+                    resolveInitialEditorMode(
+                        availableModes =
+                            listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
+                        values = values,
                     ),
-                        resolveInitialEditorMode(
-                            availableModes = listOf(
-                                OverrideListEditorMode.Replace,
-                                OverrideListEditorMode.Merge,
-                            ),
-                            values = values,
-                        ),
-                        buildOverrideReferenceCatalog(config),
-                    ) { updatedValues ->
-                        onConfigChange(
-                            config.copy(
-                                subRules = updatedValues.replaceValue,
+                    buildOverrideReferenceCatalog(config),
+                ) { updatedValues ->
+                    onConfigChange(
+                        config.copy(
+                            subRules = updatedValues.replaceValue,
                             subRulesMerge = updatedValues.mergeValue,
-                        ),
+                        )
                     )
                 }
             },
@@ -192,30 +194,27 @@ fun RuleProvidersEditor(
         SmallTitle(MLang.Override.Form.RuleProviders)
         StructuredInputContent(
             title = MLang.Override.Form.RuleProviders,
-            summary = buildMergeModifierSummary(
-                replaceCount = config.ruleProviders?.size ?: 0,
-                mergeCount = config.ruleProvidersMerge?.size ?: 0,
-                emptyHint = MLang.Override.Form.RuleProvidersHint,
-            ),
+            summary =
+                buildMergeModifierSummary(
+                    replaceCount = config.ruleProviders?.size ?: 0,
+                    mergeCount = config.ruleProvidersMerge?.size ?: 0,
+                    emptyHint = MLang.Override.Form.RuleProvidersHint,
+                ),
             advancedSummary = MLang.Override.Form.RuleProvidersAdvanced,
             onStructuredClick = {
-                val values = OverrideListModeValues(
-                    replaceValue = config.ruleProviders,
-                    mergeValue = config.ruleProvidersMerge,
-                )
+                val values =
+                    OverrideListModeValues(
+                        replaceValue = config.ruleProviders,
+                        mergeValue = config.ruleProvidersMerge,
+                    )
                 onEditObjectMap(
                     OverrideStructuredMapType.RuleProviders,
                     MLang.Override.Form.RuleProviders,
                     values,
-                    listOf(
-                        OverrideListEditorMode.Replace,
-                        OverrideListEditorMode.Merge,
-                    ),
+                    listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
                     resolveInitialEditorMode(
-                        availableModes = listOf(
-                            OverrideListEditorMode.Replace,
-                            OverrideListEditorMode.Merge,
-                        ),
+                        availableModes =
+                            listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
                         values = values,
                     ),
                 ) { updatedValues ->
@@ -223,7 +222,7 @@ fun RuleProvidersEditor(
                         config.copy(
                             ruleProviders = updatedValues.replaceValue,
                             ruleProvidersMerge = updatedValues.mergeValue,
-                        ),
+                        )
                     )
                 }
             },
@@ -252,18 +251,20 @@ fun ProxiesEditor(
         OverrideSelectorCard {
             StructuredEditorEntry(
                 title = MLang.Override.Form.ProxyNodes,
-                summary = buildModifierSummary(
-                    replaceCount = config.proxies?.size ?: 0,
-                    startCount = config.proxiesStart?.size ?: 0,
-                    endCount = config.proxiesEnd?.size ?: 0,
-                    emptyHint = MLang.Override.Form.ProxyNodesHint,
-                ),
+                summary =
+                    buildModifierSummary(
+                        replaceCount = config.proxies?.size ?: 0,
+                        startCount = config.proxiesStart?.size ?: 0,
+                        endCount = config.proxiesEnd?.size ?: 0,
+                        emptyHint = MLang.Override.Form.ProxyNodesHint,
+                    ),
                 onClick = {
-                    val values = OverrideListModeValues(
-                        replaceValue = config.proxies,
-                        startValue = config.proxiesStart,
-                        endValue = config.proxiesEnd,
-                    )
+                    val values =
+                        OverrideListModeValues(
+                            replaceValue = config.proxies,
+                            startValue = config.proxiesStart,
+                            endValue = config.proxiesEnd,
+                        )
                     onEditObjectList(
                         OverrideStructuredObjectType.Proxies,
                         MLang.Override.Form.ProxyNodes,
@@ -274,11 +275,12 @@ fun ProxiesEditor(
                             OverrideListEditorMode.End,
                         ),
                         resolveInitialEditorMode(
-                            availableModes = listOf(
-                                OverrideListEditorMode.Replace,
-                                OverrideListEditorMode.Start,
-                                OverrideListEditorMode.End,
-                            ),
+                            availableModes =
+                                listOf(
+                                    OverrideListEditorMode.Replace,
+                                    OverrideListEditorMode.Start,
+                                    OverrideListEditorMode.End,
+                                ),
                             values = values,
                         ),
                         buildOverrideReferenceCatalog(config),
@@ -288,13 +290,12 @@ fun ProxiesEditor(
                                 proxies = updatedValues.replaceValue,
                                 proxiesStart = updatedValues.startValue,
                                 proxiesEnd = updatedValues.endValue,
-                            ),
+                            )
                         )
                     }
                 },
             )
         }
-
     }
 }
 
@@ -309,30 +310,27 @@ fun ProxyProvidersEditor(
         SmallTitle(MLang.Override.Form.ProxyProviders)
         StructuredInputContent(
             title = MLang.Override.Form.ProxyProviders,
-            summary = buildMergeModifierSummary(
-                replaceCount = config.proxyProviders?.size ?: 0,
-                mergeCount = config.proxyProvidersMerge?.size ?: 0,
-                emptyHint = MLang.Override.Form.ProxyProvidersHint,
-            ),
+            summary =
+                buildMergeModifierSummary(
+                    replaceCount = config.proxyProviders?.size ?: 0,
+                    mergeCount = config.proxyProvidersMerge?.size ?: 0,
+                    emptyHint = MLang.Override.Form.ProxyProvidersHint,
+                ),
             advancedSummary = MLang.Override.Form.ProxyProvidersAdvanced,
             onStructuredClick = {
-                val values = OverrideListModeValues(
-                    replaceValue = config.proxyProviders,
-                    mergeValue = config.proxyProvidersMerge,
-                )
+                val values =
+                    OverrideListModeValues(
+                        replaceValue = config.proxyProviders,
+                        mergeValue = config.proxyProvidersMerge,
+                    )
                 onEditObjectMap(
                     OverrideStructuredMapType.ProxyProviders,
                     MLang.Override.Form.ProxyProviders,
                     values,
-                    listOf(
-                        OverrideListEditorMode.Replace,
-                        OverrideListEditorMode.Merge,
-                    ),
+                    listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
                     resolveInitialEditorMode(
-                        availableModes = listOf(
-                            OverrideListEditorMode.Replace,
-                            OverrideListEditorMode.Merge,
-                        ),
+                        availableModes =
+                            listOf(OverrideListEditorMode.Replace, OverrideListEditorMode.Merge),
                         values = values,
                     ),
                 ) { updatedValues ->
@@ -340,7 +338,7 @@ fun ProxyProvidersEditor(
                         config.copy(
                             proxyProviders = updatedValues.replaceValue,
                             proxyProvidersMerge = updatedValues.mergeValue,
-                        ),
+                        )
                     )
                 }
             },
@@ -369,18 +367,20 @@ fun ProxyGroupsEditor(
         OverrideSelectorCard {
             StructuredEditorEntry(
                 title = MLang.Override.Form.ProxyGroups,
-                summary = buildModifierSummary(
-                    replaceCount = config.proxyGroups?.size ?: 0,
-                    startCount = config.proxyGroupsStart?.size ?: 0,
-                    endCount = config.proxyGroupsEnd?.size ?: 0,
-                    emptyHint = MLang.Override.Form.ProxyGroupsHint,
-                ),
+                summary =
+                    buildModifierSummary(
+                        replaceCount = config.proxyGroups?.size ?: 0,
+                        startCount = config.proxyGroupsStart?.size ?: 0,
+                        endCount = config.proxyGroupsEnd?.size ?: 0,
+                        emptyHint = MLang.Override.Form.ProxyGroupsHint,
+                    ),
                 onClick = {
-                    val values = OverrideListModeValues(
-                        replaceValue = config.proxyGroups,
-                        startValue = config.proxyGroupsStart,
-                        endValue = config.proxyGroupsEnd,
-                    )
+                    val values =
+                        OverrideListModeValues(
+                            replaceValue = config.proxyGroups,
+                            startValue = config.proxyGroupsStart,
+                            endValue = config.proxyGroupsEnd,
+                        )
                     onEditObjectList(
                         OverrideStructuredObjectType.ProxyGroups,
                         MLang.Override.Form.ProxyGroups,
@@ -391,11 +391,12 @@ fun ProxyGroupsEditor(
                             OverrideListEditorMode.End,
                         ),
                         resolveInitialEditorMode(
-                            availableModes = listOf(
-                                OverrideListEditorMode.Replace,
-                                OverrideListEditorMode.Start,
-                                OverrideListEditorMode.End,
-                            ),
+                            availableModes =
+                                listOf(
+                                    OverrideListEditorMode.Replace,
+                                    OverrideListEditorMode.Start,
+                                    OverrideListEditorMode.End,
+                                ),
                             values = values,
                         ),
                         buildOverrideReferenceCatalog(config),
@@ -405,7 +406,7 @@ fun ProxyGroupsEditor(
                                 proxyGroups = updatedValues.replaceValue,
                                 proxyGroupsStart = updatedValues.startValue,
                                 proxyGroupsEnd = updatedValues.endValue,
-                            ),
+                            )
                         )
                     }
                 },
@@ -448,22 +449,11 @@ private fun StructuredInputContent(
 }
 
 @Composable
-private fun StructuredEditorEntry(
-    title: String,
-    summary: String,
-    onClick: () -> Unit,
-) {
-    SuperArrow(
-        title = title,
-        summary = summary,
-        onClick = onClick,
-    )
+private fun StructuredEditorEntry(title: String, summary: String, onClick: () -> Unit) {
+    SuperArrow(title = title, summary = summary, onClick = onClick)
 }
 
-private fun buildStructuredSummary(
-    count: Int,
-    emptyHint: String,
-): String {
+private fun buildStructuredSummary(count: Int, emptyHint: String): String {
     return if (count > 0) {
         MLang.Override.Form.ItemsConfigured.format(count)
     } else {
@@ -478,16 +468,18 @@ private fun buildModifierSummary(
     emptyHint: String,
 ): String {
     return buildList {
-        if (replaceCount > 0) {
-            add(MLang.Override.Modifier.ItemsCount.format(replaceCount))
+            if (replaceCount > 0) {
+                add(MLang.Override.Modifier.ItemsCount.format(replaceCount))
+            }
+            if (startCount > 0) {
+                add(MLang.Override.Modifier.Start)
+            }
+            if (endCount > 0) {
+                add(MLang.Override.Modifier.End)
+            }
         }
-        if (startCount > 0) {
-            add(MLang.Override.Modifier.Start)
-        }
-        if (endCount > 0) {
-            add(MLang.Override.Modifier.End)
-        }
-    }.joinToString(" · ").ifEmpty { emptyHint }
+        .joinToString(" · ")
+        .ifEmpty { emptyHint }
 }
 
 private fun buildMergeModifierSummary(
@@ -496,11 +488,13 @@ private fun buildMergeModifierSummary(
     emptyHint: String,
 ): String {
     return buildList {
-        if (replaceCount > 0) {
-            add(MLang.Override.Modifier.ItemsCount.format(replaceCount))
+            if (replaceCount > 0) {
+                add(MLang.Override.Modifier.ItemsCount.format(replaceCount))
+            }
+            if (mergeCount > 0) {
+                add(MLang.Override.Modifier.Merge)
+            }
         }
-        if (mergeCount > 0) {
-            add(MLang.Override.Modifier.Merge)
-        }
-    }.joinToString(" · ").ifEmpty { emptyHint }
+        .joinToString(" · ")
+        .ifEmpty { emptyHint }
 }

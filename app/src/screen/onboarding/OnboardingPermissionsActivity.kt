@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.os.Bundle
@@ -34,18 +32,19 @@ internal class OnboardingPermissionsActivity : OnboardingBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                navigateBackwardTo(OnboardingStartupActivity::class.java)
-            }
-        })
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigateBackwardTo(OnboardingStartupActivity::class.java)
+                }
+            },
+        )
 
         setOnboardingContent {
             val lifecycleOwner = LocalLifecycleOwner.current
-            val permissionState = rememberPermissionState(
-                context = this,
-                lifecycleOwner = lifecycleOwner,
-            )
+            val permissionState =
+                rememberPermissionState(context = this, lifecycleOwner = lifecycleOwner)
 
             ProvisionDetailShell(
                 previewIcon = Yume.UserKey,
@@ -53,12 +52,8 @@ internal class OnboardingPermissionsActivity : OnboardingBaseActivity() {
                 subtitle = MLang.Onboarding.Permission.Subtitle,
                 primaryText = MLang.Onboarding.Navigation.Next,
                 primaryEnabled = true,
-                onPrimaryClick = {
-                    navigateForwardTo(OnboardingTermsActivity::class.java)
-                },
-                onBack = {
-                    navigateBackwardTo(OnboardingStartupActivity::class.java)
-                },
+                onPrimaryClick = { navigateForwardTo(OnboardingTermsActivity::class.java) },
+                onBack = { navigateBackwardTo(OnboardingStartupActivity::class.java) },
             ) {
                 PermissionContent(permissionState)
             }

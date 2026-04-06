@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.meta.presentation.component
 
 import androidx.compose.foundation.background
@@ -56,63 +54,66 @@ fun ConnectionCard(
     val backgroundColor = MiuixTheme.colorScheme.background
     val interactionSource = remember { MutableInteractionSource() }
 
-    val host = remember(connectionInfo.metadata) {
-        connectionInfo.metadata["host"]?.jsonPrimitive?.content ?: ""
-    }
-    val network = remember(connectionInfo.metadata) {
-        connectionInfo.metadata["network"]?.jsonPrimitive?.content ?: "TCP"
-    }
-    val destinationPort = remember(connectionInfo.metadata) {
-        connectionInfo.metadata["destinationPort"]?.jsonPrimitive?.content ?: ""
-    }
-    val sourceIP = remember(connectionInfo.metadata) {
-        connectionInfo.metadata["sourceIP"]?.jsonPrimitive?.content ?: ""
-    }
-    val sourcePort = remember(connectionInfo.metadata) {
-        connectionInfo.metadata["sourcePort"]?.jsonPrimitive?.content ?: ""
-    }
-
-    val displayHost = remember(host, destinationPort) {
-        if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
-            "$host:$destinationPort"
-        } else if (host.isNotEmpty()) {
-            host
-        } else {
-            "$sourceIP:$sourcePort"
+    val host =
+        remember(connectionInfo.metadata) {
+            connectionInfo.metadata["host"]?.jsonPrimitive?.content ?: ""
         }
-    }
+    val network =
+        remember(connectionInfo.metadata) {
+            connectionInfo.metadata["network"]?.jsonPrimitive?.content ?: "TCP"
+        }
+    val destinationPort =
+        remember(connectionInfo.metadata) {
+            connectionInfo.metadata["destinationPort"]?.jsonPrimitive?.content ?: ""
+        }
+    val sourceIP =
+        remember(connectionInfo.metadata) {
+            connectionInfo.metadata["sourceIP"]?.jsonPrimitive?.content ?: ""
+        }
+    val sourcePort =
+        remember(connectionInfo.metadata) {
+            connectionInfo.metadata["sourcePort"]?.jsonPrimitive?.content ?: ""
+        }
 
-    val relativeTime = remember(connectionInfo.start) {
-        formatRelativeTime(connectionInfo.start)
-    }
+    val displayHost =
+        remember(host, destinationPort) {
+            if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
+                "$host:$destinationPort"
+            } else if (host.isNotEmpty()) {
+                host
+            } else {
+                "$sourceIP:$sourcePort"
+            }
+        }
+
+    val relativeTime = remember(connectionInfo.start) { formatRelativeTime(connectionInfo.start) }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .pressable(interactionSource = interactionSource, indication = SinkFeedback())
-            .clip(shape)
-            .background(backgroundColor)
-            .border(1.dp, MiuixTheme.colorScheme.surfaceVariant, shape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .pressable(interactionSource = interactionSource, indication = SinkFeedback())
+                .clip(shape)
+                .background(backgroundColor)
+                .border(1.dp, MiuixTheme.colorScheme.surfaceVariant, shape)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
             ConnectionProtocolIcon(network = network)
 
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-
                 Text(
                     text = displayHost,
                     style = MiuixTheme.textStyles.body2,
@@ -125,13 +126,11 @@ fun ConnectionCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-
                     FlowRow(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-
                         ConnectionTagChip(
                             label = network.uppercase(),
                             backgroundColor = getProtocolColor(network),
@@ -166,10 +165,10 @@ private fun ConnectionProtocolIcon(network: String) {
     val protocolColor = getProtocolColor(network)
 
     Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(neutral.copy(alpha = 0.06f)),
+        modifier =
+            Modifier.size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(neutral.copy(alpha = 0.06f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -189,20 +188,21 @@ private fun ConnectionTagChip(
         text = label,
         style = MiuixTheme.textStyles.footnote1.copy(fontSize = 10.sp),
         color = backgroundColor,
-        modifier = Modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(backgroundColor.copy(alpha = 0.1f))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
+        modifier =
+            Modifier.clip(RoundedCornerShape(100.dp))
+                .background(backgroundColor.copy(alpha = 0.1f))
+                .padding(horizontal = 7.dp, vertical = 2.dp),
     )
 }
 
-private fun getProtocolColor(network: String): Color = when (network.uppercase()) {
-    "TCP" -> Color(0xFF2196F3)
-    "UDP" -> Color(0xFF4CAF50)
-    "HTTP" -> Color(0xFF9E9E9E)
-    "HTTPS" -> Color(0xFF00BCD4)
-    else -> Color(0xFF9E9E9E)
-}
+private fun getProtocolColor(network: String): Color =
+    when (network.uppercase()) {
+        "TCP" -> Color(0xFF2196F3)
+        "UDP" -> Color(0xFF4CAF50)
+        "HTTP" -> Color(0xFF9E9E9E)
+        "HTTPS" -> Color(0xFF00BCD4)
+        else -> Color(0xFF9E9E9E)
+    }
 
 private fun formatRelativeTime(start: String): String {
     if (start.isEmpty()) return ""
@@ -223,7 +223,8 @@ private fun formatRelativeTime(start: String): String {
             hours < 24 -> MLang.Connection.RelativeTime.HoursAgo.format(hours)
             days < 7 -> MLang.Connection.RelativeTime.DaysAgo.format(days)
             else -> {
-                val date = java.time.LocalDateTime.ofInstant(startTime, java.time.ZoneId.systemDefault())
+                val date =
+                    java.time.LocalDateTime.ofInstant(startTime, java.time.ZoneId.systemDefault())
                 "%02d-%02d".format(date.monthValue, date.dayOfMonth)
             }
         }

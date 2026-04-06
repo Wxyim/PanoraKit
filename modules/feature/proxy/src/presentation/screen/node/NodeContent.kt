@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen.node
 
 import android.annotation.SuppressLint
@@ -60,12 +58,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollHorizontal
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
-val NodeSheetContentPadding = PaddingValues(
-    start = 0.dp,
-    end = 0.dp,
-    top = 8.dp,
-    bottom = 16.dp,
-)
+val NodeSheetContentPadding = PaddingValues(start = 0.dp, end = 0.dp, top = 8.dp, bottom = 16.dp)
 
 private fun Modifier.nodeTabHaze(state: HazeState?, style: HazeStyle?): Modifier {
     if (state == null || style == null) return this
@@ -73,20 +66,17 @@ private fun Modifier.nodeTabHaze(state: HazeState?, style: HazeStyle?): Modifier
         this.style = style
         blurRadius = 30.dp
         noiseFactor = 0f
-        progressive = HazeProgressive.verticalGradient(
-            startIntensity = 1f,
-            endIntensity = 0f,
-            preferPerformance = true,
-        )
+        progressive =
+            HazeProgressive.verticalGradient(
+                startIntensity = 1f,
+                endIntensity = 0f,
+                preferPerformance = true,
+            )
     }
 }
 
 @Composable
-internal fun NodeTabs(
-    groups: List<ProxyGroupInfo>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-) {
+internal fun NodeTabs(groups: List<ProxyGroupInfo>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     val hazeState = LocalTopBarHazeState.current
     val hazeStyle = LocalTopBarHazeStyle.current
     val listState = rememberLazyListState()
@@ -101,44 +91,42 @@ internal fun NodeTabs(
 
     LazyRow(
         state = listState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .nodeTabHaze(hazeState, hazeStyle)
-            .background(MiuixTheme.colorScheme.surface)
-            .overScrollHorizontal(),
+        modifier =
+            Modifier.fillMaxWidth()
+                .nodeTabHaze(hazeState, hazeStyle)
+                .background(MiuixTheme.colorScheme.surface)
+                .overScrollHorizontal(),
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         overscrollEffect = null,
     ) {
         itemsIndexed(groups, key = { _, group -> group.name }) { index, group ->
             val selected = index == selectedIndex
-            val background = if (selected) {
-                MiuixTheme.colorScheme.primary
-            } else {
-                MiuixTheme.colorScheme.surface
-            }
-            val textColor = if (selected) {
-                MiuixTheme.colorScheme.onPrimary
-            } else {
-                MiuixTheme.colorScheme.onSurface
-            }
+            val background =
+                if (selected) {
+                    MiuixTheme.colorScheme.primary
+                } else {
+                    MiuixTheme.colorScheme.surface
+                }
+            val textColor =
+                if (selected) {
+                    MiuixTheme.colorScheme.onPrimary
+                } else {
+                    MiuixTheme.colorScheme.onSurface
+                }
 
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(background)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onSelect(index) },
-                    )
-                    .padding(horizontal = 11.dp, vertical = 6.dp),
+                modifier =
+                    Modifier.clip(RoundedCornerShape(999.dp))
+                        .background(background)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onSelect(index) },
+                        )
+                        .padding(horizontal = 11.dp, vertical = 6.dp)
             ) {
-                Text(
-                    text = group.name,
-                    color = textColor,
-                    style = MiuixTheme.textStyles.footnote1,
-                )
+                Text(text = group.name, color = textColor, style = MiuixTheme.textStyles.footnote1)
             }
         }
     }
@@ -162,10 +150,7 @@ internal fun NodeGroupSheetContent(
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .overScrollVertical(),
+        modifier = Modifier.fillMaxWidth().height(sheetHeight).overScrollVertical(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = NodeSheetContentPadding,
         overscrollEffect = null,
@@ -194,10 +179,7 @@ fun NodeSheetContent(
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .overScrollVertical(),
+        modifier = Modifier.fillMaxWidth().height(sheetHeight).overScrollVertical(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = NodeSheetContentPadding,
         overscrollEffect = null,
@@ -205,25 +187,23 @@ fun NodeSheetContent(
         item(key = "__refresh_indicator__") {
             AnimatedVisibility(
                 visible = isDelayTesting,
-                enter = expandVertically(
-                    animationSpec = tween(durationMillis = 200),
-                    expandFrom = Alignment.Top,
-                ) + fadeIn(animationSpec = tween(durationMillis = 150)),
-                exit = shrinkVertically(
-                    animationSpec = tween(durationMillis = 200),
-                    shrinkTowards = Alignment.Top,
-                ) + fadeOut(animationSpec = tween(durationMillis = 150)),
+                enter =
+                    expandVertically(
+                        animationSpec = tween(durationMillis = 200),
+                        expandFrom = Alignment.Top,
+                    ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                exit =
+                    shrinkVertically(
+                        animationSpec = tween(durationMillis = 200),
+                        shrinkTowards = Alignment.Top,
+                    ) + fadeOut(animationSpec = tween(durationMillis = 150)),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    InfiniteProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                    )
+                    InfiniteProgressIndicator(modifier = Modifier.size(24.dp))
                     Text(
                         text = MLang.Proxy.Testing.InProgress,
                         style = MiuixTheme.textStyles.footnote1,

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.foundation.layout.Arrangement
@@ -43,13 +41,11 @@ fun HomeRunningContent(
     ipMonitoringState: IpMonitoringState,
     speedHistory: SpeedHistoryBuffer,
     onChartClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp)
+        modifier = modifier.fillMaxWidth().padding(vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             NodeInfoDisplay(
@@ -61,11 +57,7 @@ fun HomeRunningContent(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SpeedChart(
-                speedHistory = speedHistory,
-                isRunning = isRunning,
-                onClick = onChartClick
-            )
+            SpeedChart(speedHistory = speedHistory, isRunning = isRunning, onClick = onChartClick)
         }
     }
 }

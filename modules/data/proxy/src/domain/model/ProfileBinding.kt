@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.domain.model
 
 import kotlinx.serialization.Serializable
@@ -33,19 +31,11 @@ data class ProfileBinding(
     companion object {
 
         fun disabled(profileId: String): ProfileBinding {
-            return ProfileBinding(
-                profileId = profileId,
-                overrideIds = emptyList(),
-                enabled = false,
-            )
+            return ProfileBinding(profileId = profileId, overrideIds = emptyList(), enabled = false)
         }
 
         fun withOverrides(profileId: String, overrideIds: List<String>): ProfileBinding {
-            return ProfileBinding(
-                profileId = profileId,
-                overrideIds = overrideIds,
-                enabled = false,
-            )
+            return ProfileBinding(profileId = profileId, overrideIds = overrideIds, enabled = false)
         }
 
         fun withOverride(profileId: String, overrideId: String): ProfileBinding {
@@ -60,13 +50,12 @@ data class ProfileBinding(
     fun addOverride(overrideId: String, index: Int? = null): ProfileBinding {
         if (overrideIds.contains(overrideId)) return this
 
-        val newList = if (index != null) {
-            overrideIds.toMutableList().apply {
-                add(index.coerceAtMost(size), overrideId)
+        val newList =
+            if (index != null) {
+                overrideIds.toMutableList().apply { add(index.coerceAtMost(size), overrideId) }
+            } else {
+                overrideIds + overrideId
             }
-        } else {
-            overrideIds + overrideId
-        }
 
         return copy(overrideIds = newList)
     }

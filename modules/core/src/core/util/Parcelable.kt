@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.core.util
 
 import android.os.Binder
@@ -81,7 +79,8 @@ fun <T : Parcelable> Parcelable.Creator<T>.createListFromParcelSlice(
             data.writeInt(offset)
             data.writeInt(chunk)
 
-            if (!remote.transact(
+            if (
+                !remote.transact(
                     SliceParcelableListBpBinder.TRANSACTION_GET_ITEMS,
                     data,
                     reply,
@@ -93,14 +92,11 @@ fun <T : Parcelable> Parcelable.Creator<T>.createListFromParcelSlice(
 
             val size = reply.readInt()
 
-            repeat(size) {
-                result.add(createFromParcel(reply))
-            }
+            repeat(size) { result.add(createFromParcel(reply)) }
 
             offset += size
 
-            if (size == 0)
-                break
+            if (size == 0) break
         } finally {
             data.recycle()
             reply.recycle()

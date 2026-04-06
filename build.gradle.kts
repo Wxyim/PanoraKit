@@ -18,18 +18,98 @@
  *
  */
 
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
+import com.diffplug.gradle.spotless.SpotlessExtension
+import org.gradle.api.JavaVersion
+
 plugins {
-    id("com.android.application") version "9.1.0" apply false
-    id("com.android.library") version "9.1.0" apply false
-    kotlin("plugin.serialization") version "2.2.10" apply false
-    kotlin("plugin.compose") version "2.2.10" apply false
-    id("org.jetbrains.compose") version "1.10.3" apply false
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2" apply false
-    id("com.mikepenz.aboutlibraries.plugin.android") version "14.0.0-b03" apply false
-    id("dev.oom-wg.purejoy.fyl.fytxt") version "2.2" apply false
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.jetbrains.compose) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.aboutlibraries.android) apply false
+    alias(libs.plugins.purejoy.fytxt) apply false
+    alias(libs.plugins.spotless)
+}
+
+extensions.configure(SpotlessExtension::class.java) {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**", "**/generated/**")
+        ktfmt("0.52").kotlinlangStyle()
+    }
+
+    kotlinGradle {
+        target("**/*.kts")
+        targetExclude("**/build/**")
+        ktfmt("0.52").kotlinlangStyle()
+    }
 }
 
 subprojects {
     val moduleOutputPath = path.removePrefix(":").replace(':', '/')
-    layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("modules/$moduleOutputPath"))
+    layout.buildDirectory.set(rootProject.layout.buildDirectory.dir(moduleOutputPath))
+
+    dependencyLocking { lockAllConfigurations() }
+
+    val androidCompileSdk = providers.gradleProperty("android.compileSdk").get().toInt()
+    val androidMinSdk = providers.gradleProperty("android.minSdk").get().toInt()
+    val androidTargetSdk = providers.gradleProperty("android.targetSdk").get().toInt()
+    val javaVer =
+        providers.gradleProperty("android.jvm").orNull
+            ?: providers.gradleProperty("project.jvm").orNull
+            ?: "17"
+    val ndkVersionValue = providers.gradleProperty("android.ndkVersion").orNull.orEmpty()
+
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure(LibraryExtension::class.java) {
+            compileSdk = androidCompileSdk
+
+            if (ndkVersionValue.isNotBlank()) {
+                ndkVersion = ndkVersionValue
+            }
+
+            defaultConfig { minSdk = androidMinSdk }
+
+            compileOptions {
+                sourceCompatibility = JavaVersion.toVersion(javaVer)
+                targetCompatibility = JavaVersion.toVersion(javaVer)
+            }
+
+            packaging {
+                resources {
+                    excludes +=
+                        setOf(
+                            "/META-INF/{AL2.0,LGPL2.1}",
+                            "/META-INF/*.kotlin_module",
+                            "DebugProbesKt.bin",
+                        )
+                }
+                jniLibs { useLegacyPackaging = true }
+            }
+        }
+    }
+
+    pluginManager.withPlugin("com.android.application") {
+        extensions.configure(ApplicationExtension::class.java) {
+            compileSdk = androidCompileSdk
+
+            if (ndkVersionValue.isNotBlank()) {
+                ndkVersion = ndkVersionValue
+            }
+
+            defaultConfig {
+                minSdk = androidMinSdk
+                targetSdk = androidTargetSdk
+            }
+
+            compileOptions {
+                sourceCompatibility = JavaVersion.toVersion(javaVer)
+                targetCompatibility = JavaVersion.toVersion(javaVer)
+            }
+        }
+    }
 }

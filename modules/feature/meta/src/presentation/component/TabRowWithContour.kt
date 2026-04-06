@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.meta.presentation.component
 
 import androidx.compose.foundation.background
@@ -49,42 +47,40 @@ fun TabRowWithContour(
     val selectedColor = MiuixTheme.colorScheme.primary
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(shape)
-            .background(backgroundColor)
-            .padding(4.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .clip(shape)
+                .background(backgroundColor)
+                .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         tabs.forEachIndexed { index, tab ->
             val isSelected = selectedTabIndex == index
             val tabShape = RoundedCornerShape(100.dp)
             val tabBgColor = if (isSelected) selectedColor else Color.Transparent
-            val textColor = if (isSelected) {
-                MiuixTheme.colorScheme.onPrimary
-            } else {
-                MiuixTheme.colorScheme.onSurface
-            }
+            val textColor =
+                if (isSelected) {
+                    MiuixTheme.colorScheme.onPrimary
+                } else {
+                    MiuixTheme.colorScheme.onSurface
+                }
 
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(tabShape)
-                    .background(tabBgColor)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onTabSelected(index) },
-                    )
-                    .padding(vertical = 10.dp),
+                modifier =
+                    Modifier.weight(1f)
+                        .clip(tabShape)
+                        .background(tabBgColor)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onTabSelected(index) },
+                        )
+                        .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = tab,
-                    style = MiuixTheme.textStyles.body2,
-                    color = textColor,
-                )
+                Text(text = tab, style = MiuixTheme.textStyles.body2, color = textColor)
             }
         }
     }

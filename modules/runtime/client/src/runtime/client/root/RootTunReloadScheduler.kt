@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.runtime.client.root
 
 import android.content.Context
@@ -29,9 +27,9 @@ import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.RootTunOperationResult
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 import timber.log.Timber
-import kotlin.time.Duration.Companion.milliseconds
 
 object RootTunReloadScheduler {
     enum class Reason {
@@ -47,8 +45,7 @@ object RootTunReloadScheduler {
     private var reloadJob: Job? = null
     private val pendingReasons = linkedSetOf<Reason>()
     private var dirtyWhileRunning = false
-    @Volatile
-    private var suppressNestedSchedule = false
+    @Volatile private var suppressNestedSchedule = false
 
     fun isInternalOverrideSyncInProgress(): Boolean = suppressNestedSchedule
 
@@ -61,23 +58,25 @@ object RootTunReloadScheduler {
                 return
             }
             debounceJob?.cancel()
-            debounceJob = scope.launch {
-                delay(DEBOUNCE_MS.milliseconds)
-                runReload(appContext)
-            }
+            debounceJob =
+                scope.launch {
+                    delay(DEBOUNCE_MS.milliseconds)
+                    runReload(appContext)
+                }
         }
     }
 
     private suspend fun runReload(context: Context) {
-        val reasons = synchronized(lock) {
-            if (reloadJob?.isActive == true) {
-                dirtyWhileRunning = true
-                return
+        val reasons =
+            synchronized(lock) {
+                if (reloadJob?.isActive == true) {
+                    dirtyWhileRunning = true
+                    return
+                }
+                val copied = pendingReasons.toSet()
+                pendingReasons.clear()
+                copied
             }
-            val copied = pendingReasons.toSet()
-            pendingReasons.clear()
-            copied
-        }
         if (reasons.isEmpty()) {
             return
         }
@@ -88,22 +87,24 @@ object RootTunReloadScheduler {
         }
 
         synchronized(lock) {
-            reloadJob = scope.launch {
-                val result = syncAndReload(context, reasons)
-                if (!result.success) {
-                    notifyFailure(context, result)
-                }
+            reloadJob =
+                scope.launch {
+                    val result = syncAndReload(context, reasons)
+                    if (!result.success) {
+                        notifyFailure(context, result)
+                    }
 
-                val shouldRunAgain = synchronized(lock) {
-                    val rerun = dirtyWhileRunning || pendingReasons.isNotEmpty()
-                    dirtyWhileRunning = false
-                    rerun
+                    val shouldRunAgain =
+                        synchronized(lock) {
+                            val rerun = dirtyWhileRunning || pendingReasons.isNotEmpty()
+                            dirtyWhileRunning = false
+                            rerun
+                        }
+                    if (shouldRunAgain) {
+                        delay(DEBOUNCE_MS.milliseconds)
+                        runReload(context)
+                    }
                 }
-                if (shouldRunAgain) {
-                    delay(DEBOUNCE_MS.milliseconds)
-                    runReload(context)
-                }
-            }
         }
     }
 
@@ -127,7 +128,7 @@ object RootTunReloadScheduler {
                 return lastResult
             }
             Timber.w(
-                "RootTun reload failed attempt=${index + 1}: code=${lastResult.errorCode ?: RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED} error=${lastResult.error}",
+                "RootTun reload failed attempt=${index + 1}: code=${lastResult.errorCode ?: RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED} error=${lastResult.error}"
             )
         }
         return lastResult
@@ -142,7 +143,7 @@ object RootTunReloadScheduler {
                     .setPackage(context.packageName)
                     .putExtra(Intents.EXTRA_ERROR_CODE, errorCode)
                     .putExtra(Intents.EXTRA_ERROR_MESSAGE, error)
-                    .putExtra("error", "$errorCode: $error"),
+                    .putExtra("error", "$errorCode: $error")
             )
         }
     }

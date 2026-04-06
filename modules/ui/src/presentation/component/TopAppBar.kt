@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.RowScope
@@ -42,10 +40,7 @@ val LocalTopBarHazeState = compositionLocalOf<HazeState?> { null }
 val LocalTopBarHazeStyle = compositionLocalOf<HazeStyle?> { null }
 
 @OptIn(ExperimentalHazeApi::class)
-private fun Modifier.topBarHazeEffect(
-    state: HazeState?,
-    style: HazeStyle?,
-): Modifier {
+private fun Modifier.topBarHazeEffect(state: HazeState?, style: HazeStyle?): Modifier {
     if (state == null || style == null) return this
 
     return hazeEffect(state) {

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
@@ -30,7 +28,7 @@ import timber.log.Timber
 class TrafficStatisticsCollector(
     private val proxyFacade: ProxyFacade,
     private val trafficStatisticsStore: TrafficStatisticsStore,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
     companion object {
         private const val TAG = "TrafficStatisticsCollector"
@@ -49,18 +47,19 @@ class TrafficStatisticsCollector(
 
     private fun startCollection() {
         collectionJob?.cancel()
-        collectionJob = scope.launch {
-            proxyFacade.isRunning.collect { isRunning ->
-                if (isRunning) {
-                    monitoringJob?.cancel()
-                    monitoringJob = startTrafficMonitoring()
-                } else {
-                    monitoringJob?.cancel()
-                    monitoringJob = null
-                    resetLastValues()
+        collectionJob =
+            scope.launch {
+                proxyFacade.isRunning.collect { isRunning ->
+                    if (isRunning) {
+                        monitoringJob?.cancel()
+                        monitoringJob = startTrafficMonitoring()
+                    } else {
+                        monitoringJob?.cancel()
+                        monitoringJob = null
+                        resetLastValues()
+                    }
                 }
             }
-        }
     }
 
     private fun startTrafficMonitoring(): Job {
@@ -71,13 +70,14 @@ class TrafficStatisticsCollector(
 
             while (isActive && proxyFacade.isRunning.value) {
                 runCatching {
-                    collectTrafficData()
-                    delay(COLLECTION_INTERVAL_MS)
-                }.onFailure { e ->
-                    if (e is CancellationException) throw e
-                    Timber.tag(TAG).e(e, "Traffic collection failed")
-                    delay(COLLECTION_INTERVAL_MS)
-                }
+                        collectTrafficData()
+                        delay(COLLECTION_INTERVAL_MS)
+                    }
+                    .onFailure { e ->
+                        if (e is CancellationException) throw e
+                        Timber.tag(TAG).e(e, "Traffic collection failed")
+                        delay(COLLECTION_INTERVAL_MS)
+                    }
             }
         }
     }
@@ -122,7 +122,7 @@ class TrafficStatisticsCollector(
                 uploadDelta,
                 downloadDelta,
                 currentProfileId,
-                currentProfileName
+                currentProfileName,
             )
         }
 

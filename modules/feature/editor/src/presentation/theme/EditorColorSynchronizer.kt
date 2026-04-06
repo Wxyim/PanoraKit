@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.theme
 
 import androidx.compose.ui.graphics.Color
@@ -54,20 +52,44 @@ object EditorColorSynchronizer {
             override fun applyDefault() {
                 super.applyDefault()
 
-                setColor(WHOLE_BACKGROUND, if (isDark) DARK_BACKGROUND.toArgb() else LIGHT_BACKGROUND.toArgb())
+                setColor(
+                    WHOLE_BACKGROUND,
+                    if (isDark) DARK_BACKGROUND.toArgb() else LIGHT_BACKGROUND.toArgb(),
+                )
                 setColor(TEXT_NORMAL, if (isDark) DARK_TEXT.toArgb() else LIGHT_TEXT.toArgb())
-                setColor(LINE_NUMBER, if (isDark) DARK_LINE_NUMBER.toArgb() else LIGHT_LINE_NUMBER.toArgb())
-                setColor(LINE_NUMBER_BACKGROUND, if (isDark) DARK_LINE_NUMBER_BG.toArgb() else LIGHT_LINE_NUMBER_BG.toArgb())
-                setColor(CURRENT_LINE, if (isDark) DARK_CURRENT_LINE.toArgb() else LIGHT_CURRENT_LINE.toArgb())
+                setColor(
+                    LINE_NUMBER,
+                    if (isDark) DARK_LINE_NUMBER.toArgb() else LIGHT_LINE_NUMBER.toArgb(),
+                )
+                setColor(
+                    LINE_NUMBER_BACKGROUND,
+                    if (isDark) DARK_LINE_NUMBER_BG.toArgb() else LIGHT_LINE_NUMBER_BG.toArgb(),
+                )
+                setColor(
+                    CURRENT_LINE,
+                    if (isDark) DARK_CURRENT_LINE.toArgb() else LIGHT_CURRENT_LINE.toArgb(),
+                )
 
                 setColor(SELECTION_INSERT, ACCENT_COLOR.toArgb())
                 setColor(SELECTION_HANDLE, ACCENT_COLOR.toArgb())
-                setColor(SELECTED_TEXT_BACKGROUND, if (isDark) DARK_SELECTION_BG.toArgb() else LIGHT_SELECTION_BG.toArgb())
+                setColor(
+                    SELECTED_TEXT_BACKGROUND,
+                    if (isDark) DARK_SELECTION_BG.toArgb() else LIGHT_SELECTION_BG.toArgb(),
+                )
 
-                setColor(TEXT_ACTION_WINDOW_BACKGROUND, if (isDark) DARK_TEXT_ACTION_BG.toArgb() else LIGHT_TEXT_ACTION_BG.toArgb())
-                setColor(TEXT_ACTION_WINDOW_ICON_COLOR, if (isDark) DARK_TEXT_ACTION_ICON.toArgb() else LIGHT_TEXT_ACTION_ICON.toArgb())
+                setColor(
+                    TEXT_ACTION_WINDOW_BACKGROUND,
+                    if (isDark) DARK_TEXT_ACTION_BG.toArgb() else LIGHT_TEXT_ACTION_BG.toArgb(),
+                )
+                setColor(
+                    TEXT_ACTION_WINDOW_ICON_COLOR,
+                    if (isDark) DARK_TEXT_ACTION_ICON.toArgb() else LIGHT_TEXT_ACTION_ICON.toArgb(),
+                )
 
-                setColor(HIGHLIGHTED_DELIMITERS_FOREGROUND, if (isDark) Color(0xFF569CD6).toArgb() else Color(0xFF0000FF).toArgb())
+                setColor(
+                    HIGHLIGHTED_DELIMITERS_FOREGROUND,
+                    if (isDark) Color(0xFF569CD6).toArgb() else Color(0xFF0000FF).toArgb(),
+                )
             }
         }
     }
@@ -77,17 +99,27 @@ object EditorColorSynchronizer {
 
         scheme.setColor(EditorColorScheme.SELECTION_INSERT, ACCENT_COLOR.toArgb())
         scheme.setColor(EditorColorScheme.SELECTION_HANDLE, ACCENT_COLOR.toArgb())
-        scheme.setColor(EditorColorScheme.SELECTED_TEXT_BACKGROUND,
-            if (isDark) DARK_SELECTION_BG.toArgb() else LIGHT_SELECTION_BG.toArgb())
+        scheme.setColor(
+            EditorColorScheme.SELECTED_TEXT_BACKGROUND,
+            if (isDark) DARK_SELECTION_BG.toArgb() else LIGHT_SELECTION_BG.toArgb(),
+        )
 
-        scheme.setColor(EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND,
-            if (isDark) DARK_TEXT_ACTION_BG.toArgb() else LIGHT_TEXT_ACTION_BG.toArgb())
-        scheme.setColor(EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR,
-            if (isDark) DARK_TEXT_ACTION_ICON.toArgb() else LIGHT_TEXT_ACTION_ICON.toArgb())
+        scheme.setColor(
+            EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND,
+            if (isDark) DARK_TEXT_ACTION_BG.toArgb() else LIGHT_TEXT_ACTION_BG.toArgb(),
+        )
+        scheme.setColor(
+            EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR,
+            if (isDark) DARK_TEXT_ACTION_ICON.toArgb() else LIGHT_TEXT_ACTION_ICON.toArgb(),
+        )
 
-        scheme.setColor(EditorColorScheme.HIGHLIGHTED_DELIMITERS_FOREGROUND,
-            if (isDark) Color(0xFF569CD6).toArgb() else Color(0xFF0000FF).toArgb())
-        scheme.setColor(EditorColorScheme.HIGHLIGHTED_DELIMITERS_BACKGROUND,
-            if (isDark) Color(0x2646A2D4).toArgb() else Color(0x2646A2D4).toArgb())
+        scheme.setColor(
+            EditorColorScheme.HIGHLIGHTED_DELIMITERS_FOREGROUND,
+            if (isDark) Color(0xFF569CD6).toArgb() else Color(0xFF0000FF).toArgb(),
+        )
+        scheme.setColor(
+            EditorColorScheme.HIGHLIGHTED_DELIMITERS_BACKGROUND,
+            if (isDark) Color(0x2646A2D4).toArgb() else Color(0x2646A2D4).toArgb(),
+        )
     }
 }

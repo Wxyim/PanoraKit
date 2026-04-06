@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.app.*
@@ -29,18 +27,18 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.github.yumelira.yumebox.core.model.LogMessage
-import dev.oom_wg.purejoy.mlang.MLang
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
 import com.github.yumelira.yumebox.service.remote.ILogObserver
-import kotlinx.coroutines.*
-import timber.log.Timber
+import dev.oom_wg.purejoy.mlang.MLang
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.*
+import timber.log.Timber
 
 class LogRecordService : Service() {
 
@@ -67,9 +65,8 @@ class LogRecordService : Service() {
             private set
 
         fun start(context: Context) {
-            val intent = Intent(context, LogRecordService::class.java).apply {
-                action = ACTION_START
-            }
+            val intent =
+                Intent(context, LogRecordService::class.java).apply { action = ACTION_START }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {
@@ -78,9 +75,8 @@ class LogRecordService : Service() {
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, LogRecordService::class.java).apply {
-                action = ACTION_STOP
-            }
+            val intent =
+                Intent(context, LogRecordService::class.java).apply { action = ACTION_STOP }
             context.startService(intent)
         }
 
@@ -94,12 +90,10 @@ class LogRecordService : Service() {
     private var logWriter: BufferedWriter? = null
     private var logCollectJob: Job? = null
     private var logFile: File? = null
-    private val fileNameFormatter = DateTimeFormatter
-        .ofPattern("yyyyMMdd_HHmmss")
-        .withZone(ZoneId.systemDefault())
-    private val dateFormatter = DateTimeFormatter
-        .ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
-        .withZone(ZoneId.systemDefault())
+    private val fileNameFormatter =
+        DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault())
+    private val dateFormatter =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -128,51 +122,56 @@ class LogRecordService : Service() {
         if (isRecording) return
 
         runCatching {
-            val logDir = getLogDir(applicationContext)
-            pruneLogFiles(logDir)
-            val timestamp = fileNameFormatter.format(Instant.now())
-            val fileName = "$LOG_PREFIX$timestamp$LOG_SUFFIX"
-            logFile = File(logDir, fileName)
-            logWriter = BufferedWriter(FileWriter(logFile, true))
+                val logDir = getLogDir(applicationContext)
+                pruneLogFiles(logDir)
+                val timestamp = fileNameFormatter.format(Instant.now())
+                val fileName = "$LOG_PREFIX$timestamp$LOG_SUFFIX"
+                logFile = File(logDir, fileName)
+                logWriter = BufferedWriter(FileWriter(logFile, true))
 
-            currentLogFileName = fileName
-            isRecording = true
+                currentLogFileName = fileName
+                isRecording = true
 
-            startForeground(NOTIFICATION_ID, createNotification())
+                startForeground(NOTIFICATION_ID, createNotification())
 
-            logCollectJob = serviceScope.launch {
-                try {
-                    val observer = object : ILogObserver {
-                        override fun newItem(log: LogMessage) {
-                            if (isRecording) {
-                                runCatching {
-                                    val line = "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
-                                    logWriter?.write(line)
-                                    logWriter?.flush()
-                                }.onFailure { e ->
-                                    Timber.tag(TAG).e(e, "Log write failed")
+                logCollectJob =
+                    serviceScope.launch {
+                        try {
+                            val observer =
+                                object : ILogObserver {
+                                    override fun newItem(log: LogMessage) {
+                                        if (isRecording) {
+                                            runCatching {
+                                                    val line =
+                                                        "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
+                                                    logWriter?.write(line)
+                                                    logWriter?.flush()
+                                                }
+                                                .onFailure { e ->
+                                                    Timber.tag(TAG).e(e, "Log write failed")
+                                                }
+                                        }
+                                    }
                                 }
+                            val clash = ClashManager(applicationContext)
+                            clash.setLogObserver(observer)
+
+                            try {
+                                awaitCancellation()
+                            } finally {
+                                runCatching { clash.setLogObserver(null) }
                             }
+                        } catch (e: Exception) {
+                            Timber.tag(TAG).e(e, "Log observer setup failed")
                         }
                     }
-                    val clash = ClashManager(applicationContext)
-                    clash.setLogObserver(observer)
-
-                    try {
-                        awaitCancellation()
-                    } finally {
-                        runCatching { clash.setLogObserver(null) }
-                    }
-                } catch (e: Exception) {
-                    Timber.tag(TAG).e(e, "Log observer setup failed")
-                }
             }
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "Log recording start failed")
-            isRecording = false
-            currentLogFileName = null
-            stopSelf()
-        }
+            .onFailure { e ->
+                Timber.tag(TAG).e(e, "Log recording start failed")
+                isRecording = false
+                currentLogFileName = null
+                stopSelf()
+            }
     }
 
     private fun stopRecording() {
@@ -189,19 +188,24 @@ class LogRecordService : Service() {
 
     private fun closeLogWriter() {
         runCatching {
-            logWriter?.flush()
-            logWriter?.close()
-            logWriter = null
-            logFile = null
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "Log writer close failed")
-        }
+                logWriter?.flush()
+                logWriter?.close()
+                logWriter = null
+                logFile = null
+            }
+            .onFailure { e -> Timber.tag(TAG).e(e, "Log writer close failed") }
     }
 
     private fun pruneLogFiles(logDir: File) {
-        val files = logDir.listFiles { file ->
-            file.isFile && file.name.endsWith(LOG_SUFFIX) && (LOG_PREFIX.isBlank() || file.name.startsWith(LOG_PREFIX))
-        }?.sortedByDescending { it.lastModified() }?.toMutableList() ?: return
+        val files =
+            logDir
+                .listFiles { file ->
+                    file.isFile &&
+                        file.name.endsWith(LOG_SUFFIX) &&
+                        (LOG_PREFIX.isBlank() || file.name.startsWith(LOG_PREFIX))
+                }
+                ?.sortedByDescending { it.lastModified() }
+                ?.toMutableList() ?: return
 
         var totalBytes = files.sumOf { it.length() }
         while (files.size > MAX_LOG_FILES || totalBytes > MAX_TOTAL_BYTES) {
@@ -214,14 +218,16 @@ class LogRecordService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                MLang.Service.LogRecord.ChannelName,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = MLang.Service.LogRecord.ChannelDescription
-                setShowBadge(false)
-            }
+            val channel =
+                NotificationChannel(
+                        CHANNEL_ID,
+                        MLang.Service.LogRecord.ChannelName,
+                        NotificationManager.IMPORTANCE_LOW,
+                    )
+                    .apply {
+                        description = MLang.Service.LogRecord.ChannelDescription
+                        setShowBadge(false)
+                    }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager?.createNotificationChannel(channel)
@@ -230,16 +236,22 @@ class LogRecordService : Service() {
 
     private fun createNotification(): Notification {
         val intent = Intent().setComponent(Components.MAIN_ACTIVITY)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
-        val stopIntent = Intent(this, LogRecordService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val stopIntent = Intent(this, LogRecordService::class.java).apply { action = ACTION_STOP }
+        val stopPendingIntent =
+            PendingIntent.getService(
+                this,
+                1,
+                stopIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(MLang.Service.LogRecord.NotificationTitle)
@@ -251,7 +263,7 @@ class LogRecordService : Service() {
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
                 MLang.Service.LogRecord.ActionStop,
-                stopPendingIntent
+                stopPendingIntent,
             )
             .build()
     }

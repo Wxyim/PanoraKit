@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
@@ -29,8 +27,5 @@ import top.yukonga.miuix.kmp.basic.SmallTitle
 
 @Composable
 fun SmallTitle(text: String) {
-    SmallTitle(
-        modifier = Modifier.topPadding(),
-        text = text,
-    )
+    SmallTitle(modifier = Modifier.topPadding(), text = text)
 }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox
 
 import android.os.Bundle
@@ -35,25 +33,21 @@ class ProxySheetActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setFinishOnTouchOutside(true)
-        @Suppress("DEPRECATION")
-        overridePendingTransition(0, 0)
+        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
 
         setContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
             val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
-            val themeSeedColorArgb = appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
+            val themeSeedColorArgb =
+                appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
 
             ProvideAndroidPlatformTheme {
-                YumeTheme(
-                    themeMode = themeMode,
-                    themeSeedColorArgb = themeSeedColorArgb,
-                ) {
+                YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
                     ProxySheetContent(
                         onDismiss = {
                             finish()
-                            @Suppress("DEPRECATION")
-                            overridePendingTransition(0, 0)
-                        },
+                            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                        }
                     )
                 }
             }

@@ -24,7 +24,6 @@ import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 
 enum class RemoteOverrideContentKind {
     Config,
@@ -37,51 +36,45 @@ data class ParsedRemoteOverride(
     val count: Int,
 )
 
-private val unsupportedRuleTypes = setOf(
-    "USER-AGENT",
-    "URL-REGEX",
-    "HEADER",
-    "HTTP-METHOD",
-)
+private val unsupportedRuleTypes = setOf("USER-AGENT", "URL-REGEX", "HEADER", "HTTP-METHOD")
 
-private val ruleTypeAliases = mapOf(
-    "DEST-PORT" to "DST-PORT",
-)
+private val ruleTypeAliases = mapOf("DEST-PORT" to "DST-PORT")
 
-private val surgeRejectVariants = setOf(
-    "REJECT-TINYGIF",
-    "REJECT-200",
-    "REJECT-IMG",
-    "REJECT-DICT",
-    "REJECT-ARRAY",
-)
+private val surgeRejectVariants =
+    setOf("REJECT-TINYGIF", "REJECT-200", "REJECT-IMG", "REJECT-DICT", "REJECT-ARRAY")
 
-@Serializable
-private data class OverrideConfigEnvelope(
-    val config: ConfigurationOverride? = null,
-)
+@Serializable private data class OverrideConfigEnvelope(val config: ConfigurationOverride? = null)
 
 object RemoteOverrideParser {
-    fun parse(
-        json: Json,
-        text: String,
-    ): ParsedRemoteOverride {
+    fun parse(json: Json, text: String): ParsedRemoteOverride {
         val normalized = text.trim()
         require(normalized.isNotEmpty()) { "empty content" }
 
         runCatching {
             val rootElement = json.parseToJsonElement(normalized)
-            val firstElement = when (rootElement) {
-                is JsonArray -> rootElement.firstOrNull()
-                else -> rootElement
-            } ?: error("empty json array")
+            val firstElement =
+                when (rootElement) {
+                    is JsonArray -> rootElement.firstOrNull()
+                    else -> rootElement
+                } ?: error("empty json array")
 
-            val envelope = runCatching {
-                json.decodeFromJsonElement(OverrideConfigEnvelope.serializer(), firstElement)
-            }.getOrNull()
-            val decodedConfig = envelope?.config ?: runCatching {
-                json.decodeFromJsonElement(ConfigurationOverride.serializer(), firstElement)
-            }.getOrNull()
+            val envelope =
+                runCatching {
+                        json.decodeFromJsonElement(
+                            OverrideConfigEnvelope.serializer(),
+                            firstElement,
+                        )
+                    }
+                    .getOrNull()
+            val decodedConfig =
+                envelope?.config
+                    ?: runCatching {
+                            json.decodeFromJsonElement(
+                                ConfigurationOverride.serializer(),
+                                firstElement,
+                            )
+                        }
+                        .getOrNull()
 
             if (decodedConfig != null) {
                 return ParsedRemoteOverride(
@@ -131,7 +124,10 @@ object RemoteOverrideParser {
             normalizedParts[0] = normalizedType
 
             val policyIndex = if (normalizedType == "MATCH") 1 else 2
-            if (policyIndex < normalizedParts.size && normalizedParts[policyIndex].uppercase() in surgeRejectVariants) {
+            if (
+                policyIndex < normalizedParts.size &&
+                    normalizedParts[policyIndex].uppercase() in surgeRejectVariants
+            ) {
                 normalizedParts[policyIndex] = "REJECT"
             }
 

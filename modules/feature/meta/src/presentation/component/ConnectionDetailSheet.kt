@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.meta.presentation.component
 
 import androidx.compose.animation.core.animateIntAsState
@@ -53,43 +51,52 @@ fun ConnectionDetailSheet(
     onDismissFinished: () -> Unit = {},
 ) {
 
-    val host = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("host")?.jsonPrimitive?.content ?: ""
-    }
-    val network = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("network")?.jsonPrimitive?.content ?: "TCP"
-    }
-    val process = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("process")?.jsonPrimitive?.content ?: ""
-    }
-    val destinationPort = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("destinationPort")?.jsonPrimitive?.content ?: ""
-    }
-    val sourceIP = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("sourceIP")?.jsonPrimitive?.content ?: ""
-    }
-    val sourcePort = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("sourcePort")?.jsonPrimitive?.content ?: ""
-    }
-    val destinationIP = remember(connectionInfo) {
-        connectionInfo?.metadata?.get("destinationIP")?.jsonPrimitive?.content ?: ""
-    }
-
-    val displayHost = remember(host, destinationPort) {
-        if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
-            "$host:$destinationPort"
-        } else if (host.isNotEmpty()) {
-            host
-        } else if (sourceIP.isNotEmpty()) {
-            "$sourceIP:$sourcePort"
-        } else {
-            ""
+    val host =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("host")?.jsonPrimitive?.content ?: ""
         }
-    }
+    val network =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("network")?.jsonPrimitive?.content ?: "TCP"
+        }
+    val process =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("process")?.jsonPrimitive?.content ?: ""
+        }
+    val destinationPort =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("destinationPort")?.jsonPrimitive?.content ?: ""
+        }
+    val sourceIP =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("sourceIP")?.jsonPrimitive?.content ?: ""
+        }
+    val sourcePort =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("sourcePort")?.jsonPrimitive?.content ?: ""
+        }
+    val destinationIP =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("destinationIP")?.jsonPrimitive?.content ?: ""
+        }
 
-    val durationText = remember(connectionInfo?.start) {
-        connectionInfo?.start?.let { calculateDuration(it) } ?: "00:00:00"
-    }
+    val displayHost =
+        remember(host, destinationPort) {
+            if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
+                "$host:$destinationPort"
+            } else if (host.isNotEmpty()) {
+                host
+            } else if (sourceIP.isNotEmpty()) {
+                "$sourceIP:$sourcePort"
+            } else {
+                ""
+            }
+        }
+
+    val durationText =
+        remember(connectionInfo?.start) {
+            connectionInfo?.start?.let { calculateDuration(it) } ?: "00:00:00"
+        }
 
     AppActionBottomSheet(
         show = show,
@@ -102,7 +109,6 @@ fun ConnectionDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-
                 item {
                     ConnectionInfoSection(
                         network = network,
@@ -119,17 +125,10 @@ fun ConnectionDetailSheet(
                 }
 
                 if (info.rule.isNotEmpty()) {
-                    item {
-                        RuleInfoSection(
-                            rule = info.rule,
-                            rulePayload = info.rulePayload,
-                        )
-                    }
+                    item { RuleInfoSection(rule = info.rule, rulePayload = info.rulePayload) }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
@@ -148,19 +147,12 @@ private fun ConnectionInfoSection(
     download: Long,
     chains: List<String>,
 ) {
-    val animatedUpload by animateIntAsState(
-        targetValue = upload.toInt(),
-        label = "upload_animation",
-    )
-    val animatedDownload by animateIntAsState(
-        targetValue = download.toInt(),
-        label = "download_animation",
-    )
+    val animatedUpload by
+        animateIntAsState(targetValue = upload.toInt(), label = "upload_animation")
+    val animatedDownload by
+        animateIntAsState(targetValue = download.toInt(), label = "download_animation")
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Info)
 
         InfoRow(label = MLang.Connection.Detail.Protocol, value = network.uppercase())
@@ -169,7 +161,10 @@ private fun ConnectionInfoSection(
         }
         InfoRow(label = MLang.Connection.Detail.SourceAddress, value = "$sourceIP:$sourcePort")
         if (destinationIP.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.DestinationAddress, value = "$destinationIP:$destinationPort")
+            InfoRow(
+                label = MLang.Connection.Detail.DestinationAddress,
+                value = "$destinationIP:$destinationPort",
+            )
         }
         InfoRow(label = MLang.Connection.Detail.Duration, value = duration)
 
@@ -204,10 +199,7 @@ private fun ProxyChainRow(chains: List<String>) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                ChainNode(
-                    name = chain,
-                    isActive = isLast,
-                )
+                ChainNode(name = chain, isActive = isLast)
 
                 if (!isLast) {
                     Text(
@@ -223,36 +215,30 @@ private fun ProxyChainRow(chains: List<String>) {
 }
 
 @Composable
-private fun ChainNode(
-    name: String,
-    isActive: Boolean,
-) {
-    val backgroundColor = if (isActive) {
-        Color(0xFF00BFA5).copy(alpha = 0.12f)
-    } else {
-        MiuixTheme.colorScheme.surfaceVariant
-    }
-    val textColor = if (isActive) {
-        Color(0xFF00BFA5)
-    } else {
-        Color(0xFF6B7280)
-    }
+private fun ChainNode(name: String, isActive: Boolean) {
+    val backgroundColor =
+        if (isActive) {
+            Color(0xFF00BFA5).copy(alpha = 0.12f)
+        } else {
+            MiuixTheme.colorScheme.surfaceVariant
+        }
+    val textColor =
+        if (isActive) {
+            Color(0xFF00BFA5)
+        } else {
+            Color(0xFF6B7280)
+        }
 
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier =
+            Modifier.clip(RoundedCornerShape(8.dp))
+                .background(backgroundColor)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (isActive) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF00BFA5)),
-            )
+            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00BFA5)))
         }
 
         Text(
@@ -265,14 +251,8 @@ private fun ChainNode(
 }
 
 @Composable
-private fun RuleInfoSection(
-    rule: String,
-    rulePayload: String,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+private fun RuleInfoSection(rule: String, rulePayload: String) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Rule)
 
         InfoRow(label = MLang.Connection.Detail.Type, value = rule)
@@ -286,9 +266,7 @@ private fun RuleInfoSection(
 private fun SectionTitle(title: String) {
     Text(
         text = title,
-        style = MiuixTheme.textStyles.body2.copy(
-            fontWeight = FontWeight.Medium,
-        ),
+        style = MiuixTheme.textStyles.body2.copy(fontWeight = FontWeight.Medium),
         color = MiuixTheme.colorScheme.onSurface,
     )
 }
@@ -299,10 +277,7 @@ private fun InfoRow(
     value: String,
     valueColor: Color = MiuixTheme.colorScheme.onSurface,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             text = label,
             style = MiuixTheme.textStyles.footnote1,

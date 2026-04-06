@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -36,10 +34,7 @@ object EditorThemeManager {
         val isDark = isSystemInDarkTheme()
 
         return remember(isDark) {
-            EditorThemeState(
-                isDark = isDark,
-                themeName = if (isDark) "ayu-dark" else "quietlight"
-            )
+            EditorThemeState(isDark = isDark, themeName = if (isDark) "ayu-dark" else "quietlight")
         }
     }
 
@@ -67,7 +62,4 @@ object EditorThemeManager {
     }
 }
 
-data class EditorThemeState(
-    val isDark: Boolean,
-    val themeName: String
-)
+data class EditorThemeState(val isDark: Boolean, val themeName: String)

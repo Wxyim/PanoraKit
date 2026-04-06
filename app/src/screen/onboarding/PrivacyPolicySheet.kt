@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.annotation.SuppressLint
@@ -37,9 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import dev.oom_wg.purejoy.mlang.MLang
+import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.util.Locale
 
 @SuppressLint("LocalContextResourcesRead")
 @Composable
@@ -49,15 +47,15 @@ internal fun PrivacyPolicySheet(show: MutableState<Boolean>) {
 
     val policyText = remember {
         runCatching {
-            // Policy: Simplified Chinese uses dedicated text; others fallback to English.
-            val resourceId = when (Locale.getDefault().language) {
-                "zh" -> R.raw.privacy_policy_zh
-                else -> R.raw.privacy_policy
+                // Policy: Simplified Chinese uses dedicated text; others fallback to English.
+                val resourceId =
+                    when (Locale.getDefault().language) {
+                        "zh" -> R.raw.privacy_policy_zh
+                        else -> R.raw.privacy_policy
+                    }
+                context.resources.openRawResource(resourceId).bufferedReader().use { it.readText() }
             }
-            context.resources.openRawResource(resourceId)
-                .bufferedReader()
-                .use { it.readText() }
-        }.getOrElse { MLang.Onboarding.Sheet.LoadFailed }
+            .getOrElse { MLang.Onboarding.Sheet.LoadFailed }
     }
 
     AppActionBottomSheet(
@@ -66,10 +64,7 @@ internal fun PrivacyPolicySheet(show: MutableState<Boolean>) {
         onDismissRequest = { show.value = false },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 450.dp)
-                .verticalScroll(scrollState),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp).verticalScroll(scrollState)
         ) {
             Text(
                 text = policyText,

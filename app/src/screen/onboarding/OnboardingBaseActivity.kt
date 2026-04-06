@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.content.Intent
@@ -36,8 +34,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import com.github.yumelira.yumebox.MainActivity
 import com.github.nomadboxlab.monadbox.R
+import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
@@ -61,14 +59,8 @@ internal abstract class OnboardingBaseActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
     }
 
-    protected fun setOnboardingContent(
-        content: @Composable () -> Unit,
-    ) {
-        setContent {
-            OnboardingActivityTheme {
-                content()
-            }
-        }
+    protected fun setOnboardingContent(content: @Composable () -> Unit) {
+        setContent { OnboardingActivityTheme { content() } }
     }
 
     protected fun buildOnboardingIntent(
@@ -83,9 +75,7 @@ internal abstract class OnboardingBaseActivity : ComponentActivity() {
         )
     }
 
-    protected fun navigateForwardTo(
-        target: Class<out ComponentActivity>,
-    ) {
+    protected fun navigateForwardTo(target: Class<out ComponentActivity>) {
         startActivity(buildOnboardingIntent(target))
         @Suppress("DEPRECATION")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -103,9 +93,7 @@ internal abstract class OnboardingBaseActivity : ComponentActivity() {
         finish()
     }
 
-    protected fun navigateBackwardTo(
-        target: Class<out ComponentActivity>,
-    ) {
+    protected fun navigateBackwardTo(target: Class<out ComponentActivity>) {
         startActivity(buildOnboardingIntent(target))
         @Suppress("DEPRECATION")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -128,18 +116,17 @@ internal abstract class OnboardingBaseActivity : ComponentActivity() {
             finish()
             return
         }
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        }
+        val intent =
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
         startActivity(intent)
         finish()
     }
 }
 
 @Composable
-private fun OnboardingActivityTheme(
-    content: @Composable () -> Unit,
-) {
+private fun OnboardingActivityTheme(content: @Composable () -> Unit) {
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val themeMode by appSettingsViewModel.themeMode.state.collectAsState()
     val themeSeedColorArgb by appSettingsViewModel.themeSeedColorArgb.state.collectAsState()
@@ -147,15 +134,13 @@ private fun OnboardingActivityTheme(
 
     ProvideAndroidPlatformTheme {
         val systemDensity = LocalDensity.current
-        val scaledDensity = Density(
-            density = systemDensity.density * pageScale,
-            fontScale = systemDensity.fontScale,
-        )
+        val scaledDensity =
+            Density(
+                density = systemDensity.density * pageScale,
+                fontScale = systemDensity.fontScale,
+            )
         CompositionLocalProvider(LocalDensity provides scaledDensity) {
-            YumeTheme(
-                themeMode = themeMode,
-                themeSeedColorArgb = themeSeedColorArgb,
-            ) {
+            YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
                 Scaffold { _ ->
                     Surface(
                         modifier = Modifier.fillMaxSize(),

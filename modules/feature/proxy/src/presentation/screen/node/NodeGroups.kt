@@ -18,18 +18,15 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen.node
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -53,7 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -68,32 +65,30 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 
-private data class GroupBadge(
-    val label: String,
-    val textColor: Color,
-    val backgroundColor: Color,
-)
+private data class GroupBadge(val label: String, val textColor: Color, val backgroundColor: Color)
 
 private val GroupTypeBadgeTextColor = Color(0xFF178C7A)
 private val GroupTypeBadgeBackgroundColor = Color(0xFFE5F4F1)
 
-private fun groupBadge(type: Proxy.Type): GroupBadge = when (type) {
-    Proxy.Type.URLTest, Proxy.Type.Fallback, Proxy.Type.Smart ->
-        GroupBadge(
-            label = type.name,
-            textColor = GroupTypeBadgeTextColor,
-            backgroundColor = GroupTypeBadgeBackgroundColor,
-        )
+private fun groupBadge(type: Proxy.Type): GroupBadge =
+    when (type) {
+        Proxy.Type.URLTest,
+        Proxy.Type.Fallback,
+        Proxy.Type.Smart ->
+            GroupBadge(
+                label = type.name,
+                textColor = GroupTypeBadgeTextColor,
+                backgroundColor = GroupTypeBadgeBackgroundColor,
+            )
 
-    else ->
-        GroupBadge(
-            label = type.name,
-            textColor = GroupTypeBadgeTextColor,
-            backgroundColor = GroupTypeBadgeBackgroundColor,
-        )
-}
+        else ->
+            GroupBadge(
+                label = type.name,
+                textColor = GroupTypeBadgeTextColor,
+                backgroundColor = GroupTypeBadgeBackgroundColor,
+            )
+    }
 
 internal fun LazyListScope.nodeGroupItems(
     groups: List<ProxyGroupInfo>,
@@ -119,25 +114,25 @@ internal fun LazyListScope.nodeGroupItems(
             isExpanded = isExpanded,
             isDelayTesting = testingGroupNames.contains(group.name),
             onClick = { onGroupClick(group) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = itemVerticalPadding),
-            onBoundsChanged = onGroupBoundsChanged?.let { callback -> { rect -> callback(group.name, rect) } },
-            expandedContent = if (isExpanded) {
-                {
-                    ExpandedProxyGroupContent(
-                        group = group,
-                        isDelayTesting = testingGroupNames.contains(group.name),
-                        testingProxyNames = testingProxyNames,
-                        onSelectProxy = onSelectProxy,
-                        onTestDelay = onTestDelay,
-                        onTestProxyDelay = onTestProxyDelay,
-                        singleNodeTestEnabled = singleNodeTestEnabled,
-                    )
-                }
-            } else {
-                null
-            },
+            modifier = Modifier.fillMaxWidth().padding(vertical = itemVerticalPadding),
+            onBoundsChanged =
+                onGroupBoundsChanged?.let { callback -> { rect -> callback(group.name, rect) } },
+            expandedContent =
+                if (isExpanded) {
+                    {
+                        ExpandedProxyGroupContent(
+                            group = group,
+                            isDelayTesting = testingGroupNames.contains(group.name),
+                            testingProxyNames = testingProxyNames,
+                            onSelectProxy = onSelectProxy,
+                            onTestDelay = onTestDelay,
+                            onTestProxyDelay = onTestProxyDelay,
+                            singleNodeTestEnabled = singleNodeTestEnabled,
+                        )
+                    }
+                } else {
+                    null
+                },
         )
     }
 }
@@ -156,41 +151,47 @@ internal fun NodeGroupCard(
     val interactionSource = remember { MutableInteractionSource() }
 
     val currentNode = remember(group.now) { extractFlaggedName(group.now) }
-    val currentNodeName = remember(currentNode.displayName) {
-        currentNode.displayName.ifBlank { MLang.Proxy.Mode.Direct }
-    }
-    val iconUri = remember(group.icon) {
-        group.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeGroupIconUri)
-    }
-    val currentDelay = remember(group.proxies, group.now) {
-        group.proxies.firstOrNull { it.name == group.now }?.delay
-    }
+    val currentNodeName =
+        remember(currentNode.displayName) {
+            currentNode.displayName.ifBlank { MLang.Proxy.Mode.Direct }
+        }
+    val iconUri =
+        remember(group.icon) {
+            group.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeGroupIconUri)
+        }
+    val currentDelay =
+        remember(group.proxies, group.now) {
+            group.proxies.firstOrNull { it.name == group.now }?.delay
+        }
     val badge = remember(group.type) { groupBadge(group.type) }
     val delayLabel = remember(currentDelay) { nodeLatencyLabel(currentDelay) }
     val leadingShape = RoundedCornerShape(NodeCardDefaults.LeadingContainerCornerRadius)
 
     Column(
-        modifier = modifier
-            .let { base ->
-                if (onBoundsChanged != null) {
-                    base.onGloballyPositioned { coords -> onBoundsChanged(coords.boundsInWindow()) }
-                } else base
-            }
-            .shadow(
-                elevation = 4.dp,
-                shape = cardShape,
-                ambientColor = Color.Black.copy(alpha = 0.05f),
-                spotColor = Color.Black.copy(alpha = 0.05f),
-            )
-            .clip(cardShape)
-            .background(MiuixTheme.colorScheme.background)
-            .pressable(interactionSource = interactionSource, indication = SinkFeedback())
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier =
+            modifier
+                .let { base ->
+                    if (onBoundsChanged != null) {
+                        base.onGloballyPositioned { coords ->
+                            onBoundsChanged(coords.boundsInWindow())
+                        }
+                    } else base
+                }
+                .shadow(
+                    elevation = 4.dp,
+                    shape = cardShape,
+                    ambientColor = Color.Black.copy(alpha = 0.05f),
+                    spotColor = Color.Black.copy(alpha = 0.05f),
+                )
+                .clip(cardShape)
+                .background(MiuixTheme.colorScheme.background)
+                .pressable(interactionSource = interactionSource, indication = SinkFeedback())
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                )
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
@@ -198,13 +199,11 @@ internal fun NodeGroupCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
             if (iconUri != null) {
                 NodeGroupIcon(
                     iconUri = iconUri,
-                    modifier = Modifier
-                        .size(NodeCardDefaults.LeadingContainerSize)
-                        .clip(leadingShape),
+                    modifier =
+                        Modifier.size(NodeCardDefaults.LeadingContainerSize).clip(leadingShape),
                 )
             }
 
@@ -212,7 +211,6 @@ internal fun NodeGroupCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -223,7 +221,6 @@ internal fun NodeGroupCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f),
                     ) {
-
                         Text(
                             text = group.name,
                             style = MiuixTheme.textStyles.body1,
@@ -233,9 +230,7 @@ internal fun NodeGroupCard(
                             modifier = Modifier.weight(1f),
                         )
 
-                        NodeGroupBadgeChip(
-                            badge = badge,
-                        )
+                        NodeGroupBadgeChip(badge = badge)
                     }
 
                     Text(
@@ -258,7 +253,10 @@ internal fun NodeGroupCard(
                     ) {
                         val cc = currentNode.countryCode
                         if (cc != null) {
-                            CountryFlagCircle(countryCode = cc, size = NodeCardDefaults.InlineFlagSize)
+                            CountryFlagCircle(
+                                countryCode = cc,
+                                size = NodeCardDefaults.InlineFlagSize,
+                            )
                         }
                         Text(
                             text = currentNodeName,
@@ -292,14 +290,15 @@ internal fun NodeGroupCard(
                                 )
                             }
 
-                            else -> Icon(
-                                Yume.chevron,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(NodeCardDefaults.ChevronIconSize)
-                                    .rotate(if (isExpanded) 90f else 0f),
-                                tint = Color(0xFFC7C7CC),
-                            )
+                            else ->
+                                Icon(
+                                    Yume.chevron,
+                                    contentDescription = null,
+                                    modifier =
+                                        Modifier.size(NodeCardDefaults.ChevronIconSize)
+                                            .rotate(if (isExpanded) 90f else 0f),
+                                    tint = Color(0xFFC7C7CC),
+                                )
                         }
                     }
                 }
@@ -308,17 +307,15 @@ internal fun NodeGroupCard(
 
         AnimatedVisibility(
             visible = isExpanded && expandedContent != null,
-            enter = expandVertically(animationSpec = tween(durationMillis = 220)) + fadeIn(
-                animationSpec = tween(durationMillis = 180)
-            ),
-            exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) + fadeOut(
-                animationSpec = tween(durationMillis = 140)
-            ),
+            enter =
+                expandVertically(animationSpec = tween(durationMillis = 220)) +
+                    fadeIn(animationSpec = tween(durationMillis = 180)),
+            exit =
+                shrinkVertically(animationSpec = tween(durationMillis = 180)) +
+                    fadeOut(animationSpec = tween(durationMillis = 140)),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 6.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 content = expandedContent ?: {},
             )
@@ -327,18 +324,16 @@ internal fun NodeGroupCard(
 }
 
 @Composable
-private fun NodeGroupBadgeChip(
-    badge: GroupBadge,
-    modifier: Modifier = Modifier,
-) {
+private fun NodeGroupBadgeChip(badge: GroupBadge, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(badge.backgroundColor)
-            .padding(
-                horizontal = NodeCardDefaults.ChipHorizontalPadding,
-                vertical = NodeCardDefaults.ChipVerticalPadding + 1.dp,
-            ),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(100.dp))
+                .background(badge.backgroundColor)
+                .padding(
+                    horizontal = NodeCardDefaults.ChipHorizontalPadding,
+                    vertical = NodeCardDefaults.ChipVerticalPadding + 1.dp,
+                ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -387,19 +382,17 @@ private fun normalizeNodeGroupIconUri(raw: String): String {
 }
 
 @Composable
-private fun NodeGroupIcon(
-    iconUri: String,
-    modifier: Modifier = Modifier,
-) {
+private fun NodeGroupIcon(iconUri: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val placeholderColorInt = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f).toArgb()
-    val request = remember(context, iconUri, placeholderColorInt) {
-        ImageRequest(context, iconUri) {
-            placeholder(IntColorDrawableStateImage(placeholderColorInt))
-            error(IntColorDrawableStateImage(placeholderColorInt))
-            crossfade(true)
+    val request =
+        remember(context, iconUri, placeholderColorInt) {
+            ImageRequest(context, iconUri) {
+                placeholder(IntColorDrawableStateImage(placeholderColorInt))
+                error(IntColorDrawableStateImage(placeholderColorInt))
+                crossfade(true)
+            }
         }
-    }
     SketchAsyncImage(
         request = request,
         contentDescription = null,

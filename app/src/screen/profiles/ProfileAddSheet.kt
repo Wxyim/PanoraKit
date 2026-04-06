@@ -56,13 +56,13 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
+import java.io.File
+import java.util.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.WindowSpinner
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.io.File
-import java.util.*
-import kotlin.time.Duration.Companion.milliseconds
 
 private object ProfileSheetMetrics {
     val BottomPadding = 16.dp
@@ -82,11 +82,18 @@ internal fun AddProfileSheet(
     show: MutableState<Boolean>,
     profileToEdit: Profile? = null,
     importUrl: String? = null,
-    onAddProfile: (name: String, source: String, type: Profile.Type, interval: Long, fileUri: android.net.Uri?) -> Unit,
+    onAddProfile:
+        (
+            name: String,
+            source: String,
+            type: Profile.Type,
+            interval: Long,
+            fileUri: android.net.Uri?,
+        ) -> Unit,
     onCreateBlankProfile: (name: String) -> Unit,
     onUpdateProfile: (uuid: UUID, name: String, source: String, interval: Long) -> Unit,
     onDownloadComplete: () -> Unit,
-    profilesViewModel: ProfilesViewModel
+    profilesViewModel: ProfilesViewModel,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -111,9 +118,7 @@ internal fun AddProfileSheet(
     }
 
     val urlPattern = remember {
-        Regex(
-            pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE)
-        )
+        Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
     }
 
     val readClipboardAndCheckUrl: () -> String? = {
@@ -148,7 +153,6 @@ internal fun AddProfileSheet(
         hasShownCompleteAnimation = false
     }
 
-
     val clearCurrentTypeState = {
         when (selectedTypeIndex) {
             0 -> url = ""
@@ -162,28 +166,26 @@ internal fun AddProfileSheet(
 
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
         )
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCameraPermission = isGranted
-        if (!isGranted) {
-            context.toast(MLang.ProfilesPage.QrScanner.NeedCamera, Toast.LENGTH_LONG)
-            selectedTypeIndex = 0
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasCameraPermission = isGranted
+            if (!isGranted) {
+                context.toast(MLang.ProfilesPage.QrScanner.NeedCamera, Toast.LENGTH_LONG)
+                selectedTypeIndex = 0
+            }
         }
-    }
 
     LaunchedEffect(selectedTypeIndex) {
         if (selectedTypeIndex == 2 && !hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
-
 
     DisposableEffect(show.value, profileToEdit, importUrl) {
         if (show.value) {
@@ -196,7 +198,9 @@ internal fun AddProfileSheet(
                 } else {
                     selectedTypeIndex = 1
                     filePath = profileToEdit.source
-                    fileName = if (profileToEdit.source.isNotEmpty()) File(profileToEdit.source).name else ""
+                    fileName =
+                        if (profileToEdit.source.isNotEmpty()) File(profileToEdit.source).name
+                        else ""
                 }
             } else if (!importUrl.isNullOrBlank()) {
                 selectedTypeIndex = 0
@@ -208,11 +212,10 @@ internal fun AddProfileSheet(
                     if (clipboardUrl != null) {
                         url = clipboardUrl
                     }
-                } catch (_: Exception) {
-                }
+                } catch (_: Exception) {}
             }
         }
-        onDispose { }
+        onDispose {}
     }
     LaunchedEffect(uiState.error) {
         if (uiState.error != null) {
@@ -243,35 +246,37 @@ internal fun AddProfileSheet(
         }
     }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val actualFileName = context.contentResolver.query(
-                it, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
-            )?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                cursor.moveToFirst()
-                cursor.getString(nameIndex)
-            } ?: MLang.ProfilesPage.Message.UnknownFile
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val actualFileName =
+                    context.contentResolver
+                        .query(it, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                        ?.use { cursor ->
+                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            cursor.moveToFirst()
+                            cursor.getString(nameIndex)
+                        } ?: MLang.ProfilesPage.Message.UnknownFile
 
-            val extension = actualFileName.substringAfterLast(".", "")
-            if (!extension.equals("yaml", ignoreCase = true) && !extension.equals(
-                    "yml", ignoreCase = true
-                )
-            ) {
-                error = MLang.ProfilesPage.Validation.YamlOnly
-                return@let
-            }
+                val extension = actualFileName.substringAfterLast(".", "")
+                if (
+                    !extension.equals("yaml", ignoreCase = true) &&
+                        !extension.equals("yml", ignoreCase = true)
+                ) {
+                    error = MLang.ProfilesPage.Validation.YamlOnly
+                    return@let
+                }
 
-            filePath = it.toString()
-            error = ""
-            fileName = actualFileName
+                filePath = it.toString()
+                error = ""
+                fileName = actualFileName
 
-            val fileNameWithoutExt = actualFileName.substringBeforeLast(".")
-            if (name.isBlank() || name == actualFileName) {
-                name = fileNameWithoutExt.ifBlank { MLang.ProfilesPage.Input.NewProfile }
+                val fileNameWithoutExt = actualFileName.substringBeforeLast(".")
+                if (name.isBlank() || name == actualFileName) {
+                    name = fileNameWithoutExt.ifBlank { MLang.ProfilesPage.Input.NewProfile }
+                }
             }
         }
-    }
 
     val qrImageLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -287,7 +292,9 @@ internal fun AddProfileSheet(
                             context.toast(MLang.ProfilesPage.QrScanner.RecognizeFailed)
                         }
                     } catch (e: Exception) {
-                        context.toast(MLang.ProfilesPage.QrScanner.RecognizeError.format(e.message ?: ""))
+                        context.toast(
+                            MLang.ProfilesPage.QrScanner.RecognizeError.format(e.message ?: "")
+                        )
                     }
                 }
             }
@@ -334,19 +341,14 @@ internal fun AddProfileSheet(
 
         if (selectedTypeIndex == 0) {
             if (profileToEdit != null) {
-                onUpdateProfile(
-                    profileToEdit.uuid,
-                    name,
-                    url,
-                    profileToEdit.interval
-                )
+                onUpdateProfile(profileToEdit.uuid, name, url, profileToEdit.interval)
             } else {
                 onAddProfile(
                     name.ifBlank { MLang.ProfilesPage.Input.NewProfile },
                     url,
                     Profile.Type.Url,
                     0L,
-                    null
+                    null,
                 )
             }
         } else {
@@ -355,7 +357,7 @@ internal fun AddProfileSheet(
                     profileToEdit.uuid,
                     name,
                     profileToEdit.source,
-                    profileToEdit.interval
+                    profileToEdit.interval,
                 )
             } else {
                 onAddProfile(
@@ -363,7 +365,7 @@ internal fun AddProfileSheet(
                     filePath,
                     Profile.Type.File,
                     0L,
-                    filePath.toUri()
+                    filePath.toUri(),
                 )
             }
         }
@@ -371,7 +373,9 @@ internal fun AddProfileSheet(
 
     AppActionBottomSheet(
         show = show.value,
-        title = if (profileToEdit != null) MLang.ProfilesPage.Sheet.EditTitle else MLang.ProfilesPage.Sheet.AddTitle,
+        title =
+            if (profileToEdit != null) MLang.ProfilesPage.Sheet.EditTitle
+            else MLang.ProfilesPage.Sheet.AddTitle,
         startAction = {
             if (!isDownloading) {
                 AppBottomSheetCloseAction(
@@ -392,23 +396,31 @@ internal fun AddProfileSheet(
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val sheetViewportHeight = maxHeight.takeIf { it > 0.dp } ?: 640.dp
-            val downloadSheetContentHeight = (sheetViewportHeight * 0.30f)
-                .coerceIn(ProfileSheetMetrics.QrPreviewMinHeight, ProfileSheetMetrics.QrPreviewMaxHeight)
-            val qrPreviewHeight = (sheetViewportHeight * ProfileSheetMetrics.QrPreviewHeightFraction)
-                .coerceIn(ProfileSheetMetrics.QrPreviewMinHeight, ProfileSheetMetrics.QrPreviewMaxHeight)
+            val downloadSheetContentHeight =
+                (sheetViewportHeight * 0.30f).coerceIn(
+                    ProfileSheetMetrics.QrPreviewMinHeight,
+                    ProfileSheetMetrics.QrPreviewMaxHeight,
+                )
+            val qrPreviewHeight =
+                (sheetViewportHeight * ProfileSheetMetrics.QrPreviewHeightFraction).coerceIn(
+                    ProfileSheetMetrics.QrPreviewMinHeight,
+                    ProfileSheetMetrics.QrPreviewMaxHeight,
+                )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(
-                        if (isDownloading) {
-                            Modifier.height(downloadSheetContentHeight)
-                        } else {
-                            Modifier.wrapContentHeight()
-                        }
-                    )
-                    .animateContentSize(animationSpec = tween(300, easing = FastOutSlowInEasing))
-                    .padding(bottom = ProfileSheetMetrics.BottomPadding),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (isDownloading) {
+                                Modifier.height(downloadSheetContentHeight)
+                            } else {
+                                Modifier.wrapContentHeight()
+                            }
+                        )
+                        .animateContentSize(
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
+                        .padding(bottom = ProfileSheetMetrics.BottomPadding)
             ) {
                 AnimatedVisibility(
                     modifier = Modifier.fillMaxWidth(),
@@ -417,18 +429,17 @@ internal fun AddProfileSheet(
                     exit = fadeOut(),
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(downloadSheetContentHeight),
+                        modifier = Modifier.fillMaxWidth().height(downloadSheetContentHeight),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(
-                                ProfileSheetMetrics.ProgressSpacing,
-                                Alignment.CenterVertically,
-                            ),
+                            verticalArrangement =
+                                Arrangement.spacedBy(
+                                    ProfileSheetMetrics.ProgressSpacing,
+                                    Alignment.CenterVertically,
+                                ),
                         ) {
                             Box(
                                 modifier = Modifier.size(ProfileSheetMetrics.ProgressIconContainer),
@@ -439,26 +450,35 @@ internal fun AddProfileSheet(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center,
                                     transitionSpec = {
-                                        fadeIn(animationSpec = tween(300)) togetherWith fadeOut(
-                                            animationSpec = tween(300)
-                                        )
+                                        fadeIn(animationSpec = tween(300)) togetherWith
+                                            fadeOut(animationSpec = tween(300))
                                     },
-                                    label = "ProgressIcon"
+                                    label = "ProgressIcon",
                                 ) { complete ->
                                     if (complete) {
                                         Icon(
                                             imageVector = Yume.`Package-check`,
                                             contentDescription = MLang.ProfilesPage.Misc.Complete,
                                             tint = MiuixTheme.colorScheme.onPrimary,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(RoundedCornerShape(ProfileSheetMetrics.CompletedIconCornerRadius))
-                                                .background(MiuixTheme.colorScheme.primary)
-                                                .padding(ProfileSheetMetrics.CompletedIconPadding)
+                                            modifier =
+                                                Modifier.fillMaxSize()
+                                                    .clip(
+                                                        RoundedCornerShape(
+                                                            ProfileSheetMetrics
+                                                                .CompletedIconCornerRadius
+                                                        )
+                                                    )
+                                                    .background(MiuixTheme.colorScheme.primary)
+                                                    .padding(
+                                                        ProfileSheetMetrics.CompletedIconPadding
+                                                    ),
                                         )
                                     } else {
                                         InfiniteProgressIndicator(
-                                            modifier = Modifier.size(ProfileSheetMetrics.ProgressIndicatorSize),
+                                            modifier =
+                                                Modifier.size(
+                                                    ProfileSheetMetrics.ProgressIndicatorSize
+                                                )
                                         )
                                     }
                                 }
@@ -472,7 +492,7 @@ internal fun AddProfileSheet(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
@@ -487,35 +507,45 @@ internal fun AddProfileSheet(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing)
+                        verticalArrangement =
+                            Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing),
                     ) {
                         top.yukonga.miuix.kmp.basic.Card {
-                            Box(modifier = Modifier.alpha(if (profileToEdit != null) 0.5f else 1f)) {
+                            Box(
+                                modifier = Modifier.alpha(if (profileToEdit != null) 0.5f else 1f)
+                            ) {
                                 WindowSpinner(
                                     title = MLang.ProfilesPage.Type.Title,
-                                    items = listOf(
-                                        SpinnerEntry(title = MLang.ProfilesPage.Type.Subscription),
-                                        SpinnerEntry(title = MLang.ProfilesPage.Type.LocalFile),
-                                        SpinnerEntry(title = MLang.ProfilesPage.Type.QrScan),
-                                        SpinnerEntry(title = MLang.ProfilesPage.Type.BlankConfig)
-                                    ),
+                                    items =
+                                        listOf(
+                                            SpinnerEntry(
+                                                title = MLang.ProfilesPage.Type.Subscription
+                                            ),
+                                            SpinnerEntry(title = MLang.ProfilesPage.Type.LocalFile),
+                                            SpinnerEntry(title = MLang.ProfilesPage.Type.QrScan),
+                                            SpinnerEntry(
+                                                title = MLang.ProfilesPage.Type.BlankConfig
+                                            ),
+                                        ),
                                     selectedIndex = selectedTypeIndex,
                                     onSelectedIndexChange = {
                                         if (profileToEdit == null) {
                                             selectedTypeIndex = it
                                             clearCurrentTypeState()
                                         }
-                                    }
+                                    },
                                 )
 
                                 if (profileToEdit != null) {
                                     Box(
-                                        modifier = Modifier
-                                            .matchParentSize()
-                                            .clickable(
-                                                indication = null,
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                onClick = {})
+                                        modifier =
+                                            Modifier.matchParentSize()
+                                                .clickable(
+                                                    indication = null,
+                                                    interactionSource =
+                                                        remember { MutableInteractionSource() },
+                                                    onClick = {},
+                                                )
                                     )
                                 }
                             }
@@ -524,25 +554,27 @@ internal fun AddProfileSheet(
                         AnimatedContent(
                             targetState = selectedTypeIndex,
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(200)) togetherWith fadeOut(
-                                    animationSpec = tween(150)
-                                )
+                                fadeIn(animationSpec = tween(200)) togetherWith
+                                    fadeOut(animationSpec = tween(150))
                             },
-                            label = "ProfileTypeContent"
+                            label = "ProfileTypeContent",
                         ) { typeIndex ->
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing)
+                                verticalArrangement =
+                                    Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing),
                             ) {
                                 when (typeIndex) {
                                     2 -> {
                                         Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(qrPreviewHeight)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MiuixTheme.colorScheme.surfaceVariant),
-                                            contentAlignment = Alignment.Center
+                                            modifier =
+                                                Modifier.fillMaxWidth()
+                                                    .height(qrPreviewHeight)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        MiuixTheme.colorScheme.surfaceVariant
+                                                    ),
+                                            contentAlignment = Alignment.Center,
                                         ) {
                                             if (showCameraPreview.value) {
                                                 key("qr_scanner_stable") {
@@ -551,20 +583,30 @@ internal fun AddProfileSheet(
                                                             showCameraPreview.value = false
                                                             url = scannedUrl
                                                             selectedTypeIndex = 0
-                                                            context.toast(MLang.ProfilesPage.QrScanner.ScanSuccess)
+                                                            context.toast(
+                                                                MLang.ProfilesPage.QrScanner
+                                                                    .ScanSuccess
+                                                            )
                                                         }
                                                     )
                                                 }
                                             } else if (!hasCameraPermission) {
                                                 Column(
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.Center
+                                                    horizontalAlignment =
+                                                        Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.Center,
                                                 ) {
-                                                    Text(MLang.ProfilesPage.QrScanner.NeedPermission)
+                                                    Text(
+                                                        MLang.ProfilesPage.QrScanner.NeedPermission
+                                                    )
                                                 }
                                             } else {
                                                 CircularProgressIndicator(
-                                                    modifier = Modifier.size(ProfileSheetMetrics.ProgressIndicatorSize)
+                                                    modifier =
+                                                        Modifier.size(
+                                                            ProfileSheetMetrics
+                                                                .ProgressIndicatorSize
+                                                        )
                                                 )
                                             }
                                         }
@@ -572,59 +614,68 @@ internal fun AddProfileSheet(
                                         TextButton(
                                             text = MLang.ProfilesPage.QrScanner.SelectFromAlbum,
                                             onClick = { qrImageLauncher.launch("image/*") },
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
 
                                     3 -> {
                                         TextField(
                                             value = name,
-                                            onValueChange = { name = it; error = "" },
+                                            onValueChange = {
+                                                name = it
+                                                error = ""
+                                            },
                                             label = MLang.ProfilesPage.Input.ProfileName,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
 
                                         Text(
                                             text = MLang.ProfilesPage.Input.BlankConfigHint,
                                             style = MiuixTheme.textStyles.body2,
                                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
 
                                     else -> {
                                         TextField(
                                             value = name,
-                                            onValueChange = { name = it; error = "" },
+                                            onValueChange = {
+                                                name = it
+                                                error = ""
+                                            },
                                             label = MLang.ProfilesPage.Input.ProfileName,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
 
                                         if (typeIndex == 0) {
                                             TextField(
                                                 value = url,
-                                                onValueChange = { url = it; error = "" },
+                                                onValueChange = {
+                                                    url = it
+                                                    error = ""
+                                                },
                                                 label = MLang.ProfilesPage.Input.SubscriptionUrl,
                                                 maxLines = 2,
                                                 readOnly = profileToEdit != null,
                                                 enabled = profileToEdit == null,
-                                                modifier = Modifier.fillMaxWidth()
+                                                modifier = Modifier.fillMaxWidth(),
                                             )
                                         } else {
                                             TextField(
                                                 value = fileName.ifEmpty { "" },
-                                                onValueChange = { },
+                                                onValueChange = {},
                                                 label = MLang.ProfilesPage.Input.SelectFile,
                                                 readOnly = true,
                                                 enabled = false,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable(
+                                                modifier =
+                                                    Modifier.fillMaxWidth().clickable(
                                                         indication = null,
-                                                        interactionSource = remember { MutableInteractionSource() }
+                                                        interactionSource =
+                                                            remember { MutableInteractionSource() },
                                                     ) {
                                                         launcher.launch("*/*")
-                                                    }
+                                                    },
                                             )
                                         }
 
@@ -632,7 +683,7 @@ internal fun AddProfileSheet(
                                             Text(
                                                 text = error,
                                                 color = MiuixTheme.colorScheme.error,
-                                                style = MiuixTheme.textStyles.body2
+                                                style = MiuixTheme.textStyles.body2,
                                             )
                                         }
                                     }

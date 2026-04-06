@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.clickable
@@ -49,7 +47,6 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -62,12 +59,11 @@ private object OverrideStringListMetrics {
 }
 
 @Composable
-fun OverrideStringListEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = OverrideStructuredEditorStore.stringListEditorTitle.ifBlank { MLang.Override.Editor.List }
+    val title =
+        OverrideStructuredEditorStore.stringListEditorTitle.ifBlank { MLang.Override.Editor.List }
     val placeholder = OverrideStructuredEditorStore.stringListEditorPlaceholder
     val availableModes = OverrideStructuredEditorStore.stringListEditorAvailableModes
     var showItemDialog by remember { mutableStateOf(false) }
@@ -76,13 +72,16 @@ fun OverrideStringListEditorScreen(
     var currentDraftValue by remember { mutableStateOf("") }
     val addFabController = rememberOverrideFabController()
     val selectedMode = OverrideStructuredEditorStore.stringListEditorSelectedMode
-    val editorValues = remember(OverrideStructuredEditorStore.stringListEditorValues) {
-        OverrideListModeValues(
-            replaceValue = OverrideStructuredEditorStore.stringListEditorValues.replaceValue?.toList(),
-            startValue = OverrideStructuredEditorStore.stringListEditorValues.startValue?.toList(),
-            endValue = OverrideStructuredEditorStore.stringListEditorValues.endValue?.toList(),
-        )
-    }
+    val editorValues =
+        remember(OverrideStructuredEditorStore.stringListEditorValues) {
+            OverrideListModeValues(
+                replaceValue =
+                    OverrideStructuredEditorStore.stringListEditorValues.replaceValue?.toList(),
+                startValue =
+                    OverrideStructuredEditorStore.stringListEditorValues.startValue?.toList(),
+                endValue = OverrideStructuredEditorStore.stringListEditorValues.endValue?.toList(),
+            )
+        }
 
     val currentItems = editorValues.valueFor(selectedMode).orEmpty()
     val selectedModeIndex = availableModes.indexOf(selectedMode).coerceAtLeast(0)
@@ -103,7 +102,7 @@ fun OverrideStringListEditorScreen(
                 replaceValue = values.replaceValue?.toList(),
                 startValue = values.startValue?.toList(),
                 endValue = values.endValue?.toList(),
-            ),
+            )
         )
     }
 
@@ -154,7 +153,9 @@ fun OverrideStringListEditorScreen(
                         selectedIndex = selectedModeIndex,
                         onSelectedIndexChange = { index ->
                             val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateStringListEditorSession(selectedMode = newMode)
+                            OverrideStructuredEditorStore.updateStringListEditorSession(
+                                selectedMode = newMode
+                            )
                         },
                     )
                 }
@@ -173,26 +174,28 @@ fun OverrideStringListEditorScreen(
                         onDelete = {
                             val mode = OverrideStructuredEditorStore.stringListEditorSelectedMode
                             val latestValues = currentStringListValues()
-                            val updatedValues = latestValues.update(
-                                mode,
-                                latestValues.valueFor(mode).orEmpty().toMutableList().also { items ->
-                                    items.removeAt(index)
-                                },
-                            )
+                            val updatedValues =
+                                latestValues.update(
+                                    mode,
+                                    latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                                        items ->
+                                        items.removeAt(index)
+                                    },
+                                )
                             applyStringListValues(updatedValues)
                         },
                     )
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(OverrideSectionBottomSpacing))
-            }
+            item { Spacer(modifier = Modifier.height(OverrideSectionBottomSpacing)) }
         }
 
         StringListEntryDialog(
             show = showItemDialog,
-            title = if (editingIndex >= 0) MLang.Override.Editor.EditItem else MLang.Override.Editor.AddItem,
+            title =
+                if (editingIndex >= 0) MLang.Override.Editor.EditItem
+                else MLang.Override.Editor.AddItem,
             placeholder = placeholder,
             initialValue = currentDraftValue,
             onConfirm = { updatedValue ->
@@ -200,13 +203,14 @@ fun OverrideStringListEditorScreen(
                 if (normalizedValue.isBlank()) {
                     return@StringListEntryDialog
                 }
-                val updatedItems = currentItems.toMutableList().also { items ->
-                    if (editingIndex in items.indices) {
-                        items[editingIndex] = normalizedValue
-                    } else {
-                        items.add(normalizedValue)
+                val updatedItems =
+                    currentItems.toMutableList().also { items ->
+                        if (editingIndex in items.indices) {
+                            items[editingIndex] = normalizedValue
+                        } else {
+                            items.add(normalizedValue)
+                        }
                     }
-                }
                 val mode = OverrideStructuredEditorStore.stringListEditorSelectedMode
                 val updatedValues = currentStringListValues().update(mode, updatedItems)
                 applyStringListValues(updatedValues)
@@ -248,17 +252,15 @@ private fun StringListEntryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.padding(top = OverrideStringListMetrics.EntryTopPadding),
-    ) {
+    Card(modifier = Modifier.padding(top = OverrideStringListMetrics.EntryTopPadding)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onEdit)
-                .padding(
-                    horizontal = OverrideStringListMetrics.RowHorizontalPadding,
-                    vertical = OverrideStringListMetrics.RowVerticalPadding,
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .clickable(onClick = onEdit)
+                    .padding(
+                        horizontal = OverrideStringListMetrics.RowHorizontalPadding,
+                        vertical = OverrideStringListMetrics.RowVerticalPadding,
+                    ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -270,9 +272,8 @@ private fun StringListEntryCard(
             Text(
                 text = value,
                 style = MiuixTheme.textStyles.body1,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = OverrideStringListMetrics.ValueEndPadding),
+                modifier =
+                    Modifier.weight(1f).padding(end = OverrideStringListMetrics.ValueEndPadding),
             )
             OverrideCardActionIconButton(
                 imageVector = Yume.Delete,
@@ -298,11 +299,7 @@ private fun StringListEntryDialog(
 
     var draftValue by remember(show, initialValue) { mutableStateOf(initialValue) }
 
-    AppDialog(
-        show = show,
-        title = title,
-        onDismissRequest = onDismiss,
-    ) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -313,13 +310,8 @@ private fun StringListEntryDialog(
                 label = placeholder,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                     Text(MLang.Override.Dialog.Button.Cancel)
                 }
                 Button(
@@ -327,10 +319,7 @@ private fun StringListEntryDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(
-                        MLang.Override.Editor.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                    )
+                    Text(MLang.Override.Editor.Confirm, color = MiuixTheme.colorScheme.onPrimary)
                 }
             }
         }

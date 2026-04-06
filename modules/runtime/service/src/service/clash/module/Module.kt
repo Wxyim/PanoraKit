@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.clash.module
 
 import android.app.Service
@@ -49,21 +47,22 @@ abstract class Module<E>(val service: Service) {
 
     protected fun receiveBroadcast(
         capacity: Int = Channel.CONFLATED,
-        configure: IntentFilter.() -> Unit
+        configure: IntentFilter.() -> Unit,
     ): ReceiveChannel<Intent> {
         val filter = IntentFilter().apply(configure)
         val channel = Channel<Intent>(capacity)
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (context == null || intent == null) {
-                    channel.close()
+        val receiver =
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    if (context == null || intent == null) {
+                        channel.close()
 
-                    return
+                        return
+                    }
+
+                    channel.trySend(intent)
                 }
-
-                channel.trySend(intent)
             }
-        }
 
         val registerContext = service.applicationContext
         registerContext.registerReceiverCompat(receiver, filter)
@@ -86,11 +85,8 @@ abstract class Module<E>(val service: Service) {
                 registeredReceivers.forEach { (context, receiver) ->
                     receiver.onReceive(null, null)
 
-                    runCatching {
-                        context.unregisterReceiver(receiver)
-                    }.onFailure { e ->
-                        Log.w("$moduleName: unregisterReceiver ignored", e)
-                    }
+                    runCatching { context.unregisterReceiver(receiver) }
+                        .onFailure { e -> Log.w("$moduleName: unregisterReceiver ignored", e) }
                 }
             }
         }

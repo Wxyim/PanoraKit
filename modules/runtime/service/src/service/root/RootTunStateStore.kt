@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.root
 
 import android.content.Context
@@ -29,10 +27,8 @@ import com.tencent.mmkv.MMKV
 
 class RootTunStateStore(context: Context) {
     private val store = MMKV.mmkvWithID(STORE_ID, MMKV.MULTI_PROCESS_MODE)
-    @Volatile
-    private var cachedEncoded: String? = null
-    @Volatile
-    private var cachedStatus: RootTunStatus? = null
+    @Volatile private var cachedEncoded: String? = null
+    @Volatile private var cachedStatus: RootTunStatus? = null
 
     fun snapshot(): RootTunStatus {
         val encoded = store.decodeString(KEY_STATUS_JSON)
@@ -43,13 +39,13 @@ class RootTunStateStore(context: Context) {
                 return lastStatus
             }
             return runCatching {
-                RootTunJson.Default.decodeFromString(RootTunStatus.serializer(), encoded)
-            }.getOrElse {
-                legacySnapshot()
-            }.also { decoded ->
-                cachedEncoded = encoded
-                cachedStatus = decoded
-            }
+                    RootTunJson.Default.decodeFromString(RootTunStatus.serializer(), encoded)
+                }
+                .getOrElse { legacySnapshot() }
+                .also { decoded ->
+                    cachedEncoded = encoded
+                    cachedStatus = decoded
+                }
         }
 
         return legacySnapshot().also {
@@ -63,10 +59,7 @@ class RootTunStateStore(context: Context) {
     fun updateStatus(status: RootTunStatus) {
         val normalized = status.copy(running = status.state.isActive)
         val encoded = RootTunJson.Default.encodeToString(RootTunStatus.serializer(), normalized)
-        store.encode(
-            KEY_STATUS_JSON,
-            encoded,
-        )
+        store.encode(KEY_STATUS_JSON, encoded)
         store.encode(KEY_RUNNING, normalized.running)
         encodeNullable(KEY_LAST_ERROR_CODE, normalized.lastErrorCode?.name)
         encodeNullable(KEY_LAST_ERROR, normalized.lastError)
@@ -76,10 +69,7 @@ class RootTunStateStore(context: Context) {
         cachedStatus = normalized
     }
 
-    fun markIdle(
-        error: String? = null,
-        errorCode: RuntimeGatewayErrorCode? = null,
-    ) {
+    fun markIdle(error: String? = null, errorCode: RuntimeGatewayErrorCode? = null) {
         updateStatus(
             RootTunStatus(
                 state = RootTunState.Idle,
@@ -87,7 +77,7 @@ class RootTunStateStore(context: Context) {
                 lastError = error,
                 runtimeReady = false,
                 controllerReady = true,
-            ),
+            )
         )
     }
 
@@ -103,8 +93,10 @@ class RootTunStateStore(context: Context) {
         return RootTunStatus(
             state = state,
             running = state.isActive,
-            lastErrorCode = store.decodeString(KEY_LAST_ERROR_CODE)
-                ?.let { raw -> runCatching { RuntimeGatewayErrorCode.valueOf(raw) }.getOrNull() },
+            lastErrorCode =
+                store.decodeString(KEY_LAST_ERROR_CODE)?.let { raw ->
+                    runCatching { RuntimeGatewayErrorCode.valueOf(raw) }.getOrNull()
+                },
             lastError = store.decodeString(KEY_LAST_ERROR),
             profileUuid = store.decodeString(KEY_PROFILE_UUID),
             profileName = store.decodeString(KEY_PROFILE_NAME),

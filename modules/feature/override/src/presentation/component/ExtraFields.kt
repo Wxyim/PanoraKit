@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +38,6 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -54,16 +51,15 @@ fun OverrideExtraFieldsCard(
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             BasicComponent(
                 title = title,
-                summary = if (fields.isEmpty()) {
-                    MLang.Override.Draft.ClickToAddExtraField
-                } else {
-                    MLang.Override.Form.ItemsConfigured.format(fields.size)
-                },
+                summary =
+                    if (fields.isEmpty()) {
+                        MLang.Override.Draft.ClickToAddExtraField
+                    } else {
+                        MLang.Override.Form.ItemsConfigured.format(fields.size)
+                    },
                 endActions = {
                     OverrideCardActionIconButton(
                         imageVector = Yume.`Badge-plus`,
@@ -79,7 +75,8 @@ fun OverrideExtraFieldsCard(
                 fields.entries.forEach { entry ->
                     BasicComponent(
                         title = entry.key,
-                        summary = "${resolveValueTypeLabel(entry.value)} · ${summarizeExtraFieldValue(entry.value)}",
+                        summary =
+                            "${resolveValueTypeLabel(entry.value)} · ${summarizeExtraFieldValue(entry.value)}",
                         onClick = { onEditClick(entry.key, entry.value) },
                         endActions = {
                             OverrideCardActionIconButton(
@@ -109,18 +106,16 @@ fun OverrideExtraFieldDialog(
 
     var keyText by remember(show, initialValue) { mutableStateOf(initialValue?.key.orEmpty()) }
     var valueText by remember(show, initialValue) { mutableStateOf(initialValue?.value.orEmpty()) }
-    var selectedType by remember(show, initialValue) {
-        mutableStateOf(initialValue?.valueType ?: OverrideExtraFieldValueType.String)
-    }
+    var selectedType by
+        remember(show, initialValue) {
+            mutableStateOf(initialValue?.valueType ?: OverrideExtraFieldValueType.String)
+        }
     var errorText by remember(show, initialValue) { mutableStateOf<String?>(null) }
     val valueTypeItems = OverrideExtraFieldValueType.entries.map(::resolveValueTypeLabel)
-    val selectedTypeIndex = OverrideExtraFieldValueType.entries.indexOf(selectedType).coerceAtLeast(0)
+    val selectedTypeIndex =
+        OverrideExtraFieldValueType.entries.indexOf(selectedType).coerceAtLeast(0)
 
-    AppDialog(
-        show = show,
-        title = title,
-        onDismissRequest = onDismiss,
-    ) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -130,7 +125,8 @@ fun OverrideExtraFieldDialog(
                 items = valueTypeItems,
                 selectedIndex = selectedTypeIndex,
                 onSelectedIndexChange = { index ->
-                    selectedType = OverrideExtraFieldValueType.entries.getOrElse(index) { selectedType }
+                    selectedType =
+                        OverrideExtraFieldValueType.entries.getOrElse(index) { selectedType }
                     errorText = null
                 },
             )
@@ -150,34 +146,40 @@ fun OverrideExtraFieldDialog(
                         valueText = it
                         errorText = null
                     },
-                    label = when (selectedType) {
-                        OverrideExtraFieldValueType.String -> MLang.Override.Draft.StringValue
-                        OverrideExtraFieldValueType.Boolean -> "true / false"
-                        OverrideExtraFieldValueType.Int -> MLang.Override.Draft.IntValue
-                        OverrideExtraFieldValueType.Double -> MLang.Override.Draft.DoubleValue
-                        OverrideExtraFieldValueType.Null -> ""
-                        OverrideExtraFieldValueType.JsonFragment -> MLang.Override.Draft.JsonFragment
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = if (selectedType == OverrideExtraFieldValueType.JsonFragment) 140.dp else 0.dp),
-                    maxLines = if (selectedType == OverrideExtraFieldValueType.JsonFragment) 12 else 1,
+                    label =
+                        when (selectedType) {
+                            OverrideExtraFieldValueType.String -> MLang.Override.Draft.StringValue
+                            OverrideExtraFieldValueType.Boolean -> "true / false"
+                            OverrideExtraFieldValueType.Int -> MLang.Override.Draft.IntValue
+                            OverrideExtraFieldValueType.Double -> MLang.Override.Draft.DoubleValue
+                            OverrideExtraFieldValueType.Null -> ""
+                            OverrideExtraFieldValueType.JsonFragment ->
+                                MLang.Override.Draft.JsonFragment
+                        },
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(
+                                min =
+                                    if (selectedType == OverrideExtraFieldValueType.JsonFragment)
+                                        140.dp
+                                    else 0.dp
+                            ),
+                    maxLines =
+                        if (selectedType == OverrideExtraFieldValueType.JsonFragment) 12 else 1,
                 )
             }
             errorText?.let { message ->
-                OverrideFieldAssistText(
-                    text = message,
-                    color = MiuixTheme.colorScheme.error,
-                )
+                OverrideFieldAssistText(text = message, color = MiuixTheme.colorScheme.error)
             }
             DialogButtonRow(
                 onCancel = onDismiss,
                 onConfirm = {
-                    val normalizedDraft = OverrideExtraFieldDraft(
-                        key = keyText.trim(),
-                        valueType = selectedType,
-                        value = valueText.trim(),
-                    )
+                    val normalizedDraft =
+                        OverrideExtraFieldDraft(
+                            key = keyText.trim(),
+                            valueType = selectedType,
+                            value = valueText.trim(),
+                        )
                     if (normalizedDraft.key.isBlank()) {
                         errorText = MLang.Override.Draft.KeyNameEmpty
                         return@DialogButtonRow
@@ -216,14 +218,18 @@ fun Map<String, JsonElement>.toExtraFieldDraft(key: String): OverrideExtraFieldD
 
 private fun resolveValueTypeLabel(value: JsonElement): String {
     return when (value) {
-        is kotlinx.serialization.json.JsonNull -> resolveValueTypeLabel(OverrideExtraFieldValueType.Null)
-        is kotlinx.serialization.json.JsonPrimitive -> when {
-            value.isString -> resolveValueTypeLabel(OverrideExtraFieldValueType.String)
-            value.booleanOrNull != null -> resolveValueTypeLabel(OverrideExtraFieldValueType.Boolean)
-            value.intOrNull != null -> resolveValueTypeLabel(OverrideExtraFieldValueType.Int)
-            value.doubleOrNull != null -> resolveValueTypeLabel(OverrideExtraFieldValueType.Double)
-            else -> resolveValueTypeLabel(OverrideExtraFieldValueType.String)
-        }
+        is kotlinx.serialization.json.JsonNull ->
+            resolveValueTypeLabel(OverrideExtraFieldValueType.Null)
+        is kotlinx.serialization.json.JsonPrimitive ->
+            when {
+                value.isString -> resolveValueTypeLabel(OverrideExtraFieldValueType.String)
+                value.booleanOrNull != null ->
+                    resolveValueTypeLabel(OverrideExtraFieldValueType.Boolean)
+                value.intOrNull != null -> resolveValueTypeLabel(OverrideExtraFieldValueType.Int)
+                value.doubleOrNull != null ->
+                    resolveValueTypeLabel(OverrideExtraFieldValueType.Double)
+                else -> resolveValueTypeLabel(OverrideExtraFieldValueType.String)
+            }
 
         else -> resolveValueTypeLabel(OverrideExtraFieldValueType.JsonFragment)
     }

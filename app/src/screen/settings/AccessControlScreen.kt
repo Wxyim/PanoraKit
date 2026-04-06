@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import android.content.ClipData
@@ -99,14 +97,15 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
     val showSettingsSheet = rememberSaveable { mutableStateOf(false) }
     val searchExpanded = rememberSaveable { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                viewModel.onPermissionResult()
-            }
-        }
-    )
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                if (isGranted) {
+                    viewModel.onPermissionResult()
+                }
+            },
+        )
 
     BackHandler(enabled = searchExpanded.value) {
         searchExpanded.value = false
@@ -122,26 +121,29 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     actions = {
                         IconButton(
                             modifier = Modifier.padding(end = 24.dp),
-                            onClick = { showSettingsSheet.value = true }
+                            onClick = { showSettingsSheet.value = true },
                         ) {
-                            Icon(Yume.`Settings-2`, contentDescription = MLang.Component.Navigation.Settings)
+                            Icon(
+                                Yume.`Settings-2`,
+                                contentDescription = MLang.Component.Navigation.Settings,
+                            )
                         }
-                    }
+                    },
                 )
-            },
+            }
         ) { innerPadding ->
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(MLang.AccessControl.AppList.Loading, color = MiuixTheme.colorScheme.onSurface)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        MLang.AccessControl.AppList.Loading,
+                        color = MiuixTheme.colorScheme.onSurface,
+                    )
                 }
             } else {
                 ScreenLazyColumn(
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
-                    topPadding = 20.dp
+                    topPadding = 20.dp,
                 ) {
                     if (uiState.needsMiuiPermission) {
                         item {
@@ -157,7 +159,9 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     )
                                     Button(
                                         onClick = {
-                                            permissionLauncher.launch("com.android.permission.GET_INSTALLED_APPS")
+                                            permissionLauncher.launch(
+                                                "com.android.permission.GET_INSTALLED_APPS"
+                                            )
                                         },
                                         colors = ButtonDefaults.buttonColorsPrimary(),
                                     ) {
@@ -187,23 +191,21 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     onSearch = { expanded = false },
                                     expanded = expanded,
                                     onExpandedChange = { expanded = it },
-                                    label = MLang.AccessControl.Search.Placeholder
+                                    label = MLang.AccessControl.Search.Placeholder,
                                 )
                             },
                             expanded = expanded,
-                            onExpandedChange = { expanded = it }
-                        ) {
-                        }
+                            onExpandedChange = { expanded = it },
+                        ) {}
                     }
 
                     item {
-                        SmallTitle(MLang.AccessControl.AppList.Title.format(uiState.selectedPackages.size))
+                        SmallTitle(
+                            MLang.AccessControl.AppList.Title.format(uiState.selectedPackages.size)
+                        )
                     }
 
-                    items(
-                        items = filteredApps,
-                        key = { it.packageName }
-                    ) { app ->
+                    items(items = filteredApps, key = { it.packageName }) { app ->
                         AppCard(
                             app = app,
                             onSelectionChange = { checked ->
@@ -211,7 +213,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             },
                             onClick = {
                                 viewModel.onAppSelectionChange(app.packageName, !app.isSelected)
-                            }
+                            },
                         )
                     }
                 }
@@ -225,39 +227,46 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                 enableNestedScroll = true,
                 content = {
                     val context = LocalContext.current
-                    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clipboardManager =
+                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
                     Column {
                         top.yukonga.miuix.kmp.basic.Card {
                             SuperSwitch(
                                 title = MLang.AccessControl.Settings.ShowSystemApps,
                                 checked = uiState.showSystemApps,
-                                onCheckedChange = { viewModel.onShowSystemAppsChange(it) }
+                                onCheckedChange = { viewModel.onShowSystemAppsChange(it) },
                             )
                             SuperSwitch(
                                 title = MLang.AccessControl.Settings.SelectedFirst,
                                 checked = uiState.selectedFirst,
-                                onCheckedChange = { viewModel.onSelectedFirstChange(it) }
+                                onCheckedChange = { viewModel.onSelectedFirstChange(it) },
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.SortMode,
-                                summary = MLang.AccessControl.Settings.SortModeCurrent.format(uiState.sortMode.displayName),
+                                summary =
+                                    MLang.AccessControl.Settings.SortModeCurrent.format(
+                                        uiState.sortMode.displayName
+                                    ),
                                 items = AccessControlSortMode.entries.map { it.displayName },
-                                selectedIndex = AccessControlSortMode.entries
-                                    .indexOf(uiState.sortMode)
-                                      .coerceAtLeast(0),
+                                selectedIndex =
+                                    AccessControlSortMode.entries
+                                        .indexOf(uiState.sortMode)
+                                        .coerceAtLeast(0),
                                 onSelectedIndexChange = { index ->
-                                    AccessControlSortMode.entries.getOrNull(index)
-                                        ?.let { viewModel.onSortModeChange(it) }
-                                }
+                                    AccessControlSortMode.entries.getOrNull(index)?.let {
+                                        viewModel.onSortModeChange(it)
+                                    }
+                                },
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.BatchOperation,
-                                items = listOf(
-                                    MLang.AccessControl.Settings.SelectAll,
-                                    MLang.AccessControl.Settings.DeselectAll,
-                                    MLang.AccessControl.Settings.Invert
-                                ),
+                                items =
+                                    listOf(
+                                        MLang.AccessControl.Settings.SelectAll,
+                                        MLang.AccessControl.Settings.DeselectAll,
+                                        MLang.AccessControl.Settings.Invert,
+                                    ),
                                 selectedIndex = 0,
                                 onSelectedIndexChange = { index ->
                                     when (index) {
@@ -265,55 +274,65 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         1 -> viewModel.deselectAll()
                                         2 -> viewModel.invertSelection()
                                     }
-                                }
+                                },
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.RegionQuickSelect,
-                                items = listOf(
-                                    MLang.AccessControl.Settings.ChinaApps,
-                                    MLang.AccessControl.Settings.OverseasApps,
-                                ),
+                                items =
+                                    listOf(
+                                        MLang.AccessControl.Settings.ChinaApps,
+                                        MLang.AccessControl.Settings.OverseasApps,
+                                    ),
                                 selectedIndex = 0,
                                 onSelectedIndexChange = { index ->
-                                    val selectedCount = when (index) {
-                                        0 -> viewModel.selectChinaAppsInCurrentList()
-                                        1 -> viewModel.selectNonChinaAppsInCurrentList()
-                                        else -> 0
-                                    }
-                                    val label = when (index) {
-                                        0 -> MLang.AccessControl.Settings.ChinaApps
-                                        1 -> MLang.AccessControl.Settings.OverseasApps
-                                        else -> ""
-                                    }
+                                    val selectedCount =
+                                        when (index) {
+                                            0 -> viewModel.selectChinaAppsInCurrentList()
+                                            1 -> viewModel.selectNonChinaAppsInCurrentList()
+                                            else -> 0
+                                        }
+                                    val label =
+                                        when (index) {
+                                            0 -> MLang.AccessControl.Settings.ChinaApps
+                                            1 -> MLang.AccessControl.Settings.OverseasApps
+                                            else -> ""
+                                        }
                                     context.toast(
                                         MLang.AccessControl.Settings.RegionSelectResult.format(
                                             label,
-                                            selectedCount
+                                            selectedCount,
                                         )
                                     )
-                                }
+                                },
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.ImportExport,
-                                items = listOf(
-                                    MLang.AccessControl.Settings.Import,
-                                    MLang.AccessControl.Settings.Export
-                                ),
+                                items =
+                                    listOf(
+                                        MLang.AccessControl.Settings.Import,
+                                        MLang.AccessControl.Settings.Export,
+                                    ),
                                 selectedIndex = 0,
                                 onSelectedIndexChange = { index ->
                                     when (index) {
                                         0 -> {
                                             val clipData = clipboardManager.primaryClip
-                                            val text = if (clipData != null && clipData.itemCount > 0) {
-                                                clipData.getItemAt(0)?.text?.toString() ?: ""
-                                            } else {
-                                                ""
-                                            }
+                                            val text =
+                                                if (clipData != null && clipData.itemCount > 0) {
+                                                    clipData.getItemAt(0)?.text?.toString() ?: ""
+                                                } else {
+                                                    ""
+                                                }
                                             if (text.isNotEmpty()) {
                                                 val count = viewModel.importPackages(text)
-                                                context.toast(MLang.AccessControl.Settings.ImportSuccess.format(count))
+                                                context.toast(
+                                                    MLang.AccessControl.Settings.ImportSuccess
+                                                        .format(count)
+                                                )
                                             } else {
-                                                context.toast(MLang.AccessControl.Settings.ImportFailed)
+                                                context.toast(
+                                                    MLang.AccessControl.Settings.ImportFailed
+                                                )
                                             }
                                         }
 
@@ -322,11 +341,13 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             val clip = ClipData.newPlainText("packages", exportText)
                                             clipboardManager.setPrimaryClip(clip)
                                             context.toast(
-                                                MLang.AccessControl.Settings.ExportSuccess.format(uiState.selectedPackages.size)
+                                                MLang.AccessControl.Settings.ExportSuccess.format(
+                                                    uiState.selectedPackages.size
+                                                )
                                             )
                                         }
                                     }
-                                }
+                                },
                             )
                         }
                     }
@@ -336,19 +357,23 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = { showSettingsSheet.value = false },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text(MLang.AccessControl.Button.Cancel)
                         }
                         Button(
                             onClick = { showSettingsSheet.value = false },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColorsPrimary()
+                            colors = ButtonDefaults.buttonColorsPrimary(),
                         ) {
-                            Text(MLang.AccessControl.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
+                            Text(
+                                MLang.AccessControl.Button.Confirm,
+                                color = MiuixTheme.colorScheme.onPrimary,
+                            )
                         }
                     }
-                })
+                },
+            )
         }
     }
 
@@ -356,9 +381,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
         visible = searchExpanded.value,
         enter = fadeIn(tween(300)),
         exit = fadeOut(tween(300)),
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(100f)
+        modifier = Modifier.fillMaxSize().zIndex(100f),
     ) {
         ExpandedSearchOverlay(
             searchQuery = uiState.searchQuery,
@@ -370,7 +393,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
             onDismiss = {
                 searchExpanded.value = false
                 viewModel.onSearchQueryChange("")
-            }
+            },
         )
     }
 }
@@ -381,54 +404,49 @@ private fun ExpandedSearchOverlay(
     onSearchQueryChange: (String) -> Unit,
     filteredApps: List<AccessControlAppInfo>,
     onAppSelectionChange: (String, Boolean) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable(
+        modifier =
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onDismiss() }
+                indication = null,
+            ) {
+                onDismiss()
+            }
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .clickable(
+            modifier =
+                Modifier.fillMaxSize().statusBarsPadding().clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { }
+                    indication = null,
+                ) {}
         ) {
             TextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 label = MLang.AccessControl.Search.Placeholder,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = AccessControlMetrics.SearchHorizontalPadding,
-                        vertical = AccessControlMetrics.SearchTopPadding,
-                    )
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .padding(
+                            horizontal = AccessControlMetrics.SearchHorizontalPadding,
+                            vertical = AccessControlMetrics.SearchTopPadding,
+                        ),
             )
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = AccessControlMetrics.SearchHorizontalPadding)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = AccessControlMetrics.SearchResultCornerRadius,
-                            topEnd = AccessControlMetrics.SearchResultCornerRadius,
+                modifier =
+                    Modifier.fillMaxSize()
+                        .padding(horizontal = AccessControlMetrics.SearchHorizontalPadding)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = AccessControlMetrics.SearchResultCornerRadius,
+                                topEnd = AccessControlMetrics.SearchResultCornerRadius,
+                            )
                         )
-                    )
-                    .background(MiuixTheme.colorScheme.surface)
+                        .background(MiuixTheme.colorScheme.surface)
             ) {
-                items(
-                    items = filteredApps,
-                    key = { it.packageName }
-                ) { app ->
+                items(items = filteredApps, key = { it.packageName }) { app ->
                     BasicComponent(
                         title = app.label,
                         summary = app.packageName,
@@ -443,14 +461,10 @@ private fun ExpandedSearchOverlay(
                         endActions = {
                             Checkbox(
                                 state = ToggleableState(app.isSelected),
-                                onClick = {
-                                    onAppSelectionChange(app.packageName, !app.isSelected)
-                                }
+                                onClick = { onAppSelectionChange(app.packageName, !app.isSelected) },
                             )
                         },
-                        onClick = {
-                            onAppSelectionChange(app.packageName, !app.isSelected)
-                        }
+                        onClick = { onAppSelectionChange(app.packageName, !app.isSelected) },
                     )
                 }
             }
@@ -462,7 +476,7 @@ private fun ExpandedSearchOverlay(
 private fun AppCard(
     app: AccessControlAppInfo,
     onSelectionChange: (Boolean) -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(modifier = Modifier.padding(vertical = AccessControlMetrics.ListCardVerticalPadding)) {
         BasicComponent(
@@ -480,10 +494,10 @@ private fun AppCard(
             endActions = {
                 Checkbox(
                     state = ToggleableState(app.isSelected),
-                    onClick = { onSelectionChange(!app.isSelected) }
+                    onClick = { onSelectionChange(!app.isSelected) },
                 )
             },
-            onClick = onClick
+            onClick = onClick,
         )
     }
 }
@@ -494,42 +508,51 @@ private fun AppIcon(
     contentDescription: String,
     imageSize: androidx.compose.ui.unit.Dp,
     bitmapSize: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val targetBitmapSize = remember(imageSize, bitmapSize, density) {
-        maxOf(
-            bitmapSize,
-            (with(density) { imageSize.toPx() } * 1.35f).toInt(),
-        ).coerceIn(64, 160)
-    }
-    val cacheKey = remember(packageName, targetBitmapSize) { "$packageName@$targetBitmapSize" }
-    val iconBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = packageName, key2 = targetBitmapSize) {
-        value = withContext(Dispatchers.IO) {
-            AppIconMemoryCache.get(cacheKey)?.asImageBitmap()?.let { return@withContext it }
-            runCatching {
-                context.packageManager
-                    .getApplicationIcon(packageName)
-                    .toBitmap(width = targetBitmapSize, height = targetBitmapSize)
-                    .also { bitmap -> AppIconMemoryCache.put(cacheKey, bitmap) }
-                    .asImageBitmap()
-            }.getOrNull()
+    val targetBitmapSize =
+        remember(imageSize, bitmapSize, density) {
+            maxOf(bitmapSize, (with(density) { imageSize.toPx() } * 1.35f).toInt())
+                .coerceIn(64, 160)
         }
-    }
+    val cacheKey = remember(packageName, targetBitmapSize) { "$packageName@$targetBitmapSize" }
+    val iconBitmap by
+        produceState<ImageBitmap?>(
+            initialValue = null,
+            key1 = packageName,
+            key2 = targetBitmapSize,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    AppIconMemoryCache.get(cacheKey)?.asImageBitmap()?.let {
+                        return@withContext it
+                    }
+                    runCatching {
+                            context.packageManager
+                                .getApplicationIcon(packageName)
+                                .toBitmap(width = targetBitmapSize, height = targetBitmapSize)
+                                .also { bitmap -> AppIconMemoryCache.put(cacheKey, bitmap) }
+                                .asImageBitmap()
+                        }
+                        .getOrNull()
+                }
+        }
 
     val bitmap = iconBitmap ?: return
     Image(
         bitmap = bitmap,
         contentDescription = contentDescription,
-        modifier = modifier.size(imageSize)
+        modifier = modifier.size(imageSize),
     )
 }
 
 private object AppIconMemoryCache {
-    private val cache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
-    }
+    private val cache =
+        object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
+            override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+        }
 
     fun get(key: String): Bitmap? = cache.get(key)?.takeUnless { it.isRecycled }
 

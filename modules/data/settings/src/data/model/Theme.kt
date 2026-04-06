@@ -18,20 +18,22 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.model
 
 enum class ThemeMode {
-    Auto, Light, Dark
+    Auto,
+    Light,
+    Dark,
 }
 
 enum class AppColorTheme {
-    ClassicMonochrome,
+    ClassicMonochrome
 }
 
 enum class AppLanguage {
-    System, Zh, En
+    System,
+    Zh,
+    En,
 }
 
 enum class CleanupPolicy {

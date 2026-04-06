@@ -18,37 +18,29 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.runtime.client
 
 import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
 import com.github.yumelira.yumebox.remote.ServiceClient
+import com.github.yumelira.yumebox.remote.asRuntimeGatewayException
 import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.remote.IFetchObserver
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
+import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.*
 
-class ProfilesRepository(
-    private val context: Context,
-) {
+class ProfilesRepository(private val context: Context) {
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
 
-    suspend fun createProfile(
-        type: Profile.Type,
-        name: String,
-        source: String = ""
-    ): UUID {
+    suspend fun createProfile(type: Profile.Type, name: String, source: String = ""): UUID {
         Timber.d("Creating profile: type=$type, name=$name")
         return runGatewayCall("Failed to create profile") {
             ServiceClient.connect(context)
@@ -107,18 +99,23 @@ class ProfilesRepository(
                 ServiceClient.connect(context)
 
                 val previousActiveProfile = ServiceClient.profile().queryActive()
-                val profile = ServiceClient.profile().queryByUUID(uuid)
-                    ?: error("Profile not found: $uuid")
+                val profile =
+                    ServiceClient.profile().queryByUUID(uuid) ?: error("Profile not found: $uuid")
 
                 ServiceClient.profile().setActive(profile)
 
                 notifyRuntimeOverrideChanged()
 
                 if (isRootTunActive()) {
-                    RootTunReloadScheduler.schedule(appContext, RootTunReloadScheduler.Reason.PROFILE_CHANGED)
+                    RootTunReloadScheduler.schedule(
+                        appContext,
+                        RootTunReloadScheduler.Reason.PROFILE_CHANGED,
+                    )
                 }
 
-                Timber.d("Active profile applied: uuid=$uuid cost=${System.currentTimeMillis() - startedAt}ms")
+                Timber.d(
+                    "Active profile applied: uuid=$uuid cost=${System.currentTimeMillis() - startedAt}ms"
+                )
                 previousActiveProfile
             }
         }
@@ -150,12 +147,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun patchProfile(
-        uuid: UUID,
-        name: String,
-        source: String,
-        interval: Long
-    ) {
+    suspend fun patchProfile(uuid: UUID, name: String, source: String, interval: Long) {
         Timber.d("Patching profile: uuid=$uuid")
         runGatewayCall("Failed to patch profile") {
             ServiceClient.connect(context)
@@ -176,24 +168,28 @@ class ProfilesRepository(
         targetProfile: Profile,
     ) {
         runCatching {
-            if (previousActiveProfile != null) {
-                ServiceClient.profile().setActive(previousActiveProfile)
-                notifyRuntimeOverrideChanged()
-            } else {
-                ServiceClient.profile().clearActive(targetProfile)
-                notifyRuntimeOverrideChanged()
+                if (previousActiveProfile != null) {
+                    ServiceClient.profile().setActive(previousActiveProfile)
+                    notifyRuntimeOverrideChanged()
+                } else {
+                    ServiceClient.profile().clearActive(targetProfile)
+                    notifyRuntimeOverrideChanged()
+                }
+                if (isRootTunActive()) {
+                    RootTunReloadScheduler.schedule(
+                        appContext,
+                        RootTunReloadScheduler.Reason.PROFILE_CHANGED,
+                    )
+                }
             }
-            if (isRootTunActive()) {
-                RootTunReloadScheduler.schedule(appContext, RootTunReloadScheduler.Reason.PROFILE_CHANGED)
+            .onFailure { restoreError ->
+                Timber.e(
+                    restoreError,
+                    "Failed to restore active profile after override sync failure: target=%s previous=%s",
+                    targetProfile.uuid,
+                    previousActiveProfile?.uuid,
+                )
             }
-        }.onFailure { restoreError ->
-            Timber.e(
-                restoreError,
-                "Failed to restore active profile after override sync failure: target=%s previous=%s",
-                targetProfile.uuid,
-                previousActiveProfile?.uuid,
-            )
-        }
     }
 
     private fun isRootTunActive(): Boolean {
@@ -204,18 +200,18 @@ class ProfilesRepository(
     private fun notifyRuntimeOverrideChanged() {
         appContext.sendBroadcast(
             Intent(Intents.actionOverrideChanged(appContext.packageName))
-                .setPackage(appContext.packageName),
+                .setPackage(appContext.packageName)
         )
     }
 
-    private suspend inline fun <T> runGatewayCall(
-        defaultMessage: String,
-        block: () -> T,
-    ): T {
+    private suspend inline fun <T> runGatewayCall(defaultMessage: String, block: () -> T): T {
         return try {
             block()
         } catch (e: Exception) {
-            throw e.asRuntimeGatewayException(RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED, defaultMessage)
+            throw e.asRuntimeGatewayException(
+                RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
+                defaultMessage,
+            )
         }
     }
 }

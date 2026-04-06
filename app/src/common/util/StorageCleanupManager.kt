@@ -21,15 +21,15 @@
 package com.github.yumelira.yumebox.common.util
 
 import android.app.Application
+import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.LogRepository
-import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
-import java.util.UUID
 
 class StorageCleanupManager(
     private val application: Application,
@@ -37,22 +37,26 @@ class StorageCleanupManager(
     private val logRepository: LogRepository,
 ) {
 
-    suspend fun runColdStartCleanup(): ColdStartCleanupResult = withContext(Dispatchers.IO) {
-        val orphanRemovedCount = reclaimOrphanImportedProfileDirs()
-        val processingRemovedCount = cleanupProcessingWorkspaceOnColdStart()
-        ColdStartCleanupResult(
-            orphanImportedDirsRemoved = orphanRemovedCount,
-            processingArtifactsRemoved = processingRemovedCount,
-        )
-    }
+    suspend fun runColdStartCleanup(): ColdStartCleanupResult =
+        withContext(Dispatchers.IO) {
+            val orphanRemovedCount = reclaimOrphanImportedProfileDirs()
+            val processingRemovedCount = cleanupProcessingWorkspaceOnColdStart()
+            ColdStartCleanupResult(
+                orphanImportedDirsRemoved = orphanRemovedCount,
+                processingArtifactsRemoved = processingRemovedCount,
+            )
+        }
 
     suspend fun runAutoCleanupIfNeeded(now: Long = System.currentTimeMillis()): CleanupResult? =
         withContext(Dispatchers.IO) {
             if (!appSettingsRepository.cleanupAutoEnabled.value) {
                 return@withContext null
             }
-            val intervalMs = appSettingsRepository.cleanupIntervalHours.value
-                .coerceIn(MIN_INTERVAL_HOURS, MAX_INTERVAL_HOURS) * ONE_HOUR_MS
+            val intervalMs =
+                appSettingsRepository.cleanupIntervalHours.value.coerceIn(
+                    MIN_INTERVAL_HOURS,
+                    MAX_INTERVAL_HOURS,
+                ) * ONE_HOUR_MS
             val lastRunAt = appSettingsRepository.cleanupLastRunAt.value
             if (lastRunAt > 0L && now - lastRunAt < intervalMs) {
                 return@withContext null
@@ -61,13 +65,14 @@ class StorageCleanupManager(
         }
 
     suspend fun runCleanupNow(now: Long = System.currentTimeMillis()): CleanupResult =
-        withContext(Dispatchers.IO) {
-            runCleanupInternal(force = false, now = now)
-        }
+        withContext(Dispatchers.IO) { runCleanupInternal(force = false, now = now) }
 
     private suspend fun runCleanupInternal(force: Boolean, now: Long): CleanupResult {
-        val thresholdMb = appSettingsRepository.cleanupThresholdMb.value
-            .coerceIn(MIN_THRESHOLD_MB, MAX_THRESHOLD_MB)
+        val thresholdMb =
+            appSettingsRepository.cleanupThresholdMb.value.coerceIn(
+                MIN_THRESHOLD_MB,
+                MAX_THRESHOLD_MB,
+            )
         val thresholdBytes = thresholdMb * MB_BYTES
         val policyConfig = resolvePolicyConfig(appSettingsRepository.cleanupPolicy.value)
         val beforeBytes = calculateStorageBytes()
@@ -84,19 +89,18 @@ class StorageCleanupManager(
             )
         }
 
-        val archiveFileName = runCatching { logRepository.persistReadableLogsForCleanup() }
-            .onFailure { Timber.w(it, "cleanup: failed to persist readable logs") }
-            .getOrNull()
+        val archiveFileName =
+            runCatching { logRepository.persistReadableLogsForCleanup() }
+                .onFailure { Timber.w(it, "cleanup: failed to persist readable logs") }
+                .getOrNull()
 
-        val orphanRemovedCount = runCatching { reclaimOrphanImportedProfileDirs() }
-            .onFailure { Timber.w(it, "cleanup: failed to reclaim orphan imported dirs") }
-            .getOrDefault(0)
+        val orphanRemovedCount =
+            runCatching { reclaimOrphanImportedProfileDirs() }
+                .onFailure { Timber.w(it, "cleanup: failed to reclaim orphan imported dirs") }
+                .getOrDefault(0)
 
-        runCatching {
-            reduceCacheFootprint(thresholdBytes, policyConfig)
-        }.onFailure {
-            Timber.w(it, "cleanup: failed to trim cacheDir")
-        }
+        runCatching { reduceCacheFootprint(thresholdBytes, policyConfig) }
+            .onFailure { Timber.w(it, "cleanup: failed to trim cacheDir") }
 
         val afterBytes = calculateStorageBytes()
         appSettingsRepository.cleanupLastRunAt.set(now)
@@ -145,20 +149,20 @@ class StorageCleanupManager(
 
     private fun reduceCacheFootprint(thresholdBytes: Long, policyConfig: PolicyConfig) {
         val cacheRoot = application.cacheDir
-        val cacheFiles = cacheRoot.walkTopDown().filter { it.isFile }
-            .sortedBy { it.lastModified() }
-            .toList()
+        val cacheFiles =
+            cacheRoot.walkTopDown().filter { it.isFile }.sortedBy { it.lastModified() }.toList()
         if (cacheFiles.isEmpty()) return
 
         val targetBytes = (thresholdBytes * policyConfig.targetUsageRatio).toLong()
         var totalBytes = calculateStorageBytes()
         if (totalBytes <= thresholdBytes) return
 
-        val evictable = if (cacheFiles.size > policyConfig.retainRecentCacheFileCount) {
-            cacheFiles.dropLast(policyConfig.retainRecentCacheFileCount)
-        } else {
-            emptyList()
-        }
+        val evictable =
+            if (cacheFiles.size > policyConfig.retainRecentCacheFileCount) {
+                cacheFiles.dropLast(policyConfig.retainRecentCacheFileCount)
+            } else {
+                emptyList()
+            }
 
         for (file in evictable) {
             if (totalBytes <= targetBytes) break
@@ -187,9 +191,12 @@ class StorageCleanupManager(
 
     private fun resolvePolicyConfig(policy: CleanupPolicy): PolicyConfig {
         return when (policy) {
-            CleanupPolicy.Aggressive -> PolicyConfig(targetUsageRatio = 0.70, retainRecentCacheFileCount = 8)
-            CleanupPolicy.Balanced -> PolicyConfig(targetUsageRatio = 0.85, retainRecentCacheFileCount = 32)
-            CleanupPolicy.Conservative -> PolicyConfig(targetUsageRatio = 0.95, retainRecentCacheFileCount = 96)
+            CleanupPolicy.Aggressive ->
+                PolicyConfig(targetUsageRatio = 0.70, retainRecentCacheFileCount = 8)
+            CleanupPolicy.Balanced ->
+                PolicyConfig(targetUsageRatio = 0.85, retainRecentCacheFileCount = 32)
+            CleanupPolicy.Conservative ->
+                PolicyConfig(targetUsageRatio = 0.95, retainRecentCacheFileCount = 96)
         }
     }
 
@@ -199,9 +206,8 @@ class StorageCleanupManager(
 
     private fun directorySize(directory: File): Long {
         if (!directory.exists()) return 0L
-        return runCatching {
-            directory.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-        }.getOrDefault(0L)
+        return runCatching { directory.walkTopDown().filter { it.isFile }.sumOf { it.length() } }
+            .getOrDefault(0L)
     }
 
     data class CleanupResult(

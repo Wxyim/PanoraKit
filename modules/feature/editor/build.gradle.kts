@@ -26,36 +26,16 @@ plugins {
 
 android {
     namespace = "com.github.yumelira.yumebox.feature.editor"
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     sourceSets {
         getByName("main") {
             kotlin.directories.apply {
                 clear()
                 add("src")
             }
-            assets.srcDirs("assets")
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
         }
     }
 
@@ -72,28 +52,25 @@ dependencies {
     implementation(project(":ui"))
 
     // Sora Editor
-    implementation(platform("io.github.rosemoe:editor-bom:${gropify.dep.version.soraEditor}"))
+    implementation(platform(libs.editor.bom))
     implementation("io.github.rosemoe:editor")
-     implementation("io.github.rosemoe:editor-lsp")
-     implementation("io.github.rosemoe:language-textmate")
-     implementation("io.github.rosemoe:language-treesitter")
+    implementation("io.github.rosemoe:editor-lsp")
+    implementation("io.github.rosemoe:language-textmate")
+    implementation("io.github.rosemoe:language-treesitter")
 
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.activity:activity-compose:${gropify.dep.version.activityCompose}")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:${gropify.dep.version.lifecycle}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("io.insert-koin:koin-core:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-android:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-androidx-compose:${gropify.dep.version.koin}")
-    implementation("io.github.raamcosta.compose-destinations:core:${gropify.dep.version.composeDestinations}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("top.yukonga.miuix.kmp:miuix:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-icons:${gropify.dep.version.miuix}")
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.coroutines.android)
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.compose.destinations.core)
+    implementation(libs.timber)
+    implementation(libs.miuix)
+    implementation(libs.miuix.icons)
 }
-
-
-

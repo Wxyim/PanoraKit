@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import android.annotation.SuppressLint
@@ -27,7 +25,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.nomadboxlab.monadbox.BuildConfig
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -82,43 +77,47 @@ private fun CircularIcon(
     iconSize: Float = 1f,
 ) {
     Box(
-        modifier = modifier
-            .padding(
-                start = SettingsPageMetrics.EntryIconOuterStartPadding,
-                end = SettingsPageMetrics.EntryIconOuterEndPadding,
-            )
-            .requiredSize(SettingsPageMetrics.EntryIconSlotSize),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .padding(
+                    start = SettingsPageMetrics.EntryIconOuterStartPadding,
+                    end = SettingsPageMetrics.EntryIconOuterEndPadding,
+                )
+                .requiredSize(SettingsPageMetrics.EntryIconSlotSize),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .layout { measurable, _ ->
-                    val containerSize = SettingsPageMetrics.EntryIconContainerSize.roundToPx()
-                    val parentSize = SettingsPageMetrics.EntryIconSlotSize.roundToPx()
-                    val offset = (containerSize - parentSize) / 2
+            modifier =
+                Modifier.layout { measurable, _ ->
+                        val containerSize = SettingsPageMetrics.EntryIconContainerSize.roundToPx()
+                        val parentSize = SettingsPageMetrics.EntryIconSlotSize.roundToPx()
+                        val offset = (containerSize - parentSize) / 2
 
-                    val placeable = measurable.measure(
-                        androidx.compose.ui.unit.Constraints.fixed(containerSize, containerSize)
-                    )
-                    layout(parentSize, parentSize) {
-                        placeable.place(-offset, -offset)
+                        val placeable =
+                            measurable.measure(
+                                androidx.compose.ui.unit.Constraints.fixed(
+                                    containerSize,
+                                    containerSize,
+                                )
+                            )
+                        layout(parentSize, parentSize) { placeable.place(-offset, -offset) }
                     }
-                }
-                .size(SettingsPageMetrics.EntryIconContainerSize)
-                .clip(RoundedCornerShape(SettingsPageMetrics.EntryIconContainerCornerRadius))
-                .background(MiuixTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center) {
+                    .size(SettingsPageMetrics.EntryIconContainerSize)
+                    .clip(RoundedCornerShape(SettingsPageMetrics.EntryIconContainerCornerRadius))
+                    .background(MiuixTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 imageVector = imageVector,
                 contentDescription = contentDescription,
                 tint = MiuixTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .size(SettingsPageMetrics.EntryIconSize)
-                    .graphicsLayer(
-                        scaleX = iconSize,
-                        scaleY = iconSize,
-                        transformOrigin = TransformOrigin.Center,
-                    )
+                modifier =
+                    Modifier.size(SettingsPageMetrics.EntryIconSize)
+                        .graphicsLayer(
+                            scaleX = iconSize,
+                            scaleY = iconSize,
+                            transformOrigin = TransformOrigin.Center,
+                        ),
             )
         }
     }
@@ -133,47 +132,47 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 
     val versionInfo = remember { BuildConfig.VERSION_NAME }
 
-    Scaffold(
-        topBar = {
-            TopBar(title = MLang.Settings.Title, scrollBehavior = scrollBehavior)
-        },
-    ) { innerPadding ->
+    Scaffold(topBar = { TopBar(title = MLang.Settings.Title, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
         ) {
-
             item {
                 SmallTitle(MLang.Settings.Section.UiSettings)
                 Card {
                     SuperArrow(
                         title = MLang.Settings.UiSettings.App,
                         summary = MLang.Settings.UiSettings.AppSummary,
-                        onClick = { navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true } },
+                        onClick = {
+                            navigator.navigate(AppSettingsScreenDestination) {
+                                launchSingleTop = true
+                            }
+                        },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.`Settings-2`, contentDescription = null
-                            )
+                            CircularIcon(imageVector = Yume.`Settings-2`, contentDescription = null)
                         },
                     )
                     SuperArrow(
                         title = MLang.Settings.UiSettings.Network,
                         summary = MLang.Settings.UiSettings.NetworkSummary,
-                        onClick = { navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true } },
+                        onClick = {
+                            navigator.navigate(NetworkSettingsScreenDestination) {
+                                launchSingleTop = true
+                            }
+                        },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.`Wifi-cog`, contentDescription = null
-                            )
+                            CircularIcon(imageVector = Yume.`Wifi-cog`, contentDescription = null)
                         },
                     )
                     SuperArrow(
                         title = MLang.Settings.UiSettings.Override,
                         summary = MLang.Settings.UiSettings.OverrideSummary,
-                        onClick = { navigator.navigate(OverrideScreenDestination) { launchSingleTop = true } },
+                        onClick = {
+                            navigator.navigate(OverrideScreenDestination) { launchSingleTop = true }
+                        },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.`Git-merge`, contentDescription = null
-                            )
+                            CircularIcon(imageVector = Yume.`Git-merge`, contentDescription = null)
                         },
                     )
                     SuperArrow(
@@ -185,9 +184,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                             }
                         },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.Meta, contentDescription = null
-                            )
+                            CircularIcon(imageVector = Yume.Meta, contentDescription = null)
                         },
                     )
                 }
@@ -199,25 +196,26 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.More.Logs,
                         summary = MLang.Settings.More.LogsSummary,
-                        onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
+                        onClick = {
+                            navigator.navigate(LogScreenDestination) { launchSingleTop = true }
+                        },
                         startAction = {
                             CircularIcon(
-                                imageVector = Yume.`Chart-column`, contentDescription = null
+                                imageVector = Yume.`Chart-column`,
+                                contentDescription = null,
                             )
                         },
                     )
                     SuperArrow(
                         title = MLang.Settings.More.About,
                         summary = MLang.Settings.More.AboutSummary,
-                        onClick = { navigator.navigate(AboutScreenDestination) { launchSingleTop = true } },
+                        onClick = {
+                            navigator.navigate(AboutScreenDestination) { launchSingleTop = true }
+                        },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.Github, contentDescription = null
-                            )
+                            CircularIcon(imageVector = Yume.Github, contentDescription = null)
                         },
-                        endActions = {
-                            VersionBadge(versionInfo)
-                        },
+                        endActions = { VersionBadge(versionInfo) },
                     )
                 }
             }
@@ -226,25 +224,28 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 }
 
 @Composable
-private fun VersionBadge(
-    versionInfo: String?
-) {
+private fun VersionBadge(versionInfo: String?) {
     Surface(
         color = MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier
-            .height(SettingsPageMetrics.VersionBadgeHeight)
-            .padding(end = SettingsPageMetrics.VersionBadgeEndPadding)
+        modifier =
+            Modifier.height(SettingsPageMetrics.VersionBadgeHeight)
+                .padding(end = SettingsPageMetrics.VersionBadgeEndPadding),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = SettingsPageMetrics.VersionBadgeHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier =
+                Modifier.padding(horizontal = SettingsPageMetrics.VersionBadgeHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = versionInfo ?: "Unknown", style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = SettingsPageMetrics.VersionBadgeFontSize, fontWeight = FontWeight.Bold
-                ), color = MiuixTheme.colorScheme.primary
+                text = versionInfo ?: "Unknown",
+                style =
+                    MiuixTheme.textStyles.footnote1.copy(
+                        fontSize = SettingsPageMetrics.VersionBadgeFontSize,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                color = MiuixTheme.colorScheme.primary,
             )
         }
     }

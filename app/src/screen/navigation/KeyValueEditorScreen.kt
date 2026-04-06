@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.navigation
 
 import android.annotation.SuppressLint
@@ -43,7 +41,6 @@ import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.DialogDefaults
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.AddCircle
@@ -117,12 +114,12 @@ object EditorDataHolder {
 @SuppressLint("MutableCollectionMutableState")
 @Destination<RootGraph>
 @Composable
-fun StringListEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun StringListEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val topBarHazeState = LocalTopBarHazeState.current
-    var editableItems by remember { mutableStateOf(EditorDataHolder.listEditorItems.toMutableList()) }
+    var editableItems by remember {
+        mutableStateOf(EditorDataHolder.listEditorItems.toMutableList())
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
@@ -134,8 +131,7 @@ fun StringListEditorScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            EditorDataHolder.listEditorCallback?.invoke(
-                editableItems.takeIf { it.isNotEmpty() })
+            EditorDataHolder.listEditorCallback?.invoke(editableItems.takeIf { it.isNotEmpty() })
             EditorDataHolder.clearListEditor()
         }
     }
@@ -148,7 +144,7 @@ fun StringListEditorScreen(
                 actions = {
                     IconButton(
                         onClick = { showResetDialog = true },
-                        modifier = Modifier.padding(end = 16.dp)
+                        modifier = Modifier.padding(end = 16.dp),
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Reset,
@@ -157,7 +153,8 @@ fun StringListEditorScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
-                        onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
+                        onClick = { showAddDialog = true },
+                        modifier = Modifier.padding(end = 24.dp),
                     ) {
                         Icon(
                             imageVector = Yume.`Badge-plus`,
@@ -166,14 +163,17 @@ fun StringListEditorScreen(
                     }
                 },
             )
-        },
+        }
     ) { innerPadding ->
         if (editableItems.isEmpty()) {
             EmptyState(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .let { mod -> if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod }
-                    .padding(innerPadding)
+                modifier =
+                    Modifier.fillMaxSize()
+                        .let { mod ->
+                            if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState)
+                            else mod
+                        }
+                        .padding(innerPadding)
             )
         } else {
             ScreenLazyColumn(
@@ -181,9 +181,7 @@ fun StringListEditorScreen(
                 innerPadding = innerPadding,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                item {
-                    SmallTitle(MLang.Component.Editor.CountItems.format(editableItems.size))
-                }
+                item { SmallTitle(MLang.Component.Editor.CountItems.format(editableItems.size)) }
 
                 itemsIndexed(editableItems) { index, item ->
                     ListItem(
@@ -194,9 +192,8 @@ fun StringListEditorScreen(
                             showEditDialog = true
                         },
                         onDelete = {
-                            editableItems = editableItems.toMutableList().also {
-                                it.removeAt(index)
-                            }
+                            editableItems =
+                                editableItems.toMutableList().also { it.removeAt(index) }
                         },
                     )
                 }
@@ -233,9 +230,7 @@ fun StringListEditorScreen(
             initialValue = editableItems[editingIndex],
             placeholder = placeholder,
             onConfirm = { value ->
-                editableItems = editableItems.toMutableList().also {
-                    it[editingIndex] = value
-                }
+                editableItems = editableItems.toMutableList().also { it[editingIndex] = value }
                 editingIndex = -1
                 showEditDialog = false
             },
@@ -263,10 +258,7 @@ fun StringListEditorScreen(
             defaultWindowInsetsPadding = true,
             content = {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = { showResetDialog = false },
-                        modifier = Modifier.weight(1f),
-                    ) {
+                    Button(onClick = { showResetDialog = false }, modifier = Modifier.weight(1f)) {
                         Text(MLang.Component.Button.Cancel)
                     }
                     Button(
@@ -281,69 +273,63 @@ fun StringListEditorScreen(
                     ) {
                         Text(
                             MLang.Component.Button.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
-            })
+            },
+        )
     }
 }
 
-private val RULE_TYPE_PRESETS = listOf(
-    "DOMAIN",
-    "DOMAIN-SUFFIX",
-    "DOMAIN-KEYWORD",
-    "DOMAIN-WILDCARD",
-    "DOMAIN-REGEX",
-    "GEOSITE",
-    "IP-CIDR",
-    "IP-CIDR6",
-    "IP-SUFFIX",
-    "IP-ASN",
-    "GEOIP",
-    "SRC-GEOIP",
-    "SRC-IP-ASN",
-    "SRC-IP-CIDR",
-    "SRC-IP-SUFFIX",
-    "DST-PORT",
-    "SRC-PORT",
-    "IN-PORT",
-    "IN-TYPE",
-    "IN-USER",
-    "IN-NAME",
-    "PROCESS-PATH",
-    "PROCESS-PATH-WILDCARD",
-    "PROCESS-PATH-REGEX",
-    "PROCESS-NAME",
-    "PROCESS-NAME-WILDCARD",
-    "PROCESS-NAME-REGEX",
-    "UID",
-    "NETWORK",
-    "DSCP",
-    "RULE-SET",
-    "AND",
-    "OR",
-    "NOT",
-    "SUB-RULE",
-    "MATCH",
-)
+private val RULE_TYPE_PRESETS =
+    listOf(
+        "DOMAIN",
+        "DOMAIN-SUFFIX",
+        "DOMAIN-KEYWORD",
+        "DOMAIN-WILDCARD",
+        "DOMAIN-REGEX",
+        "GEOSITE",
+        "IP-CIDR",
+        "IP-CIDR6",
+        "IP-SUFFIX",
+        "IP-ASN",
+        "GEOIP",
+        "SRC-GEOIP",
+        "SRC-IP-ASN",
+        "SRC-IP-CIDR",
+        "SRC-IP-SUFFIX",
+        "DST-PORT",
+        "SRC-PORT",
+        "IN-PORT",
+        "IN-TYPE",
+        "IN-USER",
+        "IN-NAME",
+        "PROCESS-PATH",
+        "PROCESS-PATH-WILDCARD",
+        "PROCESS-PATH-REGEX",
+        "PROCESS-NAME",
+        "PROCESS-NAME-WILDCARD",
+        "PROCESS-NAME-REGEX",
+        "UID",
+        "NETWORK",
+        "DSCP",
+        "RULE-SET",
+        "AND",
+        "OR",
+        "NOT",
+        "SUB-RULE",
+        "MATCH",
+    )
 
-private val RULE_EXTRA_SUPPORTED_TYPES = setOf(
-    "IP-CIDR",
-    "IP-CIDR6",
-    "IP-SUFFIX",
-    "IP-ASN",
-    "GEOIP",
-)
+private val RULE_EXTRA_SUPPORTED_TYPES =
+    setOf("IP-CIDR", "IP-CIDR6", "IP-SUFFIX", "IP-ASN", "GEOIP")
 
-private fun supportsRuleExtra(ruleType: String): Boolean = RULE_EXTRA_SUPPORTED_TYPES.contains(ruleType.uppercase())
+private fun supportsRuleExtra(ruleType: String): Boolean =
+    RULE_EXTRA_SUPPORTED_TYPES.contains(ruleType.uppercase())
 
 @Composable
-private fun RuleAddDialog(
-    title: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun RuleAddDialog(title: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     var ruleType by remember { mutableStateOf("DOMAIN-SUFFIX") }
     var payload by remember { mutableStateOf("") }
     var target by remember { mutableStateOf(MLang.Component.Editor.Rule.TargetReject) }
@@ -351,13 +337,14 @@ private fun RuleAddDialog(
     var useNoResolve by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
 
-    val selectedRuleTypeIndex = RULE_TYPE_PRESETS.indexOfFirst { it.equals(ruleType, ignoreCase = true) }
-        .coerceAtLeast(0)
-    val targetItems = listOf(
-        MLang.Component.Editor.Rule.TargetReject,
-        MLang.Component.Editor.Rule.TargetDirect,
-        MLang.Component.Editor.Rule.TargetMatch,
-    )
+    val selectedRuleTypeIndex =
+        RULE_TYPE_PRESETS.indexOfFirst { it.equals(ruleType, ignoreCase = true) }.coerceAtLeast(0)
+    val targetItems =
+        listOf(
+            MLang.Component.Editor.Rule.TargetReject,
+            MLang.Component.Editor.Rule.TargetDirect,
+            MLang.Component.Editor.Rule.TargetMatch,
+        )
     val selectedTargetIndex = targetItems.indexOf(target).coerceAtLeast(0)
 
     AppDialog(
@@ -376,10 +363,10 @@ private fun RuleAddDialog(
         defaultWindowInsetsPadding = true,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 WindowDropdown(
@@ -426,22 +413,22 @@ private fun RuleAddDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(MLang.Component.Editor.Rule.Src, style = MiuixTheme.textStyles.body2)
-                            Switch(
-                                checked = useSrc,
-                                onCheckedChange = { useSrc = it },
+                            Text(
+                                MLang.Component.Editor.Rule.Src,
+                                style = MiuixTheme.textStyles.body2,
                             )
+                            Switch(checked = useSrc, onCheckedChange = { useSrc = it })
                         }
                         Row(
                             modifier = Modifier.weight(1f),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(MLang.Component.Editor.Rule.NoResolve, style = MiuixTheme.textStyles.body2)
-                            Switch(
-                                checked = useNoResolve,
-                                onCheckedChange = { useNoResolve = it },
+                            Text(
+                                MLang.Component.Editor.Rule.NoResolve,
+                                style = MiuixTheme.textStyles.body2,
                             )
+                            Switch(checked = useNoResolve, onCheckedChange = { useNoResolve = it })
                         }
                     }
                 }
@@ -455,10 +442,7 @@ private fun RuleAddDialog(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                    ) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text(MLang.Component.Button.Cancel)
                     }
                     Button(
@@ -490,20 +474,19 @@ private fun RuleAddDialog(
                     ) {
                         Text(
                             MLang.Component.Button.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
             }
-        })
+        },
+    )
 }
 
 @SuppressLint("MutableCollectionMutableState")
 @Destination<RootGraph>
 @Composable
-fun KeyValueEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun KeyValueEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val topBarHazeState = LocalTopBarHazeState.current
     var editableItems by remember { mutableStateOf(EditorDataHolder.mapEditorItems.toMutableMap()) }
@@ -518,8 +501,7 @@ fun KeyValueEditorScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            EditorDataHolder.mapEditorCallback?.invoke(
-                editableItems.takeIf { it.isNotEmpty() })
+            EditorDataHolder.mapEditorCallback?.invoke(editableItems.takeIf { it.isNotEmpty() })
             EditorDataHolder.clearMapEditor()
         }
     }
@@ -532,7 +514,7 @@ fun KeyValueEditorScreen(
                 actions = {
                     IconButton(
                         onClick = { showResetDialog = true },
-                        modifier = Modifier.padding(end = 16.dp)
+                        modifier = Modifier.padding(end = 16.dp),
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Reset,
@@ -541,7 +523,8 @@ fun KeyValueEditorScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
-                        onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
+                        onClick = { showAddDialog = true },
+                        modifier = Modifier.padding(end = 24.dp),
                     ) {
                         Icon(
                             imageVector = MiuixIcons.AddCircle,
@@ -550,14 +533,17 @@ fun KeyValueEditorScreen(
                     }
                 },
             )
-        },
+        }
     ) { innerPadding ->
         if (editableItems.isEmpty()) {
             EmptyState(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .let { mod -> if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod }
-                    .padding(innerPadding)
+                modifier =
+                    Modifier.fillMaxSize()
+                        .let { mod ->
+                            if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState)
+                            else mod
+                        }
+                        .padding(innerPadding)
             )
         } else {
             ScreenLazyColumn(
@@ -565,9 +551,7 @@ fun KeyValueEditorScreen(
                 innerPadding = innerPadding,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                item {
-                    SmallTitle(MLang.Component.Editor.CountItems.format(editableItems.size))
-                }
+                item { SmallTitle(MLang.Component.Editor.CountItems.format(editableItems.size)) }
 
                 val itemsList = editableItems.toList()
                 itemsIndexed(itemsList) { index, (key, value) ->
@@ -580,9 +564,7 @@ fun KeyValueEditorScreen(
                             showEditDialog = true
                         },
                         onDelete = {
-                            editableItems = editableItems.toMutableMap().also {
-                                it.remove(key)
-                            }
+                            editableItems = editableItems.toMutableMap().also { it.remove(key) }
                         },
                     )
                 }
@@ -597,9 +579,7 @@ fun KeyValueEditorScreen(
             valuePlaceholder = valuePlaceholder,
             existingKeys = editableItems.keys,
             onConfirm = { key, value ->
-                editableItems = editableItems.toMutableMap().also {
-                    it[key] = value
-                }
+                editableItems = editableItems.toMutableMap().also { it[key] = value }
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
@@ -617,10 +597,11 @@ fun KeyValueEditorScreen(
             existingKeys = editableItems.keys,
             currentEditingKey = currentKey,
             onConfirm = { key, value ->
-                editableItems = editableItems.toMutableMap().also {
-                    it.remove(currentKey)
-                    it[key] = value
-                }
+                editableItems =
+                    editableItems.toMutableMap().also {
+                        it.remove(currentKey)
+                        it[key] = value
+                    }
                 editingKey = null
                 showEditDialog = false
             },
@@ -648,10 +629,7 @@ fun KeyValueEditorScreen(
             defaultWindowInsetsPadding = true,
             content = {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = { showResetDialog = false },
-                        modifier = Modifier.weight(1f),
-                    ) {
+                    Button(onClick = { showResetDialog = false }, modifier = Modifier.weight(1f)) {
                         Text(MLang.Component.Button.Cancel)
                     }
                     Button(
@@ -666,11 +644,12 @@ fun KeyValueEditorScreen(
                     ) {
                         Text(
                             MLang.Component.Button.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
-            })
+            },
+        )
     }
 }
 
@@ -679,26 +658,21 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     CenteredText(
         firstLine = MLang.Component.Editor.Empty.Title,
         secondLine = MLang.Component.Editor.Empty.Hint,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 @Composable
-private fun ListItem(
-    index: Int,
-    text: String,
-    onClick: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun ListItem(index: Int, text: String, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(
-                    horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
-                    vertical = KeyValueEditorMetrics.RowVerticalPadding,
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .clickable(onClick = onClick)
+                    .padding(
+                        horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
+                        vertical = KeyValueEditorMetrics.RowVerticalPadding,
+                    ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -710,9 +684,9 @@ private fun ListItem(
             Text(
                 text = text,
                 style = MiuixTheme.textStyles.body1,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
+                modifier =
+                    Modifier.weight(1f)
+                        .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
             )
             IconButton(
                 onClick = onDelete,
@@ -738,13 +712,13 @@ private fun KeyValueItem(
 ) {
     Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(
-                    horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
-                    vertical = KeyValueEditorMetrics.RowVerticalPadding,
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .clickable(onClick = onClick)
+                    .padding(
+                        horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
+                        vertical = KeyValueEditorMetrics.RowVerticalPadding,
+                    ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -754,9 +728,9 @@ private fun KeyValueItem(
                 modifier = Modifier.width(KeyValueEditorMetrics.IndexWidth),
             )
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
+                modifier =
+                    Modifier.weight(1f)
+                        .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding)
             ) {
                 Text(text = key, style = MiuixTheme.textStyles.body1)
                 Text(
@@ -805,9 +779,7 @@ private fun InputDialog(
         defaultWindowInsetsPadding = true,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 TextField(
@@ -817,10 +789,7 @@ private fun InputDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                    ) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text(MLang.Component.Button.Cancel)
                     }
                     Button(
@@ -835,12 +804,13 @@ private fun InputDialog(
                     ) {
                         Text(
                             MLang.Component.Button.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
             }
-        })
+        },
+    )
 }
 
 @Composable
@@ -875,9 +845,7 @@ private fun KeyValueInputDialog(
         defaultWindowInsetsPadding = true,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextField(
@@ -904,10 +872,7 @@ private fun KeyValueInputDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                    ) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text(MLang.Component.Button.Cancel)
                     }
                     Button(
@@ -916,9 +881,11 @@ private fun KeyValueInputDialog(
                             val trimmedValue = value.trim()
 
                             when {
-                                trimmedKey.isBlank() -> keyError = MLang.Component.Editor.Error.KeyEmpty
-                                trimmedKey != currentEditingKey && existingKeys.contains(trimmedKey) -> keyError =
-                                    MLang.Component.Editor.Error.KeyExists
+                                trimmedKey.isBlank() ->
+                                    keyError = MLang.Component.Editor.Error.KeyEmpty
+                                trimmedKey != currentEditingKey &&
+                                    existingKeys.contains(trimmedKey) ->
+                                    keyError = MLang.Component.Editor.Error.KeyExists
 
                                 else -> onConfirm(trimmedKey, trimmedValue)
                             }
@@ -928,10 +895,11 @@ private fun KeyValueInputDialog(
                     ) {
                         Text(
                             MLang.Component.Button.Confirm,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
             }
-        })
+        },
+    )
 }

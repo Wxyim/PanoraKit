@@ -18,26 +18,25 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
+import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.log.Log
 import com.github.yumelira.yumebox.service.common.util.CoreRuntimeConfig
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.notification.ServiceNotificationManager
 import com.github.yumelira.yumebox.service.runtime.session.LocalHttpTransport
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeHost
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeFailure
+import com.github.yumelira.yumebox.service.runtime.session.RuntimeHost
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeSpec
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeStartupLogStore
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntime
@@ -46,11 +45,9 @@ import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
 import com.github.yumelira.yumebox.service.runtime.util.sendClashStarted
 import com.github.yumelira.yumebox.service.runtime.util.sendClashStopped
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
+import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 class ClashService : BaseService() {
     private var reason: String? = null
@@ -64,107 +61,120 @@ class ClashService : BaseService() {
     private lateinit var runtime: SessionRuntime
     private var reloadJob: Job? = null
 
-    private val runtimeEventsReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action ?: return) {
-                Intents.ACTION_PROFILE_CHANGED,
-                Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
+    private val runtimeEventsReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action ?: return) {
+                    Intents.ACTION_PROFILE_CHANGED,
+                    Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
 
-                Intents.ACTION_CLASH_REQUEST_STOP -> {
-                    reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
-                    stopSelf()
+                    Intents.ACTION_CLASH_REQUEST_STOP -> {
+                        reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
+                        stopSelf()
+                    }
                 }
             }
         }
-    }
 
     override fun onCreate() {
         super.onCreate()
 
         runCatching {
-            startupLogStore.append("LOCAL_HTTP service: onCreate begin")
+                startupLogStore.append("LOCAL_HTTP service: onCreate begin")
 
-            notificationManager.createChannel()
-            startForeground(
-                ServiceNotificationManager.HTTP_CONFIG.notificationId,
-                notificationManager.createInitialNotification(),
-            )
-            startupLogStore.append("LOCAL_HTTP service: startForeground done")
+                notificationManager.createChannel()
+                startForeground(
+                    ServiceNotificationManager.HTTP_CONFIG.notificationId,
+                    notificationManager.createInitialNotification(),
+                )
+                startupLogStore.append("LOCAL_HTTP service: startForeground done")
 
-            StatusProvider.clearLegacyStateFiles()
-            StatusProvider.markRuntimeStarted(ProxyMode.Http)
-            CoreRuntimeConfig.applyCustomUserAgentIfPresent(this)
+                StatusProvider.clearLegacyStateFiles()
+                StatusProvider.markRuntimeStarted(ProxyMode.Http)
+                CoreRuntimeConfig.applyCustomUserAgentIfPresent(this)
 
-            runtime = SessionRuntime(
-                host = object : RuntimeHost {
-                    override val context = this@ClashService
-                    override val mode: ProxyMode = ProxyMode.Http
+                runtime =
+                    SessionRuntime(
+                        host =
+                            object : RuntimeHost {
+                                override val context = this@ClashService
+                                override val mode: ProxyMode = ProxyMode.Http
 
-                    override fun onStarting(spec: RuntimeSpec) = Unit
+                                override fun onStarting(spec: RuntimeSpec) = Unit
 
-                    override fun onStarted(spec: RuntimeSpec) {
-                        StatusProvider.markRuntimeStarted(ProxyMode.Http)
-                        sendClashStarted()
-                    }
+                                override fun onStarted(spec: RuntimeSpec) {
+                                    StatusProvider.markRuntimeStarted(ProxyMode.Http)
+                                    sendClashStarted()
+                                }
 
-                    override fun onStopped(reason: String?) {
-                        this@ClashService.reason = reason
-                        StatusProvider.markRuntimeStopped(ProxyMode.Http)
-                        sendClashStopped(reason)
-                    }
+                                override fun onStopped(reason: String?) {
+                                    this@ClashService.reason = reason
+                                    StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                                    sendClashStopped(reason)
+                                }
 
-                    override fun onProfileLoaded(profileUuid: String) {
-                        sendProfileLoaded(UUID.fromString(profileUuid))
-                    }
+                                override fun onProfileLoaded(profileUuid: String) {
+                                    sendProfileLoaded(UUID.fromString(profileUuid))
+                                }
 
-                    override fun onSnapshotChanged(snapshot: RuntimeSnapshot) = Unit
+                                override fun onSnapshotChanged(snapshot: RuntimeSnapshot) = Unit
 
-                    override fun onLogReady(ready: Boolean) = Unit
+                                override fun onLogReady(ready: Boolean) = Unit
 
-                    override fun onLogItem(log: LogMessage) = Unit
+                                override fun onLogItem(log: LogMessage) = Unit
 
-                    override fun reportFailure(error: RuntimeFailure) {
-                        reason = "${error.code.name}: ${error.message}"
-                        startupLogStore.append("LOCAL_HTTP failed=${error.code.name}:${error.message}")
-                        StatusProvider.markRuntimeStopped(ProxyMode.Http)
-                        sendClashStopped(reason)
-                        Log.e("HTTP runtime failed: ${error.code.name} ${error.message}")
-                        stopSelf()
-                    }
-                },
-                transport = LocalHttpTransport(this),
-                scope = this,
-            )
+                                override fun reportFailure(error: RuntimeFailure) {
+                                    reason = "${error.code.name}: ${error.message}"
+                                    startupLogStore.append(
+                                        "LOCAL_HTTP failed=${error.code.name}:${error.message}"
+                                    )
+                                    StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                                    sendClashStopped(reason)
+                                    Log.e(
+                                        "HTTP runtime failed: ${error.code.name} ${error.message}"
+                                    )
+                                    stopSelf()
+                                }
+                            },
+                        transport = LocalHttpTransport(this),
+                        scope = this,
+                    )
 
-            registerRuntimeReceiver()
-            startupLogStore.append("LOCAL_HTTP service: receiver registered")
-            launch {
-                runCatching {
-                    startupLogStore.append("LOCAL_HTTP spec: create begin")
-                    val spec = SessionRuntimeSpecFactory(appContextOrSelf).createHttpSpec()
-                    startupLogStore.append("LOCAL_HTTP spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
-                    val result = runtime.start(spec)
-                    check(result.success) {
-                        result.toException(
-                            defaultCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
-                            defaultMessage = "http runtime start failed",
-                        ).runtimeGatewayMessage("http runtime start failed")
-                    }
-                }.onFailure { error ->
-                    reason = error.runtimeGatewayMessage("http runtime start failed")
-                    startupLogStore.append("LOCAL_HTTP failed=$reason")
-                    StatusProvider.markRuntimeStopped(ProxyMode.Http)
-                    sendClashStopped(reason)
-                    stopSelf()
+                registerRuntimeReceiver()
+                startupLogStore.append("LOCAL_HTTP service: receiver registered")
+                launch {
+                    runCatching {
+                            startupLogStore.append("LOCAL_HTTP spec: create begin")
+                            val spec = SessionRuntimeSpecFactory(appContextOrSelf).createHttpSpec()
+                            startupLogStore.append(
+                                "LOCAL_HTTP spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
+                            )
+                            val result = runtime.start(spec)
+                            check(result.success) {
+                                result
+                                    .toException(
+                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                                        defaultMessage = "http runtime start failed",
+                                    )
+                                    .runtimeGatewayMessage("http runtime start failed")
+                            }
+                        }
+                        .onFailure { error ->
+                            reason = error.runtimeGatewayMessage("http runtime start failed")
+                            startupLogStore.append("LOCAL_HTTP failed=$reason")
+                            StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                            sendClashStopped(reason)
+                            stopSelf()
+                        }
                 }
             }
-        }.onFailure { error ->
-            reason = error.runtimeGatewayMessage("http runtime start failed")
-            startupLogStore.append("LOCAL_HTTP failed=$reason")
-            StatusProvider.markRuntimeStopped(ProxyMode.Http)
-            sendClashStopped(reason)
-            stopSelf()
-        }
+            .onFailure { error ->
+                reason = error.runtimeGatewayMessage("http runtime start failed")
+                startupLogStore.append("LOCAL_HTTP failed=$reason")
+                StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                sendClashStopped(reason)
+                stopSelf()
+            }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -210,22 +220,25 @@ class ClashService : BaseService() {
         reloadJob?.cancel()
         reloadJob = launch {
             startupLogStore.append("LOCAL_HTTP spec: reload create begin")
-            val spec = runCatching {
-                SessionRuntimeSpecFactory(appContextOrSelf).createHttpSpec()
-            }.getOrElse { error ->
-                reason = error.runtimeGatewayMessage("http runtime spec refresh failed")
-                startupLogStore.append("LOCAL_HTTP failed=$reason")
-                Log.w("HTTP runtime spec refresh failed: $reason")
-                return@launch
-            }
-            startupLogStore.append("LOCAL_HTTP spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+            val spec =
+                runCatching { SessionRuntimeSpecFactory(appContextOrSelf).createHttpSpec() }
+                    .getOrElse { error ->
+                        reason = error.runtimeGatewayMessage("http runtime spec refresh failed")
+                        startupLogStore.append("LOCAL_HTTP failed=$reason")
+                        Log.w("HTTP runtime spec refresh failed: $reason")
+                        return@launch
+                    }
+            startupLogStore.append(
+                "LOCAL_HTTP spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
+            )
 
             val result = runtime.reload(spec)
             if (!result.success) {
-                val failure = result.toException(
-                    defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-                    defaultMessage = "http runtime reload failed",
-                )
+                val failure =
+                    result.toException(
+                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                        defaultMessage = "http runtime reload failed",
+                    )
                 reason = failure.runtimeGatewayMessage("http runtime reload failed")
                 startupLogStore.append("LOCAL_HTTP failed=${failure.code.name}:${failure.message}")
                 Log.w("HTTP runtime reload failed: ${failure.code.name} ${failure.message}")

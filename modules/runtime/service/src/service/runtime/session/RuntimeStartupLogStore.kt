@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.session
 
 import android.content.Context
@@ -27,14 +25,8 @@ import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import java.io.File
 
-class RuntimeStartupLogStore(
-    context: Context,
-    private val scope: Scope,
-) {
-    enum class Scope(
-        val fileName: String,
-        val tag: String,
-    ) {
+class RuntimeStartupLogStore(context: Context, private val scope: Scope) {
+    enum class Scope(val fileName: String, val tag: String) {
         LOCAL_TUN("local_tun_startup.log", "LOCAL_TUN"),
         LOCAL_HTTP("local_http_startup.log", "LOCAL_HTTP"),
         ROOT_TUN("root_tun_startup.log", "ROOT_TUN"),

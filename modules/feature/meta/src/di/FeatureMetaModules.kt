@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.di
 
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
@@ -43,6 +41,4 @@ val featureMetaViewModelModule = module {
     }
 }
 
-val featureMetaModules = listOf(
-    featureMetaViewModelModule,
-)
+val featureMetaModules = listOf(featureMetaViewModelModule)

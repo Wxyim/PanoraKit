@@ -18,16 +18,14 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.records
 
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.ProxySort
 import com.github.yumelira.yumebox.service.common.log.Log
 import com.github.yumelira.yumebox.service.runtime.entity.Selection
-import kotlinx.coroutines.delay
 import java.util.*
+import kotlinx.coroutines.delay
 
 internal object SelectionRestoreExecutor {
     private const val queryRetryCount = 3
@@ -50,16 +48,20 @@ internal object SelectionRestoreExecutor {
                 return@forEach
             }
 
-            val currentNodes = group?.proxies
-                ?.mapNotNull { proxy -> proxy.name.trim().takeIf { it.isNotEmpty() } }
-                .orEmpty()
+            val currentNodes =
+                group
+                    ?.proxies
+                    ?.mapNotNull { proxy -> proxy.name.trim().takeIf { it.isNotEmpty() } }
+                    .orEmpty()
             if (targetNode !in currentNodes) {
                 removedAny = clearInvalidSelection(profileUuid, selection, tag) || removedAny
                 return@forEach
             }
 
             if (!patchSelectorWithRetry(groupName, targetNode)) {
-                Log.w("$tag restore selector patch failed: profile=$profileUuid group=$groupName node=$targetNode")
+                Log.w(
+                    "$tag restore selector patch failed: profile=$profileUuid group=$groupName node=$targetNode"
+                )
             }
         }
 
@@ -69,11 +71,11 @@ internal object SelectionRestoreExecutor {
         }
     }
 
-    private suspend fun queryGroupWithRetry(group: String): com.github.yumelira.yumebox.core.model.ProxyGroup? {
+    private suspend fun queryGroupWithRetry(
+        group: String
+    ): com.github.yumelira.yumebox.core.model.ProxyGroup? {
         repeat(queryRetryCount) { attempt ->
-            val result = runCatching {
-                Clash.queryGroup(group, ProxySort.Default)
-            }.getOrNull()
+            val result = runCatching { Clash.queryGroup(group, ProxySort.Default) }.getOrNull()
             if (result != null) {
                 return result
             }
@@ -96,10 +98,16 @@ internal object SelectionRestoreExecutor {
         return false
     }
 
-    private fun clearInvalidSelection(profileUuid: UUID, selection: Selection, tag: String): Boolean {
+    private fun clearInvalidSelection(
+        profileUuid: UUID,
+        selection: Selection,
+        tag: String,
+    ): Boolean {
         val groupName = selection.proxy.trim()
         val targetNode = selection.selected.trim()
-        Log.w("$tag restore selector invalid: profile=$profileUuid group=$groupName node=$targetNode")
+        Log.w(
+            "$tag restore selector invalid: profile=$profileUuid group=$groupName node=$targetNode"
+        )
         SelectionDao.remove(profileUuid, selection.proxy)
         return true
     }

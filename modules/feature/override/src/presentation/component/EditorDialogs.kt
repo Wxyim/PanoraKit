@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.*
@@ -52,14 +50,8 @@ fun StringListEditorDialog(
 ) {
     var editText by remember(title, value) { mutableStateOf(value?.joinToString("\n") ?: "") }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = MLang.Override.Editor.OneItemPerLine,
                 style = MiuixTheme.textStyles.body2,
@@ -70,9 +62,7 @@ fun StringListEditorDialog(
                 value = editText,
                 onValueChange = { editText = it },
                 label = placeholder,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 120.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 maxLines = 20,
             )
             Spacer(modifier = Modifier.height(24.dp))
@@ -128,17 +118,9 @@ fun StringMapEditorDialog(
         }
     }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 320.dp),
-            ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
                 itemsIndexed(entries) { index, entry ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -146,13 +128,17 @@ fun StringMapEditorDialog(
                     ) {
                         TextField(
                             value = entry.first,
-                            onValueChange = { updatedKey -> entries[index] = updatedKey to entry.second },
+                            onValueChange = { updatedKey ->
+                                entries[index] = updatedKey to entry.second
+                            },
                             label = keyPlaceholder,
                             modifier = Modifier.weight(1f),
                         )
                         TextField(
                             value = entry.second,
-                            onValueChange = { updatedValue -> entries[index] = entry.first to updatedValue },
+                            onValueChange = { updatedValue ->
+                                entries[index] = entry.first to updatedValue
+                            },
                             label = valuePlaceholder,
                             modifier = Modifier.weight(1f),
                         )
@@ -160,13 +146,8 @@ fun StringMapEditorDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = { entries.add("" to "") },
-                ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(modifier = Modifier.weight(1f), onClick = { entries.add("" to "") }) {
                     Text(MLang.Override.Editor.AddItem)
                 }
                 Button(
@@ -186,9 +167,8 @@ fun StringMapEditorDialog(
             DialogButtonRow(
                 onCancel = { show.value = false },
                 onConfirm = {
-                    val map = entries
-                        .filter { it.first.isNotBlank() }
-                        .associate { it.first to it.second }
+                    val map =
+                        entries.filter { it.first.isNotBlank() }.associate { it.first to it.second }
                     onValueChange(map.ifEmpty { null })
                     show.value = false
                 },
@@ -215,14 +195,8 @@ fun JsonObjectListEditorDialog(
         value?.forEach { drafts.add(it) }
     }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = MLang.Override.Edit.StructuredObjectListHint,
                 style = MiuixTheme.textStyles.body2,
@@ -234,11 +208,13 @@ fun JsonObjectListEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(drafts) { index, fields ->
-                    Card(
-                        insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                    ) {
+                    Card(insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
                         Text(
-                            text = objectCardTitle(fields, "${MLang.Override.Draft.Object} ${index + 1}"),
+                            text =
+                                objectCardTitle(
+                                    fields,
+                                    "${MLang.Override.Draft.Object} ${index + 1}",
+                                ),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -249,9 +225,7 @@ fun JsonObjectListEditorDialog(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
@@ -263,40 +237,30 @@ fun JsonObjectListEditorDialog(
                             }
                             Button(
                                 modifier = Modifier.weight(1f),
-                                onClick = {
-                                    drafts.add(index + 1, toOrderedJsonElementMap(fields))
-                                },
+                                onClick = { drafts.add(index + 1, toOrderedJsonElementMap(fields)) },
                             ) {
                                 Text(MLang.Override.Editor.Copy)
                             }
                             Button(
                                 modifier = Modifier.weight(1f),
-                                onClick = {
-                                    drafts.removeAt(index)
-                                },
+                                onClick = { drafts.removeAt(index) },
                             ) {
                                 Text(MLang.Override.Card.Delete)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 modifier = Modifier.weight(1f),
                                 enabled = index > 0,
-                                onClick = {
-                                    moveItem(drafts, index, index - 1)
-                                },
+                                onClick = { moveItem(drafts, index, index - 1) },
                             ) {
                                 Text(MLang.Override.Editor.MoveUp)
                             }
                             Button(
                                 modifier = Modifier.weight(1f),
                                 enabled = index < drafts.lastIndex,
-                                onClick = {
-                                    moveItem(drafts, index, index + 1)
-                                },
+                                onClick = { moveItem(drafts, index, index + 1) },
                             ) {
                                 Text(MLang.Override.Editor.MoveDown)
                             }
@@ -316,7 +280,7 @@ fun JsonObjectListEditorDialog(
             ) {
                 Text(
                     text = MLang.Override.Editor.AddObject,
-                        color = MiuixTheme.colorScheme.onPrimary,
+                    color = MiuixTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -361,14 +325,8 @@ fun JsonObjectMapEditorDialog(
         value?.forEach { (key, fields) -> drafts.add(key to fields) }
     }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = MLang.Override.Edit.StructuredProviderDictHint,
                 style = MiuixTheme.textStyles.body2,
@@ -380,13 +338,14 @@ fun JsonObjectMapEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(drafts) { index, draft ->
-                    Card(
-                        insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                    ) {
+                    Card(insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
                         Text(
-                            text = draft.first.ifBlank {
-                                MLang.Override.Editor.Unnamed.format(MLang.Override.Structured.ProxyProviders.ItemLabel)
-                            },
+                            text =
+                                draft.first.ifBlank {
+                                    MLang.Override.Editor.Unnamed.format(
+                                        MLang.Override.Structured.ProxyProviders.ItemLabel
+                                    )
+                                },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -397,9 +356,7 @@ fun JsonObjectMapEditorDialog(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
@@ -431,16 +388,15 @@ fun JsonObjectMapEditorDialog(
             ) {
                 Text(
                     text = MLang.Proxy.Action.AddProvider,
-                        color = MiuixTheme.colorScheme.onPrimary,
+                    color = MiuixTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },
                 onConfirm = {
-                    val mappedValue = drafts
-                        .filter { it.first.isNotBlank() }
-                        .associate { it.first to it.second }
+                    val mappedValue =
+                        drafts.filter { it.first.isNotBlank() }.associate { it.first to it.second }
                     onValueChange(mappedValue.ifEmpty { null })
                     show.value = false
                 },
@@ -482,14 +438,8 @@ fun SubRulesEditorDialog(
         }
     }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = MLang.Override.Edit.SubRuleGroupHint,
                 style = MiuixTheme.textStyles.body2,
@@ -501,25 +451,28 @@ fun SubRulesEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(drafts) { index, draft ->
-                    Card(
-                        insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                    ) {
+                    Card(insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
                         TextField(
                             value = draft.first,
-                            onValueChange = { updatedKey -> drafts[index] = updatedKey to draft.second },
+                            onValueChange = { updatedKey ->
+                                drafts[index] = updatedKey to draft.second
+                            },
                             label = MLang.Override.Editor.SubRuleName,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = if (draft.second.isEmpty()) MLang.Override.Draft.NoRules else MLang.Override.Editor.RulesConfiguredInline.format(draft.second.size),
+                            text =
+                                if (draft.second.isEmpty()) MLang.Override.Draft.NoRules
+                                else
+                                    MLang.Override.Editor.RulesConfiguredInline.format(
+                                        draft.second.size
+                                    ),
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
@@ -553,16 +506,15 @@ fun SubRulesEditorDialog(
             ) {
                 Text(
                     text = MLang.Override.Editor.AddSubRuleGroup,
-                        color = MiuixTheme.colorScheme.onPrimary,
+                    color = MiuixTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },
                 onConfirm = {
-                    val mappedValue = drafts
-                        .filter { it.first.isNotBlank() }
-                        .associate { it.first to it.second }
+                    val mappedValue =
+                        drafts.filter { it.first.isNotBlank() }.associate { it.first to it.second }
                     onValueChange(mappedValue.ifEmpty { null })
                     show.value = false
                 },
@@ -574,7 +526,9 @@ fun SubRulesEditorDialog(
 
     StringListEditorDialog(
         show = showRulesEditor,
-        title = drafts.getOrNull(editingIndex)?.first?.ifBlank { MLang.Override.Editor.EditSubRule } ?: MLang.Override.Editor.EditSubRule,
+        title =
+            drafts.getOrNull(editingIndex)?.first?.ifBlank { MLang.Override.Editor.EditSubRule }
+                ?: MLang.Override.Editor.EditSubRule,
         placeholder = "DOMAIN-SUFFIX,example.com,DIRECT",
         value = drafts.getOrNull(editingIndex)?.second,
         onValueChange = { updatedRules ->
@@ -594,18 +548,13 @@ private fun JsonObjectFieldsDialog(
     onConfirm: (String?, Map<String, JsonElement>) -> Unit,
 ) {
     var keyText by remember(initialKey, initialFields) { mutableStateOf(initialKey ?: "") }
-    var rawJson by remember(initialKey, initialFields) {
-        mutableStateOf(encodeObjectFields(initialFields) ?: "{}")
-    }
+    var rawJson by
+        remember(initialKey, initialFields) {
+            mutableStateOf(encodeObjectFields(initialFields) ?: "{}")
+        }
 
-    AppDialog(
-        show = show.value,
-        title = title,
-        onDismissRequest = { show.value = false },
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-        ) {
+    AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
+        Column(modifier = Modifier.padding(20.dp)) {
             if (initialKey != null) {
                 TextField(
                     value = keyText,
@@ -625,9 +574,7 @@ private fun JsonObjectFieldsDialog(
                 value = rawJson,
                 onValueChange = { rawJson = it },
                 label = "{ \"name\": \"proxy\", \"type\": \"ss\" }",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 220.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp),
                 maxLines = 30,
             )
             Spacer(modifier = Modifier.height(24.dp))
@@ -635,10 +582,7 @@ private fun JsonObjectFieldsDialog(
                 onCancel = { show.value = false },
                 onConfirm = {
                     val fields = decodeObjectFields(rawJson).orEmpty()
-                    onConfirm(
-                        initialKey?.let { keyText.takeIf(String::isNotBlank) ?: "" },
-                        fields,
-                    )
+                    onConfirm(initialKey?.let { keyText.takeIf(String::isNotBlank) ?: "" }, fields)
                     show.value = false
                 },
                 cancelText = MLang.Override.Dialog.Button.Cancel,
@@ -648,10 +592,7 @@ private fun JsonObjectFieldsDialog(
     }
 }
 
-private fun objectCardTitle(
-    fields: Map<String, JsonElement>,
-    fallbackTitle: String,
-): String {
+private fun objectCardTitle(fields: Map<String, JsonElement>, fallbackTitle: String): String {
     val nameField = fields["name"]?.let(::jsonElementToEditorValue)
     return nameField?.takeIf(String::isNotBlank) ?: fallbackTitle
 }

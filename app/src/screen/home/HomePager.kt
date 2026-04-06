@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import android.widget.Toast
@@ -29,8 +27,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -69,7 +67,14 @@ fun HomePager(
     uiMessage: String?,
     onConsumeError: () -> Unit = {},
     onConsumeMessage: () -> Unit = {},
-    onProxyToggleRequest: (isRunning: Boolean, recommendedProfile: com.github.yumelira.yumebox.service.runtime.entity.Profile?, proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode) -> Unit = { _, _, _ -> },
+    onProxyToggleRequest:
+        (
+            isRunning: Boolean,
+            recommendedProfile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
+            proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode,
+        ) -> Unit =
+        { _, _, _ ->
+        },
     onModeSwitchRequest: () -> Unit = {},
     onModeBadgeBoundsChanged: (Rect) -> Unit = {},
 ) {
@@ -84,11 +89,7 @@ fun HomePager(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(uiMessage) {
-        uiMessage?.let {
-            onConsumeMessage()
-        }
-    }
+    androidx.compose.runtime.LaunchedEffect(uiMessage) { uiMessage?.let { onConsumeMessage() } }
 
     val scrollBehavior = MiuixScrollBehavior()
 
@@ -96,11 +97,11 @@ fun HomePager(
     val toggleInteractionSource = remember { MutableInteractionSource() }
     val modeInteractionSource = remember { MutableInteractionSource() }
     val statsInteractionSource = remember { MutableInteractionSource() }
-    val gestureSurfaceHeight = (
-        configuration.screenHeightDp.dp -
-            mainInnerPadding.calculateTopPadding() -
-            mainInnerPadding.calculateBottomPadding()
-        ).coerceAtLeast(360.dp)
+    val gestureSurfaceHeight =
+        (configuration.screenHeightDp.dp -
+                mainInnerPadding.calculateTopPadding() -
+                mainInnerPadding.calculateBottomPadding())
+            .coerceAtLeast(360.dp)
     val upperHalfHeight = gestureSurfaceHeight * 0.5f
 
     val handleProxyToggle = {
@@ -111,39 +112,44 @@ fun HomePager(
         }
     }
 
-    Scaffold(
-        topBar = { TopBar(title = MLang.Home.Title, scrollBehavior = scrollBehavior) },
-    ) { innerPadding ->
+    Scaffold(topBar = { TopBar(title = MLang.Home.Title, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
         ) {
             item {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = gestureSurfaceHeight)
-                        .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(min = gestureSurfaceHeight)
+                            .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
                 ) {
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val contentScale = (maxWidth / 390.dp).coerceIn(0.9f, 1f)
-                        val sectionSpacing = (AppConstants.UI.DEFAULT_VERTICAL_SPACING * contentScale)
-                            .coerceIn(18.dp, AppConstants.UI.DEFAULT_VERTICAL_SPACING)
+                        val sectionSpacing =
+                            (AppConstants.UI.DEFAULT_VERTICAL_SPACING * contentScale).coerceIn(
+                                18.dp,
+                                AppConstants.UI.DEFAULT_VERTICAL_SPACING,
+                            )
                         val infoSpacing = (16.dp * contentScale).coerceIn(12.dp, 16.dp)
-                        val chartHeight = (AppConstants.UI.SPEED_CHART_HEIGHT * contentScale)
-                            .coerceIn(112.dp, AppConstants.UI.SPEED_CHART_HEIGHT)
+                        val chartHeight =
+                            (AppConstants.UI.SPEED_CHART_HEIGHT * contentScale).coerceIn(
+                                112.dp,
+                                AppConstants.UI.SPEED_CHART_HEIGHT,
+                            )
 
                         Column(
                             horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.spacedBy(sectionSpacing)
+                            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                         ) {
-
                             TrafficDisplay(
-                                trafficNow = if (displayRunning) {
-                                    trafficNow
-                                } else {
-                                    TrafficData.ZERO
-                                },
+                                trafficNow =
+                                    if (displayRunning) {
+                                        trafficNow
+                                    } else {
+                                        TrafficData.ZERO
+                                    },
                                 profileName = currentProfileName,
                                 tunnelMode = currentTunnelMode,
                                 isRunning = displayRunning,
@@ -151,9 +157,7 @@ fun HomePager(
                                 onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                             )
 
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(sectionSpacing)
-                            ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
                                 Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
                                     NodeInfoDisplay(
                                         selectedServer = selectedServer,
@@ -170,58 +174,51 @@ fun HomePager(
                                         navigator.navigate(TrafficStatisticsScreenDestination) {
                                             launchSingleTop = true
                                         }
-                                    }
+                                    },
                                 )
                             }
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(upperHalfHeight)
-                        ) {
+                    Box(modifier = Modifier.matchParentSize()) {
+                        Row(modifier = Modifier.fillMaxWidth().height(upperHalfHeight)) {
                             Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clickable(
-                                        enabled = isProxyEnabled,
-                                        interactionSource = toggleInteractionSource,
-                                        indication = null,
-                                        onClick = handleProxyToggle,
-                                    )
+                                modifier =
+                                    Modifier.weight(1f)
+                                        .fillMaxHeight()
+                                        .clickable(
+                                            enabled = isProxyEnabled,
+                                            interactionSource = toggleInteractionSource,
+                                            indication = null,
+                                            onClick = handleProxyToggle,
+                                        )
                             )
                             Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clickable(
-                                        interactionSource = modeInteractionSource,
-                                        indication = null,
-                                        onClick = onModeSwitchRequest,
-                                    )
+                                modifier =
+                                    Modifier.weight(1f)
+                                        .fillMaxHeight()
+                                        .clickable(
+                                            interactionSource = modeInteractionSource,
+                                            indication = null,
+                                            onClick = onModeSwitchRequest,
+                                        )
                             )
                         }
 
                         Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .fillMaxWidth()
-                                .height(gestureSurfaceHeight - upperHalfHeight)
-                                .clickable(
-                                    interactionSource = statsInteractionSource,
-                                    indication = null,
-                                    onClick = {
-                                        navigator.navigate(TrafficStatisticsScreenDestination) {
-                                            launchSingleTop = true
-                                        }
-                                    },
-                                )
+                            modifier =
+                                Modifier.align(Alignment.BottomStart)
+                                    .fillMaxWidth()
+                                    .height(gestureSurfaceHeight - upperHalfHeight)
+                                    .clickable(
+                                        interactionSource = statsInteractionSource,
+                                        indication = null,
+                                        onClick = {
+                                            navigator.navigate(TrafficStatisticsScreenDestination) {
+                                                launchSingleTop = true
+                                            }
+                                        },
+                                    )
                         )
                     }
                 }

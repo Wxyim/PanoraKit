@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.log
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -56,6 +54,10 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -64,10 +66,6 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 private object LogScreenMetrics {
     val TopBarActionEndPadding = 24.dp
@@ -101,33 +99,35 @@ fun LogScreen(navigator: DestinationsNavigator) {
     val viewingHistory = selectedHistoryFileName != null
     val viewingStartup = selectedStartupFileName != null
     val viewingSavedFile = viewingHistory || viewingStartup
-    val displayEntries = when {
-        viewingHistory -> selectedHistoryEntries
-        viewingStartup -> selectedStartupEntries
-        else -> logEntries
-    }
+    val displayEntries =
+        when {
+            viewingHistory -> selectedHistoryEntries
+            viewingStartup -> selectedStartupEntries
+            else -> logEntries
+        }
 
     var fabHidden by rememberSaveable { mutableStateOf(false) }
     val listState = remember { LazyListState() }
     val dateFormatter = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
 
-    val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri ->
-        uri ?: return@rememberLauncherForActivityResult
-        scope.launch(Dispatchers.IO) {
-            val success = viewModel.saveCurrentViewLog(uri)
-            if (!success) {
-                launch(Dispatchers.Main) {
-                    context.toast(MLang.Util.Error.UnknownError)
+    val saveFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("text/plain")
+        ) { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val success = viewModel.saveCurrentViewLog(uri)
+                if (!success) {
+                    launch(Dispatchers.Main) { context.toast(MLang.Util.Error.UnknownError) }
                 }
             }
         }
-    }
 
     LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index }.collect { firstVisibleItemIndex ->
-                val previousFirstVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
+            .collect { firstVisibleItemIndex ->
+                val previousFirstVisibleItemIndex =
+                    listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index
                 if (previousFirstVisibleItemIndex != null && firstVisibleItemIndex != null) {
                     fabHidden = firstVisibleItemIndex > previousFirstVisibleItemIndex
                 }
@@ -159,14 +159,18 @@ fun LogScreen(navigator: DestinationsNavigator) {
                     if (displayEntries.isNotEmpty()) {
                         IconButton(
                             onClick = {
-                                val prefix = when {
-                                    viewingHistory -> "history"
-                                    viewingStartup -> "startup"
-                                    else -> "live"
-                                }
-                                saveFileLauncher.launch("${prefix}_log_${System.currentTimeMillis()}.txt")
+                                val prefix =
+                                    when {
+                                        viewingHistory -> "history"
+                                        viewingStartup -> "startup"
+                                        else -> "live"
+                                    }
+                                saveFileLauncher.launch(
+                                    "${prefix}_log_${System.currentTimeMillis()}.txt"
+                                )
                             },
-                            modifier = Modifier.padding(end = LogScreenMetrics.TopBarActionEndPadding)
+                            modifier =
+                                Modifier.padding(end = LogScreenMetrics.TopBarActionEndPadding),
                         ) {
                             Icon(
                                 imageVector = Yume.Share,
@@ -174,44 +178,53 @@ fun LogScreen(navigator: DestinationsNavigator) {
                             )
                         }
                     }
-                })
+                },
+            )
         },
         floatingActionButton = {
             AnimatedVisibility(
                 visible = !fabHidden,
-                enter = scaleIn(
-                    animationSpec = tween(
-                        durationMillis = AnimationSpecs.Proxy.FabDuration,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
-                    ),
-                    initialScale = AnimationSpecs.Proxy.VisibilityInitialScale,
-                ) + fadeIn(
-                    animationSpec = tween(
-                        durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
-                    ),
-                ),
-                exit = scaleOut(
-                    animationSpec = tween(
-                        durationMillis = AnimationSpecs.Proxy.FabDuration,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
-                    ),
-                    targetScale = AnimationSpecs.Proxy.VisibilityTargetScale,
-                ) + fadeOut(
-                    animationSpec = tween(
-                        durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
-                    ),
-                ),
+                enter =
+                    scaleIn(
+                        animationSpec =
+                            tween(
+                                durationMillis = AnimationSpecs.Proxy.FabDuration,
+                                easing = AnimationSpecs.EmphasizedDecelerate,
+                            ),
+                        initialScale = AnimationSpecs.Proxy.VisibilityInitialScale,
+                    ) +
+                        fadeIn(
+                            animationSpec =
+                                tween(
+                                    durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
+                                    easing = AnimationSpecs.EmphasizedDecelerate,
+                                )
+                        ),
+                exit =
+                    scaleOut(
+                        animationSpec =
+                            tween(
+                                durationMillis = AnimationSpecs.Proxy.FabDuration,
+                                easing = AnimationSpecs.EmphasizedDecelerate,
+                            ),
+                        targetScale = AnimationSpecs.Proxy.VisibilityTargetScale,
+                    ) +
+                        fadeOut(
+                            animationSpec =
+                                tween(
+                                    durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
+                                    easing = AnimationSpecs.EmphasizedDecelerate,
+                                )
+                        ),
                 label = "log_record_fab_visibility",
             ) {
                 FloatingActionButton(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(
-                            end = LogScreenMetrics.FabEndPadding,
-                            bottom = LogScreenMetrics.FabBottomPadding,
-                        ),
+                    modifier =
+                        Modifier.navigationBarsPadding()
+                            .padding(
+                                end = LogScreenMetrics.FabEndPadding,
+                                bottom = LogScreenMetrics.FabBottomPadding,
+                            ),
                     onClick = {
                         if (isRecording) {
                             viewModel.stopRecording()
@@ -222,14 +235,22 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 ) {
                     Icon(
                         imageVector = if (isRecording) Yume.PowerOff else Yume.Play,
-                        contentDescription = if (isRecording) MLang.Log.Action.StopRecording else MLang.Log.Action.StartRecording,
+                        contentDescription =
+                            if (isRecording) MLang.Log.Action.StopRecording
+                            else MLang.Log.Action.StartRecording,
                         tint = MiuixTheme.colorScheme.onPrimary,
                     )
                 }
             }
         },
     ) { innerPadding ->
-        if (!viewingSavedFile && logEntries.isEmpty() && isRecording.not() && historyFiles.isEmpty() && startupFiles.isEmpty()) {
+        if (
+            !viewingSavedFile &&
+                logEntries.isEmpty() &&
+                isRecording.not() &&
+                historyFiles.isEmpty() &&
+                startupFiles.isEmpty()
+        ) {
             CenteredText(
                 firstLine = MLang.Log.Empty.NoLogs,
                 secondLine = MLang.Log.Empty.StartRecordingHint,
@@ -253,102 +274,109 @@ fun LogScreen(navigator: DestinationsNavigator) {
         ) {
             if (viewingSavedFile) {
                 item(key = "history_header") {
-                    Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+                    Card(
+                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.closeHistoryViewer() }
-                                .padding(
-                                    horizontal = LogScreenMetrics.CardHorizontalPadding,
-                                    vertical = LogScreenMetrics.CardVerticalInnerPadding,
-                                ),
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .clickable { viewModel.closeHistoryViewer() }
+                                    .padding(
+                                        horizontal = LogScreenMetrics.CardHorizontalPadding,
+                                        vertical = LogScreenMetrics.CardVerticalInnerPadding,
+                                    ),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(imageVector = Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
+                                Icon(
+                                    imageVector = Yume.ArrowLeft,
+                                    contentDescription = MLang.Component.Navigation.Back,
+                                )
                                 Text(
-                                    text = selectedHistoryFileName ?: selectedStartupFileName.orEmpty(),
+                                    text =
+                                        selectedHistoryFileName
+                                            ?: selectedStartupFileName.orEmpty(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            IconButton(onClick = {
-                                scope.launch {
-                                    val historyFileName = selectedHistoryFileName
-                                    val startupFileName = selectedStartupFileName
-                                    val success = when {
-                                        historyFileName != null -> {
-                                            viewModel.deleteHistoryFile(historyFileName)
-                                        }
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        val historyFileName = selectedHistoryFileName
+                                        val startupFileName = selectedStartupFileName
+                                        val success =
+                                            when {
+                                                historyFileName != null -> {
+                                                    viewModel.deleteHistoryFile(historyFileName)
+                                                }
 
-                                        startupFileName != null -> {
-                                            viewModel.deleteStartupFile(startupFileName)
-                                        }
+                                                startupFileName != null -> {
+                                                    viewModel.deleteStartupFile(startupFileName)
+                                                }
 
-                                        else -> false
-                                    }
-                                    if (!success) {
-                                        context.toast(MLang.Util.Error.UnknownError)
+                                                else -> false
+                                            }
+                                        if (!success) {
+                                            context.toast(MLang.Util.Error.UnknownError)
+                                        }
                                     }
                                 }
-                            }) {
-                                Icon(imageVector = Yume.Delete, contentDescription = MLang.Component.Editor.Action.Delete)
+                            ) {
+                                Icon(
+                                    imageVector = Yume.Delete,
+                                    contentDescription = MLang.Component.Editor.Action.Delete,
+                                )
                             }
                         }
                     }
                 }
             } else if (historyFiles.isNotEmpty()) {
-                item(key = "history_title") {
-                    SmallTitle(MLang.Log.History.Title)
-                }
-                itemsIndexed(
-                    items = historyFiles,
-                    key = { _, item -> item.name },
-                ) { _, file ->
-                    Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+                item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
+                itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file ->
+                    Card(
+                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                    ) {
                         SuperArrow(
                             title = file.name,
-                            summary = MLang.Log.History.ItemSummary.format(
-                                dateFormatter.format(Date(file.createdAt)),
-                                formatFileSize(file.size),
-                            ) + if (file.isRecording) " · ${MLang.Log.History.Recording}" else "",
+                            summary =
+                                MLang.Log.History.ItemSummary.format(
+                                    dateFormatter.format(Date(file.createdAt)),
+                                    formatFileSize(file.size),
+                                ) +
+                                    if (file.isRecording) " · ${MLang.Log.History.Recording}"
+                                    else "",
                             onClick = { viewModel.openHistoryFile(file.name) },
                         )
                     }
                 }
-                item(key = "live_title") {
-                    SmallTitle(MLang.Log.History.LiveSection)
-                }
+                item(key = "live_title") { SmallTitle(MLang.Log.History.LiveSection) }
             }
 
             if (!viewingSavedFile && startupFiles.isNotEmpty()) {
-                item(key = "startup_title") {
-                    SmallTitle(MLang.Log.Startup.Title)
-                }
-                itemsIndexed(
-                    items = startupFiles,
-                    key = { _, item -> item.name },
-                ) { _, file ->
-                    Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+                item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
+                itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file ->
+                    Card(
+                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                    ) {
                         SuperArrow(
                             title = file.name,
-                            summary = MLang.Log.Startup.ItemSummary.format(
-                                dateFormatter.format(Date(file.updatedAt)),
-                                formatFileSize(file.size),
-                            ),
+                            summary =
+                                MLang.Log.Startup.ItemSummary.format(
+                                    dateFormatter.format(Date(file.updatedAt)),
+                                    formatFileSize(file.size),
+                                ),
                             onClick = { viewModel.openStartupFile(file.name) },
                         )
                     }
                 }
-                item(key = "startup_live_title") {
-                    SmallTitle(MLang.Log.Startup.LiveSection)
-                }
+                item(key = "startup_live_title") { SmallTitle(MLang.Log.Startup.LiveSection) }
             }
 
             val reversed = displayEntries.asReversed()
             itemsIndexed(
                 items = reversed,
-                key = { index, item -> "${item.time}_${item.level}_${item.message}_$index" }
+                key = { index, item -> "${item.time}_${item.level}_${item.message}_$index" },
             ) { _, entry ->
                 LogEntryRow(entry = entry)
             }
@@ -366,23 +394,24 @@ private fun formatFileSize(bytes: Long): String {
 
 @Composable
 private fun LogEntryRow(entry: LogViewModel.LogEntry) {
-    val levelColor = when (entry.level) {
-        LogMessage.Level.Debug -> Color(0xFF9E9E9E)
-        LogMessage.Level.Info -> MiuixTheme.colorScheme.primary
-        LogMessage.Level.Warning -> Color(0xFFFF9800)
-        LogMessage.Level.Error -> Color(0xFFF44336)
-        LogMessage.Level.Silent -> Color(0xFF9E9E9E)
-        LogMessage.Level.Unknown -> Color(0xFF9E9E9E)
-    }
+    val levelColor =
+        when (entry.level) {
+            LogMessage.Level.Debug -> Color(0xFF9E9E9E)
+            LogMessage.Level.Info -> MiuixTheme.colorScheme.primary
+            LogMessage.Level.Warning -> Color(0xFFFF9800)
+            LogMessage.Level.Error -> Color(0xFFF44336)
+            LogMessage.Level.Silent -> Color(0xFF9E9E9E)
+            LogMessage.Level.Unknown -> Color(0xFF9E9E9E)
+        }
 
     Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = LogScreenMetrics.CardHorizontalPadding,
-                    vertical = LogScreenMetrics.CardVerticalInnerPadding,
-                )
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(
+                        horizontal = LogScreenMetrics.CardHorizontalPadding,
+                        vertical = LogScreenMetrics.CardVerticalInnerPadding,
+                    )
         ) {
             if (entry.time.isNotBlank()) {
                 Row(
@@ -391,18 +420,20 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
                 ) {
                     Text(
                         text = entry.time,
-                        style = MiuixTheme.textStyles.body2.copy(
-                            fontSize = LogScreenMetrics.MetaFontSize,
-                            fontFamily = FontFamily.Monospace,
-                        ),
+                        style =
+                            MiuixTheme.textStyles.body2.copy(
+                                fontSize = LogScreenMetrics.MetaFontSize,
+                                fontFamily = FontFamily.Monospace,
+                            ),
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                     Text(
                         text = entry.level.name.uppercase().take(1),
-                        style = MiuixTheme.textStyles.body2.copy(
-                            fontSize = LogScreenMetrics.MetaFontSize,
-                            fontFamily = FontFamily.Monospace,
-                        ),
+                        style =
+                            MiuixTheme.textStyles.body2.copy(
+                                fontSize = LogScreenMetrics.MetaFontSize,
+                                fontFamily = FontFamily.Monospace,
+                            ),
                         color = levelColor,
                     )
                 }
@@ -410,10 +441,11 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
             Spacer(modifier = Modifier.size(LogScreenMetrics.MessageTopSpacing))
             Text(
                 text = entry.message,
-                style = MiuixTheme.textStyles.body2.copy(
-                    fontSize = LogScreenMetrics.MessageFontSize,
-                    fontFamily = FontFamily.Monospace,
-                ),
+                style =
+                    MiuixTheme.textStyles.body2.copy(
+                        fontSize = LogScreenMetrics.MessageFontSize,
+                        fontFamily = FontFamily.Monospace,
+                    ),
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
             )

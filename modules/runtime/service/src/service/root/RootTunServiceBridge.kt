@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.root
 
 import android.content.Context
@@ -35,18 +33,20 @@ internal object RootTunServiceBridge {
     suspend fun start(context: Context): RootTunOperationResult {
         val appContext = context.appContextOrSelf
         val request = RootTunStartRequest(source = "service.bridge.start")
-        val result = runCatching {
-            withContext(Dispatchers.IO) {
-                val service = RootTunRemoteClient.bind(appContext)
-                val resultJson = service.startRootTun(RootTunJson.encode(request))
-                RootTunJson.decode<RootTunOperationResult>(resultJson)
-            }
-        }.getOrElse { error ->
-            return error.toRootTunOperationResult(
-                fallbackCode = RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
-                fallbackMessage = "RootTun service bridge start failed",
-            )
-        }
+        val result =
+            runCatching {
+                    withContext(Dispatchers.IO) {
+                        val service = RootTunRemoteClient.bind(appContext)
+                        val resultJson = service.startRootTun(RootTunJson.encode(request))
+                        RootTunJson.decode<RootTunOperationResult>(resultJson)
+                    }
+                }
+                .getOrElse { error ->
+                    return error.toRootTunOperationResult(
+                        fallbackCode = RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+                        fallbackMessage = "RootTun service bridge start failed",
+                    )
+                }
         if (result.success) {
             RootTunService.start(appContext)
         }
@@ -54,13 +54,14 @@ internal object RootTunServiceBridge {
     }
 
     suspend fun stop(context: Context): RootTunOperationResult {
-        val result = RootTunRemoteClient.remoteCall(
-            context = context,
-            onBinderFailure = { RootTunOperationResult(success = true) },
-        ) { service ->
-            val resultJson = service.stopRootTun()
-            RootTunJson.decode<RootTunOperationResult>(resultJson)
-        }
+        val result =
+            RootTunRemoteClient.remoteCall(
+                context = context,
+                onBinderFailure = { RootTunOperationResult(success = true) },
+            ) { service ->
+                val resultJson = service.stopRootTun()
+                RootTunJson.decode<RootTunOperationResult>(resultJson)
+            }
         RootTunRemoteClient.disconnect()
         return result
     }
@@ -101,9 +102,10 @@ internal object RootTunServiceBridge {
         return RootTunOperationResult(
             success = false,
             errorCode = gateway?.code ?: fallbackCode,
-            error = gateway?.message?.takeIf { it.isNotBlank() }
-                ?: message?.takeIf { it.isNotBlank() }
-                ?: fallbackMessage,
+            error =
+                gateway?.message?.takeIf { it.isNotBlank() }
+                    ?: message?.takeIf { it.isNotBlank() }
+                    ?: fallbackMessage,
         )
     }
 }

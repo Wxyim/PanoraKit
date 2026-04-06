@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import android.app.Application
@@ -34,13 +32,13 @@ import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.root.RootPackageShell
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 class AccessControlViewModel(
     application: Application,
@@ -49,17 +47,18 @@ class AccessControlViewModel(
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(AccessControlUiState())
     val uiState: StateFlow<AccessControlUiState> = _uiState.asStateFlow()
-    val filteredApps: StateFlow<List<AccessControlAppInfo>> = _uiState
-        .map { state ->
-            AccessControlFilter.filterApps(
-                apps = state.apps,
-                query = state.searchQuery,
-                showSystemApps = state.showSystemApps,
-                sortMode = state.sortMode,
-                selectedFirst = state.selectedFirst
-            )
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val filteredApps: StateFlow<List<AccessControlAppInfo>> =
+        _uiState
+            .map { state ->
+                AccessControlFilter.filterApps(
+                    apps = state.apps,
+                    query = state.searchQuery,
+                    showSystemApps = state.showSystemApps,
+                    sortMode = state.sortMode,
+                    selectedFirst = state.selectedFirst,
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private var applyPackagesJob: Job? = null
 
     init {
@@ -75,15 +74,19 @@ class AccessControlViewModel(
             return
         }
 
-        val hasPermission = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        val hasPermission =
+            ContextCompat.checkSelfPermission(context, permission) ==
+                PackageManager.PERMISSION_GRANTED
 
         if (hasPermission) {
             loadApps()
         } else {
-            val isMiui = runCatching {
-                val permissionInfo = context.packageManager.getPermissionInfo(permission, 0)
-                permissionInfo.packageName == "com.lbe.security.miui"
-            }.getOrElse { false }
+            val isMiui =
+                runCatching {
+                        val permissionInfo = context.packageManager.getPermissionInfo(permission, 0)
+                        permissionInfo.packageName == "com.lbe.security.miui"
+                    }
+                    .getOrElse { false }
 
             if (isMiui) {
                 _uiState.update { it.copy(needsMiuiPermission = true, isLoading = false) }
@@ -103,21 +106,17 @@ class AccessControlViewModel(
             _uiState.update { it.copy(isLoading = true) }
 
             val selectedPackages = networkSettingsStorage.accessControlPackages.value
-            val apps = runCatching {
-                withContext(Dispatchers.IO) {
-                    loadInstalledApps(selectedPackages)
-                }
-            }.getOrElse {
-                _uiState.update { state -> state.copy(isLoading = false, needsMiuiPermission = true) }
-                return@launch
-            }
+            val apps =
+                runCatching { withContext(Dispatchers.IO) { loadInstalledApps(selectedPackages) } }
+                    .getOrElse {
+                        _uiState.update { state ->
+                            state.copy(isLoading = false, needsMiuiPermission = true)
+                        }
+                        return@launch
+                    }
 
             _uiState.update { state ->
-                state.copy(
-                    isLoading = false,
-                    apps = apps,
-                    selectedPackages = selectedPackages,
-                )
+                state.copy(isLoading = false, apps = apps, selectedPackages = selectedPackages)
             }
         }
     }
@@ -127,44 +126,29 @@ class AccessControlViewModel(
     }
 
     fun onSearchQueryChange(query: String) {
-        _uiState.update { state ->
-            state.copy(
-                searchQuery = query,
-            )
-        }
+        _uiState.update { state -> state.copy(searchQuery = query) }
     }
 
     fun onSortModeChange(mode: AccessControlSortMode) {
-        _uiState.update { state ->
-            state.copy(
-                sortMode = mode,
-            )
-        }
+        _uiState.update { state -> state.copy(sortMode = mode) }
     }
 
     fun onSelectedFirstChange(selectedFirst: Boolean) {
-        _uiState.update { state ->
-            state.copy(
-                selectedFirst = selectedFirst,
-            )
-        }
+        _uiState.update { state -> state.copy(selectedFirst = selectedFirst) }
     }
 
     fun onShowSystemAppsChange(show: Boolean) {
-        _uiState.update { state ->
-            state.copy(
-                showSystemApps = show,
-            )
-        }
+        _uiState.update { state -> state.copy(showSystemApps = show) }
     }
 
     fun onAppSelectionChange(packageName: String, selected: Boolean) {
         _uiState.update { state ->
-            val newSelectedPackages = if (selected) {
-                state.selectedPackages + packageName
-            } else {
-                state.selectedPackages - packageName
-            }
+            val newSelectedPackages =
+                if (selected) {
+                    state.selectedPackages + packageName
+                } else {
+                    state.selectedPackages - packageName
+                }
             AccessControlSelection.updateSelection(state, newSelectedPackages)
         }
 
@@ -194,7 +178,8 @@ class AccessControlViewModel(
             val allPackages = AccessControlSelection.visiblePackages(state)
             val newSelectedPackages = state.selectedPackages.toMutableSet()
             allPackages.forEach { pkg ->
-                if (newSelectedPackages.contains(pkg)) newSelectedPackages.remove(pkg) else newSelectedPackages.add(pkg)
+                if (newSelectedPackages.contains(pkg)) newSelectedPackages.remove(pkg)
+                else newSelectedPackages.add(pkg)
             }
             AccessControlSelection.updateSelection(state, newSelectedPackages)
         }
@@ -212,22 +197,23 @@ class AccessControlViewModel(
     private fun applyRegionalSelectionInCurrentList(selectChina: Boolean): Int {
         var selectedCount = 0
         _uiState.update { state ->
-            val currentVisibleApps = AccessControlFilter.filterApps(
-                apps = state.apps,
-                query = state.searchQuery,
-                showSystemApps = state.showSystemApps,
-                sortMode = state.sortMode,
-                selectedFirst = state.selectedFirst,
-            )
+            val currentVisibleApps =
+                AccessControlFilter.filterApps(
+                    apps = state.apps,
+                    query = state.searchQuery,
+                    showSystemApps = state.showSystemApps,
+                    sortMode = state.sortMode,
+                    selectedFirst = state.selectedFirst,
+                )
             val currentPackages = currentVisibleApps.mapTo(mutableSetOf()) { it.packageName }
-            val targetPackages = currentVisibleApps
-                .filter { it.isChinaApp == selectChina }
-                .mapTo(mutableSetOf()) { it.packageName }
+            val targetPackages =
+                currentVisibleApps
+                    .filter { it.isChinaApp == selectChina }
+                    .mapTo(mutableSetOf()) { it.packageName }
             selectedCount = targetPackages.size
 
-            val newSelectedPackages = state.selectedPackages
-                .minus(currentPackages)
-                .plus(targetPackages)
+            val newSelectedPackages =
+                state.selectedPackages.minus(currentPackages).plus(targetPackages)
             AccessControlSelection.updateSelection(state, newSelectedPackages)
         }
         persistSelectionAndApply()
@@ -239,10 +225,7 @@ class AccessControlViewModel(
     }
 
     fun importPackages(text: String): Int {
-        val packages = text.lines()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .toSet()
+        val packages = text.lines().map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
         _uiState.update { state ->
             val validPackages = packages.intersect(state.apps.map { it.packageName }.toSet())
@@ -258,18 +241,20 @@ class AccessControlViewModel(
         networkSettingsStorage.accessControlPackages.set(_uiState.value.selectedPackages)
 
         applyPackagesJob?.cancel()
-        applyPackagesJob = viewModelScope.launch {
-            delay(350L)
+        applyPackagesJob =
+            viewModelScope.launch {
+                delay(350L)
 
-            if (!proxyFacade.isRunning.value) return@launch
-            val activeMode = RuntimeStateMapper.modeForOwner(proxyFacade.runtimeSnapshot.value.owner)
-            if (activeMode == ProxyMode.Http) return@launch
-            if (networkSettingsStorage.accessControlMode.value == AccessControlMode.ALLOW_ALL) return@launch
+                if (!proxyFacade.isRunning.value) return@launch
+                val activeMode =
+                    RuntimeStateMapper.modeForOwner(proxyFacade.runtimeSnapshot.value.owner)
+                if (activeMode == ProxyMode.Http) return@launch
+                if (networkSettingsStorage.accessControlMode.value == AccessControlMode.ALLOW_ALL)
+                    return@launch
 
-            runCatching {
-                proxyFacade.startProxy(activeMode ?: networkSettingsStorage.proxyMode.value)
+                runCatching {
+                    proxyFacade.startProxy(activeMode ?: networkSettingsStorage.proxyMode.value)
+                }
             }
-        }
     }
-
 }

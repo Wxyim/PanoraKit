@@ -18,13 +18,11 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.core
 
 /**
- * Single source of truth for all MMKV partition IDs used across
- * the app process (Koin-managed) and the service process (non-DI).
+ * Single source of truth for all MMKV partition IDs used across the app process (Koin-managed) and
+ * the service process (non-DI).
  */
 object StoreIds {
     const val SETTINGS = "settings"

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import android.os.SystemClock
@@ -63,43 +61,50 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import io.github.fletchmckee.liquid.LiquidState
 import io.github.fletchmckee.liquid.liquid
+import kotlin.math.max
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.max
 
 val LocalPagerState = compositionLocalOf<PagerState> { error("LocalPagerState is not provided") }
-val LocalHandlePageChange = compositionLocalOf<(Int) -> Unit> { error("LocalHandlePageChange is not provided") }
-val LocalNavigator = compositionLocalOf<DestinationsNavigator> { error("LocalNavigator is not provided") }
+val LocalHandlePageChange =
+    compositionLocalOf<(Int) -> Unit> { error("LocalHandlePageChange is not provided") }
+val LocalNavigator =
+    compositionLocalOf<DestinationsNavigator> { error("LocalNavigator is not provided") }
 val LocalBottomBarLiquidState = compositionLocalOf<LiquidState?> { null }
 
 @Composable
-fun BottomBarContent(
-    isVisible: Boolean = true,
-) {
+fun BottomBarContent(isVisible: Boolean = true) {
     val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     val liquidState = LocalBottomBarLiquidState.current
     val pagerState = LocalPagerState.current
-    val page by remember(pagerState) {
-        derivedStateOf { if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage }
-    }
+    val page by
+        remember(pagerState) {
+            derivedStateOf {
+                if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage
+            }
+        }
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
-    val animatedScale by animateFloatAsState(
-        targetValue = if (bottomBarVisible) 1f else AnimationSpecs.Proxy.VisibilityTargetScale,
-        animationSpec = tween(
-            durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
-            easing = AnimationSpecs.EmphasizedDecelerate,
-        ),
-        label = "bottom_bar_scale",
-    )
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (bottomBarVisible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
-            easing = AnimationSpecs.EmphasizedDecelerate,
-        ),
-        label = "bottom_bar_alpha",
-    )
+    val animatedScale by
+        animateFloatAsState(
+            targetValue = if (bottomBarVisible) 1f else AnimationSpecs.Proxy.VisibilityTargetScale,
+            animationSpec =
+                tween(
+                    durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
+                    easing = AnimationSpecs.EmphasizedDecelerate,
+                ),
+            label = "bottom_bar_scale",
+        )
+    val animatedAlpha by
+        animateFloatAsState(
+            targetValue = if (bottomBarVisible) 1f else 0f,
+            animationSpec =
+                tween(
+                    durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
+                    easing = AnimationSpecs.EmphasizedDecelerate,
+                ),
+            label = "bottom_bar_alpha",
+        )
     val handlePageChange = LocalHandlePageChange.current
     var lastPageClickAt by remember { mutableLongStateOf(0L) }
     val onItemClick: (Int) -> Unit = onItemClick@{ index ->
@@ -113,20 +118,19 @@ fun BottomBarContent(
     }
 
     val density = LocalDensity.current
-    val bottomSafeInset = with(density) {
-        val navBottom = WindowInsets.navigationBars.getBottom(this)
-        val gestureBottom = WindowInsets.systemGestures.getBottom(this)
-        max(navBottom, gestureBottom).toDp()
-    }
+    val bottomSafeInset =
+        with(density) {
+            val navBottom = WindowInsets.navigationBars.getBottom(this)
+            val gestureBottom = WindowInsets.systemGestures.getBottom(this)
+            max(navBottom, gestureBottom).toDp()
+        }
 
     val selectedColor = MiuixTheme.colorScheme.primary
     val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     val containerColor = MiuixTheme.colorScheme.background
     val indicatorContainerColor = selectedColor.copy(alpha = 0.1f)
 
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val horizontalInset = (maxWidth * 0.11f).coerceIn(20.dp, 48.dp)
 
         BottomNavigationBar(
@@ -135,20 +139,20 @@ fun BottomBarContent(
             liquidState = liquidState,
             containerColor = containerColor,
             indicatorContainerColor = indicatorContainerColor,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = horizontalInset,
-                    end = horizontalInset,
-                    top = 6.dp,
-                    bottom = bottomSafeInset + 12.dp,
-                )
-                .graphicsLayer {
-                    alpha = animatedAlpha
-                    scaleX = animatedScale
-                    scaleY = animatedScale
-                    transformOrigin = TransformOrigin(0.5f, 1f)
-                },
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(
+                        start = horizontalInset,
+                        end = horizontalInset,
+                        top = 6.dp,
+                        bottom = bottomSafeInset + 12.dp,
+                    )
+                    .graphicsLayer {
+                        alpha = animatedAlpha
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                    },
         ) {
             BottomBarDestination.entries.forEachIndexed { index, destination ->
                 val itemColor: Color = if (page == index) selectedColor else unselectedColor
@@ -156,23 +160,22 @@ fun BottomBarContent(
                     enabled = bottomBarVisible,
                     onClick = { onItemClick(index) },
                 ) {
-                    Box(
-                        modifier = Modifier.size(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = destination.icon,
                             contentDescription = destination.label(),
-                            tint = itemColor
+                            tint = itemColor,
                         )
                     }
                     BasicText(
                         destination.label(),
-                        style = TextStyle(
-                            color = itemColor,
-                            fontSize = 11.sp,
-                            fontWeight = if (page == index) FontWeight.SemiBold else FontWeight.Medium,
-                        ),
+                        style =
+                            TextStyle(
+                                color = itemColor,
+                                fontSize = 11.sp,
+                                fontWeight =
+                                    if (page == index) FontWeight.SemiBold else FontWeight.Medium,
+                            ),
                     )
                 }
             }
@@ -180,22 +183,20 @@ fun BottomBarContent(
     }
 }
 
-enum class BottomBarDestination(
-    val icon: ImageVector,
-) {
+enum class BottomBarDestination(val icon: ImageVector) {
     Home(Yume.House),
     Proxy(Yume.`Arrow-down-up`),
     Config(Yume.`Package-check`),
-    Setting(Yume.Bolt),
-    ;
+    Setting(Yume.Bolt);
 
     @Composable
-    fun label(): String = when (this) {
-        Home -> MLang.Component.BottomBar.Home
-        Proxy -> MLang.Component.BottomBar.Proxy
-        Config -> MLang.Component.BottomBar.Config
-        Setting -> MLang.Component.BottomBar.Setting
-    }
+    fun label(): String =
+        when (this) {
+            Home -> MLang.Component.BottomBar.Home
+            Proxy -> MLang.Component.BottomBar.Proxy
+            Config -> MLang.Component.BottomBar.Config
+            Setting -> MLang.Component.BottomBar.Setting
+        }
 }
 
 @Composable
@@ -236,39 +237,40 @@ private fun BottomNavigationBar(
     }
 
     BoxWithConstraints(
-        modifier = modifier
-            .height(56.dp)
-            .clip(Capsule())
-            .then(
-                if (liquidState != null) {
-                    Modifier
-                        .liquid(liquidState) {
-                            frost = 3.dp
-                            refraction = 0.5f
-                            curve = 0.6f
-                            edge = 0.4f
-                            dispersion = 0f
-                            saturation = 1.2f
-                            contrast = 1.1f
-                        }
-                        .background( if (isLightTheme) White.copy(alpha = 0.75f) else Black.copy(alpha = 0.8f), Capsule())
-                } else {
-                    Modifier.background(containerColor, Capsule())
-                }
-            ),
+        modifier =
+            modifier
+                .height(56.dp)
+                .clip(Capsule())
+                .then(
+                    if (liquidState != null) {
+                        Modifier.liquid(liquidState) {
+                                frost = 3.dp
+                                refraction = 0.5f
+                                curve = 0.6f
+                                edge = 0.4f
+                                dispersion = 0f
+                                saturation = 1.2f
+                                contrast = 1.1f
+                            }
+                            .background(
+                                if (isLightTheme) White.copy(alpha = 0.75f)
+                                else Black.copy(alpha = 0.8f),
+                                Capsule(),
+                            )
+                    } else {
+                        Modifier.background(containerColor, Capsule())
+                    }
+                ),
         contentAlignment = Alignment.CenterStart,
     ) {
         val tabWidth = (constraints.maxWidth.toFloat() - contentInsetPx) / tabsCount
 
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(contentInset),
+            modifier = Modifier.matchParentSize().padding(contentInset),
             contentAlignment = Alignment.CenterStart,
         ) {
             Box(
-                Modifier
-                    .graphicsLayer {
+                Modifier.graphicsLayer {
                         translationX =
                             if (isLtr) indicatorPosition.value * tabWidth
                             else size.width - (indicatorPosition.value + 1f) * tabWidth
@@ -277,45 +279,43 @@ private fun BottomNavigationBar(
                     }
                     .height(48.dp)
                     .fillMaxWidth(1f / tabsCount)
-                    .background(indicatorContainerColor, Capsule()),
+                    .background(indicatorContainerColor, Capsule())
             )
 
             Row(
-                Modifier
-                    .height(48.dp)
-                    .fillMaxWidth(),
+                Modifier.height(48.dp).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
             )
         }
 
         Box(
-            Modifier
-                .matchParentSize()
+            Modifier.matchParentSize()
                 .border(
                     width = 0.3.dp,
-                    color = if (isLightTheme) {
-                        White.copy(alpha = 0.4f)
-                    } else {
-                        Black.copy(alpha = 0.2f)
-                    },
+                    color =
+                        if (isLightTheme) {
+                            White.copy(alpha = 0.4f)
+                        } else {
+                            Black.copy(alpha = 0.2f)
+                        },
                     shape = Capsule(),
-                ),
+                )
         )
 
         Box(
-            Modifier
-                .matchParentSize()
+            Modifier.matchParentSize()
                 .padding(1.dp)
                 .border(
                     width = 0.2.dp,
-                    color = if (isLightTheme) {
-                        Black.copy(alpha = 0.045f)
-                    } else {
-                        White.copy(alpha = 0.08f)
-                    },
+                    color =
+                        if (isLightTheme) {
+                            Black.copy(alpha = 0.045f)
+                        } else {
+                            White.copy(alpha = 0.08f)
+                        },
                     shape = Capsule(),
-                ),
+                )
         )
     }
 }

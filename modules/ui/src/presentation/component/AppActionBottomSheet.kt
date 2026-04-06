@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
@@ -29,10 +27,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import dev.oom_wg.purejoy.mlang.MLang
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
+import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.extra.BottomSheetDefaults
@@ -42,18 +40,17 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 object AppBottomSheetDefaults {
     val insideMargin = DpSize(32.dp, 16.dp)
 
-    @Composable
-    fun backgroundColor(): Color = MiuixTheme.colorScheme.surface
+    @Composable fun backgroundColor(): Color = MiuixTheme.colorScheme.surface
+
+    @Composable fun dragHandleColor(): Color = MiuixTheme.colorScheme.onSurfaceVariantActions
 
     @Composable
-    fun dragHandleColor(): Color = MiuixTheme.colorScheme.onSurfaceVariantActions
-
-    @Composable
-    fun actionIconTint(enabled: Boolean): Color = if (enabled) {
-        MiuixTheme.colorScheme.onSurface
-    } else {
-        MiuixTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-    }
+    fun actionIconTint(enabled: Boolean): Color =
+        if (enabled) {
+            MiuixTheme.colorScheme.onSurface
+        } else {
+            MiuixTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        }
 }
 
 data class AppBottomSheetAction(
@@ -65,22 +62,18 @@ data class AppBottomSheetAction(
 )
 
 @Composable
-fun AppBottomSheetIconAction(
-    action: AppBottomSheetAction,
-) {
-    IconButton(
-        enabled = action.enabled,
-        onClick = action.onClick,
-    ) {
+fun AppBottomSheetIconAction(action: AppBottomSheetAction) {
+    IconButton(enabled = action.enabled, onClick = action.onClick) {
         Icon(
             modifier = Modifier.alpha(if (action.enabled) 1f else 0.5f),
             imageVector = action.icon,
             contentDescription = action.contentDescription,
-            tint = if (action.tint == Color.Unspecified) {
-                AppBottomSheetDefaults.actionIconTint(action.enabled)
-            } else {
-                action.tint
-            },
+            tint =
+                if (action.tint == Color.Unspecified) {
+                    AppBottomSheetDefaults.actionIconTint(action.enabled)
+                } else {
+                    action.tint
+                },
         )
     }
 }
@@ -92,12 +85,13 @@ fun AppBottomSheetCloseAction(
     contentDescription: String = MLang.Proxy.Action.Close,
 ) {
     AppBottomSheetIconAction(
-        action = AppBottomSheetAction(
-            icon = Yume.Close,
-            contentDescription = contentDescription,
-            enabled = enabled,
-            onClick = onClick,
-        ),
+        action =
+            AppBottomSheetAction(
+                icon = Yume.Close,
+                contentDescription = contentDescription,
+                enabled = enabled,
+                onClick = onClick,
+            )
     )
 }
 
@@ -108,12 +102,13 @@ fun AppBottomSheetConfirmAction(
     contentDescription: String = MLang.Component.Button.Confirm,
 ) {
     AppBottomSheetIconAction(
-        action = AppBottomSheetAction(
-            icon = Yume.Check,
-            contentDescription = contentDescription,
-            enabled = enabled,
-            onClick = onClick,
-        ),
+        action =
+            AppBottomSheetAction(
+                icon = Yume.Check,
+                contentDescription = contentDescription,
+                enabled = enabled,
+                onClick = onClick,
+            )
     )
 }
 
@@ -138,16 +133,18 @@ fun AppActionBottomSheet(
     enableNestedScroll: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val resolvedBackgroundColor = if (backgroundColor == Color.Unspecified) {
-        AppBottomSheetDefaults.backgroundColor()
-    } else {
-        backgroundColor
-    }
-    val resolvedDragHandleColor = if (dragHandleColor == Color.Unspecified) {
-        AppBottomSheetDefaults.dragHandleColor()
-    } else {
-        dragHandleColor
-    }
+    val resolvedBackgroundColor =
+        if (backgroundColor == Color.Unspecified) {
+            AppBottomSheetDefaults.backgroundColor()
+        } else {
+            backgroundColor
+        }
+    val resolvedDragHandleColor =
+        if (dragHandleColor == Color.Unspecified) {
+            AppBottomSheetDefaults.dragHandleColor()
+        } else {
+            dragHandleColor
+        }
 
     SuperBottomSheet(
         show = show,

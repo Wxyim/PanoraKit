@@ -18,13 +18,13 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.session
 
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.controller.MihomoControllerEndpoint
+import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
 import com.github.yumelira.yumebox.core.model.*
+import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.service.ServiceNetworkObserver
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
@@ -34,20 +34,18 @@ import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
 import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
-import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.builtins.serializer
-import timber.log.Timber
 import java.io.File
+import java.security.MessageDigest
 import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.collections.ArrayDeque
 import kotlin.math.min
-import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import java.security.MessageDigest
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.builtins.serializer
+import timber.log.Timber
 
 class SessionRuntime(
     private val host: RuntimeHost,
@@ -71,18 +69,20 @@ class SessionRuntime(
         return withContext(Dispatchers.Default) {
             operationMutex.withLock {
                 runCatching {
-                    stopInternal(reason = null, notifyHost = false)
-                    startupLog(spec, "session: start begin")
-                    startInternal(spec)
-                    RuntimeOperationResult.ok()
-                }.getOrElse { error ->
-                    val failure = error.toRuntimeFailure(
-                        fallbackCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
-                        fallbackMessage = "start runtime failed",
-                    )
-                    rollback(spec, failure)
-                    RuntimeOperationResult.fail(failure)
-                }
+                        stopInternal(reason = null, notifyHost = false)
+                        startupLog(spec, "session: start begin")
+                        startInternal(spec)
+                        RuntimeOperationResult.ok()
+                    }
+                    .getOrElse { error ->
+                        val failure =
+                            error.toRuntimeFailure(
+                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                                fallbackMessage = "start runtime failed",
+                            )
+                        rollback(spec, failure)
+                        RuntimeOperationResult.fail(failure)
+                    }
             }
         }
     }
@@ -91,17 +91,19 @@ class SessionRuntime(
         return withContext(Dispatchers.Default) {
             operationMutex.withLock {
                 runCatching {
-                    startupLog(spec, "session: reload begin")
-                    reloadInternal(spec)
-                    RuntimeOperationResult.ok()
-                }.getOrElse { error ->
-                    val failure = error.toRuntimeFailure(
-                        fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-                        fallbackMessage = "reload runtime failed",
-                    )
-                    startupLog(spec, "failed=${failure.message}")
-                    RuntimeOperationResult.fail(failure)
-                }
+                        startupLog(spec, "session: reload begin")
+                        reloadInternal(spec)
+                        RuntimeOperationResult.ok()
+                    }
+                    .getOrElse { error ->
+                        val failure =
+                            error.toRuntimeFailure(
+                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                                fallbackMessage = "reload runtime failed",
+                            )
+                        startupLog(spec, "failed=${failure.message}")
+                        RuntimeOperationResult.fail(failure)
+                    }
             }
         }
     }
@@ -110,18 +112,20 @@ class SessionRuntime(
         return withContext(Dispatchers.Default) {
             operationMutex.withLock {
                 runCatching {
-                    stopInternal(reason = null, notifyHost = false)
-                    startupLog(spec, "session: restart begin")
-                    startInternal(spec)
-                    RuntimeOperationResult.ok()
-                }.getOrElse { error ->
-                    val failure = error.toRuntimeFailure(
-                        fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
-                        fallbackMessage = "restart runtime failed",
-                    )
-                    rollback(spec, failure)
-                    RuntimeOperationResult.fail(failure)
-                }
+                        stopInternal(reason = null, notifyHost = false)
+                        startupLog(spec, "session: restart begin")
+                        startInternal(spec)
+                        RuntimeOperationResult.ok()
+                    }
+                    .getOrElse { error ->
+                        val failure =
+                            error.toRuntimeFailure(
+                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
+                                fallbackMessage = "restart runtime failed",
+                            )
+                        rollback(spec, failure)
+                        RuntimeOperationResult.fail(failure)
+                    }
             }
         }
     }
@@ -130,16 +134,17 @@ class SessionRuntime(
         return runSuspendBlocking {
             operationMutex.withLock {
                 runCatching {
-                    stopInternal(reason = reason, notifyHost = true)
-                    RuntimeOperationResult.ok()
-                }.getOrElse { error ->
-                    RuntimeOperationResult.fail(
-                        error.toRuntimeFailure(
-                            fallbackCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-                            fallbackMessage = "stop runtime failed",
-                        ),
-                    )
-                }
+                        stopInternal(reason = reason, notifyHost = true)
+                        RuntimeOperationResult.ok()
+                    }
+                    .getOrElse { error ->
+                        RuntimeOperationResult.fail(
+                            error.toRuntimeFailure(
+                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                                fallbackMessage = "stop runtime failed",
+                            )
+                        )
+                    }
             }
         }
     }
@@ -158,7 +163,8 @@ class SessionRuntime(
     fun snapshot(): RuntimeSnapshot = currentSnapshot
 
     fun queryTunnelState(): TunnelState {
-        return if (currentSnapshot.phase == RuntimePhase.Running) Clash.queryTunnelState() else TunnelState(TunnelState.Mode.Rule)
+        return if (currentSnapshot.phase == RuntimePhase.Running) Clash.queryTunnelState()
+        else TunnelState(TunnelState.Mode.Rule)
     }
 
     fun queryTrafficNow(): Long {
@@ -190,16 +196,20 @@ class SessionRuntime(
 
     fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         if (currentSnapshot.phase != RuntimePhase.Running) return emptyList()
-        val groups = runCatching {
-            Clash.queryGroupNames(excludeNotSelectable).map { Clash.queryGroup(it, ProxySort.Default) }
-        }.getOrElse {
-            if (excludeNotSelectable) {
-                val selectable = Clash.queryGroupNames(true).toSet()
-                ensureRuntimeSnapshot().proxyGroups.filter { selectable.contains(it.name) }
-            } else {
-                ensureRuntimeSnapshot().proxyGroups
-            }
-        }
+        val groups =
+            runCatching {
+                    Clash.queryGroupNames(excludeNotSelectable).map {
+                        Clash.queryGroup(it, ProxySort.Default)
+                    }
+                }
+                .getOrElse {
+                    if (excludeNotSelectable) {
+                        val selectable = Clash.queryGroupNames(true).toSet()
+                        ensureRuntimeSnapshot().proxyGroups.filter { selectable.contains(it.name) }
+                    } else {
+                        ensureRuntimeSnapshot().proxyGroups
+                    }
+                }
         runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = groups)
         publishSnapshot(currentSnapshot.copy(groupsReady = groups.isNotEmpty()))
         return groups
@@ -218,13 +228,15 @@ class SessionRuntime(
         val group = Clash.queryGroup(name, proxySort)
         if (proxySort == ProxySort.Default && group.name.isNotBlank()) {
             val groups = runtimeSnapshot.proxyGroups
-            runtimeSnapshot = runtimeSnapshot.copy(
-                proxyGroups = if (groups.any { it.name == name }) {
-                    groups.map { if (it.name == name) group else it }
-                } else {
-                    groups + group
-                },
-            )
+            runtimeSnapshot =
+                runtimeSnapshot.copy(
+                    proxyGroups =
+                        if (groups.any { it.name == name }) {
+                            groups.map { if (it.name == name) group else it }
+                        } else {
+                            groups + group
+                        }
+                )
         }
         return group
     }
@@ -258,34 +270,48 @@ class SessionRuntime(
     }
 
     suspend fun healthCheck(group: String): String? {
-        Timber.d("SessionRuntime healthCheck: group=%s phase=%s owner=%s", group, currentSnapshot.phase, currentSnapshot.owner)
+        Timber.d(
+            "SessionRuntime healthCheck: group=%s phase=%s owner=%s",
+            group,
+            currentSnapshot.phase,
+            currentSnapshot.owner,
+        )
         return runCatching {
-            withContext(Dispatchers.IO) { Clash.healthCheck(group).await() }
-            refreshRuntimeSnapshot()
-            null
-        }.getOrElse { it.message ?: "health check failed" }
+                withContext(Dispatchers.IO) { Clash.healthCheck(group).await() }
+                refreshRuntimeSnapshot()
+                null
+            }
+            .getOrElse { it.message ?: "health check failed" }
     }
 
     suspend fun healthCheckProxy(proxyName: String): String {
-        Timber.d("SessionRuntime healthCheckProxy: proxy=%s phase=%s owner=%s", proxyName, currentSnapshot.phase, currentSnapshot.owner)
+        Timber.d(
+            "SessionRuntime healthCheckProxy: proxy=%s phase=%s owner=%s",
+            proxyName,
+            currentSnapshot.phase,
+            currentSnapshot.owner,
+        )
         return runCatching {
-            withContext(Dispatchers.IO) { Clash.healthCheckProxy(proxyName).await() }.also {
-                refreshRuntimeSnapshot()
+                withContext(Dispatchers.IO) { Clash.healthCheckProxy(proxyName).await() }
+                    .also { refreshRuntimeSnapshot() }
             }
-        }.getOrElse {
-            """{"delay":-1,"error":${com.github.yumelira.yumebox.service.root.RootTunJson.Default.encodeToString(String.serializer(), it.message ?: "health check proxy failed")}}"""
-        }
+            .getOrElse {
+                """{"delay":-1,"error":${com.github.yumelira.yumebox.service.root.RootTunJson.Default.encodeToString(String.serializer(), it.message ?: "health check proxy failed")}}"""
+            }
     }
 
     suspend fun updateProvider(type: String, name: String): String? {
-        val providerType = runCatching { Provider.Type.valueOf(type) }.getOrElse {
-            return "invalid provider type: $type"
-        }
+        val providerType =
+            runCatching { Provider.Type.valueOf(type) }
+                .getOrElse {
+                    return "invalid provider type: $type"
+                }
         return runCatching {
-            withContext(Dispatchers.IO) { Clash.updateProvider(providerType, name).await() }
-            refreshRuntimeSnapshot()
-            null
-        }.getOrElse { it.message ?: "update provider failed" }
+                withContext(Dispatchers.IO) { Clash.updateProvider(providerType, name).await() }
+                refreshRuntimeSnapshot()
+                null
+            }
+            .getOrElse { it.message ?: "update provider failed" }
     }
 
     fun setLogObserver(observer: ((LogMessage) -> Unit)?) {
@@ -294,13 +320,8 @@ class SessionRuntime(
 
     fun queryRecentLogsJson(sinceSeq: Long): RuntimeLogChunk {
         synchronized(recentLogsLock) {
-            val items = recentLogs
-                .filter { it.first > sinceSeq }
-                .map { it.second }
-            return RuntimeLogChunk(
-                nextSeq = logSeq.get(),
-                items = items,
-            )
+            val items = recentLogs.filter { it.first > sinceSeq }.map { it.second }
+            return RuntimeLogChunk(nextSeq = logSeq.get(), items = items)
         }
     }
 
@@ -317,7 +338,7 @@ class SessionRuntime(
                 profileReady = true,
                 startedAt = startedAt,
                 effectiveFingerprint = spec.effectiveFingerprint,
-            ),
+            )
         )
         host.onStarting(spec)
 
@@ -344,7 +365,7 @@ class SessionRuntime(
                 logReady = logJob?.isActive == true,
                 startedAt = startedAt,
                 effectiveFingerprint = spec.effectiveFingerprint,
-            ),
+            )
         )
         host.onProfileLoaded(spec.profileUuid)
         host.onStarted(spec)
@@ -361,7 +382,7 @@ class SessionRuntime(
                 effectiveFingerprint = spec.effectiveFingerprint,
                 groupsReady = false,
                 trafficReady = false,
-            ),
+            )
         )
 
         loadRuntimeDataAndRestore(spec)
@@ -378,7 +399,7 @@ class SessionRuntime(
                 logReady = logJob?.isActive == true,
                 effectiveFingerprint = spec.effectiveFingerprint,
                 lastError = null,
-            ),
+            )
         )
         host.onProfileLoaded(spec.profileUuid)
         startupLog(spec, "reload done")
@@ -403,14 +424,16 @@ class SessionRuntime(
 
         publishSnapshot(
             currentSnapshot.copy(
-                phase = if (currentSnapshot.phase == RuntimePhase.Idle) RuntimePhase.Idle else RuntimePhase.Stopping,
+                phase =
+                    if (currentSnapshot.phase == RuntimePhase.Idle) RuntimePhase.Idle
+                    else RuntimePhase.Stopping,
                 transportReady = false,
                 groupsReady = false,
                 trafficReady = false,
                 configReady = false,
                 logReady = false,
                 lastError = reason,
-            ),
+            )
         )
         stopLogStream()
         stopConnectionTracking()
@@ -425,7 +448,7 @@ class SessionRuntime(
                 phase = if (reason.isNullOrBlank()) RuntimePhase.Idle else RuntimePhase.Failed,
                 targetMode = host.mode,
                 lastError = reason,
-            ),
+            )
         )
         if (notifyHost) {
             host.onStopped(reason)
@@ -449,14 +472,17 @@ class SessionRuntime(
                 profileReady = false,
                 lastError = failure.message,
                 effectiveFingerprint = spec.effectiveFingerprint,
-            ),
+            )
         )
         startupLog(spec, "failed=${failure.message}")
         host.reportFailure(failure)
     }
 
     private suspend fun compileAndLoad(spec: RuntimeSpec) {
-        startupLog(spec, "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}")
+        startupLog(
+            spec,
+            "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}",
+        )
         startupLog(
             spec,
             "runtime override: overridePaths=${spec.overridePaths.size} " +
@@ -465,9 +491,12 @@ class SessionRuntime(
         compiledConfigPipeline.applyOverrideToRuntimeFile(spec)
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
-        withContext(Dispatchers.IO) { Clash.loadCompiledConfig(File(spec.runtimeConfigPath)).await() }
+        withContext(Dispatchers.IO) {
+            Clash.loadCompiledConfig(File(spec.runtimeConfigPath)).await()
+        }
         startupLog(spec, "runtime load: loadCompiledConfig done")
-        val runtimeConfiguration = runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
+        val runtimeConfiguration =
+            runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
         startupLog(
             spec,
             "runtime load: uiConfiguration=${MihomoControllerEndpoint.diagnostics(runtimeConfiguration).summary()}",
@@ -479,9 +508,7 @@ class SessionRuntime(
         startupLog(
             spec,
             "runtime verify: expectedGroups=${expectedGroups.size}" +
-                expectedGroups.takeIf { it.isNotEmpty() }
-                    ?.let { " sample=${it.take(5)}" }
-                    .orEmpty(),
+                expectedGroups.takeIf { it.isNotEmpty() }?.let { " sample=${it.take(5)}" }.orEmpty(),
         )
         if (expectedGroups.isEmpty()) {
             return
@@ -490,7 +517,10 @@ class SessionRuntime(
         repeat(PROXY_GROUP_READY_RETRY_COUNT) { attempt ->
             val names = runCatching { Clash.queryGroupNames(false) }.getOrDefault(emptyList())
             if (names.isNotEmpty()) {
-                startupLog(spec, "runtime verify: actualGroups=${names.size} sample=${names.take(5)}")
+                startupLog(
+                    spec,
+                    "runtime verify: actualGroups=${names.size} sample=${names.take(5)}",
+                )
                 return
             }
             if (attempt < PROXY_GROUP_READY_RETRY_COUNT - 1) {
@@ -501,14 +531,17 @@ class SessionRuntime(
 
         error(
             "runtime loaded but exposed 0 proxy groups; expected=${expectedGroups.size} " +
-                "sample=${expectedGroups.take(min(5, expectedGroups.size))}",
+                "sample=${expectedGroups.take(min(5, expectedGroups.size))}"
         )
     }
 
     private fun readExpectedGroupNames(spec: RuntimeSpec): List<String> {
         val runtimeFile = File(spec.runtimeConfigPath)
         if (!runtimeFile.exists()) {
-            startupLog(spec, "runtime verify: runtime.yaml missing path=${runtimeFile.absolutePath}")
+            startupLog(
+                spec,
+                "runtime verify: runtime.yaml missing path=${runtimeFile.absolutePath}",
+            )
             return emptyList()
         }
         val yamlText = runtimeFile.readText()
@@ -517,25 +550,32 @@ class SessionRuntime(
             return emptyList()
         }
         return runCatching {
-            Clash.inspectCompiledGroups(yamlText, File(spec.profileDir), excludeNotSelectable = false)
-                .map { it.name }
-                .filter { it.isNotBlank() }
-        }.getOrElse { error ->
-            startupLog(spec, "runtime verify: inspect failed=${error.message}")
-            emptyList()
-        }
+                Clash.inspectCompiledGroups(
+                        yamlText,
+                        File(spec.profileDir),
+                        excludeNotSelectable = false,
+                    )
+                    .map { it.name }
+                    .filter { it.isNotBlank() }
+            }
+            .getOrElse { error ->
+                startupLog(spec, "runtime verify: inspect failed=${error.message}")
+                emptyList()
+            }
     }
 
     private suspend fun restoreSelections(spec: RuntimeSpec) {
         val profileUuid = UUID.fromString(spec.profileUuid)
-        val scopeKey = when (spec.owner) {
-            RuntimeOwner.RootTun -> SelectionRestoreScope.rootScopeKey(spec.profileUuid)
-            else -> SelectionRestoreScope.localScopeKey(profileUuid)
-        }
-        val restoreResult = SelectionDao.querySelectionsForRestore(
-            profileUUID = profileUuid,
-            currentScopeKey = scopeKey,
-        )
+        val scopeKey =
+            when (spec.owner) {
+                RuntimeOwner.RootTun -> SelectionRestoreScope.rootScopeKey(spec.profileUuid)
+                else -> SelectionRestoreScope.localScopeKey(profileUuid)
+            }
+        val restoreResult =
+            SelectionDao.querySelectionsForRestore(
+                profileUUID = profileUuid,
+                currentScopeKey = scopeKey,
+            )
         SelectionRestoreExecutor.restore(
             profileUuid = profileUuid,
             selections = restoreResult.selections,
@@ -545,9 +585,11 @@ class SessionRuntime(
 
     private fun startObservers() {
         if (networkObserver == null) {
-            networkObserver = ServiceNetworkObserver(host.context.appContextOrSelf) {
-                transport.onNetworkChanged()
-            }.also { it.start() }
+            networkObserver =
+                ServiceNetworkObserver(host.context.appContextOrSelf) {
+                        transport.onNetworkChanged()
+                    }
+                    .also { it.start() }
         }
     }
 
@@ -569,25 +611,32 @@ class SessionRuntime(
     }
 
     private fun refreshRuntimeSnapshot() {
-        if (currentSnapshot.phase != RuntimePhase.Running && currentSnapshot.phase != RuntimePhase.Starting) {
+        if (
+            currentSnapshot.phase != RuntimePhase.Running &&
+                currentSnapshot.phase != RuntimePhase.Starting
+        ) {
             runtimeSnapshot = RuntimeQuerySnapshot()
             return
         }
 
-        val configuration = runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
+        val configuration =
+            runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
         val providers = runCatching { Clash.queryProviders() }.getOrDefault(emptyList())
-        val proxyGroups = runCatching {
-            Clash.queryGroupNames(false).map { Clash.queryGroup(it, ProxySort.Default) }
-        }.getOrDefault(emptyList())
+        val proxyGroups =
+            runCatching {
+                    Clash.queryGroupNames(false).map { Clash.queryGroup(it, ProxySort.Default) }
+                }
+                .getOrDefault(emptyList())
         val trafficNow = runCatching { Clash.queryTrafficNow() }.getOrDefault(0L)
         val trafficTotal = runCatching { Clash.queryTrafficTotal() }.getOrDefault(0L)
-        runtimeSnapshot = RuntimeQuerySnapshot(
-            configuration = configuration,
-            providers = providers,
-            proxyGroups = proxyGroups,
-            trafficNow = trafficNow,
-            trafficTotal = trafficTotal,
-        )
+        runtimeSnapshot =
+            RuntimeQuerySnapshot(
+                configuration = configuration,
+                providers = providers,
+                proxyGroups = proxyGroups,
+                trafficNow = trafficNow,
+                trafficTotal = trafficTotal,
+            )
     }
 
     private fun ensureRuntimeSnapshot(): RuntimeQuerySnapshot {
@@ -601,30 +650,33 @@ class SessionRuntime(
     private fun startLogStream() {
         stopLogStream()
         host.onLogReady(false)
-        logJob = scope.launch(Dispatchers.IO) {
-            val receiver = Clash.subscribeLogcat()
-            host.onLogReady(true)
-            publishSnapshot(currentSnapshot.copy(logReady = true))
-            try {
-                while (isActive) {
-                    val item = receiver.receive()
-                    localLogObserver?.invoke(item)
-                    host.onLogItem(item)
-                    val encoded = com.github.yumelira.yumebox.service.root.RootTunJson.Default.encodeToString(LogMessage.serializer(), item)
-                    val seq = logSeq.incrementAndGet()
-                    synchronized(recentLogsLock) {
-                        recentLogs.addLast(seq to encoded)
-                        while (recentLogs.size > MAX_BUFFERED_LOGS) {
-                            recentLogs.removeFirst()
+        logJob =
+            scope.launch(Dispatchers.IO) {
+                val receiver = Clash.subscribeLogcat()
+                host.onLogReady(true)
+                publishSnapshot(currentSnapshot.copy(logReady = true))
+                try {
+                    while (isActive) {
+                        val item = receiver.receive()
+                        localLogObserver?.invoke(item)
+                        host.onLogItem(item)
+                        val encoded =
+                            com.github.yumelira.yumebox.service.root.RootTunJson.Default
+                                .encodeToString(LogMessage.serializer(), item)
+                        val seq = logSeq.incrementAndGet()
+                        synchronized(recentLogsLock) {
+                            recentLogs.addLast(seq to encoded)
+                            while (recentLogs.size > MAX_BUFFERED_LOGS) {
+                                recentLogs.removeFirst()
+                            }
                         }
                     }
+                } finally {
+                    receiver.cancel()
+                    host.onLogReady(false)
+                    publishSnapshot(currentSnapshot.copy(logReady = false))
                 }
-            } finally {
-                receiver.cancel()
-                host.onLogReady(false)
-                publishSnapshot(currentSnapshot.copy(logReady = false))
             }
-        }
     }
 
     private fun stopLogStream() {
@@ -636,15 +688,16 @@ class SessionRuntime(
 
     private fun startConnectionTracking() {
         stopConnectionTracking()
-        connectionTrackingJob = scope.launch(Dispatchers.IO) {
-            while (isActive) {
-                runCatching {
-                    val snapshot = Clash.queryConnections()
-                    ConnectionHistoryManager.updateConnections(snapshot.connections)
+        connectionTrackingJob =
+            scope.launch(Dispatchers.IO) {
+                while (isActive) {
+                    runCatching {
+                        val snapshot = Clash.queryConnections()
+                        ConnectionHistoryManager.updateConnections(snapshot.connections)
+                    }
+                    delay(CONNECTION_TRACKING_INTERVAL_MS)
                 }
-                delay(CONNECTION_TRACKING_INTERVAL_MS)
             }
-        }
     }
 
     private fun stopConnectionTracking() {
@@ -660,12 +713,13 @@ class SessionRuntime(
     }
 
     private fun startupLog(spec: RuntimeSpec, message: String) {
-        val scope = when (spec.owner) {
-            RuntimeOwner.LocalTun -> RuntimeStartupLogStore.Scope.LOCAL_TUN
-            RuntimeOwner.LocalHttp -> RuntimeStartupLogStore.Scope.LOCAL_HTTP
-            RuntimeOwner.RootTun -> RuntimeStartupLogStore.Scope.ROOT_TUN
-            RuntimeOwner.None -> return
-        }
+        val scope =
+            when (spec.owner) {
+                RuntimeOwner.LocalTun -> RuntimeStartupLogStore.Scope.LOCAL_TUN
+                RuntimeOwner.LocalHttp -> RuntimeStartupLogStore.Scope.LOCAL_HTTP
+                RuntimeOwner.RootTun -> RuntimeStartupLogStore.Scope.ROOT_TUN
+                RuntimeOwner.None -> return
+            }
         RuntimeStartupLogStore(host.context.appContextOrSelf, scope)
             .append("${scope.tag} session: $message")
     }
@@ -682,7 +736,8 @@ class SessionRuntime(
             append(content.length)
             append(" sha=")
             append(content.sha256Short())
-            content.lineSequence()
+            content
+                .lineSequence()
                 .map(String::trim)
                 .firstOrNull { it.isNotEmpty() }
                 ?.let {

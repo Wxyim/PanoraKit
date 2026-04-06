@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import android.app.Application
@@ -32,8 +30,8 @@ import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
-import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
+import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
@@ -68,7 +66,8 @@ data class NetworkSettingsUiState(
 )
 
 enum class ServiceState {
-    Running, Stopped
+    Running,
+    Stopped,
 }
 
 private object RootTunDraftFormatter {
@@ -97,10 +96,7 @@ private object RootTunDraftFormatter {
     }
 
     fun normalizeRouteExcludes(value: String): List<String> {
-        return value
-            .split(',', '\n')
-            .map(String::trim)
-            .filter(String::isNotEmpty)
+        return value.split(',', '\n').map(String::trim).filter(String::isNotEmpty)
     }
 
     fun normalizeFakeIpRange(value: String): String {
@@ -130,7 +126,8 @@ private object NetworkSettingsUiStateFactory {
             showTunOnlyOptions = configuredMode == ProxyMode.Tun,
             showAccessControlMode = configuredMode != ProxyMode.Http,
             showRootTunAdvanced = configuredMode == ProxyMode.RootTun,
-            showFakeIpRange = configuredMode == ProxyMode.RootTun && dnsMode == RootTunDnsMode.FakeIp,
+            showFakeIpRange =
+                configuredMode == ProxyMode.RootTun && dnsMode == RootTunDnsMode.FakeIp,
         )
     }
 }
@@ -142,7 +139,8 @@ class NetworkSettingsViewModel(
     private val proxyFacade: ProxyFacade,
 ) : AndroidViewModel(application) {
     companion object {
-        private const val MIUI_GET_INSTALLED_APPS_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
+        private const val MIUI_GET_INSTALLED_APPS_PERMISSION =
+            "com.android.permission.GET_INSTALLED_APPS"
         private const val RESTART_DEBOUNCE_DELAY_MS = 300L
     }
 
@@ -159,7 +157,8 @@ class NetworkSettingsViewModel(
     val rootTunStrictRoute: Preference<Boolean> = networkSettingsStorage.rootTunStrictRoute
     val rootTunAutoRedirect: Preference<Boolean> = networkSettingsStorage.rootTunAutoRedirect
     val rootTunDnsMode: Preference<RootTunDnsMode> = networkSettingsStorage.rootTunDnsMode
-    val allowNonLocalhostHttpRemote: Preference<Boolean> = appSettingsRepository.allowNonLocalhostHttpRemote
+    val allowNonLocalhostHttpRemote: Preference<Boolean> =
+        appSettingsRepository.allowNonLocalhostHttpRemote
     val accessControlMode: Preference<AccessControlMode> = networkSettingsStorage.accessControlMode
 
     private val rootTunIfName = networkSettingsStorage.rootTunIfName
@@ -175,15 +174,15 @@ class NetworkSettingsViewModel(
     private val _rootTunMtuDraft = MutableStateFlow(rootTunMtu.value.toString())
     val rootTunMtuDraft: StateFlow<String> = _rootTunMtuDraft.asStateFlow()
 
-    private val _rootTunIncludeAndroidUserDraft = MutableStateFlow(
-        rootTunIncludeAndroidUser.value.joinToString(", ")
-    )
-    val rootTunIncludeAndroidUserDraft: StateFlow<String> = _rootTunIncludeAndroidUserDraft.asStateFlow()
+    private val _rootTunIncludeAndroidUserDraft =
+        MutableStateFlow(rootTunIncludeAndroidUser.value.joinToString(", "))
+    val rootTunIncludeAndroidUserDraft: StateFlow<String> =
+        _rootTunIncludeAndroidUserDraft.asStateFlow()
 
-    private val _rootTunRouteExcludeAddressDraft = MutableStateFlow(
-        rootTunRouteExcludeAddress.value.joinToString("\n")
-    )
-    val rootTunRouteExcludeAddressDraft: StateFlow<String> = _rootTunRouteExcludeAddressDraft.asStateFlow()
+    private val _rootTunRouteExcludeAddressDraft =
+        MutableStateFlow(rootTunRouteExcludeAddress.value.joinToString("\n"))
+    val rootTunRouteExcludeAddressDraft: StateFlow<String> =
+        _rootTunRouteExcludeAddressDraft.asStateFlow()
 
     private val _rootTunFakeIpRangeDraft = MutableStateFlow(rootTunFakeIpRange.value)
     val rootTunFakeIpRangeDraft: StateFlow<String> = _rootTunFakeIpRangeDraft.asStateFlow()
@@ -196,27 +195,36 @@ class NetworkSettingsViewModel(
 
     private val runtimeSnapshot = proxyFacade.runtimeSnapshot
 
-    val serviceState: StateFlow<ServiceState> = runtimeSnapshot
-        .map { snapshot -> if (RuntimeStateMapper.isActuallyRunning(snapshot)) ServiceState.Running else ServiceState.Stopped }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ServiceState.Stopped)
+    val serviceState: StateFlow<ServiceState> =
+        runtimeSnapshot
+            .map { snapshot ->
+                if (RuntimeStateMapper.isActuallyRunning(snapshot)) ServiceState.Running
+                else ServiceState.Stopped
+            }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ServiceState.Stopped)
 
     val currentProxyMode: StateFlow<ProxyMode> = proxyMode.state
 
-    val uiState: StateFlow<NetworkSettingsUiState> = combine(
-        serviceState,
-        currentProxyMode,
-        runtimeSnapshot,
-        rootTunDnsMode.state,
-    ) { serviceState, configuredMode, snapshot, dnsMode ->
-        NetworkSettingsUiStateFactory.create(serviceState, configuredMode, snapshot, dnsMode)
-    }
-        .distinctUntilChanged()
-        .stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = NetworkSettingsUiState(),
-    )
+    val uiState: StateFlow<NetworkSettingsUiState> =
+        combine(serviceState, currentProxyMode, runtimeSnapshot, rootTunDnsMode.state) {
+                serviceState,
+                configuredMode,
+                snapshot,
+                dnsMode ->
+                NetworkSettingsUiStateFactory.create(
+                    serviceState,
+                    configuredMode,
+                    snapshot,
+                    dnsMode,
+                )
+            }
+            .distinctUntilChanged()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = NetworkSettingsUiState(),
+            )
 
     fun onProxyModeChange(mode: ProxyMode) {
         proxyMode.set(mode)
@@ -284,19 +292,19 @@ class NetworkSettingsViewModel(
         if (RootPackageShell.hasRootAccess()) return true
 
         val context = getApplication<Application>()
-        val permissionExists = runCatching {
-            context.packageManager.getPermissionInfo(MIUI_GET_INSTALLED_APPS_PERMISSION, 0)
-            true
-        }.getOrDefault(false)
+        val permissionExists =
+            runCatching {
+                    context.packageManager.getPermissionInfo(MIUI_GET_INSTALLED_APPS_PERMISSION, 0)
+                    true
+                }
+                .getOrDefault(false)
 
         if (!permissionExists) {
             return true
         }
 
-        return ContextCompat.checkSelfPermission(
-            context,
-            MIUI_GET_INSTALLED_APPS_PERMISSION,
-        ) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(context, MIUI_GET_INSTALLED_APPS_PERMISSION) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     fun onRootTunIfNameDraftChange(value: String) {
@@ -324,7 +332,8 @@ class NetworkSettingsViewModel(
     }
 
     fun commitRootTunIncludeAndroidUser() {
-        val normalized = RootTunDraftFormatter.normalizeAndroidUsers(_rootTunIncludeAndroidUserDraft.value)
+        val normalized =
+            RootTunDraftFormatter.normalizeAndroidUsers(_rootTunIncludeAndroidUserDraft.value)
         _rootTunIncludeAndroidUserDraft.value = normalized.joinToString(", ")
         updatePreference(rootTunIncludeAndroidUser, normalized)
     }
@@ -334,7 +343,8 @@ class NetworkSettingsViewModel(
     }
 
     fun commitRootTunRouteExcludeAddress() {
-        val normalized = RootTunDraftFormatter.normalizeRouteExcludes(_rootTunRouteExcludeAddressDraft.value)
+        val normalized =
+            RootTunDraftFormatter.normalizeRouteExcludes(_rootTunRouteExcludeAddressDraft.value)
         _rootTunRouteExcludeAddressDraft.value = normalized.joinToString("\n")
         updatePreference(rootTunRouteExcludeAddress, normalized)
     }
@@ -354,7 +364,8 @@ class NetworkSettingsViewModel(
     }
 
     fun commitRootTunFakeIpRange6() {
-        val normalized = RootTunDraftFormatter.normalizeFakeIpRange6(_rootTunFakeIpRange6Draft.value)
+        val normalized =
+            RootTunDraftFormatter.normalizeFakeIpRange6(_rootTunFakeIpRange6Draft.value)
         _rootTunFakeIpRange6Draft.value = normalized
         updatePreference(rootTunFakeIpRange6, normalized)
     }
@@ -378,19 +389,18 @@ class NetworkSettingsViewModel(
 
     private suspend fun switchService(mode: ProxyMode): Result<Unit> = runCatching {
         proxyMode.set(mode)
-        withContext(Dispatchers.IO) {
-            proxyFacade.startProxy(mode)
-        }
+        withContext(Dispatchers.IO) { proxyFacade.startProxy(mode) }
     }
 
     private fun updateServiceConfig() {
         restartJob?.cancel()
-        restartJob = viewModelScope.launch {
-            delay(RESTART_DEBOUNCE_DELAY_MS)
-            if (RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value)) {
-                restartService()
+        restartJob =
+            viewModelScope.launch {
+                delay(RESTART_DEBOUNCE_DELAY_MS)
+                if (RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value)) {
+                    restartService()
+                }
             }
-        }
     }
 
     private fun <T> updatePreference(preference: Preference<T>, value: T) {
@@ -398,5 +408,4 @@ class NetworkSettingsViewModel(
         preference.set(value)
         updateServiceConfig()
     }
-
 }

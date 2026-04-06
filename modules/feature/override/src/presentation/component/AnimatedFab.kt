@@ -18,16 +18,14 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,9 +47,7 @@ class OverrideFabController internal constructor() {
 
 @Composable
 fun rememberOverrideFabController(): OverrideFabController {
-    return remember {
-        OverrideFabController()
-    }
+    return remember { OverrideFabController() }
 }
 
 @Composable
@@ -62,57 +58,65 @@ fun OverrideAnimatedFab(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    val fabVisibilityState = remember {
-        MutableTransitionState(false)
-    }
+    val fabVisibilityState = remember { MutableTransitionState(false) }
     val hiddenByScroll = controller.isHiddenByScroll
     val actualVisible = visible && !hiddenByScroll
     fabVisibilityState.targetState = actualVisible
 
     AnimatedVisibility(
         visibleState = fabVisibilityState,
-        enter = slideInVertically(
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
-                easing = AnimationSpecs.EmphasizedDecelerate,
-            ),
-            initialOffsetY = { it / 2 },
-        ) + scaleIn(
-            initialScale = AnimationSpecs.Proxy.VisibilityInitialScale,
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
-                easing = LinearEasing,
-            ),
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
-                easing = AnimationSpecs.EnterEasing,
-            ),
-        ),
-        exit = slideOutVertically(
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
-                easing = AnimationSpecs.EmphasizedAccelerate,
-            ),
-            targetOffsetY = { it / 2 },
-        ) + scaleOut(
-            targetScale = AnimationSpecs.Proxy.VisibilityTargetScale,
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
-                easing = LinearEasing,
-            ),
-        ) + fadeOut(
-            animationSpec = tween(
-                durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
-                easing = AnimationSpecs.ExitEasing,
-            ),
-        ),
+        enter =
+            slideInVertically(
+                animationSpec =
+                    tween(
+                        durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
+                        easing = AnimationSpecs.EmphasizedDecelerate,
+                    ),
+                initialOffsetY = { it / 2 },
+            ) +
+                scaleIn(
+                    initialScale = AnimationSpecs.Proxy.VisibilityInitialScale,
+                    animationSpec =
+                        tween(
+                            durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
+                            easing = LinearEasing,
+                        ),
+                ) +
+                fadeIn(
+                    animationSpec =
+                        tween(
+                            durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
+                            easing = AnimationSpecs.EnterEasing,
+                        )
+                ),
+        exit =
+            slideOutVertically(
+                animationSpec =
+                    tween(
+                        durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
+                        easing = AnimationSpecs.EmphasizedAccelerate,
+                    ),
+                targetOffsetY = { it / 2 },
+            ) +
+                scaleOut(
+                    targetScale = AnimationSpecs.Proxy.VisibilityTargetScale,
+                    animationSpec =
+                        tween(
+                            durationMillis = AnimationSpecs.Proxy.VisibilityDuration,
+                            easing = LinearEasing,
+                        ),
+                ) +
+                fadeOut(
+                    animationSpec =
+                        tween(
+                            durationMillis = AnimationSpecs.Proxy.VisibilityFadeDuration,
+                            easing = AnimationSpecs.ExitEasing,
+                        )
+                ),
         label = "override_shared_fab_visibility",
     ) {
         FloatingActionButton(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(end = 20.dp, bottom = 16.dp),
+            modifier = Modifier.navigationBarsPadding().padding(end = 20.dp, bottom = 16.dp),
             onClick = onClick,
         ) {
             Icon(

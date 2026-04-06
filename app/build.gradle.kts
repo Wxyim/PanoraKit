@@ -32,42 +32,46 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 
+val appAbiList =
+    (providers.gradleProperty("abi.app.list").orNull ?: "armeabi-v7a,arm64-v8a,x86,x86_64")
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
 
-val appAbiList = (gropify.abi.app.list ?: "armeabi-v7a,arm64-v8a,x86,x86_64")
-    .split(',').map { it.trim() }.filter { it.isNotEmpty() }
-
-val kernelProperties = Properties().apply {
-    val kernelPropertiesFile = rootProject.file("config/kernel.properties")
-    if (kernelPropertiesFile.exists()) {
-        kernelPropertiesFile.inputStream().use(::load)
+val kernelProperties =
+    Properties().apply {
+        val kernelPropertiesFile = rootProject.file("config/kernel.properties")
+        if (kernelPropertiesFile.exists()) {
+            kernelPropertiesFile.inputStream().use(::load)
+        }
     }
-}
-val mihomoVersion = kernelProperties.getProperty("external.mihomo.branch")
-    ?.trim()
-    ?.takeIf { it.isNotEmpty() }
-    ?: "unknown"
+val mihomoVersion =
+    kernelProperties.getProperty("external.mihomo.branch")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: "unknown"
 
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
 val legacyJniLibsDir = rootProject.layout.projectDirectory.dir("jniLibs")
 
 android {
-    namespace = gropify.project.namespace.base
-    compileSdk = gropify.android.compileSdk
+    namespace = providers.gradleProperty("project.namespace.base").get()
+    compileSdk = providers.gradleProperty("android.compileSdk").get().toInt()
 
     defaultConfig {
-        minSdk = gropify.android.minSdk
-        applicationId = gropify.project.namespace.base
-        targetSdk = gropify.android.targetSdk
-        versionCode = gropify.project.version.code
-        versionName = gropify.project.version.name
-        manifestPlaceholders["appName"] = gropify.project.name
+        minSdk = providers.gradleProperty("android.minSdk").get().toInt()
+        applicationId = providers.gradleProperty("project.namespace.base").get()
+        targetSdk = providers.gradleProperty("android.targetSdk").get().toInt()
+        versionCode = providers.gradleProperty("project.version.code").get().toInt()
+        versionName = providers.gradleProperty("project.version.name").get()
+        manifestPlaceholders["appName"] = providers.gradleProperty("project.name").get()
         buildConfigField("String", "MIHOMO_VERSION", "\"$mihomoVersion\"")
-
     }
 
     compileOptions {
-        val javaVer = gropify.android.jvm ?: gropify.project.jvm ?: "17"
+        val javaVer =
+            providers.gradleProperty("android.jvm").orNull
+                ?: providers.gradleProperty("project.jvm").orNull
+                ?: "17"
         sourceCompatibility = JavaVersion.toVersion(javaVer)
         targetCompatibility = JavaVersion.toVersion(javaVer)
         isCoreLibraryDesugaringEnabled = true
@@ -85,12 +89,7 @@ android {
             }
             assets.directories.apply {
                 clear()
-                addAll(
-                    listOf(
-                        "assets",
-                        geoFilesAssetsDir.get().asFile.invariantSeparatorsPath,
-                    )
-                )
+                addAll(listOf("assets", geoFilesAssetsDir.get().asFile.invariantSeparatorsPath))
             }
             aidl.directories.apply {
                 clear()
@@ -110,9 +109,7 @@ android {
         }
     }
 
-    androidResources {
-        generateLocaleConfig = false
-    }
+    androidResources { generateLocaleConfig = false }
 
     buildFeatures {
         compose = true
@@ -129,19 +126,26 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             vcsInfo.include = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
     splits {
         abi {
-            isEnable = gradle.startParameter.taskNames.none { it.contains("bundle", ignoreCase = true) }
+            isEnable =
+                gradle.startParameter.taskNames.none { it.contains("bundle", ignoreCase = true) }
             reset()
             include(*appAbiList.toTypedArray())
             isUniversalApk = true
@@ -157,37 +161,38 @@ android {
 
     signingConfigs {
         val signingPropertiesFile = rootProject.file("signing.properties")
-        val signingProperties = Properties().apply {
-            if (signingPropertiesFile.exists()) {
-                signingPropertiesFile.inputStream().use(::load)
+        val signingProperties =
+            Properties().apply {
+                if (signingPropertiesFile.exists()) {
+                    signingPropertiesFile.inputStream().use(::load)
+                }
             }
-        }
 
         fun readSigningValue(propertyKey: String, envKey: String): String? {
             return (project.findProperty(propertyKey) as? String)
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
-                ?: System.getenv(envKey)
-                    ?.trim()
-                    ?.takeIf(String::isNotBlank)
-                ?: signingProperties.getProperty(propertyKey)
-                    ?.trim()
-                    ?.takeIf(String::isNotBlank)
+                ?: System.getenv(envKey)?.trim()?.takeIf(String::isNotBlank)
+                ?: signingProperties.getProperty(propertyKey)?.trim()?.takeIf(String::isNotBlank)
         }
 
         val configuredKeystorePath = readSigningValue("keystore.path", "YUMEBOX_KEYSTORE_PATH")
-        val configuredStoreFile = configuredKeystorePath
-            ?.let { rawPath ->
+        val configuredStoreFile =
+            configuredKeystorePath?.let { rawPath ->
                 val asFile = file(rawPath)
                 if (asFile.isAbsolute) asFile else rootProject.file(rawPath)
-            }
-            ?: rootProject.file("release.keystore").takeIf { it.exists() }
+            } ?: rootProject.file("release.keystore").takeIf { it.exists() }
 
         val storePassword = readSigningValue("keystore.password", "YUMEBOX_KEYSTORE_PASSWORD")
         val keyAlias = readSigningValue("key.alias", "YUMEBOX_KEY_ALIAS")
         val keyPassword = readSigningValue("key.password", "YUMEBOX_KEY_PASSWORD")
 
-        if (configuredStoreFile?.exists() == true && storePassword != null && keyAlias != null && keyPassword != null) {
+        if (
+            configuredStoreFile?.exists() == true &&
+                storePassword != null &&
+                keyAlias != null &&
+                keyPassword != null
+        ) {
             create("release") {
                 storeFile = configuredStoreFile
                 this.storePassword = storePassword
@@ -203,46 +208,64 @@ android {
         }
     }
 
-    val releaseArtifactRequested = gradle.startParameter.taskNames.any { taskName ->
-        val normalized = taskName.lowercase()
-        normalized.contains("release") &&
-            (normalized.contains("assemble") || normalized.contains("bundle") || normalized.contains("package"))
-    }
+    val releaseArtifactRequested =
+        gradle.startParameter.taskNames.any { taskName ->
+            val normalized = taskName.lowercase()
+            normalized.contains("release") &&
+                (normalized.contains("assemble") ||
+                    normalized.contains("bundle") ||
+                    normalized.contains("package"))
+        }
 
     if (releaseArtifactRequested && signingConfigs.findByName("release") == null) {
         throw GradleException(
             "Release signing is not configured. Provide signing.properties or env vars " +
-                "(YUMEBOX_KEYSTORE_PATH, YUMEBOX_KEYSTORE_PASSWORD, YUMEBOX_KEY_ALIAS, YUMEBOX_KEY_PASSWORD).",
+                "(YUMEBOX_KEYSTORE_PATH, YUMEBOX_KEYSTORE_PASSWORD, YUMEBOX_KEY_ALIAS, YUMEBOX_KEY_PASSWORD)."
         )
     }
 
     androidComponents {
         onVariants { variant ->
             variant.outputs.forEach { output ->
-                val abiName = output.filters.find {
-                    it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI
-                }?.identifier ?: "universal"
+                val abiName =
+                    output.filters
+                        .find {
+                            it.filterType ==
+                                com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+                        }
+                        ?.identifier ?: "universal"
                 val buildTypeName = variant.buildType ?: "release"
-                output.versionName.set(gropify.project.version.name)
-                (output as com.android.build.api.variant.impl.VariantOutputImpl).outputFileName.set(
-                    "${gropify.project.name}-${abiName}-${buildTypeName}.apk"
-                )
+                output.versionName.set(providers.gradleProperty("project.version.name").get())
+                (output as com.android.build.api.variant.impl.VariantOutputImpl)
+                    .outputFileName
+                    .set(
+                        "${providers.gradleProperty("project.name").get()}-${abiName}-${buildTypeName}.apk"
+                    )
             }
         }
     }
 }
 
-val syncLegacyJniLibs = tasks.register<Sync>("syncLegacyJniLibs") {
-    from(legacyJniLibsDir)
-    into(unifiedJniLibsDir)
-}
+val syncLegacyJniLibs =
+    tasks.register<Sync>("syncLegacyJniLibs") {
+        from(legacyJniLibsDir)
+        into(unifiedJniLibsDir)
+    }
 
-tasks.named("preBuild") {
-    dependsOn(syncLegacyJniLibs)
-}
+val collectDebugApk =
+    tasks.register<Sync>("collectDebugApk") {
+        from(layout.buildDirectory.dir("outputs/apk/debug")) {
+            include("*.apk", "output-metadata.json")
+        }
+        into(rootProject.layout.buildDirectory.dir("apk/debug"))
+    }
+
+tasks.named("preBuild") { dependsOn(syncLegacyJniLibs) }
+
+tasks.matching { it.name == "assembleDebug" }.configureEach { finalizedBy(collectDebugApk) }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:${gropify.dep.version.desugarJdkLibs}")
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     implementation(project(":core"))
     implementation(project(":platform"))
@@ -259,65 +282,62 @@ dependencies {
     implementation(project(":feature:editor"))
     implementation(project(":feature:meta"))
 
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.activity:activity-compose:${gropify.dep.version.activityCompose}")
+    implementation(libs.activity.compose)
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    implementation("top.yukonga.miuix.kmp:miuix:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-icons:${gropify.dep.version.miuix}")
-    implementation("dev.chrisbanes.haze:haze:${gropify.dep.version.haze}")
-    implementation("io.github.fletchmckee.liquid:liquid:${gropify.dep.version.liquid}")
-    implementation("androidx.navigationevent:navigationevent-compose:${gropify.dep.version.navigationevent}")
+    implementation(libs.miuix)
+    implementation(libs.miuix.icons)
+    implementation(libs.haze)
+    implementation(libs.liquid)
+    implementation(libs.navigationevent.compose)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     implementation("com.tencent:mmkv:$mmkvVersion")
 
-    implementation("io.insert-koin:koin-core:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-android:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-androidx-compose:${gropify.dep.version.koin}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.coroutines.android)
+    implementation(libs.serialization.json)
 
-    implementation("io.github.raamcosta.compose-destinations:core:${gropify.dep.version.composeDestinations}")
-    ksp("io.github.raamcosta.compose-destinations:ksp:${gropify.dep.version.composeDestinations}")
+    implementation(libs.compose.destinations.core)
+    ksp(libs.compose.destinations.ksp)
 
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("org.tukaani:xz:1.12")
+    implementation(libs.timber)
+    implementation(libs.xz)
 
-    implementation("com.google.mlkit:barcode-scanning:${gropify.dep.version.mlkitBarcodeScanning}")
+    implementation(libs.mlkit.barcode.scanning)
 
-    implementation("androidx.camera:camera-camera2:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-lifecycle:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-view:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-core:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-video:${gropify.dep.version.camera}")
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.camera.core)
+    implementation(libs.camera.video)
 
-    implementation("io.coil-kt.coil3:coil-compose:${gropify.dep.version.coil3}")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:${gropify.dep.version.coil3}")
-    implementation("io.coil-kt.coil3:coil-svg:${gropify.dep.version.coil3}")
-    implementation("io.github.panpf.sketch4:sketch-compose:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-http:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-animated-webp:${gropify.dep.version.sketch4}")
+    implementation(libs.coil3.compose)
+    implementation(libs.coil3.network.okhttp)
+    implementation(libs.coil3.svg)
+    implementation(libs.sketch4.compose)
+    implementation(libs.sketch4.http)
+    implementation(libs.sketch4.animated.webp)
 
-    implementation("sh.calvin.reorderable:reorderable:${gropify.dep.version.reorderable}")
-    implementation("com.mikepenz:aboutlibraries-core:${gropify.dep.version.aboutLibraries}")
-    implementation("com.mikepenz:aboutlibraries-compose:${gropify.dep.version.aboutLibraries}")
-    implementation("dev.oom-wg.purejoy.fyl.fytxt:common-android:2.2")
+    implementation(libs.reorderable)
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose)
+    implementation(libs.fytxt.common.android)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${gropify.dep.version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:${gropify.dep.version.lifecycle}")
-
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
 }
 
-ksp {
-    arg("compose-destinations.defaultTransitions", "none")
-}
+ksp { arg("compose-destinations.defaultTransitions", "none") }

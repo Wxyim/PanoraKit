@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
@@ -34,23 +32,20 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-typealias OpenStringListModifiersEditor = (
-    title: String,
-    placeholder: String,
-    replaceValue: List<String>?,
-    startValue: List<String>?,
-    endValue: List<String>?,
-    onReplaceChange: (List<String>?) -> Unit,
-    onStartChange: (List<String>?) -> Unit,
-    onEndChange: (List<String>?) -> Unit,
-) -> Unit
+typealias OpenStringListModifiersEditor =
+    (
+        title: String,
+        placeholder: String,
+        replaceValue: List<String>?,
+        startValue: List<String>?,
+        endValue: List<String>?,
+        onReplaceChange: (List<String>?) -> Unit,
+        onStartChange: (List<String>?) -> Unit,
+        onEndChange: (List<String>?) -> Unit,
+    ) -> Unit
 
 @Composable
-fun PortInputContent(
-    title: String,
-    value: Int?,
-    onValueChange: (Int?) -> Unit,
-) {
+fun PortInputContent(title: String, value: Int?, onValueChange: (Int?) -> Unit) {
     val showDialog = remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(value?.toString() ?: "") }
     var inputValue by remember { mutableStateOf("") }
@@ -70,9 +65,7 @@ fun PortInputContent(
         title = title,
         textValue = inputValue,
         label = MLang.Component.ConfigInput.PortLabel,
-        onTextValueChange = { input ->
-            inputValue = input
-        },
+        onTextValueChange = { input -> inputValue = input },
         onClear = { onValueChange(null) },
         onConfirm = {
             val port = inputValue.filter(Char::isDigit).toIntOrNull()
@@ -81,9 +74,7 @@ fun PortInputContent(
             }
             textValue = port?.toString() ?: ""
         },
-        onDismiss = {
-            textValue = value?.toString() ?: ""
-        },
+        onDismiss = { textValue = value?.toString() ?: "" },
     )
 }
 
@@ -118,43 +109,29 @@ fun StringInputContent(
 }
 
 @Composable
-fun StringListInputContent(
-    title: String,
-    value: List<String>?,
-    onClick: () -> Unit,
-) {
+fun StringListInputContent(title: String, value: List<String>?, onClick: () -> Unit) {
     val itemCount = value?.size ?: 0
-    val displayValue = if (itemCount > 0) {
-        MLang.Component.ConfigInput.CountItems.format(itemCount)
-    } else {
-        MLang.Component.Selector.NotModify
-    }
+    val displayValue =
+        if (itemCount > 0) {
+            MLang.Component.ConfigInput.CountItems.format(itemCount)
+        } else {
+            MLang.Component.Selector.NotModify
+        }
 
-    SuperArrow(
-        title = title,
-        summary = displayValue,
-        onClick = onClick,
-    )
+    SuperArrow(title = title, summary = displayValue, onClick = onClick)
 }
 
 @Composable
-fun StringMapInputContent(
-    title: String,
-    value: Map<String, String>?,
-    onClick: () -> Unit,
-) {
+fun StringMapInputContent(title: String, value: Map<String, String>?, onClick: () -> Unit) {
     val itemCount = value?.size ?: 0
-    val displayValue = if (itemCount > 0) {
-        MLang.Component.ConfigInput.CountItems.format(itemCount)
-    } else {
-        MLang.Component.Selector.NotModify
-    }
+    val displayValue =
+        if (itemCount > 0) {
+            MLang.Component.ConfigInput.CountItems.format(itemCount)
+        } else {
+            MLang.Component.Selector.NotModify
+        }
 
-    SuperArrow(
-        title = title,
-        summary = displayValue,
-        onClick = onClick,
-    )
+    SuperArrow(title = title, summary = displayValue, onClick = onClick)
 }
 
 @Composable
@@ -178,9 +155,7 @@ private fun ConfigTextInputDialog(
         },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TextField(
@@ -207,10 +182,7 @@ private fun ConfigTextInputDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(
-                        MLang.Component.Button.Confirm,
-                        color = MiuixTheme.colorScheme.onPrimary,
-                    )
+                    Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -229,19 +201,22 @@ fun StringListWithModifiersInput(
     onEndChange: (List<String>?) -> Unit,
     onEditListGroup: OpenStringListModifiersEditor,
 ) {
-    val summary = remember(replaceValue, startValue, endValue) {
-        buildList {
-            replaceValue?.takeIf { it.isNotEmpty() }?.let {
-                add("${MLang.Component.Selector.Replace} ${it.size}")
-            }
-            startValue?.takeIf { it.isNotEmpty() }?.let {
-                add("${MLang.Component.Selector.Prepend} ${it.size}")
-            }
-            endValue?.takeIf { it.isNotEmpty() }?.let {
-                add("${MLang.Component.Selector.Append} ${it.size}")
-            }
-        }.joinToString(" · ").ifEmpty { MLang.Component.Selector.NotModify }
-    }
+    val summary =
+        remember(replaceValue, startValue, endValue) {
+            buildList {
+                    replaceValue
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { add("${MLang.Component.Selector.Replace} ${it.size}") }
+                    startValue
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { add("${MLang.Component.Selector.Prepend} ${it.size}") }
+                    endValue
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { add("${MLang.Component.Selector.Append} ${it.size}") }
+                }
+                .joinToString(" · ")
+                .ifEmpty { MLang.Component.Selector.NotModify }
+        }
 
     SuperArrow(
         title = title,
@@ -270,20 +245,31 @@ fun StringMapWithModifiersInput(
     valuePlaceholder: String = "",
     onReplaceChange: (Map<String, String>?) -> Unit,
     onMergeChange: (Map<String, String>?) -> Unit,
-    onEditMap: (mode: MapMergeStrategy, title: String, keyPlaceholder: String, valuePlaceholder: String, value: Map<String, String>?, onValueChange: (Map<String, String>?) -> Unit) -> Unit,
+    onEditMap:
+        (
+            mode: MapMergeStrategy,
+            title: String,
+            keyPlaceholder: String,
+            valuePlaceholder: String,
+            value: Map<String, String>?,
+            onValueChange: (Map<String, String>?) -> Unit,
+        ) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    val summary = remember(replaceValue, mergeValue) {
-        buildList {
-            replaceValue?.takeIf { it.isNotEmpty() }?.let {
-                add("${MLang.Component.Selector.Replace} ${it.size}")
-            }
-            mergeValue?.takeIf { it.isNotEmpty() }?.let {
-                add("${MLang.Component.Selector.Merge} ${it.size}")
-            }
-        }.joinToString(" · ").ifEmpty { MLang.Component.Selector.NotModify }
-    }
+    val summary =
+        remember(replaceValue, mergeValue) {
+            buildList {
+                    replaceValue
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { add("${MLang.Component.Selector.Replace} ${it.size}") }
+                    mergeValue
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { add("${MLang.Component.Selector.Merge} ${it.size}") }
+                }
+                .joinToString(" · ")
+                .ifEmpty { MLang.Component.Selector.NotModify }
+        }
 
     Column {
         SuperArrow(
@@ -295,14 +281,16 @@ fun StringMapWithModifiersInput(
 
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(
-                animationSpec = tween(durationMillis = 260),
-                expandFrom = Alignment.Top,
-            ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-            exit = shrinkVertically(
-                animationSpec = tween(durationMillis = 220),
-                shrinkTowards = Alignment.Top,
-            ) + fadeOut(animationSpec = tween(durationMillis = 160)),
+            enter =
+                expandVertically(
+                    animationSpec = tween(durationMillis = 260),
+                    expandFrom = Alignment.Top,
+                ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+            exit =
+                shrinkVertically(
+                    animationSpec = tween(durationMillis = 220),
+                    shrinkTowards = Alignment.Top,
+                ) + fadeOut(animationSpec = tween(durationMillis = 160)),
             label = "map_modifiers_$title",
         ) {
             Column {
@@ -327,11 +315,12 @@ fun StringMapWithModifiersInput(
                                 onReplaceChange,
                             )
                         },
-                        onClear = if (!replaceValue.isNullOrEmpty()) {
-                            { onReplaceChange(null) }
-                        } else {
-                            null
-                        },
+                        onClear =
+                            if (!replaceValue.isNullOrEmpty()) {
+                                { onReplaceChange(null) }
+                            } else {
+                                null
+                            },
                     )
                     ModifierModeCard(
                         modifier = Modifier.weight(1f),
@@ -348,11 +337,12 @@ fun StringMapWithModifiersInput(
                                 onMergeChange,
                             )
                         },
-                        onClear = if (!mergeValue.isNullOrEmpty()) {
-                            { onMergeChange(null) }
-                        } else {
-                            null
-                        },
+                        onClear =
+                            if (!mergeValue.isNullOrEmpty()) {
+                                { onMergeChange(null) }
+                            } else {
+                                null
+                            },
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
@@ -375,14 +365,8 @@ private fun ModifierModeCard(
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier,
-        insideMargin = PaddingValues(12.dp),
-    ) {
-        Text(
-            text = title,
-            color = MiuixTheme.colorScheme.onSurface,
-        )
+    Card(modifier = modifier, insideMargin = PaddingValues(12.dp)) {
+        Text(text = title, color = MiuixTheme.colorScheme.onSurface)
         Text(
             text = summary,
             modifier = Modifier.padding(top = 6.dp),
@@ -395,20 +379,12 @@ private fun ModifierModeCard(
             color = MiuixTheme.colorScheme.outline,
         )
         Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = onEdit,
-            ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(modifier = Modifier.weight(1f), onClick = onEdit) {
                 Text(MLang.Component.Button.Edit)
             }
             if (onClear != null) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = onClear,
-                ) {
+                Button(modifier = Modifier.weight(1f), onClick = onClear) {
                     Text(MLang.Component.Button.Clear)
                 }
             }
@@ -426,6 +402,7 @@ private fun buildListModeSummary(value: List<String>?): String {
 private fun buildMapModeSummary(value: Map<String, String>?): String {
     return when {
         value.isNullOrEmpty() -> MLang.Component.Selector.NotModify
-        else -> "${MLang.Component.ConfigInput.CountItems.format(value.size)} · ${value.entries.first().key}"
+        else ->
+            "${MLang.Component.ConfigInput.CountItems.format(value.size)} · ${value.entries.first().key}"
     }
 }

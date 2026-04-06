@@ -25,67 +25,47 @@ plugins {
 
 android {
     namespace = "com.github.yumelira.yumebox.runtime.client"
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm ?: gropify.project.jvm ?: "17"
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "DebugProbesKt.bin",
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     sourceSets {
         getByName("main") {
             kotlin.directories.apply {
                 clear()
                 add("src")
             }
-            res.srcDirs("res")
-            assets.srcDirs("assets")
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
+            res.directories.apply {
+                clear()
+                add("res")
+            }
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
         getByName("test") {
             kotlin.directories.clear()
-            resources.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
+            resources.directories.clear()
+            assets.directories.clear()
         }
         getByName("androidTest") {
             kotlin.directories.clear()
-            res.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
-            aidl.setSrcDirs(emptyList<String>())
-            resources.setSrcDirs(emptyList<String>())
+            res.directories.clear()
+            assets.directories.clear()
+            aidl.directories.clear()
+            resources.directories.clear()
         }
     }
 
-    buildFeatures {
-        buildConfig = false
-    }
+    buildFeatures { buildConfig = false }
 }
 
 dependencies {
@@ -94,19 +74,18 @@ dependencies {
     api(project(":runtime:api"))
     api(project(":runtime:service"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
-    implementation("com.squareup.okhttp3:okhttp:${gropify.dep.version.okhttp}")
+    implementation(libs.coroutines.android)
+    implementation(libs.serialization.json)
+    implementation(libs.okhttp)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     implementation("com.tencent:mmkv:$mmkvVersion")
 
-    implementation("io.insert-koin:koin-core:${gropify.dep.version.koin}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("com.github.topjohnwu.libsu:core:6.0.0")
-    implementation("com.github.topjohnwu.libsu:service:6.0.0")
+    implementation(libs.koin.core)
+    implementation(libs.timber)
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
 }
-

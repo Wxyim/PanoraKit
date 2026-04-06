@@ -28,10 +28,7 @@ import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.extra.SuperListPopup
 
-internal val NodeGroupStyles = listOf(
-    ProxyGroupStyle.INLINE,
-    ProxyGroupStyle.FLOATING,
-)
+internal val NodeGroupStyles = listOf(ProxyGroupStyle.INLINE, ProxyGroupStyle.FLOATING)
 
 @Composable
 internal fun NodeGroupStylePopup(
@@ -42,11 +39,7 @@ internal fun NodeGroupStylePopup(
     onStyleSelected: (ProxyGroupStyle) -> Unit,
 ) {
     val selectedIndex = NodeGroupStyles.indexOf(groupStyle).coerceAtLeast(0)
-    SuperListPopup(
-        show = show.value,
-        alignment = alignment,
-        onDismissRequest = onDismiss,
-    ) {
+    SuperListPopup(show = show.value, alignment = alignment, onDismissRequest = onDismiss) {
         ListPopupColumn {
             NodeGroupStyles.forEachIndexed { index, style ->
                 DropdownImpl(

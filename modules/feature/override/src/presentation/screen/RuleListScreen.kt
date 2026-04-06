@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.clickable
@@ -48,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -58,15 +55,15 @@ private const val RuleListReorderHeaderCount = 2
 @Composable
 fun OverrideRuleListEditorScreen(
     navigator: DestinationsNavigator,
-    onOpenRuleDraftEditor: (
-        title: String,
-        initialValue: OverrideRuleDraft?,
-        onConfirm: (OverrideRuleDraft) -> Unit,
-    ) -> Unit,
+    onOpenRuleDraftEditor:
+        (
+            title: String, initialValue: OverrideRuleDraft?, onConfirm: (OverrideRuleDraft) -> Unit,
+        ) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = OverrideStructuredEditorStore.ruleEditorTitle.ifBlank { MLang.Override.Editor.Rules }
+    val title =
+        OverrideStructuredEditorStore.ruleEditorTitle.ifBlank { MLang.Override.Editor.Rules }
     val availableModes = OverrideStructuredEditorStore.ruleEditorAvailableModes
     var showResetDialog by remember { mutableStateOf(false) }
     val addFabController = rememberOverrideFabController()
@@ -81,18 +78,20 @@ fun OverrideRuleListEditorScreen(
         OverrideStructuredEditorStore.applyRuleDraftValues(values)
     }
 
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        val fromIndex = (from.index - RuleListReorderHeaderCount).coerceAtLeast(0)
-        val toIndex = (to.index - RuleListReorderHeaderCount).coerceAtLeast(0)
-        val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
-        val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
-        val updatedValues = latestValues.update(
-            mode,
-            reorderDraftList(latestValues.valueFor(mode).orEmpty(), fromIndex, toIndex),
-        )
-        selectedUiIds = emptySet()
-        applyRuleValues(updatedValues)
-    }
+    val reorderState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            val fromIndex = (from.index - RuleListReorderHeaderCount).coerceAtLeast(0)
+            val toIndex = (to.index - RuleListReorderHeaderCount).coerceAtLeast(0)
+            val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
+            val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
+            val updatedValues =
+                latestValues.update(
+                    mode,
+                    reorderDraftList(latestValues.valueFor(mode).orEmpty(), fromIndex, toIndex),
+                )
+            selectedUiIds = emptySet()
+            applyRuleValues(updatedValues)
+        }
     val showAddFab = !isDeleteMode && !showResetDialog
 
     Scaffold(
@@ -106,10 +105,13 @@ fun OverrideRuleListEditorScreen(
                     onOpenRuleDraftEditor(MLang.Override.Editor.NewRule, null) { createdDraft ->
                         val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
                         val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
-                        val updatedValues = latestValues.update(
-                            mode,
-                            latestValues.valueFor(mode).orEmpty().toMutableList().also { it.add(createdDraft) },
-                        )
+                        val updatedValues =
+                            latestValues.update(
+                                mode,
+                                latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                                    it.add(createdDraft)
+                                },
+                            )
                         applyRuleValues(updatedValues)
                     }
                 },
@@ -136,12 +138,16 @@ fun OverrideRuleListEditorScreen(
                         IconButton(
                             onClick = {
                                 if (selectedUiIds.isNotEmpty()) {
-                                    val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
+                                    val latestValues =
+                                        OverrideStructuredEditorStore.ruleEditorDraftValues
                                     val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
-                                    val updatedValues = latestValues.update(
-                                        mode,
-                                        latestValues.valueFor(mode).orEmpty().filterNot { it.uiId in selectedUiIds },
-                                    )
+                                    val updatedValues =
+                                        latestValues.update(
+                                            mode,
+                                            latestValues.valueFor(mode).orEmpty().filterNot {
+                                                it.uiId in selectedUiIds
+                                            },
+                                        )
                                     selectedUiIds = emptySet()
                                     isDeleteMode = false
                                     applyRuleValues(updatedValues)
@@ -197,7 +203,9 @@ fun OverrideRuleListEditorScreen(
                         selectedIndex = selectedModeIndex,
                         onSelectedIndexChange = { index ->
                             val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateRuleEditorSession(selectedMode = newMode)
+                            OverrideStructuredEditorStore.updateRuleEditorSession(
+                                selectedMode = newMode
+                            )
                             isDeleteMode = false
                             selectedUiIds = emptySet()
                         },
@@ -210,18 +218,14 @@ fun OverrideRuleListEditorScreen(
             }
 
             if (currentRules.isNotEmpty()) {
-                items(
-                    count = currentRules.size,
-                    key = { index -> currentRules[index].uiId },
-                ) { index ->
+                items(count = currentRules.size, key = { index -> currentRules[index].uiId }) {
+                    index ->
                     val ruleDraft = currentRules[index]
-                    val ruleTitle = formatRuleDraft(ruleDraft).ifBlank {
-                        ruleDraft.type.ifBlank { MLang.Override.Editor.UnnamedRule }
-                    }
-                    ReorderableItem(
-                        state = reorderState,
-                        key = ruleDraft.uiId,
-                    ) { isDragging ->
+                    val ruleTitle =
+                        formatRuleDraft(ruleDraft).ifBlank {
+                            ruleDraft.type.ifBlank { MLang.Override.Editor.UnnamedRule }
+                        }
+                    ReorderableItem(state = reorderState, key = ruleDraft.uiId) { isDragging ->
                         RuleListCard(
                             title = ruleTitle,
                             isDragging = isDragging,
@@ -233,28 +237,35 @@ fun OverrideRuleListEditorScreen(
                                 } else {
                                     val ruleUiId = ruleDraft.uiId
                                     val editMode = selectedMode
-                                    onOpenRuleDraftEditor(MLang.Override.Editor.EditRule, ruleDraft) { updatedDraft ->
-                                        val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
-                                        val updatedValues = latestValues.update(
-                                            editMode,
-                                            latestValues.valueFor(editMode).orEmpty().map { draft ->
-                                                if (draft.uiId == ruleUiId) {
-                                                    updatedDraft.copy(uiId = ruleUiId)
-                                                } else {
-                                                    draft
-                                                }
-                                            },
-                                        )
+                                    onOpenRuleDraftEditor(
+                                        MLang.Override.Editor.EditRule,
+                                        ruleDraft,
+                                    ) { updatedDraft ->
+                                        val latestValues =
+                                            OverrideStructuredEditorStore.ruleEditorDraftValues
+                                        val updatedValues =
+                                            latestValues.update(
+                                                editMode,
+                                                latestValues.valueFor(editMode).orEmpty().map {
+                                                    draft ->
+                                                    if (draft.uiId == ruleUiId) {
+                                                        updatedDraft.copy(uiId = ruleUiId)
+                                                    } else {
+                                                        draft
+                                                    }
+                                                },
+                                            )
                                         applyRuleValues(updatedValues)
                                     }
                                 }
                             },
                             onSelectedChange = { checked ->
-                                selectedUiIds = if (checked) {
-                                    selectedUiIds + ruleDraft.uiId
-                                } else {
-                                    selectedUiIds - ruleDraft.uiId
-                                }
+                                selectedUiIds =
+                                    if (checked) {
+                                        selectedUiIds + ruleDraft.uiId
+                                    } else {
+                                        selectedUiIds - ruleDraft.uiId
+                                    }
                             },
                         )
                     }
@@ -266,7 +277,7 @@ fun OverrideRuleListEditorScreen(
             }
         }
 
-    AppDialog(
+        AppDialog(
             show = showResetDialog,
             title = MLang.Override.Editor.ClearDialog.Title.format(MLang.Override.Editor.Rules),
             summary = MLang.Override.Editor.ClearDialog.Summary.format(MLang.Override.Editor.Rules),
@@ -279,7 +290,12 @@ fun OverrideRuleListEditorScreen(
                     isDeleteMode = false
                     selectedUiIds = emptySet()
                     val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
-                    applyRuleValues(OverrideStructuredEditorStore.ruleEditorDraftValues.update(mode, emptyList()))
+                    applyRuleValues(
+                        OverrideStructuredEditorStore.ruleEditorDraftValues.update(
+                            mode,
+                            emptyList(),
+                        )
+                    )
                 },
                 cancelText = MLang.Override.Dialog.Button.Cancel,
                 confirmText = MLang.Override.Editor.Clear,
@@ -299,15 +315,15 @@ private fun ReorderableCollectionItemScope.RuleListCard(
 ) {
     Column {
         Card(
-            modifier = Modifier
-                .longPressDraggableHandle(enabled = !isDeleteMode)
-                .alpha(if (isDragging) 0.92f else 1f),
+            modifier =
+                Modifier.longPressDraggableHandle(enabled = !isDeleteMode)
+                    .alpha(if (isDragging) 0.92f else 1f)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick)
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -316,18 +332,10 @@ private fun ReorderableCollectionItemScope.RuleListCard(
                     contentDescription = MLang.Override.Editor.DragToSort,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        text = title,
-                        style = MiuixTheme.textStyles.body1,
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MiuixTheme.textStyles.body1)
                 }
-                Box(
-                    modifier = Modifier.height(32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
                     if (isDeleteMode) {
                         Checkbox(
                             state = ToggleableState(isSelected),

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.screen
 
 import androidx.activity.compose.BackHandler
@@ -62,47 +60,43 @@ fun ConfigPreviewScreen(
     var isSaving by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
 
-    val formattedContent = remember(initialContent, language) {
-        if (language == LanguageScope.Json) {
-            CodeFormatter.format(initialContent, language) ?: initialContent
-        } else {
-            initialContent
+    val formattedContent =
+        remember(initialContent, language) {
+            if (language == LanguageScope.Json) {
+                CodeFormatter.format(initialContent, language) ?: initialContent
+            } else {
+                initialContent
+            }
         }
-    }
 
-    val editorState = remember(formattedContent) {
-        CodeEditorState(
-            initialContent = formattedContent,
-            language = language,
-            readOnly = isReadOnly
-        )
-    }
+    val editorState =
+        remember(formattedContent) {
+            CodeEditorState(
+                initialContent = formattedContent,
+                language = language,
+                readOnly = isReadOnly,
+            )
+        }
 
     val editorThemeState = EditorThemeManager.rememberEditorTheme()
     val scrollBehavior = MiuixScrollBehavior()
 
-    LaunchedEffect(Unit) {
-        TextMateInitializer.initialize(context)
-    }
+    LaunchedEffect(Unit) { TextMateInitializer.initialize(context) }
 
     LaunchedEffect(editorThemeState.isDark) {
-        editorState.editor?.let {
-            TextMateInitializer.setTheme(editorThemeState.isDark)
-        }
+        editorState.editor?.let { TextMateInitializer.setTheme(editorThemeState.isDark) }
     }
 
     fun saveAndExit() {
         if (isSaving || onSave == null) return
         editorState.syncContentFromEditor()
         isSaving = true
-        runCatching {
-            onSave(editorState.content)
-        }.onSuccess {
-            editorState.resetModified()
-            navigator.navigateUp()
-        }.onFailure {
-            context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed)
-        }
+        runCatching { onSave(editorState.content) }
+            .onSuccess {
+                editorState.resetModified()
+                navigator.navigateUp()
+            }
+            .onFailure { context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed) }
         isSaving = false
     }
 
@@ -119,9 +113,7 @@ fun ConfigPreviewScreen(
         }
     }
 
-    BackHandler {
-        requestExit()
-    }
+    BackHandler { requestExit() }
 
     Scaffold(
         topBar = {
@@ -132,21 +124,27 @@ fun ConfigPreviewScreen(
                     IconButton(
                         modifier = Modifier.padding(start = 24.dp),
                         onClick = { requestExit() },
-                    ) { Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back) }
-                },
-                actions = if (onSave != null) {
-                    {
-                        IconButton(
-                            modifier = Modifier.padding(end = 24.dp),
-                            onClick = { saveAndExit() },
-                            enabled = editorState.isModified && !isSaving,
-                        ) {
-                            Icon(Yume.Check, contentDescription = MLang.Component.Editor.Action.SaveAndExit)
-                        }
+                    ) {
+                        Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
                     }
-                } else {
-                    {}
-                }
+                },
+                actions =
+                    if (onSave != null) {
+                        {
+                            IconButton(
+                                modifier = Modifier.padding(end = 24.dp),
+                                onClick = { saveAndExit() },
+                                enabled = editorState.isModified && !isSaving,
+                            ) {
+                                Icon(
+                                    Yume.Check,
+                                    contentDescription = MLang.Component.Editor.Action.SaveAndExit,
+                                )
+                            }
+                        }
+                    } else {
+                        {}
+                    },
             )
         }
     ) { paddingValues ->
@@ -154,9 +152,7 @@ fun ConfigPreviewScreen(
             CodeEditor(
                 state = editorState,
                 modifier = Modifier.fillMaxSize(),
-                onTextChange = {
-                    editorState.syncContentFromEditor()
-                }
+                onTextChange = { editorState.syncContentFromEditor() },
             )
         }
 

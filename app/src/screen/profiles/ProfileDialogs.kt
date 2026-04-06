@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.profiles
 
 import androidx.compose.foundation.layout.*
@@ -40,7 +38,6 @@ import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.DialogDefaults
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -48,6 +45,7 @@ private const val PROFILE_SETTINGS_MIN_HEIGHT_FRACTION = 0.5f
 private const val PROFILE_SETTINGS_MAX_HEIGHT_FRACTION = 0.7f
 private val PROFILE_SETTINGS_LIST_MAX_HEIGHT = 420.dp
 private const val SYSTEM_OVERRIDE_PREFIX = "preset-"
+
 private object ProfileDialogMetrics {
     val BottomPadding = 16.dp
     val SectionSpacing = 16.dp
@@ -58,39 +56,38 @@ internal fun EditProfileNameDialog(
     show: MutableState<Boolean>,
     currentName: String,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     var editName by remember { mutableStateOf(currentName) }
 
     AppDialog(
-        title = MLang.ProfilesPage.EditDialog.Title, show = show.value, onDismissRequest = onDismiss
+        title = MLang.ProfilesPage.EditDialog.Title,
+        show = show.value,
+        onDismissRequest = onDismiss,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TextField(
                 value = editName,
                 onValueChange = { editName = it },
                 label = MLang.ProfilesPage.Input.ProfileName,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = onDismiss, modifier = Modifier.weight(1f)
-                ) {
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                     Text(MLang.ProfilesPage.Button.Cancel)
                 }
                 Button(
                     onClick = { onConfirm(editName) },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary()
+                    colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
                     Text(
-                        MLang.ProfilesPage.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary
+                        MLang.ProfilesPage.Button.Confirm,
+                        color = MiuixTheme.colorScheme.onPrimary,
                     )
                 }
             }
@@ -125,9 +122,10 @@ internal fun DeleteConfirmDialog(
                 onCancel = onDismiss,
                 onConfirm = onConfirm,
                 cancelText = MLang.ProfilesPage.Button.Cancel,
-                confirmText = MLang.ProfilesPage.DeleteDialog.Confirm
+                confirmText = MLang.ProfilesPage.DeleteDialog.Confirm,
             )
-        })
+        },
+    )
 }
 
 @Composable
@@ -137,7 +135,7 @@ internal fun ShareOptionsDialog(
     onDismiss: () -> Unit,
     onDismissFinished: (() -> Unit)? = null,
     onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit
+    onShareLink: (Profile) -> Unit,
 ) {
     AppDialog(
         show = show.value,
@@ -154,37 +152,36 @@ internal fun ShareOptionsDialog(
         insideMargin = DialogDefaults.insideMargin,
         defaultWindowInsetsPadding = true,
         content = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (profile.type == Profile.Type.Url) {
                     Button(
                         onClick = { onShareLink(profile) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColorsPrimary()
+                        colors = ButtonDefaults.buttonColorsPrimary(),
                     ) {
                         Text(
                             MLang.ProfilesPage.ShareDialog.ShareLink,
-                            color = MiuixTheme.colorScheme.onPrimary
+                            color = MiuixTheme.colorScheme.onPrimary,
                         )
                     }
                 }
                 Button(
                     onClick = { onShareFile(profile) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors()
+                    colors = ButtonDefaults.buttonColors(),
                 ) {
                     Text(MLang.ProfilesPage.ShareDialog.ShareFile)
                 }
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors()
+                    colors = ButtonDefaults.buttonColors(),
                 ) {
                     Text(MLang.ProfilesPage.Button.Cancel)
                 }
             }
-        })
+        },
+    )
 }
 
 @Composable
@@ -199,10 +196,7 @@ internal fun ProfileSettingsDialog(
     onSaveProfileMeta: (String, String) -> Unit,
     onSaveOverrideSettings: (Boolean, List<String>) -> Unit,
 ) {
-    val initialOverrideIds = binding
-        ?.overrideIds
-        .orEmpty()
-        .filterNot(::isBuiltinPresetOverrideId)
+    val initialOverrideIds = binding?.overrideIds.orEmpty().filterNot(::isBuiltinPresetOverrideId)
     val initialSystemPresetEnabled = binding?.enabled ?: false
     val appliedOverrideIds = initialOverrideIds
     var editName by remember { mutableStateOf(profile.name) }
@@ -226,13 +220,16 @@ internal fun ProfileSettingsDialog(
     val saveSettings = {
         val trimmedName = editName.trim()
         val trimmedSource = editSource.trim()
-        val targetSource = if (profile.type == Profile.Type.Url && trimmedSource.isNotEmpty()) {
-            trimmedSource
-        } else {
-            profile.source
-        }
-        if (trimmedName.isNotEmpty() && targetSource.isNotEmpty() &&
-            (trimmedName != profile.name || targetSource != profile.source)
+        val targetSource =
+            if (profile.type == Profile.Type.Url && trimmedSource.isNotEmpty()) {
+                trimmedSource
+            } else {
+                profile.source
+            }
+        if (
+            trimmedName.isNotEmpty() &&
+                targetSource.isNotEmpty() &&
+                (trimmedName != profile.name || targetSource != profile.source)
         ) {
             onSaveProfileMeta(trimmedName, targetSource)
         }
@@ -262,17 +259,15 @@ internal fun ProfileSettingsDialog(
         onDismissFinished = onDismissFinished,
         enableNestedScroll = true,
     ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val minimumSheetHeight = maxHeight * PROFILE_SETTINGS_MIN_HEIGHT_FRACTION
             val maximumSheetHeight = maxHeight * PROFILE_SETTINGS_MAX_HEIGHT_FRACTION
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = minimumSheetHeight, max = maximumSheetHeight)
-                    .padding(bottom = ProfileDialogMetrics.BottomPadding),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .heightIn(min = minimumSheetHeight, max = maximumSheetHeight)
+                        .padding(bottom = ProfileDialogMetrics.BottomPadding),
                 verticalArrangement = Arrangement.spacedBy(ProfileDialogMetrics.SectionSpacing),
             ) {
                 TextField(
@@ -306,15 +301,19 @@ internal fun ProfileSettingsDialog(
                 if (userConfigs.isNotEmpty()) {
                     Card {
                         LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = PROFILE_SETTINGS_LIST_MAX_HEIGHT),
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .heightIn(max = PROFILE_SETTINGS_LIST_MAX_HEIGHT)
                         ) {
-                            itemsIndexed(userConfigs, key = { _, config -> config.id }) { index, config ->
+                            itemsIndexed(userConfigs, key = { _, config -> config.id }) {
+                                index,
+                                config ->
                                 val isSelected = config.id in pendingSelectedUserOverrideIds
                                 BasicComponent(
                                     title = config.name,
-                                    summary = config.description?.takeIf { it.isNotBlank() } ?: MLang.ProfilesPage.SettingsDialog.NoDescription,
+                                    summary =
+                                        config.description?.takeIf { it.isNotBlank() }
+                                            ?: MLang.ProfilesPage.SettingsDialog.NoDescription,
                                     endActions = {
                                         Checkbox(
                                             state = ToggleableState(isSelected),
@@ -323,9 +322,7 @@ internal fun ProfileSettingsDialog(
                                             },
                                         )
                                     },
-                                    onClick = {
-                                        toggleUserOverrideSelection(config.id, isSelected)
-                                    },
+                                    onClick = { toggleUserOverrideSelection(config.id, isSelected) },
                                 )
                                 if (index < userConfigs.lastIndex) {
                                     HorizontalDivider(
@@ -355,12 +352,8 @@ private fun toggleOverrideIdSelection(
     }
 }
 
-private fun buildFinalOverrideIds(
-    selectedUserOverrideIds: List<String>,
-): List<String> {
-    return selectedUserOverrideIds
-        .filterNot(::isBuiltinPresetOverrideId)
-        .distinct()
+private fun buildFinalOverrideIds(selectedUserOverrideIds: List<String>): List<String> {
+    return selectedUserOverrideIds.filterNot(::isBuiltinPresetOverrideId).distinct()
 }
 
 private fun isBuiltinPresetOverrideId(overrideId: String): Boolean {

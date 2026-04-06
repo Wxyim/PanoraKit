@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.animation.ObjectAnimator
@@ -69,7 +67,7 @@ internal object OnboardingNativeAnimHelper {
                 override fun onAnimationCancel(animation: android.animation.Animator) = Unit
 
                 override fun onAnimationRepeat(animation: android.animation.Animator) = Unit
-            },
+            }
         )
     }
 }

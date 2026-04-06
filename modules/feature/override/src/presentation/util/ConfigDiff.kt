@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.util
 
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride

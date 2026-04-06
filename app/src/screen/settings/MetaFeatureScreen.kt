@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import androidx.compose.foundation.layout.Column
@@ -31,12 +29,10 @@ import com.github.yumelira.yumebox.core.model.GeoFileType
 import com.github.yumelira.yumebox.core.model.GeoXItem
 import com.github.yumelira.yumebox.core.model.geoXItems
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.remote.ServiceClient
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
@@ -44,15 +40,17 @@ import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPre
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import java.io.File
 
 @Composable
 @Destination<RootGraph>
@@ -61,17 +59,11 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-
     val showGeoXDownloadSheet = remember { mutableStateOf(false) }
     var runtimeConfigLoading by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = {
-            TopBar(
-                title = MLang.MetaFeature.Title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = MLang.MetaFeature.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
             item {
@@ -112,35 +104,45 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     val activeProfile = ServiceClient.profile().queryActive()
                                     val runtimeConfig = ServiceClient.clash().queryConfiguration()
                                     if (activeProfile == null) {
-                                        context.toast(MLang.MetaFeature.RuntimeConfig.NoActiveProfile)
+                                        context.toast(
+                                            MLang.MetaFeature.RuntimeConfig.NoActiveProfile
+                                        )
                                         return@launch
                                     }
 
                                     val configPath = runtimeConfig.configPath?.trim().orEmpty()
                                     if (configPath.isBlank()) {
-                                        context.toast(MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning)
+                                        context.toast(
+                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning
+                                        )
                                         return@launch
                                     }
 
-                                    val runtimeYaml = withContext(Dispatchers.IO) {
-                                        val file = File(configPath)
-                                        if (!file.exists() || !file.isFile) {
-                                            null
-                                        } else {
-                                            file.readText()
+                                    val runtimeYaml =
+                                        withContext(Dispatchers.IO) {
+                                            val file = File(configPath)
+                                            if (!file.exists() || !file.isFile) {
+                                                null
+                                            } else {
+                                                file.readText()
+                                            }
                                         }
-                                    }
 
                                     if (runtimeYaml.isNullOrBlank()) {
-                                        context.toast(MLang.MetaFeature.RuntimeConfig.ConfigNotFound)
+                                        context.toast(
+                                            MLang.MetaFeature.RuntimeConfig.ConfigNotFound
+                                        )
                                         return@launch
                                     }
 
-                                    val previewTitle = activeProfile
-                                        .name
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?.let { MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it) }
-                                        ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
+                                    val previewTitle =
+                                        activeProfile.name
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let {
+                                                MLang.MetaFeature.RuntimeConfig
+                                                    .PreviewTitleWithProfile
+                                                    .format(it)
+                                            } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
 
                                     OverrideStructuredEditorStore.setupConfigPreview(
                                         title = previewTitle,
@@ -152,16 +154,27 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         launchSingleTop = true
                                     }
                                 } catch (error: Throwable) {
-                                    val message = when {
-                                        error.message?.contains("unauthorized", ignoreCase = true) == true -> {
-                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigUnauthorized
-                                        }
+                                    val message =
+                                        when {
+                                            error.message?.contains(
+                                                "unauthorized",
+                                                ignoreCase = true,
+                                            ) == true -> {
+                                                MLang.MetaFeature.RuntimeConfig
+                                                    .RuntimeConfigUnauthorized
+                                            }
 
-                                        else -> {
-                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigFetchFailed
-                                                .format(error.runtimeGatewayMessage(MLang.MetaFeature.RuntimeConfig.LoadFailed))
+                                            else -> {
+                                                MLang.MetaFeature.RuntimeConfig
+                                                    .RuntimeConfigFetchFailed
+                                                    .format(
+                                                        error.runtimeGatewayMessage(
+                                                            MLang.MetaFeature.RuntimeConfig
+                                                                .LoadFailed
+                                                        )
+                                                    )
+                                            }
                                         }
-                                    }
                                     context.toast(message)
                                 } finally {
                                     runtimeConfigLoading = false
@@ -182,11 +195,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
-        GeoXDownloadSheet(
-            show = showGeoXDownloadSheet,
-            context = context,
-            scope = scope,
-        )
+        GeoXDownloadSheet(show = showGeoXDownloadSheet, context = context, scope = scope)
     }
 }
 
@@ -197,11 +206,12 @@ private fun decodeEscapedUnicode(text: String): String {
         val ch = text[i]
         if (ch == '\\' && i + 1 < text.length) {
             val marker = text[i + 1]
-            val hexLen = when (marker) {
-                'u' -> 4
-                'U' -> 8
-                else -> 0
-            }
+            val hexLen =
+                when (marker) {
+                    'u' -> 4
+                    'U' -> 8
+                    else -> 0
+                }
             if (hexLen > 0 && i + 2 + hexLen <= text.length) {
                 val hex = text.substring(i + 2, i + 2 + hexLen)
                 val codePoint = hex.toIntOrNull(16)
@@ -230,11 +240,7 @@ private fun GeoXDownloadSheet(
         show = show.value,
         title = MLang.MetaFeature.Download.DialogTitle,
         onDismissRequest = { show.value = false },
-        startAction = {
-            AppBottomSheetCloseAction(
-                onClick = { show.value = false },
-            )
-        },
+        startAction = { AppBottomSheetCloseAction(onClick = { show.value = false }) },
         endAction = {
             AppBottomSheetConfirmAction(
                 enabled = selectedItems.values.any { it },
@@ -259,19 +265,18 @@ private fun GeoXDownloadSheet(
                                 state = ToggleableState(selectedItems[item.type] ?: false),
                                 onClick = {
                                     selectedItems[item.type] = !(selectedItems[item.type] ?: false)
-                                }
+                                },
                             )
                         },
                         onClick = {
                             selectedItems[item.type] = !(selectedItems[item.type] ?: false)
-                        }
+                        },
                     )
                 }
             }
-        })
+        },
+    )
 }
-
-
 
 private fun downloadGeoXFiles(
     context: android.content.Context,
@@ -284,22 +289,25 @@ private fun downloadGeoXFiles(
             val clashDir = context.filesDir.resolve("clash")
             clashDir.mkdirs()
             val client = OkHttpClient.Builder().build()
-            
+
             items.forEach { item ->
                 val targetFile = File(clashDir, item.fileName)
-                val request = Request.Builder()
-                    .url(item.url)
-                    // You could add a generic User-Agent array here if required, though OkHttp sets a default.
-                    .header("User-Agent", com.github.yumelira.yumebox.core.NetworkConstants.DEFAULT_USER_AGENT)
-                    .build()
-                
+                val request =
+                    Request.Builder()
+                        .url(item.url)
+                        // You could add a generic User-Agent array here if required, though OkHttp
+                        // sets a default.
+                        .header(
+                            "User-Agent",
+                            com.github.yumelira.yumebox.core.NetworkConstants.DEFAULT_USER_AGENT,
+                        )
+                        .build()
+
                 try {
                     client.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
                             response.body?.byteStream()?.use { input ->
-                                targetFile.outputStream().use { output ->
-                                    input.copyTo(output)
-                                }
+                                targetFile.outputStream().use { output -> input.copyTo(output) }
                             }
                             successCount++
                         }

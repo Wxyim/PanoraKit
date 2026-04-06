@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.foundation.background
@@ -37,66 +35,54 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun HomeIdleContent(
-    oneWord: String,
-    author: String,
-    modifier: Modifier = Modifier
-) {
+fun HomeIdleContent(oneWord: String, author: String, modifier: Modifier = Modifier) {
     val accentColor = MiuixTheme.colorScheme.primary
     val authorColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
 
-    BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val topSpacing = (maxHeight * 0.14f).coerceIn(72.dp, 122.dp)
         val bottomSpacing = (maxHeight * 0.05f).coerceIn(24.dp, 40.dp)
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = bottomSpacing),
+            modifier = Modifier.fillMaxWidth().padding(bottom = bottomSpacing),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.Start,
         ) {
             Spacer(modifier = Modifier.height(topSpacing))
 
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 18.dp, start = 8.dp)
-                ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 18.dp, start = 8.dp)) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.Top,
                     ) {
                         Box(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .width(2.dp)
-                                .height(36.dp)
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            accentColor.copy(alpha = 0.58f),
-                                            Color.Transparent,
+                            modifier =
+                                Modifier.padding(top = 12.dp)
+                                    .width(2.dp)
+                                    .height(36.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors =
+                                                listOf(
+                                                    accentColor.copy(alpha = 0.58f),
+                                                    Color.Transparent,
+                                                )
                                         )
                                     )
-                                )
                         )
                         Text(
                             text = oneWord,
-                            style = MiuixTheme.textStyles.headline1.copy(
-                                fontSize = 28.sp,
-                                lineHeight = 50.sp,
-                                letterSpacing = 0.8.sp,
-                                fontWeight = FontWeight.Medium,
-                            ),
+                            style =
+                                MiuixTheme.textStyles.headline1.copy(
+                                    fontSize = 28.sp,
+                                    lineHeight = 50.sp,
+                                    letterSpacing = 0.8.sp,
+                                    fontWeight = FontWeight.Medium,
+                                ),
                             color = MiuixTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Start,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -105,22 +91,23 @@ fun HomeIdleContent(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier
-                        .width(30.dp)
-                        .height(1.dp)
-                        .background(authorColor.copy(alpha = 0.35f))
+                    modifier =
+                        Modifier.width(30.dp)
+                            .height(1.dp)
+                            .background(authorColor.copy(alpha = 0.35f))
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = author,
-                    style = MiuixTheme.textStyles.title3.copy(
-                        fontSize = 15.sp,
-                        letterSpacing = 1.6.sp,
-                        fontWeight = FontWeight.Medium,
-                    ),
+                    style =
+                        MiuixTheme.textStyles.title3.copy(
+                            fontSize = 15.sp,
+                            letterSpacing = 1.6.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
                     color = authorColor,
                 )
             }

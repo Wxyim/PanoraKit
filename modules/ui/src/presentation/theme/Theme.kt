@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -42,23 +40,18 @@ fun YumeTheme(
 ) {
     LocalPlatformSystemUiEffect.current()
     val effectiveThemeMode = themeMode ?: ThemeMode.Auto
-    val isDark = when (effectiveThemeMode) {
-        ThemeMode.Auto -> isSystemInDarkTheme()
-        ThemeMode.Light -> false
-        ThemeMode.Dark -> true
-    }
-    val colors = remember(isDark, themeSeedColorArgb) {
-        colorSchemeFromSeed(colorFromArgb(themeSeedColorArgb), isDark)
-    }
-
-    CompositionLocalProvider(
-        LocalSpacing provides spacing,
-        LocalRadii provides radii,
-    ) {
-        MiuixTheme(
-            colors = colors,
-        ) {
-            content()
+    val isDark =
+        when (effectiveThemeMode) {
+            ThemeMode.Auto -> isSystemInDarkTheme()
+            ThemeMode.Light -> false
+            ThemeMode.Dark -> true
         }
+    val colors =
+        remember(isDark, themeSeedColorArgb) {
+            colorSchemeFromSeed(colorFromArgb(themeSeedColorArgb), isDark)
+        }
+
+    CompositionLocalProvider(LocalSpacing provides spacing, LocalRadii provides radii) {
+        MiuixTheme(colors = colors) { content() }
     }
 }

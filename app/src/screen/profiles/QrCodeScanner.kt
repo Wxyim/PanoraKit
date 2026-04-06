@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.profiles
 
 import android.annotation.SuppressLint
@@ -43,16 +41,14 @@ import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.Executors
+import kotlin.coroutines.resume
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
-import java.util.concurrent.Executors
-import kotlin.coroutines.resume
 
 @Composable
-internal fun StableQrScanner(
-    onScanned: (String) -> Unit
-) {
+internal fun StableQrScanner(onScanned: (String) -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
@@ -61,46 +57,41 @@ internal fun StableQrScanner(
     val currentOnScanned by rememberUpdatedState(onScanned)
     val hasScanned = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
 
-    DisposableEffect(barcodeScanner) {
-        onDispose {
-            barcodeScanner?.close()
-        }
-    }
+    DisposableEffect(barcodeScanner) { onDispose { barcodeScanner?.close() } }
 
-    DisposableEffect(cameraExecutor) {
-        onDispose {
-            cameraExecutor.shutdown()
-        }
-    }
+    DisposableEffect(cameraExecutor) { onDispose { cameraExecutor.shutdown() } }
 
     AndroidView(
-        modifier = Modifier
-            .fillMaxSize()
-            .clipToBounds(), factory = { context ->
-            val previewView = PreviewView(context).apply {
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-            }
+        modifier = Modifier.fillMaxSize().clipToBounds(),
+        factory = { context ->
+            val previewView =
+                PreviewView(context).apply {
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                    layoutParams =
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                }
 
-            val previewUseCase = Preview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
-            }
+            val previewUseCase =
+                Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
 
-            val imageAnalysisUseCase = barcodeScanner?.let { scanner ->
-                ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build().also {
-                        it.setAnalyzer(cameraExecutor) { imageProxy ->
-                            processStableQrImage(scanner, imageProxy) { text ->
-                                if (hasScanned.compareAndSet(false, true)) {
-                                    currentOnScanned(text)
+            val imageAnalysisUseCase =
+                barcodeScanner?.let { scanner ->
+                    ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also {
+                            it.setAnalyzer(cameraExecutor) { imageProxy ->
+                                processStableQrImage(scanner, imageProxy) { text ->
+                                    if (hasScanned.compareAndSet(false, true)) {
+                                        currentOnScanned(text)
+                                    }
                                 }
                             }
                         }
-                    }
-            }
+                }
 
             coroutineScope.launch {
                 try {
@@ -126,13 +117,14 @@ internal fun StableQrScanner(
             }
 
             previewView
-        }, onRelease = { previewView ->
+        },
+        onRelease = { previewView ->
             try {
                 val context = previewView.context
                 ProcessCameraProvider.getInstance(context).get().unbindAll()
-            } catch (_: Exception) {
-            }
-        })
+            } catch (_: Exception) {}
+        },
+    )
 }
 
 @SuppressLint("UnsafeOptInUsageError")
@@ -142,19 +134,20 @@ internal fun processStableQrImage(
     onScanned: (String) -> Unit,
 ) {
     imageProxy.image?.let { image ->
-        val inputImage = InputImage.fromMediaImage(
-            image,
-            imageProxy.imageInfo.rotationDegrees,
-        )
+        val inputImage = InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
 
-        barcodeScanner.process(inputImage).addOnSuccessListener { barcodeList ->
-            barcodeList.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }?.rawValue?.let { text ->
-                onScanned(text)
+        barcodeScanner
+            .process(inputImage)
+            .addOnSuccessListener { barcodeList ->
+                barcodeList
+                    .firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
+                    ?.rawValue
+                    ?.let { text -> onScanned(text) }
             }
-        }.addOnCompleteListener {
-            imageProxy.image?.close()
-            imageProxy.close()
-        }
+            .addOnCompleteListener {
+                imageProxy.image?.close()
+                imageProxy.close()
+            }
     } ?: imageProxy.close()
 }
 
@@ -172,25 +165,24 @@ internal suspend fun readQrFromImage(context: Context, uri: Uri): String? =
     suspendCancellableCoroutine { continuation ->
         try {
             val inputImage = InputImage.fromFilePath(context, uri)
-            val scanner = createBarcodeScannerOrNull()
-                ?: run {
-                    continuation.resume(null)
-                    return@suspendCancellableCoroutine
+            val scanner =
+                createBarcodeScannerOrNull()
+                    ?: run {
+                        continuation.resume(null)
+                        return@suspendCancellableCoroutine
+                    }
+            scanner
+                .process(inputImage)
+                .addOnSuccessListener { barcodes ->
+                    val barcode = barcodes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
+                    continuation.resume(barcode?.rawValue)
                 }
-            scanner.process(inputImage).addOnSuccessListener { barcodes ->
-                val barcode = barcodes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
-                continuation.resume(barcode?.rawValue)
-            }.addOnFailureListener {
-                continuation.resume(null)
-            }.addOnCompleteListener {
-                scanner.close()
-            }
+                .addOnFailureListener { continuation.resume(null) }
+                .addOnCompleteListener { scanner.close() }
         } catch (_: Exception) {
             continuation.resume(null)
         }
     }
 
 private fun createBarcodeScannerOrNull(): BarcodeScanner? =
-    runCatching {
-        BarcodeScanning.getClient()
-    }.getOrNull()
+    runCatching { BarcodeScanning.getClient() }.getOrNull()

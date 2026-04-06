@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.layout.*
@@ -43,12 +41,14 @@ import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun OverrideRuleDraftEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = remember { OverrideStructuredEditorStore.ruleDraftEditorTitle.ifBlank { MLang.Override.Editor.RuleEdit } }
+    val title = remember {
+        OverrideStructuredEditorStore.ruleDraftEditorTitle.ifBlank {
+            MLang.Override.Editor.RuleEdit
+        }
+    }
     val initialValue = remember { OverrideStructuredEditorStore.ruleDraftEditorValue }
     val saveFabController = rememberOverrideFabController()
 
@@ -61,54 +61,66 @@ fun OverrideRuleDraftEditorScreen(
         mutableStateOf(initialValue?.extras.orEmpty().any { it.equals("src", ignoreCase = true) })
     }
     var useNoResolve by remember {
-        mutableStateOf(initialValue?.extras.orEmpty().any { it.equals("no-resolve", ignoreCase = true) })
+        mutableStateOf(
+            initialValue?.extras.orEmpty().any { it.equals("no-resolve", ignoreCase = true) }
+        )
     }
     var extraText by remember {
         mutableStateOf(
             initialValue
                 ?.extras
                 .orEmpty()
-                .filterNot { it.equals("src", ignoreCase = true) || it.equals("no-resolve", ignoreCase = true) }
-                .joinToString(","),
+                .filterNot {
+                    it.equals("src", ignoreCase = true) ||
+                        it.equals("no-resolve", ignoreCase = true)
+                }
+                .joinToString(",")
         )
     }
     var errorText by remember { mutableStateOf<String?>(null) }
     var showTargetSelector by remember { mutableStateOf(false) }
     var showRuleProviderSelector by remember { mutableStateOf(false) }
-    val selectedPresetIndex = OverrideRuleTypePresets.indexOfFirst {
-        it.equals(ruleType, ignoreCase = true)
-    }.coerceAtLeast(0)
+    val selectedPresetIndex =
+        OverrideRuleTypePresets.indexOfFirst { it.equals(ruleType, ignoreCase = true) }
+            .coerceAtLeast(0)
     val canUseExtraSwitches = supportsRuleExtra(ruleType)
     val referenceCatalog = OverrideStructuredEditorStore.currentReferenceCatalog()
     val isSubRuleTarget = ruleType.equals("SUB-RULE", ignoreCase = true)
     val isRuleSetType = ruleType.equals("RULE-SET", ignoreCase = true)
-    val targetCandidates = if (isSubRuleTarget) {
-        referenceCatalog.subRuleNames
-    } else {
-        referenceCatalog.proxyGroupNames
-    }
+    val targetCandidates =
+        if (isSubRuleTarget) {
+            referenceCatalog.subRuleNames
+        } else {
+            referenceCatalog.proxyGroupNames
+        }
     val ruleProviderCandidates = referenceCatalog.ruleProviderNames
-    var selectedRuleProvider by remember(initialValue?.payload, ruleProviderCandidates) {
-        mutableStateOf(
-            initialValue?.payload
-                ?.takeIf { candidate -> candidate.isNotBlank() && candidate in ruleProviderCandidates }
-                .orEmpty(),
-        )
-    }
+    var selectedRuleProvider by
+        remember(initialValue?.payload, ruleProviderCandidates) {
+            mutableStateOf(
+                initialValue
+                    ?.payload
+                    ?.takeIf { candidate ->
+                        candidate.isNotBlank() && candidate in ruleProviderCandidates
+                    }
+                    .orEmpty()
+            )
+        }
     val normalizedPayloadInput = payload.trim()
-    val selectedRuleProviderValue = normalizedPayloadInput
-        .takeIf { candidate -> candidate.isNotBlank() && candidate in ruleProviderCandidates }
-        ?: selectedRuleProvider.trim()
-    val targetLabel = if (isSubRuleTarget) MLang.Override.Editor.SubRuleTarget else MLang.Override.Editor.ProxyGroupTarget
+    val selectedRuleProviderValue =
+        normalizedPayloadInput.takeIf { candidate ->
+            candidate.isNotBlank() && candidate in ruleProviderCandidates
+        } ?: selectedRuleProvider.trim()
+    val targetLabel =
+        if (isSubRuleTarget) MLang.Override.Editor.SubRuleTarget
+        else MLang.Override.Editor.ProxyGroupTarget
     val typeErrorText = errorText?.takeIf { it.contains(MLang.Override.Editor.RuleType) }
     val payloadErrorText = errorText?.takeIf { it.contains(MLang.Override.Editor.Payload) }
-    val targetErrorText = errorText?.takeIf { it.contains(MLang.Override.Draft.Name) || it.contains(MLang.Override.Editor.MatchResult) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            OverrideStructuredEditorStore.clearRuleDraftEditor()
+    val targetErrorText =
+        errorText?.takeIf {
+            it.contains(MLang.Override.Draft.Name) || it.contains(MLang.Override.Editor.MatchResult)
         }
-    }
+
+    DisposableEffect(Unit) { onDispose { OverrideStructuredEditorStore.clearRuleDraftEditor() } }
 
     Scaffold(
         floatingActionButton = {
@@ -120,25 +132,30 @@ fun OverrideRuleDraftEditorScreen(
                 onClick = {
                     val normalizedType = ruleType.trim().uppercase()
                     val normalizedPayload = payload.trim()
-                    val resolvedPayload = if (normalizedPayload.isNotBlank()) {
-                        normalizedPayload
-                    } else if (normalizedType == "RULE-SET") {
-                        selectedRuleProvider.trim()
-                    } else {
-                        normalizedPayload
-                    }
+                    val resolvedPayload =
+                        if (normalizedPayload.isNotBlank()) {
+                            normalizedPayload
+                        } else if (normalizedType == "RULE-SET") {
+                            selectedRuleProvider.trim()
+                        } else {
+                            normalizedPayload
+                        }
                     val normalizedTarget = target.trim()
-                    val extraValues = extraText
-                        .split(',')
-                        .map(String::trim)
-                        .filter(String::isNotBlank)
-                        .toMutableList()
+                    val extraValues =
+                        extraText
+                            .split(',')
+                            .map(String::trim)
+                            .filter(String::isNotBlank)
+                            .toMutableList()
 
                     if (normalizedType.isBlank()) {
                         errorText = MLang.Override.Editor.RuleTypeEmpty
                         return@OverrideAnimatedFab
                     }
-                    if (!normalizedType.equals("MATCH", ignoreCase = true) && resolvedPayload.isBlank()) {
+                    if (
+                        !normalizedType.equals("MATCH", ignoreCase = true) &&
+                            resolvedPayload.isBlank()
+                    ) {
                         errorText = MLang.Override.Editor.PayloadEmpty
                         return@OverrideAnimatedFab
                     }
@@ -160,18 +177,13 @@ fun OverrideRuleDraftEditorScreen(
                             payload = resolvedPayload,
                             target = normalizedTarget,
                             extras = extraValues.distinct(),
-                        ),
+                        )
                     )
                     navigator.navigateUp()
                 },
             )
         },
-        topBar = {
-            TopBar(
-                title = title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = title, scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -219,18 +231,22 @@ fun OverrideRuleDraftEditorScreen(
                                         errorText = null
                                     },
                                     label = MLang.Override.Editor.Payload,
-                                    supportText = if (isRuleSetType) {
-                                        MLang.Override.Editor.RuleProviderInputHint
-                                    } else {
-                                        MLang.Override.Editor.LogicalRuleHint
-                                    },
+                                    supportText =
+                                        if (isRuleSetType) {
+                                            MLang.Override.Editor.RuleProviderInputHint
+                                        } else {
+                                            MLang.Override.Editor.LogicalRuleHint
+                                        },
                                     errorText = payloadErrorText,
                                 )
                             }
                         }
                         OverrideSelectorCard {
                             SuperArrow(
-                                title = if (ruleType.equals("MATCH", ignoreCase = true)) MLang.Override.Editor.MatchResult else targetLabel,
+                                title =
+                                    if (ruleType.equals("MATCH", ignoreCase = true))
+                                        MLang.Override.Editor.MatchResult
+                                    else targetLabel,
                                 onClick = {
                                     showTargetSelector = true
                                     errorText = null
@@ -276,15 +292,24 @@ fun OverrideRuleDraftEditorScreen(
         }
         OverrideSingleValueSelectionSheet(
             show = showTargetSelector,
-            title = if (ruleType.equals("MATCH", ignoreCase = true)) MLang.Override.Editor.SelectMatchResult else MLang.Override.Editor.SelectSubRuleTarget,
+            title =
+                if (ruleType.equals("MATCH", ignoreCase = true))
+                    MLang.Override.Editor.SelectMatchResult
+                else MLang.Override.Editor.SelectSubRuleTarget,
             value = target,
-            groups = listOf(
-                OverrideSelectionGroup(
-                    title = if (isSubRuleTarget) MLang.Override.Structured.SubRules.Title else MLang.Override.Editor.ProxyGroup,
-                    items = targetCandidates,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title =
+                            if (isSubRuleTarget) MLang.Override.Structured.SubRules.Title
+                            else MLang.Override.Editor.ProxyGroup,
+                        items = targetCandidates,
+                    )
                 ),
-            ),
-            customInputLabel = if (ruleType.equals("MATCH", ignoreCase = true)) MLang.Override.Editor.CustomMatchResult else MLang.Override.Editor.CustomSubRuleTarget,
+            customInputLabel =
+                if (ruleType.equals("MATCH", ignoreCase = true))
+                    MLang.Override.Editor.CustomMatchResult
+                else MLang.Override.Editor.CustomSubRuleTarget,
             onDismiss = { showTargetSelector = false },
             onConfirm = { selectedValue ->
                 target = selectedValue
@@ -296,12 +321,13 @@ fun OverrideRuleDraftEditorScreen(
             show = showRuleProviderSelector,
             title = MLang.Override.Editor.SelectRuleProvider,
             value = selectedRuleProviderValue,
-            groups = listOf(
-                OverrideSelectionGroup(
-                    title = MLang.Override.Form.RuleProviders,
-                    items = ruleProviderCandidates,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Form.RuleProviders,
+                        items = ruleProviderCandidates,
+                    )
                 ),
-            ),
             customInputLabel = "",
             allowCustomValue = false,
             onDismiss = { showRuleProviderSelector = false },
@@ -320,9 +346,5 @@ private fun RuleExtraSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    SuperSwitch(
-        title = title,
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-    )
+    SuperSwitch(title = title, checked = checked, onCheckedChange = onCheckedChange)
 }

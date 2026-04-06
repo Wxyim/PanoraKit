@@ -25,66 +25,44 @@ plugins {
 
 android {
     namespace = "com.github.yumelira.yumebox.runtime.api"
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm ?: gropify.project.jvm ?: "17"
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "DebugProbesKt.bin",
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     sourceSets {
         getByName("main") {
             kotlin.directories.apply {
                 clear()
                 add("src")
             }
-            res.srcDirs("res")
-            assets.srcDirs("assets")
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
+            res.directories.apply {
+                clear()
+                add("res")
+            }
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
     }
 
-    buildFeatures {
-        buildConfig = false
-    }
+    buildFeatures { buildConfig = false }
 }
 
 dependencies {
     implementation(project(":core"))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
+    implementation(libs.serialization.json)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     implementation("com.tencent:mmkv:$mmkvVersion")
 }
-
-

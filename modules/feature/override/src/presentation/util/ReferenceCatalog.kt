@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.util
 
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
@@ -33,38 +31,40 @@ data class OverrideReferenceCatalog(
 
 fun buildOverrideReferenceCatalog(config: ConfigurationOverride): OverrideReferenceCatalog {
     return OverrideReferenceCatalog(
-        proxyNames = collectProxyNames(
-            OverrideListModeValues(
-                replaceValue = parseProxyDrafts(config.proxies),
-                startValue = parseProxyDrafts(config.proxiesStart),
-                endValue = parseProxyDrafts(config.proxiesEnd),
+        proxyNames =
+            collectProxyNames(
+                OverrideListModeValues(
+                    replaceValue = parseProxyDrafts(config.proxies),
+                    startValue = parseProxyDrafts(config.proxiesStart),
+                    endValue = parseProxyDrafts(config.proxiesEnd),
+                )
             ),
-        ),
-        proxyGroupNames = collectProxyGroupNames(
-            OverrideListModeValues(
-                replaceValue = parseProxyGroupDrafts(config.proxyGroups),
-                startValue = parseProxyGroupDrafts(config.proxyGroupsStart),
-                endValue = parseProxyGroupDrafts(config.proxyGroupsEnd),
+        proxyGroupNames =
+            collectProxyGroupNames(
+                OverrideListModeValues(
+                    replaceValue = parseProxyGroupDrafts(config.proxyGroups),
+                    startValue = parseProxyGroupDrafts(config.proxyGroupsStart),
+                    endValue = parseProxyGroupDrafts(config.proxyGroupsEnd),
+                )
             ),
-        ),
-        subRuleNames = collectSubRuleNames(
-            OverrideListModeValues(
-                replaceValue = parseSubRuleGroupDrafts(config.subRules),
-                mergeValue = parseSubRuleGroupDrafts(config.subRulesMerge),
+        subRuleNames =
+            collectSubRuleNames(
+                OverrideListModeValues(
+                    replaceValue = parseSubRuleGroupDrafts(config.subRules),
+                    mergeValue = parseSubRuleGroupDrafts(config.subRulesMerge),
+                )
             ),
-        ),
-        ruleProviderNames = collectRuleProviderNames(
-            OverrideListModeValues(
-                replaceValue = parseKeyedObjectDrafts(config.ruleProviders),
-                mergeValue = parseKeyedObjectDrafts(config.ruleProvidersMerge),
+        ruleProviderNames =
+            collectRuleProviderNames(
+                OverrideListModeValues(
+                    replaceValue = parseKeyedObjectDrafts(config.ruleProviders),
+                    mergeValue = parseKeyedObjectDrafts(config.ruleProvidersMerge),
+                )
             ),
-        ),
     )
 }
 
-fun collectProxyNames(
-    values: OverrideListModeValues<List<OverrideProxyDraft>>,
-): List<String> {
+fun collectProxyNames(values: OverrideListModeValues<List<OverrideProxyDraft>>): List<String> {
     return collectOrderedNames(
         values.replaceValue.orEmpty().map(OverrideProxyDraft::name),
         values.startValue.orEmpty().map(OverrideProxyDraft::name),
@@ -73,7 +73,7 @@ fun collectProxyNames(
 }
 
 fun collectProxyGroupNames(
-    values: OverrideListModeValues<List<OverrideProxyGroupDraft>>,
+    values: OverrideListModeValues<List<OverrideProxyGroupDraft>>
 ): List<String> {
     return collectOrderedNames(
         values.replaceValue.orEmpty().map(OverrideProxyGroupDraft::name),
@@ -83,7 +83,7 @@ fun collectProxyGroupNames(
 }
 
 fun collectSubRuleNames(
-    values: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>,
+    values: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>
 ): List<String> {
     return collectOrderedNames(
         values.replaceValue.orEmpty().map(OverrideSubRuleGroupDraft::name),
@@ -92,7 +92,7 @@ fun collectSubRuleNames(
 }
 
 fun collectRuleProviderNames(
-    values: OverrideListModeValues<List<OverrideKeyedObjectDraft>>,
+    values: OverrideListModeValues<List<OverrideKeyedObjectDraft>>
 ): List<String> {
     return collectOrderedNames(
         values.replaceValue.orEmpty().map(OverrideKeyedObjectDraft::key),

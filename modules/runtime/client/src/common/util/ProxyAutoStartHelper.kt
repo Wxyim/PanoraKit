@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.common.util
 
 import android.content.Context
@@ -42,19 +40,20 @@ object ProxyAutoStartHelper {
         profilesRepository: ProfilesRepository,
         appSettingsStorage: AppSettingsStorage,
         networkSettingsStorage: NetworkSettingsStorage,
-        serviceCache: MMKV
+        serviceCache: MMKV,
     ) {
-        val activeProfile = try {
-            profilesRepository.queryActiveProfile()
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to load active profile")
-            return
-        }
+        val activeProfile =
+            try {
+                profilesRepository.queryActiveProfile()
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Failed to load active profile")
+                return
+            }
 
         tryUpdateActiveProfileOnStart(
             appSettingsStorage = appSettingsStorage,
             profilesRepository = profilesRepository,
-            activeProfile = activeProfile
+            activeProfile = activeProfile,
         )
 
         val automaticRestart = appSettingsStorage.automaticRestart.value
@@ -85,7 +84,7 @@ object ProxyAutoStartHelper {
     private suspend fun tryUpdateActiveProfileOnStart(
         appSettingsStorage: AppSettingsStorage,
         profilesRepository: ProfilesRepository,
-        activeProfile: Profile?
+        activeProfile: Profile?,
     ) {
         if (!appSettingsStorage.autoUpdateCurrentProfileOnStart.value) {
             return

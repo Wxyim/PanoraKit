@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.view.View
@@ -42,8 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +71,7 @@ private val SectionShape = RoundedCornerShape(36.dp)
 private const val RevealDurationMs = 420
 private const val LinkTermsTag = "terms"
 private const val LinkPolicyTag = "policy"
+
 private object StartupHeroMetrics {
     val TopSpacerMin = 128.dp
     val TopSpacerMax = 212.dp
@@ -81,43 +80,36 @@ private object StartupHeroMetrics {
     val DetailTopSpacing = 20.dp
     val ActionBottomPadding = 24.dp
 }
+
 private val DetailPreviewBadgeSize = 108.dp
 private val DetailPreviewIconSize = 68.dp
-private val StartupTypewriterPhrases = listOf(
-    "MonadBox",
-    "Hello Word",
-)
+private val StartupTypewriterPhrases = listOf("MonadBox", "Hello Word")
 
 @Composable
-internal fun DreamBackdrop(
-    modifier: Modifier = Modifier,
-    boosted: Boolean = true,
-) {
+internal fun DreamBackdrop(modifier: Modifier = Modifier, boosted: Boolean = true) {
     val surface = MiuixTheme.colorScheme.surface
     val primary = MiuixTheme.colorScheme.primary
-    val baseTint = remember(surface, boosted) {
-        lerp(surface, primary, if (boosted) 0.035f else 0.02f)
-    }
+    val baseTint =
+        remember(surface, boosted) { lerp(surface, primary, if (boosted) 0.035f else 0.02f) }
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRect(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    surface,
-                    baseTint,
-                    lerp(surface, primary, 0.02f),
-                ),
-                start = Offset(0f, 0f),
-                end = Offset(size.width, size.height),
-            ),
+            brush =
+                Brush.linearGradient(
+                    colors = listOf(surface, baseTint, lerp(surface, primary, 0.02f)),
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, size.height),
+                )
         )
         drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.05f),
-                    Color.Transparent,
-                    Color.Black.copy(alpha = 0.015f),
-                ),
-            ),
+            brush =
+                Brush.verticalGradient(
+                    colors =
+                        listOf(
+                            Color.White.copy(alpha = 0.05f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.015f),
+                        )
+                )
         )
     }
 }
@@ -126,25 +118,17 @@ internal fun DreamBackdrop(
 internal fun DetailBackdrop(modifier: Modifier = Modifier) {
     val surface = MiuixTheme.colorScheme.surface
     val primary = MiuixTheme.colorScheme.primary
-    val accent = remember(surface) {
-        lerp(surface, primary, 0.045f)
-    }
+    val accent = remember(surface) { lerp(surface, primary, 0.045f) }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(surface),
-    ) {
+    Box(modifier = modifier.fillMaxSize().background(surface)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.12f),
-                        Color.Transparent,
-                    ),
-                    startY = 0f,
-                    endY = size.height * 0.28f,
-                ),
+                brush =
+                    Brush.verticalGradient(
+                        colors = listOf(accent.copy(alpha = 0.12f), Color.Transparent),
+                        startY = 0f,
+                        endY = size.height * 0.28f,
+                    )
             )
         }
     }
@@ -166,18 +150,16 @@ internal fun RevealBlock(
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(
-            animationSpec = tween(
-                durationMillis = RevealDurationMs,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + slideInVertically(
-            animationSpec = tween(
-                durationMillis = RevealDurationMs,
-                easing = FastOutSlowInEasing,
-            ),
-            initialOffsetY = { it / 7 },
-        ),
+        enter =
+            fadeIn(
+                animationSpec =
+                    tween(durationMillis = RevealDurationMs, easing = LinearOutSlowInEasing)
+            ) +
+                slideInVertically(
+                    animationSpec =
+                        tween(durationMillis = RevealDurationMs, easing = FastOutSlowInEasing),
+                    initialOffsetY = { it / 7 },
+                ),
     ) {
         content()
     }
@@ -199,47 +181,42 @@ internal fun RevealScaleBlock(
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(
-            animationSpec = tween(
-                durationMillis = RevealDurationMs,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + scaleIn(
-            animationSpec = tween(
-                durationMillis = RevealDurationMs,
-                easing = FastOutSlowInEasing,
-            ),
-            initialScale = 0.92f,
-        ),
+        enter =
+            fadeIn(
+                animationSpec =
+                    tween(durationMillis = RevealDurationMs, easing = LinearOutSlowInEasing)
+            ) +
+                scaleIn(
+                    animationSpec =
+                        tween(durationMillis = RevealDurationMs, easing = FastOutSlowInEasing),
+                    initialScale = 0.92f,
+                ),
     ) {
         content()
     }
 }
 
 @Composable
-internal fun StartupHeroShell(
-    enabled: Boolean,
-    onStart: (View) -> Unit,
-) {
+internal fun StartupHeroShell(enabled: Boolean, onStart: (View) -> Unit) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
 
-        val heroTopSpacer = (maxHeight * StartupHeroMetrics.TopSpacerFraction)
-            .coerceIn(StartupHeroMetrics.TopSpacerMin, StartupHeroMetrics.TopSpacerMax)
+        val heroTopSpacer =
+            (maxHeight * StartupHeroMetrics.TopSpacerFraction).coerceIn(
+                StartupHeroMetrics.TopSpacerMin,
+                StartupHeroMetrics.TopSpacerMax,
+            )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = PagePadding, vertical = 12.dp),
+            modifier =
+                Modifier.fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = PagePadding, vertical = 12.dp)
         ) {
             Spacer(modifier = Modifier.height(heroTopSpacer))
 
-            RevealBlock(
-                delayMillis = 0,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
+            RevealBlock(delayMillis = 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 StartupTypewriterWord(
                     phrases = StartupTypewriterPhrases,
                     modifier = Modifier.widthIn(max = 320.dp),
@@ -249,16 +226,14 @@ internal fun StartupHeroShell(
             Spacer(modifier = Modifier.height(StartupHeroMetrics.TitleSpacing))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
-                    modifier = Modifier
-                        .widthIn(max = DetailWidth)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier.widthIn(max = DetailWidth)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                 ) {
                     Spacer(modifier = Modifier.height(StartupHeroMetrics.DetailTopSpacing))
                 }
@@ -266,20 +241,14 @@ internal fun StartupHeroShell(
 
             RevealScaleBlock(
                 delayMillis = 680,
-                modifier = Modifier
-                    .widthIn(max = DetailWidth)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = StartupHeroMetrics.ActionBottomPadding),
+                modifier =
+                    Modifier.widthIn(max = DetailWidth)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = StartupHeroMetrics.ActionBottomPadding),
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    HeroStartButton(
-                        enabled = enabled,
-                        onStart = onStart,
-                    )
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    HeroStartButton(enabled = enabled, onStart = onStart)
                 }
             }
         }
@@ -287,10 +256,7 @@ internal fun StartupHeroShell(
 }
 
 @Composable
-private fun StartupTypewriterWord(
-    phrases: List<String>,
-    modifier: Modifier = Modifier,
-) {
+private fun StartupTypewriterWord(phrases: List<String>, modifier: Modifier = Modifier) {
     var phraseIndex by remember(phrases) { mutableStateOf(0) }
     var visibleLength by remember(phrases) { mutableStateOf(0) }
     var deleting by remember(phrases) { mutableStateOf(false) }
@@ -320,9 +286,7 @@ private fun StartupTypewriterWord(
     }
 
     val currentText = phrases.getOrElse(phraseIndex) { "" }
-    val displayText = remember(currentText, visibleLength) {
-        currentText.take(visibleLength)
-    }
+    val displayText = remember(currentText, visibleLength) { currentText.take(visibleLength) }
     val showCursor = visibleLength < currentText.length || deleting
 
     Row(
@@ -332,25 +296,26 @@ private fun StartupTypewriterWord(
     ) {
         Text(
             text = displayText,
-            style = MiuixTheme.textStyles.title1.copy(
-                fontSize = 54.sp,
-                fontWeight = FontWeight.Normal,
-                letterSpacing = 0.2.sp,
-            ),
+            style =
+                MiuixTheme.textStyles.title1.copy(
+                    fontSize = 54.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.2.sp,
+                ),
             color = MiuixTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
 
         if (showCursor) {
             Box(
-                modifier = Modifier
-                    .padding(start = 4.dp, top = 3.dp)
-                    .width(1.2.dp)
-                    .height(46.dp)
-                    .background(
-                        color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.92f),
-                        shape = RoundedCornerShape(50),
-                    ),
+                modifier =
+                    Modifier.padding(start = 4.dp, top = 3.dp)
+                        .width(1.2.dp)
+                        .height(46.dp)
+                        .background(
+                            color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.92f),
+                            shape = RoundedCornerShape(50),
+                        )
             )
         }
     }
@@ -371,38 +336,36 @@ internal fun ProvisionDetailShell(
         DetailBackdrop()
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = PagePadding, vertical = 12.dp),
+            modifier =
+                Modifier.fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = PagePadding, vertical = 12.dp)
         ) {
             Spacer(modifier = Modifier.height(88.dp))
 
-            RevealBlock(
-                delayMillis = 0,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
+            RevealBlock(delayMillis = 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 DetailPreviewBadge(icon = previewIcon)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Column(
-                modifier = Modifier
-                    .widthIn(max = DetailWidth)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally),
+                modifier =
+                    Modifier.widthIn(max = DetailWidth)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 RevealBlock(delayMillis = 50) {
                     Text(
                         text = title,
-                        style = MiuixTheme.textStyles.title2.copy(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
+                        style =
+                            MiuixTheme.textStyles.title2.copy(
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
                         color = MiuixTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
@@ -420,23 +383,18 @@ internal fun ProvisionDetailShell(
             Spacer(modifier = Modifier.height(40.dp))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
-                    modifier = Modifier
-                        .widthIn(max = DetailWidth)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier.widthIn(max = DetailWidth)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
                     RevealBlock(delayMillis = 160) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(18.dp),
-                            content = content,
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(18.dp), content = content)
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -444,11 +402,11 @@ internal fun ProvisionDetailShell(
 
             RevealBlock(
                 delayMillis = 220,
-                modifier = Modifier
-                    .widthIn(max = DetailWidth)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 12.dp),
+                modifier =
+                    Modifier.widthIn(max = DetailWidth)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -473,18 +431,20 @@ internal fun ProvisionDetailShell(
 
 @Composable
 internal fun PermissionContent(state: PermissionState) {
-    val notificationSummary = when {
-        state.notificationGranted -> MLang.Onboarding.Permission.Common.Granted
-        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU ->
-            MLang.Onboarding.Permission.Notification.SummaryNeed
-        else -> MLang.Onboarding.Permission.Notification.SummaryNotRequired
-    }
+    val notificationSummary =
+        when {
+            state.notificationGranted -> MLang.Onboarding.Permission.Common.Granted
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU ->
+                MLang.Onboarding.Permission.Notification.SummaryNeed
+            else -> MLang.Onboarding.Permission.Notification.SummaryNotRequired
+        }
 
-    val appListSummary = when {
-        state.appListGranted -> MLang.Onboarding.Permission.Common.Granted
-        state.miuiDynamicSupported -> MLang.Onboarding.Permission.AppList.SummaryNeed
-        else -> MLang.Onboarding.Permission.AppList.SummaryNotRequired
-    }
+    val appListSummary =
+        when {
+            state.appListGranted -> MLang.Onboarding.Permission.Common.Granted
+            state.miuiDynamicSupported -> MLang.Onboarding.Permission.AppList.SummaryNeed
+            else -> MLang.Onboarding.Permission.AppList.SummaryNotRequired
+        }
 
     DetailGroup {
         PermissionRow(
@@ -526,44 +486,39 @@ internal fun TermsContent(
     onPrivacySheetRequest: () -> Unit,
 ) {
     val colorScheme = MiuixTheme.colorScheme
-    val linkStyle = remember(colorScheme.primary) {
-        SpanStyle(
-            color = colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-    val linkStyles = remember(linkStyle) { TextLinkStyles(style = linkStyle) }
-    val annotatedText = remember(linkStyles, onPrivacySheetRequest) {
-        buildAnnotatedString {
-            append(MLang.Onboarding.Privacy.RichTextLead)
-            append(" ")
-            append(MLang.Onboarding.Privacy.RichTextPrefix)
-            withLink(
-                LinkAnnotation.Clickable(
-                    tag = LinkTermsTag,
-                    styles = linkStyles,
-                    linkInteractionListener = { onPrivacySheetRequest() }
-                )
-            ) {
-                withStyle(linkStyle) {
-                    append(MLang.Onboarding.Privacy.TermsLink)
-                }
-            }
-            append(MLang.Onboarding.Privacy.RichTextConnector)
-            withLink(
-                LinkAnnotation.Clickable(
-                    tag = LinkPolicyTag,
-                    styles = linkStyles,
-                    linkInteractionListener = { onPrivacySheetRequest() }
-                )
-            ) {
-                withStyle(linkStyle) {
-                    append(MLang.Onboarding.Privacy.PolicyLink)
-                }
-            }
-            append(MLang.Onboarding.Privacy.RichTextSuffix)
+    val linkStyle =
+        remember(colorScheme.primary) {
+            SpanStyle(color = colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
-    }
+    val linkStyles = remember(linkStyle) { TextLinkStyles(style = linkStyle) }
+    val annotatedText =
+        remember(linkStyles, onPrivacySheetRequest) {
+            buildAnnotatedString {
+                append(MLang.Onboarding.Privacy.RichTextLead)
+                append(" ")
+                append(MLang.Onboarding.Privacy.RichTextPrefix)
+                withLink(
+                    LinkAnnotation.Clickable(
+                        tag = LinkTermsTag,
+                        styles = linkStyles,
+                        linkInteractionListener = { onPrivacySheetRequest() },
+                    )
+                ) {
+                    withStyle(linkStyle) { append(MLang.Onboarding.Privacy.TermsLink) }
+                }
+                append(MLang.Onboarding.Privacy.RichTextConnector)
+                withLink(
+                    LinkAnnotation.Clickable(
+                        tag = LinkPolicyTag,
+                        styles = linkStyles,
+                        linkInteractionListener = { onPrivacySheetRequest() },
+                    )
+                ) {
+                    withStyle(linkStyle) { append(MLang.Onboarding.Privacy.PolicyLink) }
+                }
+                append(MLang.Onboarding.Privacy.RichTextSuffix)
+            }
+        }
 
     DetailGroup {
         Column(
@@ -572,10 +527,11 @@ internal fun TermsContent(
         ) {
             Text(
                 text = annotatedText,
-                style = MiuixTheme.textStyles.body2.copy(
-                    color = MiuixTheme.colorScheme.onSurface,
-                    lineHeight = 24.sp,
-                ),
+                style =
+                    MiuixTheme.textStyles.body2.copy(
+                        color = MiuixTheme.colorScheme.onSurface,
+                        lineHeight = 24.sp,
+                    ),
             )
 
             Row(
@@ -610,10 +566,7 @@ internal fun PersonalizeContent(
     onShowThemeColorPickerChange: (Boolean) -> Unit,
 ) {
     DetailGroup {
-        ThemeModeSelectorItem(
-            themeMode = themeMode,
-            onThemeModeChange = onThemeModeChange,
-        )
+        ThemeModeSelectorItem(themeMode = themeMode, onThemeModeChange = onThemeModeChange)
         DetailDivider()
         ThemeColorPickerItem(
             themeSeedColorArgb = themeSeedColorArgb,
@@ -634,38 +587,36 @@ internal fun FinishHeroShell(
         DetailBackdrop()
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = PagePadding, vertical = 12.dp),
+            modifier =
+                Modifier.fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = PagePadding, vertical = 12.dp)
         ) {
             Spacer(modifier = Modifier.height(88.dp))
 
-            RevealBlock(
-                delayMillis = 0,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
+            RevealBlock(delayMillis = 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 DetailPreviewBadge(icon = Yume.CircleCheckBig)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Column(
-                modifier = Modifier
-                    .widthIn(max = DetailWidth)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally),
+                modifier =
+                    Modifier.widthIn(max = DetailWidth)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 RevealBlock(delayMillis = 50) {
                     Text(
                         text = MLang.Onboarding.Finish.Title,
-                        style = MiuixTheme.textStyles.title2.copy(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
+                        style =
+                            MiuixTheme.textStyles.title2.copy(
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
                         color = MiuixTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
@@ -683,16 +634,14 @@ internal fun FinishHeroShell(
             Spacer(modifier = Modifier.height(40.dp))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
-                    modifier = Modifier
-                        .widthIn(max = DetailWidth)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier.widthIn(max = DetailWidth)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
                     RevealBlock(delayMillis = 160) {
@@ -711,11 +660,11 @@ internal fun FinishHeroShell(
 
             RevealBlock(
                 delayMillis = 220,
-                modifier = Modifier
-                    .widthIn(max = DetailWidth)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 12.dp),
+                modifier =
+                    Modifier.widthIn(max = DetailWidth)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 12.dp),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -740,34 +689,34 @@ private fun HeroStartButton(
     modifier: Modifier = Modifier,
 ) {
     val pulseTransition = rememberInfiniteTransition(label = "startup_button_pulse")
-    val pulseScale by pulseTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.045f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1400,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "startup_button_scale",
-    )
+    val pulseScale by
+        pulseTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.045f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+            label = "startup_button_scale",
+        )
 
     Box(
-        modifier = modifier
-            .size(72.dp)
-            .graphicsLayer(
-                alpha = if (enabled) 1f else 0.45f,
-                scaleX = if (enabled) pulseScale else 1f,
-                scaleY = if (enabled) pulseScale else 1f,
-            ),
+        modifier =
+            modifier
+                .size(72.dp)
+                .graphicsLayer(
+                    alpha = if (enabled) 1f else 0.45f,
+                    scaleX = if (enabled) pulseScale else 1f,
+                    scaleY = if (enabled) pulseScale else 1f,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .background(MiuixTheme.colorScheme.primary),
+            modifier =
+                Modifier.matchParentSize()
+                    .clip(CircleShape)
+                    .background(MiuixTheme.colorScheme.primary)
         )
         Icon(
             imageVector = Yume.ArrowRight,
@@ -793,10 +742,7 @@ private fun HeroStartButton(
 
 @Composable
 private fun DetailPreviewBadge(icon: ImageVector) {
-    Box(
-        modifier = Modifier.size(DetailPreviewBadgeSize),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.size(DetailPreviewBadgeSize), contentAlignment = Alignment.Center) {
         Icon(
             imageVector = icon,
             contentDescription = null,
@@ -812,10 +758,11 @@ private fun DetailGroup(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(SectionShape)
-            .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f)),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(SectionShape)
+                .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f)),
         content = content,
     )
 }
@@ -838,18 +785,18 @@ private fun PermissionRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            modifier =
+                Modifier.size(42.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -860,10 +807,7 @@ private fun PermissionRow(
             )
         }
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
                 style = MiuixTheme.textStyles.body1.copy(fontWeight = FontWeight.Medium),
@@ -894,17 +838,12 @@ private fun PermissionRow(
 }
 
 @Composable
-private fun ProjectLinkRow(
-    icon: ImageVector,
-    title: String,
-    summary: String,
-    onClick: () -> Unit,
-) {
+private fun ProjectLinkRow(icon: ImageVector, title: String, summary: String, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -915,10 +854,7 @@ private fun ProjectLinkRow(
             modifier = Modifier.size(22.dp),
         )
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
                 style = MiuixTheme.textStyles.body1.copy(fontWeight = FontWeight.Medium),
@@ -948,12 +884,13 @@ private fun PrimaryFooterAction(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MiuixTheme.colorScheme.primary)
-            .graphicsLayer(alpha = if (enabled) 1f else 0.45f)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MiuixTheme.colorScheme.primary)
+                .graphicsLayer(alpha = if (enabled) 1f else 0.45f)
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -971,11 +908,12 @@ private fun SecondaryFooterAction(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -987,15 +925,12 @@ private fun SecondaryFooterAction(
 }
 
 @Composable
-private fun SecondaryLinkAction(
-    text: String,
-    onClick: () -> Unit,
-) {
+private fun SecondaryLinkAction(text: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+        modifier =
+            Modifier.clip(RoundedCornerShape(18.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

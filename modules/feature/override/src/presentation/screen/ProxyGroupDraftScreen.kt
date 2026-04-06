@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.layout.*
@@ -42,12 +40,14 @@ import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 
 @Composable
-fun OverrideProxyGroupDraftEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = remember { OverrideStructuredEditorStore.proxyGroupDraftEditorTitle.ifBlank { MLang.Override.Editor.ProxyGroup } }
+    val title = remember {
+        OverrideStructuredEditorStore.proxyGroupDraftEditorTitle.ifBlank {
+            MLang.Override.Editor.ProxyGroup
+        }
+    }
     val initialValue = remember { OverrideStructuredEditorStore.proxyGroupDraftEditorValue }
     val saveFabController = rememberOverrideFabController()
 
@@ -58,9 +58,13 @@ fun OverrideProxyGroupDraftEditorScreen(
     var url by remember { mutableStateOf(initialValue?.url.orEmpty()) }
     var intervalText by remember { mutableStateOf(initialValue?.interval?.toString().orEmpty()) }
     var timeoutText by remember { mutableStateOf(initialValue?.timeout?.toString().orEmpty()) }
-    var maxFailedTimesText by remember { mutableStateOf(initialValue?.maxFailedTimes?.toString().orEmpty()) }
+    var maxFailedTimesText by remember {
+        mutableStateOf(initialValue?.maxFailedTimes?.toString().orEmpty())
+    }
     var interfaceName by remember { mutableStateOf(initialValue?.interfaceName.orEmpty()) }
-    var routingMarkText by remember { mutableStateOf(initialValue?.routingMark?.toString().orEmpty()) }
+    var routingMarkText by remember {
+        mutableStateOf(initialValue?.routingMark?.toString().orEmpty())
+    }
     var filter by remember { mutableStateOf(initialValue?.filter.orEmpty()) }
     var excludeFilter by remember { mutableStateOf(initialValue?.excludeFilter.orEmpty()) }
     var excludeType by remember { mutableStateOf(initialValue?.excludeType.orEmpty()) }
@@ -77,40 +81,45 @@ fun OverrideProxyGroupDraftEditorScreen(
     var showExtraFieldDialog by remember { mutableStateOf(false) }
     var showProxySelector by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
-    val selectedPresetIndex = OverrideProxyGroupTypePresets.indexOfFirst {
-        it.equals(type, ignoreCase = true)
-    }.coerceAtLeast(0)
+    val selectedPresetIndex =
+        OverrideProxyGroupTypePresets.indexOfFirst { it.equals(type, ignoreCase = true) }
+            .coerceAtLeast(0)
     val referenceCatalog = OverrideStructuredEditorStore.currentReferenceCatalog()
-    val excludedGroupNames = remember(name, initialValue?.name) {
-        buildSet {
-            name.trim().takeIf(String::isNotBlank)?.let(::add)
-            initialValue?.name?.trim()?.takeIf(String::isNotBlank)?.let(::add)
+    val excludedGroupNames =
+        remember(name, initialValue?.name) {
+            buildSet {
+                name.trim().takeIf(String::isNotBlank)?.let(::add)
+                initialValue?.name?.trim()?.takeIf(String::isNotBlank)?.let(::add)
+            }
         }
-    }
-    val availableProxyGroupNames = remember(referenceCatalog.proxyGroupNames, excludedGroupNames) {
-        referenceCatalog.proxyGroupNames.filterNot(excludedGroupNames::contains)
-    }
-    val proxySelectionGroups = remember(referenceCatalog.proxyNames, availableProxyGroupNames) {
-        listOfNotNull(
-            referenceCatalog.proxyNames.takeIf { it.isNotEmpty() }?.let { values ->
-                OverrideSelectionGroup(
-                    title = MLang.Override.Editor.ProxyNode,
-                    items = values,
-                )
-            },
-            availableProxyGroupNames.takeIf { it.isNotEmpty() }?.let { values ->
-                OverrideSelectionGroup(
-                    title = MLang.Override.Editor.ProxyGroup,
-                    items = values,
-                )
-            },
-        )
-    }
+    val availableProxyGroupNames =
+        remember(referenceCatalog.proxyGroupNames, excludedGroupNames) {
+            referenceCatalog.proxyGroupNames.filterNot(excludedGroupNames::contains)
+        }
+    val proxySelectionGroups =
+        remember(referenceCatalog.proxyNames, availableProxyGroupNames) {
+            listOfNotNull(
+                referenceCatalog.proxyNames
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { values ->
+                        OverrideSelectionGroup(
+                            title = MLang.Override.Editor.ProxyNode,
+                            items = values,
+                        )
+                    },
+                availableProxyGroupNames
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { values ->
+                        OverrideSelectionGroup(
+                            title = MLang.Override.Editor.ProxyGroup,
+                            items = values,
+                        )
+                    },
+            )
+        }
 
     DisposableEffect(Unit) {
-        onDispose {
-            OverrideStructuredEditorStore.clearProxyGroupDraftEditor()
-        }
+        onDispose { OverrideStructuredEditorStore.clearProxyGroupDraftEditor() }
     }
 
     Scaffold(
@@ -154,18 +163,13 @@ fun OverrideProxyGroupDraftEditorScreen(
                             icon = icon.trim(),
                             extraFields = extraFields,
                             uiId = initialValue?.uiId ?: OverrideProxyGroupDraft().uiId,
-                        ),
+                        )
                     )
                     navigator.navigateUp()
                 },
             )
         },
-        topBar = {
-            TopBar(
-                title = title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = title, scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -200,7 +204,8 @@ fun OverrideProxyGroupDraftEditorScreen(
                                     errorText = null
                                 },
                                 label = MLang.Override.Draft.Name,
-                                errorText = errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
+                                errorText =
+                                    errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
                             )
                             OverrideFormField(
                                 value = url,
@@ -284,12 +289,36 @@ fun OverrideProxyGroupDraftEditorScreen(
                         )
                     }
                     OverrideCardSection(MLang.Override.Structured.Proxies.Title) {
-                        NullableBooleanSelector(title = "lazy", value = lazy, onValueChange = { lazy = it })
-                        NullableBooleanSelector(title = "disable-udp", value = disableUdp, onValueChange = { disableUdp = it })
-                        NullableBooleanSelector(title = "include-all", value = includeAll, onValueChange = { includeAll = it })
-                        NullableBooleanSelector(title = "include-all-proxies", value = includeAllProxies, onValueChange = { includeAllProxies = it })
-                        NullableBooleanSelector(title = "include-all-providers", value = includeAllProviders, onValueChange = { includeAllProviders = it })
-                        NullableBooleanSelector(title = "hidden", value = hidden, onValueChange = { hidden = it })
+                        NullableBooleanSelector(
+                            title = "lazy",
+                            value = lazy,
+                            onValueChange = { lazy = it },
+                        )
+                        NullableBooleanSelector(
+                            title = "disable-udp",
+                            value = disableUdp,
+                            onValueChange = { disableUdp = it },
+                        )
+                        NullableBooleanSelector(
+                            title = "include-all",
+                            value = includeAll,
+                            onValueChange = { includeAll = it },
+                        )
+                        NullableBooleanSelector(
+                            title = "include-all-proxies",
+                            value = includeAllProxies,
+                            onValueChange = { includeAllProxies = it },
+                        )
+                        NullableBooleanSelector(
+                            title = "include-all-providers",
+                            value = includeAllProviders,
+                            onValueChange = { includeAllProviders = it },
+                        )
+                        NullableBooleanSelector(
+                            title = "hidden",
+                            value = hidden,
+                            onValueChange = { hidden = it },
+                        )
                     }
                     OverrideSection(MLang.Override.Draft.ExtraFields) {
                         OverrideExtraFieldsCard(
@@ -303,9 +332,7 @@ fun OverrideProxyGroupDraftEditorScreen(
                                 editingExtraKey = key
                                 showExtraFieldDialog = true
                             },
-                            onDeleteClick = { key ->
-                                extraFields = extraFields - key
-                            },
+                            onDeleteClick = { key -> extraFields = extraFields - key },
                         )
                     }
                     Spacer(modifier = Modifier.height(OverrideSectionBottomSpacing))
@@ -314,7 +341,9 @@ fun OverrideProxyGroupDraftEditorScreen(
         }
         OverrideExtraFieldDialog(
             show = showExtraFieldDialog,
-            title = if (editingExtraKey == null) MLang.Override.Draft.AddExtraField else MLang.Override.Draft.EditExtraField,
+            title =
+                if (editingExtraKey == null) MLang.Override.Draft.AddExtraField
+                else MLang.Override.Draft.EditExtraField,
             initialValue = editingExtraKey?.let(extraFields::toExtraFieldDraft),
             onConfirm = { draft: OverrideExtraFieldDraft ->
                 extraFields = extraFields.updateExtraField(editingExtraKey, draft)
@@ -343,8 +372,5 @@ fun OverrideProxyGroupDraftEditorScreen(
 }
 
 private fun parseMultilineValues(rawValue: String): List<String> {
-    return rawValue
-        .lines()
-        .map(String::trim)
-        .filter(String::isNotBlank)
+    return rawValue.lines().map(String::trim).filter(String::isNotBlank)
 }

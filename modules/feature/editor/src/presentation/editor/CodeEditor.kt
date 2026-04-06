@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.editor
 
 import androidx.compose.runtime.*
@@ -101,7 +99,7 @@ fun CodeEditor(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to release editor in onRelease")
             }
-        }
+        },
     )
 }
 
@@ -109,13 +107,12 @@ private fun createCodeEditor(
     context: android.content.Context,
     state: CodeEditorState,
     isDark: Boolean,
-    onTextChange: ((String) -> Unit)?
+    onTextChange: ((String) -> Unit)?,
 ): CodeEditor {
 
     TextMateInitializer.initialize(context)
 
     return CodeEditor(context).apply {
-
         isEditable = !state.readOnly
 
         val font = EditorFontManager.getEditorTypeface(context)
@@ -134,7 +131,6 @@ private fun createCodeEditor(
         setText(state.content)
 
         subscribeAlways<ContentChangeEvent> {
-
             state.syncContentFromEditor()
 
             state.updateDiagnostics()

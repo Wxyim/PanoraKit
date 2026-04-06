@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.app.Activity
@@ -31,16 +29,14 @@ internal object OnboardingLauncher {
     private const val EXTRA_PREVIEW_MODE = "com.github.yumelira.yumebox.onboarding.preview_mode"
     private const val EXTRA_RESET_PRIVACY = "com.github.yumelira.yumebox.onboarding.reset_privacy"
 
-    fun start(
-        context: Context,
-        previewMode: Boolean = false,
-    ) {
-        val intent = createIntent(
-            context = context,
-            target = OnboardingStartupActivity::class.java,
-            previewMode = previewMode,
-            resetPrivacy = !previewMode,
-        )
+    fun start(context: Context, previewMode: Boolean = false) {
+        val intent =
+            createIntent(
+                context = context,
+                target = OnboardingStartupActivity::class.java,
+                previewMode = previewMode,
+                resetPrivacy = !previewMode,
+            )
         if (context !is Activity) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

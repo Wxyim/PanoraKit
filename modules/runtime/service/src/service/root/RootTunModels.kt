@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.root
 
 import com.github.yumelira.yumebox.core.model.Provider
@@ -59,10 +57,7 @@ enum class RootTunState {
         get() = this == Starting || this == Stopping
 }
 
-@Serializable
-data class RootTunStartRequest(
-    val source: String = "",
-)
+@Serializable data class RootTunStartRequest(val source: String = "")
 
 @Serializable
 data class RootTunOperationResult(
@@ -124,16 +119,10 @@ data class RootTunRuntimeSnapshot(
 )
 
 @Serializable
-data class RootTunLogChunk(
-    val nextSeq: Long = 0L,
-    val items: List<String> = emptyList(),
-) {
+data class RootTunLogChunk(val nextSeq: Long = 0L, val items: List<String> = emptyList()) {
     companion object {
         fun from(value: RuntimeLogChunk): RootTunLogChunk {
-            return RootTunLogChunk(
-                nextSeq = value.nextSeq,
-                items = value.items,
-            )
+            return RootTunLogChunk(nextSeq = value.nextSeq, items = value.items)
         }
     }
 }

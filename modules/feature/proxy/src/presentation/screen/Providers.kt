@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import android.net.Uri
@@ -49,6 +47,8 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-u
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import java.text.SimpleDateFormat
+import java.util.*
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
@@ -63,13 +63,8 @@ import top.yukonga.miuix.kmp.extra.WindowListPopup
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.text.SimpleDateFormat
-import java.util.*
 
-private data class ProviderSection(
-    val title: String,
-    val providers: List<Provider>,
-)
+private data class ProviderSection(val title: String, val providers: List<Provider>)
 
 private data class RemoteOverrideSection(
     val title: String,
@@ -87,9 +82,7 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
     val isRunning by viewModel.isRunning.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(isRunning) {
-        viewModel.refreshProviders()
-    }
+    LaunchedEffect(isRunning) { viewModel.refreshProviders() }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -105,41 +98,44 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
         }
     }
 
-    val sections = remember(providers) {
-        buildList {
-            val proxyProviders = providers.filter { it.type == Provider.Type.Proxy }
-            if (proxyProviders.isNotEmpty()) {
-                add(
-                    ProviderSection(
-                        title = MLang.Providers.Type.ProxyProviders.format(proxyProviders.size),
-                        providers = proxyProviders,
+    val sections =
+        remember(providers) {
+            buildList {
+                val proxyProviders = providers.filter { it.type == Provider.Type.Proxy }
+                if (proxyProviders.isNotEmpty()) {
+                    add(
+                        ProviderSection(
+                            title = MLang.Providers.Type.ProxyProviders.format(proxyProviders.size),
+                            providers = proxyProviders,
+                        )
                     )
-                )
-            }
-            val ruleProviders = providers.filter { it.type == Provider.Type.Rule }
-            if (ruleProviders.isNotEmpty()) {
-                add(
-                    ProviderSection(
-                        title = MLang.Providers.Type.RuleProviders.format(ruleProviders.size),
-                        providers = ruleProviders,
+                }
+                val ruleProviders = providers.filter { it.type == Provider.Type.Rule }
+                if (ruleProviders.isNotEmpty()) {
+                    add(
+                        ProviderSection(
+                            title = MLang.Providers.Type.RuleProviders.format(ruleProviders.size),
+                            providers = ruleProviders,
+                        )
                     )
-                )
+                }
             }
         }
-    }
 
-    val remoteSections = remember(remoteOverrides) {
-        buildList {
-            if (remoteOverrides.isNotEmpty()) {
-                add(
-                    RemoteOverrideSection(
-                        title = MLang.Providers.Type.OverrideResources.format(remoteOverrides.size),
-                        resources = remoteOverrides,
+    val remoteSections =
+        remember(remoteOverrides) {
+            buildList {
+                if (remoteOverrides.isNotEmpty()) {
+                    add(
+                        RemoteOverrideSection(
+                            title =
+                                MLang.Providers.Type.OverrideResources.format(remoteOverrides.size),
+                            resources = remoteOverrides,
+                        )
                     )
-                )
+                }
             }
         }
-    }
 
     Scaffold(
         topBar = {
@@ -147,40 +143,42 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
                 title = MLang.Providers.Title,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    if (providers.any { it.vehicleType == Provider.VehicleType.HTTP } || remoteOverrides.isNotEmpty()) {
+                    if (
+                        providers.any { it.vehicleType == Provider.VehicleType.HTTP } ||
+                            remoteOverrides.isNotEmpty()
+                    ) {
                         IconButton(
                             onClick = { viewModel.updateAllProviders() },
-                            modifier = Modifier.padding(end = 24.dp)
+                            modifier = Modifier.padding(end = 24.dp),
                         ) {
                             Icon(
                                 imageVector = Yume.`Circle-fading-arrow-up`,
-                                contentDescription = MLang.Providers.Action.UpdateAll
+                                contentDescription = MLang.Providers.Action.UpdateAll,
                             )
                         }
                     }
-                }
+                },
             )
-        },
+        }
     ) { innerPadding ->
         if (!isRunning && remoteOverrides.isEmpty()) {
             CenteredText(
                 firstLine = MLang.Providers.Empty.NotRunning,
-                secondLine = MLang.Providers.Empty.NotRunningHint
+                secondLine = MLang.Providers.Empty.NotRunningHint,
             )
         } else if (providers.isEmpty() && remoteOverrides.isEmpty() && !uiState.isLoading) {
             CenteredText(
                 firstLine = MLang.Providers.Empty.NoProviders,
-                secondLine = MLang.Providers.Empty.NoProvidersHint
+                secondLine = MLang.Providers.Empty.NoProvidersHint,
             )
         } else {
-            ScreenLazyColumn(
-                scrollBehavior = scrollBehavior,
-                innerPadding = innerPadding,
-            ) {
+            ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
                 sections.forEach { section ->
                     providerSection(
                         section = section,
-                        isUpdating = { providerKey -> uiState.updatingProviders.contains(providerKey) },
+                        isUpdating = { providerKey ->
+                            uiState.updatingProviders.contains(providerKey)
+                        },
                         onUpdate = { provider -> viewModel.updateProvider(provider) },
                         onUpload = { provider, uri ->
                             viewModel.uploadProviderFile(context, provider, uri)
@@ -190,7 +188,9 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
                 remoteSections.forEach { section ->
                     remoteOverrideSection(
                         section = section,
-                        isUpdating = { resourceId -> uiState.updatingProviders.contains("override_$resourceId") },
+                        isUpdating = { resourceId ->
+                            uiState.updatingProviders.contains("override_$resourceId")
+                        },
                         onUpdate = { resource -> viewModel.updateRemoteOverride(resource) },
                     )
                 }
@@ -211,9 +211,7 @@ private fun RemoteOverrideCard(
 
     Card(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -231,10 +229,11 @@ private fun RemoteOverrideCard(
                 )
                 Spacer(modifier = Modifier.size(4.dp))
                 Text(
-                    text = MLang.Providers.Summary.OverrideIntervalAndCount.format(
-                        resource.updateIntervalSeconds,
-                        resource.ruleCount,
-                    ),
+                    text =
+                        MLang.Providers.Summary.OverrideIntervalAndCount.format(
+                            resource.updateIntervalSeconds,
+                            resource.ruleCount,
+                        ),
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -278,53 +277,51 @@ private fun ProviderCard(
     provider: Provider,
     isUpdating: Boolean,
     onUpdate: () -> Unit,
-    onUpload: (Uri) -> Unit
+    onUpload: (Uri) -> Unit,
 ) {
     val showPopup = remember { mutableStateOf(false) }
     val colorScheme = MiuixTheme.colorScheme
     val updateBg = remember(colorScheme) { colorScheme.primary.copy(alpha = 0.1f) }
     val updateTint = remember(colorScheme) { colorScheme.primary }
 
-    val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { onUpload(it) }
-    }
+    val filePicker =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
+            uri: Uri? ->
+            uri?.let { onUpload(it) }
+        }
 
     Card(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = provider.name,
                     style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface
+                    color = MiuixTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.size(4.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = provider.vehicleType.name,
                         style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                     if (provider.updatedAt > 0) {
                         Text(
                             text = "•",
                             style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
                             text = formatTimestamp(provider.updatedAt),
                             style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
@@ -339,7 +336,7 @@ private fun ProviderCard(
                         minHeight = 35.dp,
                         minWidth = 35.dp,
                         enabled = !isUpdating,
-                        onClick = { showPopup.value = true }
+                        onClick = { showPopup.value = true },
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp),
@@ -357,18 +354,19 @@ private fun ProviderCard(
                                 text = MLang.Providers.Action.Operation,
                                 color = updateTint,
                                 fontWeight = FontWeight.Medium,
-                                fontSize = 15.sp
+                                fontSize = 15.sp,
                             )
                         }
                     }
 
-                    val popupItems = listOf(MLang.Providers.Action.Update, MLang.Providers.Action.Upload)
+                    val popupItems =
+                        listOf(MLang.Providers.Action.Update, MLang.Providers.Action.Upload)
 
-                    WindowListPopup  (
+                    WindowListPopup(
                         show = showPopup.value,
                         popupPositionProvider = ListPopupDefaults.DropdownPositionProvider,
                         alignment = PopupPositionProvider.Align.End,
-                        onDismissRequest = { showPopup.value = false }
+                        onDismissRequest = { showPopup.value = false },
                     ) {
                         ListPopupColumn {
                             popupItems.forEachIndexed { index, item ->
@@ -383,7 +381,7 @@ private fun ProviderCard(
                                             1 -> filePicker.launch("*/*")
                                         }
                                     },
-                                    index = index
+                                    index = index,
                                 )
                             }
                         }
@@ -400,9 +398,7 @@ private fun LazyListScope.providerSection(
     onUpdate: (Provider) -> Unit,
     onUpload: (Provider, Uri) -> Unit,
 ) {
-    item(key = "title_${section.title}") {
-        SmallTitle(section.title)
-    }
+    item(key = "title_${section.title}") { SmallTitle(section.title) }
     items(
         items = section.providers,
         key = { provider -> "${provider.type}_${provider.name}" },
@@ -423,9 +419,7 @@ private fun LazyListScope.remoteOverrideSection(
     isUpdating: (String) -> Boolean,
     onUpdate: (RemoteOverrideResource) -> Unit,
 ) {
-    item(key = "title_${section.title}") {
-        SmallTitle(section.title)
-    }
+    item(key = "title_${section.title}") { SmallTitle(section.title) }
     items(
         items = section.resources,
         key = { resource -> "override_${resource.id}" },

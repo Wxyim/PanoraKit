@@ -18,22 +18,20 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.app.Application
 import android.net.Uri
 import com.github.yumelira.yumebox.core.model.LogMessage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.enums.enumEntries
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 class LogRepository(
     private val application: Application,
@@ -46,11 +44,8 @@ class LogRepository(
         private const val MAX_CLEANUP_ARCHIVES = 8
         private const val MAX_STARTUP_ARCHIVE_LINES_PER_FILE = 400
         private const val MAX_MANAGED_ARCHIVE_LINES = 1200
-        private val STARTUP_LOG_FILES = setOf(
-            "local_tun_startup.log",
-            "local_http_startup.log",
-            "root_tun_startup.log",
-        )
+        private val STARTUP_LOG_FILES =
+            setOf("local_tun_startup.log", "local_http_startup.log", "root_tun_startup.log")
         private val LOG_LINE_REGEX = """\[(.+?)] \[(.+?)] (.+)""".toRegex()
         private val LOG_LEVELS = enumEntries<LogMessage.Level>().associateBy { it.name }
     }
@@ -80,7 +75,9 @@ class LogRepository(
     fun listLogFiles(): List<LogFileInfo> {
         val currentlyRecording = isRecording()
         val currentFileName = logRecordGateway.currentLogFileName
-        val files = logDir.listFiles(::isManagedLogFile)?.sortedByDescending { it.lastModified() } ?: emptyList()
+        val files =
+            logDir.listFiles(::isManagedLogFile)?.sortedByDescending { it.lastModified() }
+                ?: emptyList()
         return files.map { file ->
             LogFileInfo(
                 name = file.name,
@@ -92,8 +89,7 @@ class LogRepository(
     }
 
     fun listStartupLogFiles(): List<StartupLogFileInfo> {
-        return STARTUP_LOG_FILES
-            .map { name -> File(filesDir, name) }
+        return STARTUP_LOG_FILES.map { name -> File(filesDir, name) }
             .filter { it.exists() && it.isFile }
             .sortedByDescending { it.lastModified() }
             .map { file ->
@@ -105,11 +101,13 @@ class LogRepository(
             }
     }
 
-    suspend fun getLogFileSize(fileName: String): Long? = withContext(Dispatchers.IO) {
-        resolveLogFile(fileName)?.length()
-    }
+    suspend fun getLogFileSize(fileName: String): Long? =
+        withContext(Dispatchers.IO) { resolveLogFile(fileName)?.length() }
 
-    suspend fun readLogEntries(fileName: String, maxEntries: Int = DEFAULT_MAX_ENTRIES): List<LogEntry> =
+    suspend fun readLogEntries(
+        fileName: String,
+        maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    ): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val file = resolveLogFile(fileName) ?: return@withContext emptyList()
             if (maxEntries <= 0) return@withContext emptyList()
@@ -132,23 +130,25 @@ class LogRepository(
             }
         }
 
-    suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val source = resolveLogFile(fileName) ?: return@withContext false
-        try {
-            application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                source.inputStream().use { input ->
-                    input.copyTo(output)
-                }
-            } ?: return@withContext false
-            true
-        } catch (_: IOException) {
-            false
-        } catch (_: SecurityException) {
-            false
+    suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean =
+        withContext(Dispatchers.IO) {
+            val source = resolveLogFile(fileName) ?: return@withContext false
+            try {
+                application.contentResolver.openOutputStream(targetUri)?.use { output ->
+                    source.inputStream().use { input -> input.copyTo(output) }
+                } ?: return@withContext false
+                true
+            } catch (_: IOException) {
+                false
+            } catch (_: SecurityException) {
+                false
+            }
         }
-    }
 
-    suspend fun readStartupLogEntries(fileName: String, maxEntries: Int = DEFAULT_MAX_ENTRIES): List<LogEntry> =
+    suspend fun readStartupLogEntries(
+        fileName: String,
+        maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    ): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val file = resolveStartupLogFile(fileName) ?: return@withContext emptyList()
             if (maxEntries <= 0) return@withContext emptyList()
@@ -162,11 +162,7 @@ class LogRepository(
                             ring.removeFirst()
                         }
                         ring.addLast(
-                            LogEntry(
-                                time = "",
-                                level = LogMessage.Level.Unknown,
-                                message = trimmed,
-                            ),
+                            LogEntry(time = "", level = LogMessage.Level.Unknown, message = trimmed)
                         )
                     }
                     ring.toList()
@@ -178,73 +174,79 @@ class LogRepository(
             }
         }
 
-    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val source = resolveStartupLogFile(fileName) ?: return@withContext false
-        try {
-            application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                source.inputStream().use { input ->
-                    input.copyTo(output)
-                }
-            } ?: return@withContext false
-            true
-        } catch (_: IOException) {
-            false
-        } catch (_: SecurityException) {
-            false
-        }
-    }
-
-    suspend fun persistReadableLogsForCleanup(): String? = withContext(Dispatchers.IO) {
-        val archiveLines = mutableListOf<String>()
-
-        val startupLines = STARTUP_LOG_FILES.flatMap { fileName ->
-            val file = File(filesDir, fileName)
-            if (!file.exists() || !file.isFile) {
-                emptyList()
-            } else {
-                runCatching { file.readLines() }
-                    .getOrDefault(emptyList())
-                    .takeLast(MAX_STARTUP_ARCHIVE_LINES_PER_FILE)
-                    .map { line -> formatArchiveLine("[STARTUP:$fileName] ${line.trim()}") }
-            }
-        }
-        archiveLines += startupLines
-
-        resolveMostRecentManagedLogFile()?.let { managed ->
-            archiveLines += readTailLines(managed, MAX_MANAGED_ARCHIVE_LINES).map { line ->
-                val parsed = parseLogLine(line)
-                if (parsed != null) {
-                    line
-                } else {
-                    formatArchiveLine("[LIVE] ${line.trim()}")
-                }
+    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
+        withContext(Dispatchers.IO) {
+            val source = resolveStartupLogFile(fileName) ?: return@withContext false
+            try {
+                application.contentResolver.openOutputStream(targetUri)?.use { output ->
+                    source.inputStream().use { input -> input.copyTo(output) }
+                } ?: return@withContext false
+                true
+            } catch (_: IOException) {
+                false
+            } catch (_: SecurityException) {
+                false
             }
         }
 
-        if (archiveLines.isEmpty()) {
-            return@withContext null
+    suspend fun persistReadableLogsForCleanup(): String? =
+        withContext(Dispatchers.IO) {
+            val archiveLines = mutableListOf<String>()
+
+            val startupLines =
+                STARTUP_LOG_FILES.flatMap { fileName ->
+                    val file = File(filesDir, fileName)
+                    if (!file.exists() || !file.isFile) {
+                        emptyList()
+                    } else {
+                        runCatching { file.readLines() }
+                            .getOrDefault(emptyList())
+                            .takeLast(MAX_STARTUP_ARCHIVE_LINES_PER_FILE)
+                            .map { line -> formatArchiveLine("[STARTUP:$fileName] ${line.trim()}") }
+                    }
+                }
+            archiveLines += startupLines
+
+            resolveMostRecentManagedLogFile()?.let { managed ->
+                archiveLines +=
+                    readTailLines(managed, MAX_MANAGED_ARCHIVE_LINES).map { line ->
+                        val parsed = parseLogLine(line)
+                        if (parsed != null) {
+                            line
+                        } else {
+                            formatArchiveLine("[LIVE] ${line.trim()}")
+                        }
+                    }
+            }
+
+            if (archiveLines.isEmpty()) {
+                return@withContext null
+            }
+
+            val archiveFile = File(logDir, buildCleanupArchiveFileName(System.currentTimeMillis()))
+            runCatching {
+                    logDir.mkdirs()
+                    archiveFile.writeText(
+                        archiveLines.joinToString(separator = "\n", postfix = "\n")
+                    )
+                    pruneCleanupArchives()
+                }
+                .getOrElse {
+                    return@withContext null
+                }
+            archiveFile.name
         }
 
-        val archiveFile = File(logDir, buildCleanupArchiveFileName(System.currentTimeMillis()))
-        runCatching {
-            logDir.mkdirs()
-            archiveFile.writeText(archiveLines.joinToString(separator = "\n", postfix = "\n"))
-            pruneCleanupArchives()
-        }.getOrElse {
-            return@withContext null
+    suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogEntry> =
+        withContext(Dispatchers.IO) {
+            val currentlyRecording = isRecording()
+            val currentFileName = logRecordGateway.currentLogFileName
+            if (!currentlyRecording || currentFileName == null) {
+                return@withContext emptyList()
+            }
+            val file = resolveLogFile(currentFileName) ?: return@withContext emptyList()
+            readLogFileEntries(file, maxEntries)
         }
-        archiveFile.name
-    }
-
-    suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogEntry> = withContext(Dispatchers.IO) {
-        val currentlyRecording = isRecording()
-        val currentFileName = logRecordGateway.currentLogFileName
-        if (!currentlyRecording || currentFileName == null) {
-            return@withContext emptyList()
-        }
-        val file = resolveLogFile(currentFileName) ?: return@withContext emptyList()
-        readLogFileEntries(file, maxEntries)
-    }
 
     private fun readLogFileEntries(file: File, maxEntries: Int): List<LogEntry> {
         return try {
@@ -267,48 +269,50 @@ class LogRepository(
         }
     }
 
-    suspend fun writeLogEntries(targetUri: Uri, entries: List<LogEntry>): Boolean = withContext(Dispatchers.IO) {
-        try {
-            application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                val sb = StringBuilder()
-                entries.forEach { entry ->
-                    sb.append("[${entry.time}] [${entry.level.name}] ${entry.message}\n")
+    suspend fun writeLogEntries(targetUri: Uri, entries: List<LogEntry>): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                application.contentResolver.openOutputStream(targetUri)?.use { output ->
+                    val sb = StringBuilder()
+                    entries.forEach { entry ->
+                        sb.append("[${entry.time}] [${entry.level.name}] ${entry.message}\n")
+                    }
+                    output.write(sb.toString().toByteArray())
                 }
-                output.write(sb.toString().toByteArray())
+                true
+            } catch (_: IOException) {
+                false
+            } catch (_: SecurityException) {
+                false
             }
-            true
-        } catch (_: IOException) {
-            false
-        } catch (_: SecurityException) {
-            false
         }
-    }
 
-    suspend fun deleteLogFile(fileName: String): Boolean = withContext(Dispatchers.IO) {
-        val file = resolveLogFile(fileName) ?: return@withContext false
-        if (isCurrentRecordingFile(file.name)) {
-            stopRecording()
-            delay(STOP_WAIT_MS)
+    suspend fun deleteLogFile(fileName: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val file = resolveLogFile(fileName) ?: return@withContext false
+            if (isCurrentRecordingFile(file.name)) {
+                stopRecording()
+                delay(STOP_WAIT_MS)
+            }
+            file.delete()
         }
-        file.delete()
-    }
 
-    suspend fun deleteStartupLogFile(fileName: String): Boolean = withContext(Dispatchers.IO) {
-        val file = resolveStartupLogFile(fileName) ?: return@withContext false
-        file.delete()
-    }
+    suspend fun deleteStartupLogFile(fileName: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val file = resolveStartupLogFile(fileName) ?: return@withContext false
+            file.delete()
+        }
 
-    suspend fun deleteAllLogs() = withContext(Dispatchers.IO) {
-        if (isRecording()) {
-            stopRecording()
-            delay(STOP_WAIT_MS)
+    suspend fun deleteAllLogs() =
+        withContext(Dispatchers.IO) {
+            if (isRecording()) {
+                stopRecording()
+                delay(STOP_WAIT_MS)
+            }
+            val files = logDir.listFiles(::isManagedLogFile) ?: return@withContext
+            files.forEach { it.delete() }
+            STARTUP_LOG_FILES.forEach { name -> runCatching { File(filesDir, name).delete() } }
         }
-        val files = logDir.listFiles(::isManagedLogFile) ?: return@withContext
-        files.forEach { it.delete() }
-        STARTUP_LOG_FILES.forEach { name ->
-            runCatching { File(filesDir, name).delete() }
-        }
-    }
 
     private fun parseLogLine(line: String): LogEntry? {
         if (line.isBlank()) return null
@@ -325,11 +329,11 @@ class LogRepository(
     }
 
     private fun resolveMostRecentManagedLogFile(): File? {
-        val current = logRecordGateway.currentLogFileName
-            ?.let(::resolveLogFile)
-            ?.takeIf { it.exists() }
+        val current =
+            logRecordGateway.currentLogFileName?.let(::resolveLogFile)?.takeIf { it.exists() }
         if (current != null) return current
-        return logDir.listFiles(::isManagedLogFile)
+        return logDir
+            .listFiles(::isManagedLogFile)
             ?.sortedByDescending { it.lastModified() }
             ?.firstOrNull()
     }
@@ -337,17 +341,18 @@ class LogRepository(
     private fun readTailLines(file: File, maxLines: Int): List<String> {
         if (maxLines <= 0) return emptyList()
         return runCatching {
-            file.useLines { lines ->
-                val ring = ArrayDeque<String>(maxLines)
-                lines.forEach { line ->
-                    if (ring.size == maxLines) {
-                        ring.removeFirst()
+                file.useLines { lines ->
+                    val ring = ArrayDeque<String>(maxLines)
+                    lines.forEach { line ->
+                        if (ring.size == maxLines) {
+                            ring.removeFirst()
+                        }
+                        ring.addLast(line)
                     }
-                    ring.addLast(line)
+                    ring.toList()
                 }
-                ring.toList()
             }
-        }.getOrDefault(emptyList())
+            .getOrDefault(emptyList())
     }
 
     private fun buildCleanupArchiveFileName(now: Long): String {
@@ -362,10 +367,11 @@ class LogRepository(
     }
 
     private fun pruneCleanupArchives() {
-        val files = logDir.listFiles(::isManagedLogFile)
-            ?.filter { it.name.contains(CLEANUP_ARCHIVE_PREFIX) }
-            ?.sortedByDescending { it.lastModified() }
-            ?: return
+        val files =
+            logDir
+                .listFiles(::isManagedLogFile)
+                ?.filter { it.name.contains(CLEANUP_ARCHIVE_PREFIX) }
+                ?.sortedByDescending { it.lastModified() } ?: return
         files.drop(MAX_CLEANUP_ARCHIVES).forEach { it.delete() }
     }
 
@@ -389,7 +395,8 @@ class LogRepository(
 
     private fun isSafeLogFileName(fileName: String): Boolean {
         if (fileName.isBlank()) return false
-        if (fileName.contains('/') || fileName.contains('\\') || fileName.contains("..")) return false
+        if (fileName.contains('/') || fileName.contains('\\') || fileName.contains(".."))
+            return false
         if (!fileName.endsWith(logRecordGateway.logSuffix)) return false
         val prefix = logRecordGateway.logPrefix
         return prefix.isBlank() || fileName.startsWith(prefix)
@@ -402,15 +409,7 @@ class LogRepository(
         val isRecording: Boolean,
     )
 
-    data class LogEntry(
-        val time: String,
-        val level: LogMessage.Level,
-        val message: String,
-    )
+    data class LogEntry(val time: String, val level: LogMessage.Level, val message: String)
 
-    data class StartupLogFileInfo(
-        val name: String,
-        val updatedAt: Long,
-        val size: Long,
-    )
+    data class StartupLogFileInfo(val name: String, val updatedAt: Long, val size: Long)
 }

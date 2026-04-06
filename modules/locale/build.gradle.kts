@@ -26,9 +26,7 @@ plugins {
 }
 
 fytxt {
-    langSrcs = mapOf(
-        "lang" to layout.projectDirectory.dir("lang"),
-    )
+    langSrcs = mapOf("lang" to layout.projectDirectory.dir("lang"))
     packageName = "dev.oom_wg.purejoy.mlang"
     objectName = "MLang"
     defaultLang = "ZH"
@@ -38,58 +36,43 @@ fytxt {
 
 android {
     namespace = "com.github.yumelira.yumebox.core.locale"
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm ?: gropify.project.jvm ?: "17"
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "DebugProbesKt.bin",
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     sourceSets {
         getByName("main") {
-            kotlin.srcDirs("src")
-            res.srcDirs("res")
-            assets.srcDirs("assets")
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
+            kotlin.directories.apply {
+                clear()
+                add("src")
+            }
+            res.directories.apply {
+                clear()
+                add("res")
+            }
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
         getByName("test") {
-            kotlin.setSrcDirs(emptyList<String>())
-            resources.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
+            kotlin.directories.clear()
+            resources.directories.clear()
+            assets.directories.clear()
         }
         getByName("androidTest") {
-            kotlin.setSrcDirs(emptyList<String>())
-            res.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
-            aidl.setSrcDirs(emptyList<String>())
-            resources.setSrcDirs(emptyList<String>())
+            kotlin.directories.clear()
+            res.directories.clear()
+            assets.directories.clear()
+            aidl.directories.clear()
+            resources.directories.clear()
         }
     }
 
@@ -112,7 +95,7 @@ androidComponents {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation("androidx.compose.runtime:runtime")
 }

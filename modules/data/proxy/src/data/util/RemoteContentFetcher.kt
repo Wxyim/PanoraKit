@@ -49,20 +49,22 @@ object RemoteContentFetcher {
         allowInsecureHttpNonLocalhost: Boolean = false,
         userAgent: String = "MonadBox",
     ): String {
-        var targetUrl = parseAndValidate(
-            urlString = urlString,
-            allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-        )
+        var targetUrl =
+            parseAndValidate(
+                urlString = urlString,
+                allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
+            )
         val maxMegabytes = (maxBytes / (1024 * 1024)).coerceAtLeast(1)
 
         repeat(MAX_REDIRECTS + 1) { redirectCount ->
-            val connection = (targetUrl.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 15_000
-                readTimeout = 30_000
-                requestMethod = "GET"
-                setRequestProperty("User-Agent", userAgent)
-                instanceFollowRedirects = false
-            }
+            val connection =
+                (targetUrl.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", userAgent)
+                    instanceFollowRedirects = false
+                }
 
             try {
                 connection.connect()
@@ -71,7 +73,9 @@ object RemoteContentFetcher {
                 when {
                     statusCode in 200..299 -> {
                         return connection.inputStream.use { input ->
-                            input.readBytesWithLimit(maxBytes, maxMegabytes).toString(Charsets.UTF_8)
+                            input
+                                .readBytesWithLimit(maxBytes, maxMegabytes)
+                                .toString(Charsets.UTF_8)
                         }
                     }
 
@@ -79,10 +83,14 @@ object RemoteContentFetcher {
                         if (redirectCount >= MAX_REDIRECTS) {
                             throw RemoteFetchException(RemoteFetchFailureReason.TooManyRedirects)
                         }
-                        val location = connection.getHeaderField("Location")
-                            ?.trim()
-                            ?.takeIf(String::isNotBlank)
-                            ?: throw RemoteFetchException(RemoteFetchFailureReason.RedirectMissingLocation)
+                        val location =
+                            connection
+                                .getHeaderField("Location")
+                                ?.trim()
+                                ?.takeIf(String::isNotBlank)
+                                ?: throw RemoteFetchException(
+                                    RemoteFetchFailureReason.RedirectMissingLocation
+                                )
                         targetUrl = URL(targetUrl, location)
                         validateUrl(
                             url = targetUrl,
@@ -90,10 +98,11 @@ object RemoteContentFetcher {
                         )
                     }
 
-                    else -> throw RemoteFetchException(
-                        reason = RemoteFetchFailureReason.HttpError,
-                        httpCode = statusCode,
-                    )
+                    else ->
+                        throw RemoteFetchException(
+                            reason = RemoteFetchFailureReason.HttpError,
+                            httpCode = statusCode,
+                        )
                 }
             } finally {
                 connection.disconnect()
@@ -104,49 +113,36 @@ object RemoteContentFetcher {
     }
 
     fun extractDecodedFileName(urlString: String): String? {
-        val pathSegment = runCatching {
-            URL(urlString.trim()).path.substringAfterLast('/')
-        }.getOrDefault(
-            urlString.substringBefore('?').substringAfterLast('/'),
-        )
+        val pathSegment =
+            runCatching { URL(urlString.trim()).path.substringAfterLast('/') }
+                .getOrDefault(urlString.substringBefore('?').substringAfterLast('/'))
 
         val normalized = pathSegment.trim()
         if (normalized.isBlank()) return null
 
         // URLDecoder follows application/x-www-form-urlencoded semantics,
         // so keep literal plus signs intact for path segments.
-        val decoded = runCatching {
-            URLDecoder.decode(normalized.replace("+", "%2B"), Charsets.UTF_8.name())
-        }.getOrDefault(normalized)
+        val decoded =
+            runCatching { URLDecoder.decode(normalized.replace("+", "%2B"), Charsets.UTF_8.name()) }
+                .getOrDefault(normalized)
         return decoded.trim().takeIf(String::isNotBlank)
     }
 
-    private fun parseAndValidate(
-        urlString: String,
-        allowInsecureHttpNonLocalhost: Boolean,
-    ): URL {
+    private fun parseAndValidate(urlString: String, allowInsecureHttpNonLocalhost: Boolean): URL {
         val normalized = urlString.trim()
         val parsed = URL(normalized)
-        validateUrl(
-            url = parsed,
-            allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-        )
+        validateUrl(url = parsed, allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost)
         return parsed
     }
 
-    private fun validateUrl(
-        url: URL,
-        allowInsecureHttpNonLocalhost: Boolean,
-    ) {
+    private fun validateUrl(url: URL, allowInsecureHttpNonLocalhost: Boolean) {
         val protocol = url.protocol.lowercase()
         if (protocol != "https" && protocol != "http") {
             throw RemoteFetchException(RemoteFetchFailureReason.InvalidScheme)
         }
 
         if (
-            protocol == "http" &&
-            !allowInsecureHttpNonLocalhost &&
-            !isAllowedInsecureHost(url.host)
+            protocol == "http" && !allowInsecureHttpNonLocalhost && !isAllowedInsecureHost(url.host)
         ) {
             throw RemoteFetchException(RemoteFetchFailureReason.HttpsRequired)
         }
@@ -157,7 +153,10 @@ object RemoteContentFetcher {
         return normalized == "localhost" || normalized == "127.0.0.1" || normalized == "::1"
     }
 
-    private fun java.io.InputStream.readBytesWithLimit(maxBytes: Int, maxMegabytes: Int): ByteArray {
+    private fun java.io.InputStream.readBytesWithLimit(
+        maxBytes: Int,
+        maxMegabytes: Int,
+    ): ByteArray {
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val output = ByteArrayOutputStream()
         var total = 0
@@ -187,7 +186,8 @@ private fun buildMessage(
         RemoteFetchFailureReason.HttpsRequired ->
             "Only https:// URLs are allowed for remote resources (except localhost)"
         RemoteFetchFailureReason.HttpError -> "Request failed: HTTP ${httpCode ?: -1}"
-        RemoteFetchFailureReason.RedirectMissingLocation -> "Redirect response is missing Location header"
+        RemoteFetchFailureReason.RedirectMissingLocation ->
+            "Redirect response is missing Location header"
         RemoteFetchFailureReason.TooManyRedirects -> "Too many redirects"
         RemoteFetchFailureReason.ContentTooLarge ->
             "Remote content exceeds size limit: ${maxMegabytes ?: 0}MB"

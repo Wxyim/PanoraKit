@@ -18,26 +18,25 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.util
 
 import android.os.Looper
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.job
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
+import kotlinx.coroutines.launch
 
 fun <T> runSuspendBlocking(block: suspend () -> T): T {
     val result = CompletableFuture<T>()
-    val job = CoroutineScope(Dispatchers.IO).launch {
-        runCatching { block() }
-            .onSuccess(result::complete)
-            .onFailure(result::completeExceptionally)
-    }
+    val job =
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { block() }
+                .onSuccess(result::complete)
+                .onFailure(result::completeExceptionally)
+        }
 
     return try {
         result.get()

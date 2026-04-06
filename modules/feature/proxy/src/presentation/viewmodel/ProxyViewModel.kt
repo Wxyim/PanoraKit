@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -32,12 +30,12 @@ import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
 import com.github.yumelira.yumebox.domain.model.*
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 class ProxyViewModel(
     private val overrideRepository: OverrideRepository,
@@ -63,47 +61,77 @@ class ProxyViewModel(
 
     private val _groupOriginalOrder = MutableStateFlow<Map<String, List<String>>>(emptyMap())
 
-    val currentMode: StateFlow<TunnelState.Mode> = proxyDisplaySettingsStore.proxyMode.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, TunnelState.Mode.Rule)
+    val currentMode: StateFlow<TunnelState.Mode> =
+        proxyDisplaySettingsStore.proxyMode.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            TunnelState.Mode.Rule,
+        )
 
-    val displayMode: StateFlow<ProxyDisplayMode> = proxyDisplaySettingsStore.displayMode.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ProxyDisplayMode.SINGLE_DETAILED)
+    val displayMode: StateFlow<ProxyDisplayMode> =
+        proxyDisplaySettingsStore.displayMode.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            ProxyDisplayMode.SINGLE_DETAILED,
+        )
 
-    val groupStyle: StateFlow<ProxyGroupStyle> = proxyDisplaySettingsStore.groupStyle.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ProxyGroupStyle.INLINE)
+    val groupStyle: StateFlow<ProxyGroupStyle> =
+        proxyDisplaySettingsStore.groupStyle.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            ProxyGroupStyle.INLINE,
+        )
 
-    val sortMode: StateFlow<ProxySortMode> = proxyDisplaySettingsStore.sortMode.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ProxySortMode.DEFAULT)
+    val sortMode: StateFlow<ProxySortMode> =
+        proxyDisplaySettingsStore.sortMode.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            ProxySortMode.DEFAULT,
+        )
 
-    val sheetHeightFraction: StateFlow<Float> = proxyDisplaySettingsStore.sheetHeightFraction.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, PROXY_SHEET_HEIGHT_FRACTION_DEFAULT)
+    val sheetHeightFraction: StateFlow<Float> =
+        proxyDisplaySettingsStore.sheetHeightFraction.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
+        )
 
-    val showHiddenGroups: StateFlow<Boolean> = proxyDisplaySettingsStore.showHiddenGroups.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val showHiddenGroups: StateFlow<Boolean> =
+        proxyDisplaySettingsStore.showHiddenGroups.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            false,
+        )
 
-    val singleNodeTest: StateFlow<Boolean> = appSettingsRepository.singleNodeTest.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val singleNodeTest: StateFlow<Boolean> =
+        appSettingsRepository.singleNodeTest.state.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            true,
+        )
 
     val allProxyGroups: StateFlow<List<ProxyGroupInfo>> = proxyFacade.proxyGroups
 
-    private val hiddenGroupNames: StateFlow<Set<String>> = allProxyGroups
-        .map { groups ->
-            groups.asSequence()
-                .filter { it.type.group && it.hidden }
-                .map { it.name }
-                .toSet()
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val hiddenGroupNames: StateFlow<Set<String>> =
+        allProxyGroups
+            .map { groups ->
+                groups.asSequence().filter { it.type.group && it.hidden }.map { it.name }.toSet()
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> =
-        combine(allProxyGroups, showHiddenGroups, hiddenGroupNames) { groups, showHidden, hiddenNames ->
-            val strategyGroups = groups.filter { it.type.group }
-            if (showHidden) {
-                strategyGroups
-            } else {
-                strategyGroups.filterNot { it.name in hiddenNames }
+        combine(allProxyGroups, showHiddenGroups, hiddenGroupNames) {
+                groups,
+                showHidden,
+                hiddenNames ->
+                val strategyGroups = groups.filter { it.type.group }
+                if (showHidden) {
+                    strategyGroups
+                } else {
+                    strategyGroups.filterNot { it.name in hiddenNames }
+                }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private var screenActive = false
     private var externalSelectionSyncJob: Job? = null
@@ -113,45 +141,43 @@ class ProxyViewModel(
         proxyFacade.warmUpProxyGroups()
         viewModelScope.launch {
             allProxyGroups.collect { groups ->
-                _groupOriginalOrder.update { current ->
-                    updateGroupOrderCache(current, groups)
-                }
+                _groupOriginalOrder.update { current -> updateGroupOrderCache(current, groups) }
             }
         }
     }
 
     val sortedProxyGroups: StateFlow<List<ProxyGroupInfo>> =
-        combine(
-            allProxyGroups,
-            proxyGroups,
-            hiddenGroupNames,
-            sortMode,
-            _groupOriginalOrder,
-        ) { allGroups, groups, hiddenNames, mode, originalOrderCache ->
-            val groupMetadataByName = allGroups
-                .filter { it.type.group }
-                .associateBy { it.name }
-            groups.map { group ->
-                val resolvedProxies = group.proxies.map { proxy ->
-                    val matchingGroup = groupMetadataByName[proxy.name] ?: return@map proxy
-                    proxy.copy(
-                        hidden = proxy.hidden || matchingGroup.hidden,
-                        icon = proxy.icon ?: matchingGroup.icon,
+        combine(allProxyGroups, proxyGroups, hiddenGroupNames, sortMode, _groupOriginalOrder) {
+                allGroups,
+                groups,
+                hiddenNames,
+                mode,
+                originalOrderCache ->
+                val groupMetadataByName = allGroups.filter { it.type.group }.associateBy { it.name }
+                groups.map { group ->
+                    val resolvedProxies =
+                        group.proxies.map { proxy ->
+                            val matchingGroup = groupMetadataByName[proxy.name] ?: return@map proxy
+                            proxy.copy(
+                                hidden = proxy.hidden || matchingGroup.hidden,
+                                icon = proxy.icon ?: matchingGroup.icon,
+                            )
+                        }
+                    val originalOrder = originalOrderCache[group.name].orEmpty()
+                    val sortedProxies =
+                        sortProxies(
+                            proxies = resolvedProxies,
+                            sortMode = mode,
+                            originalOrder = originalOrder,
+                        )
+                    group.copy(
+                        hidden = group.name in hiddenNames,
+                        icon = group.icon ?: groupMetadataByName[group.name]?.icon,
+                        proxies = sortedProxies,
                     )
                 }
-                val originalOrder = originalOrderCache[group.name].orEmpty()
-                val sortedProxies = sortProxies(
-                    proxies = resolvedProxies,
-                    sortMode = mode,
-                    originalOrder = originalOrder,
-                )
-                group.copy(
-                    hidden = group.name in hiddenNames,
-                    icon = group.icon ?: groupMetadataByName[group.name]?.icon,
-                    proxies = sortedProxies,
-                )
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun ensureCoreLoaded(isActive: Boolean) {
         if (screenActive == isActive) return
@@ -167,17 +193,16 @@ class ProxyViewModel(
 
     private fun startPreviewSync() {
         if (previewSyncJob?.isActive == true) return
-        previewSyncJob = viewModelScope.launch {
-            while (true) {
-                if (!proxyFacade.isRunning.value) {
-                    runCatching { proxyFacade.refreshProxyGroups() }
-                        .onFailure { error ->
-                            if (error is CancellationException) throw error
-                        }
+        previewSyncJob =
+            viewModelScope.launch {
+                while (true) {
+                    if (!proxyFacade.isRunning.value) {
+                        runCatching { proxyFacade.refreshProxyGroups() }
+                            .onFailure { error -> if (error is CancellationException) throw error }
+                    }
+                    delay(PROXY_REFRESH_PREVIEW_MS.milliseconds)
                 }
-                delay(PROXY_REFRESH_PREVIEW_MS.milliseconds)
             }
-        }
     }
 
     private fun stopPreviewSync() {
@@ -189,7 +214,8 @@ class ProxyViewModel(
         val previousMode = proxyDisplaySettingsStore.proxyMode.value
         proxyDisplaySettingsStore.proxyMode.set(mode)
         viewModelScope.launch {
-            val persistError = overrideRepository.updateProfile { it.copy(mode = mode) }.exceptionOrNull()
+            val persistError =
+                overrideRepository.updateProfile { it.copy(mode = mode) }.exceptionOrNull()
             if (persistError != null) {
                 proxyDisplaySettingsStore.proxyMode.set(previousMode)
                 showError(MLang.Proxy.Mode.SwitchFailed.format(persistError.message))
@@ -213,11 +239,12 @@ class ProxyViewModel(
             setLoading(true)
             clearError()
             val currentGroups = proxyGroups.value
-            val testingTargets: Set<String> = if (groupName != null) {
-                setOf(groupName)
-            } else {
-                currentGroups.mapTo(linkedSetOf()) { it.name }
-            }
+            val testingTargets: Set<String> =
+                if (groupName != null) {
+                    setOf(groupName)
+                } else {
+                    currentGroups.mapTo(linkedSetOf()) { it.name }
+                }
             if (testingTargets.isNotEmpty()) {
                 _testingGroupNames.update { it + testingTargets }
             }
@@ -231,13 +258,12 @@ class ProxyViewModel(
                     showMessage(MLang.Proxy.Testing.All)
                     var firstError: Throwable? = null
                     currentGroups.forEach { group ->
-                        runCatching {
-                            proxyFacade.healthCheck(group.name, refreshAfter = false)
-                        }.onFailure { error ->
-                            if (firstError == null) {
-                                firstError = error
+                        runCatching { proxyFacade.healthCheck(group.name, refreshAfter = false) }
+                            .onFailure { error ->
+                                if (firstError == null) {
+                                    firstError = error
+                                }
                             }
-                        }
                     }
                     firstError?.let { throw it }
                 }
@@ -279,24 +305,21 @@ class ProxyViewModel(
     fun selectProxy(groupName: String, proxyName: String) {
         viewModelScope.launch {
             runCatching {
-                val success = proxyFacade.selectProxy(groupName, proxyName)
-                if (success) {
-                    showMessage(MLang.Proxy.Selection.Switched.format(proxyName))
-                } else {
-                    showError(MLang.Proxy.Selection.Failed)
+                    val success = proxyFacade.selectProxy(groupName, proxyName)
+                    if (success) {
+                        showMessage(MLang.Proxy.Selection.Switched.format(proxyName))
+                    } else {
+                        showError(MLang.Proxy.Selection.Failed)
+                    }
                 }
-            }.onFailure { error ->
-                showError(MLang.Proxy.Selection.Error.format(error.message))
-            }
+                .onFailure { error -> showError(MLang.Proxy.Selection.Error.format(error.message)) }
         }
     }
 
     fun testProxyDelay(proxyName: String) {
         viewModelScope.launch {
             _testingProxyNames.update { it + proxyName }
-            runCatching {
-                proxyFacade.healthCheckProxy(proxyName)
-            }
+            runCatching { proxyFacade.healthCheckProxy(proxyName) }
             delay(500.milliseconds)
             _testingProxyNames.update { it - proxyName }
         }
@@ -306,42 +329,43 @@ class ProxyViewModel(
         proxies: List<Proxy>,
         sortMode: ProxySortMode,
         originalOrder: List<String>,
-    ): List<Proxy> = when (sortMode) {
-        ProxySortMode.DEFAULT -> reorderByNameSequence(proxies, originalOrder)
-        ProxySortMode.BY_NAME -> {
-            val originalIndex = originalOrder.withIndex().associate { (index, name) -> name to index }
-            proxies.sortedWith(
-                compareBy<Proxy>(
-                    { it.name.lowercase() },
-                    { originalIndex[it.name] ?: Int.MAX_VALUE },
+    ): List<Proxy> =
+        when (sortMode) {
+            ProxySortMode.DEFAULT -> reorderByNameSequence(proxies, originalOrder)
+            ProxySortMode.BY_NAME -> {
+                val originalIndex =
+                    originalOrder.withIndex().associate { (index, name) -> name to index }
+                proxies.sortedWith(
+                    compareBy<Proxy>(
+                        { it.name.lowercase() },
+                        { originalIndex[it.name] ?: Int.MAX_VALUE },
+                    )
                 )
-            )
-        }
-        ProxySortMode.BY_LATENCY -> {
-            val originalIndex = originalOrder.withIndex().associate { (index, name) -> name to index }
-            proxies.sortedWith(
-                compareBy<Proxy>(
-                    { proxy ->
-
-                        when {
-                            proxy.delay > 0 -> 0
-                            proxy.delay < 0 -> 2
-                            else -> 1
-                        }
-                    },
-                    { proxy ->
-
-                        when {
-                            proxy.delay > 0 -> proxy.delay
-                            proxy.delay < 0 -> Int.MAX_VALUE - 1
-                            else -> Int.MAX_VALUE
-                        }
-                    },
-                    { proxy -> originalIndex[proxy.name] ?: Int.MAX_VALUE }
+            }
+            ProxySortMode.BY_LATENCY -> {
+                val originalIndex =
+                    originalOrder.withIndex().associate { (index, name) -> name to index }
+                proxies.sortedWith(
+                    compareBy<Proxy>(
+                        { proxy ->
+                            when {
+                                proxy.delay > 0 -> 0
+                                proxy.delay < 0 -> 2
+                                else -> 1
+                            }
+                        },
+                        { proxy ->
+                            when {
+                                proxy.delay > 0 -> proxy.delay
+                                proxy.delay < 0 -> Int.MAX_VALUE - 1
+                                else -> Int.MAX_VALUE
+                            }
+                        },
+                        { proxy -> originalIndex[proxy.name] ?: Int.MAX_VALUE },
+                    )
                 )
-            )
+            }
         }
-    }
 
     private fun reorderByNameSequence(
         proxies: List<Proxy>,
@@ -359,9 +383,7 @@ class ProxyViewModel(
             reordered += proxy
             consumed += name
         }
-        proxies.forEach { proxy ->
-            if (consumed.add(proxy.name)) reordered += proxy
-        }
+        proxies.forEach { proxy -> if (consumed.add(proxy.name)) reordered += proxy }
         return reordered
     }
 
@@ -380,11 +402,12 @@ class ProxyViewModel(
         groups.forEach { group ->
             val latestNames = group.proxies.map { it.name }
             val previous = next[group.name]
-            val merged = if (previous == null) {
-                latestNames
-            } else {
-                mergeStableOrder(previous, latestNames)
-            }
+            val merged =
+                if (previous == null) {
+                    latestNames
+                } else {
+                    mergeStableOrder(previous, latestNames)
+                }
             if (previous != merged) {
                 next[group.name] = merged
                 changed = true
@@ -403,12 +426,8 @@ class ProxyViewModel(
 
         val latestSet = latestNames.toHashSet()
         val merged = ArrayList<String>(latestNames.size)
-        previousOrder.forEach { name ->
-            if (name in latestSet) merged += name
-        }
-        latestNames.forEach { name ->
-            if (name !in merged) merged += name
-        }
+        previousOrder.forEach { name -> if (name in latestSet) merged += name }
+        latestNames.forEach { name -> if (name !in merged) merged += name }
         return merged
     }
 
@@ -434,20 +453,20 @@ class ProxyViewModel(
 
     private fun startExternalSelectionSync() {
         if (externalSelectionSyncJob?.isActive == true) return
-        externalSelectionSyncJob = viewModelScope.launch {
-            while (true) {
-                runCatching { proxyFacade.refreshProxyGroups() }
-                    .onFailure { error ->
-                        if (error is CancellationException) throw error
-                    }
-                val delayMillis = when {
-                    !proxyFacade.isRunning.value -> PROXY_REFRESH_PREVIEW_MS
-                    _testingGroupNames.value.isNotEmpty() -> 100
-                    else -> PROXY_REFRESH_IDLE_MS
+        externalSelectionSyncJob =
+            viewModelScope.launch {
+                while (true) {
+                    runCatching { proxyFacade.refreshProxyGroups() }
+                        .onFailure { error -> if (error is CancellationException) throw error }
+                    val delayMillis =
+                        when {
+                            !proxyFacade.isRunning.value -> PROXY_REFRESH_PREVIEW_MS
+                            _testingGroupNames.value.isNotEmpty() -> 100
+                            else -> PROXY_REFRESH_IDLE_MS
+                        }
+                    delay(delayMillis.milliseconds)
                 }
-                delay(delayMillis.milliseconds)
             }
-        }
     }
 
     private fun stopExternalSelectionSync() {
@@ -461,16 +480,17 @@ class ProxyViewModel(
         super.onCleared()
     }
 
-    private fun TunnelState.Mode.toModeName(): String = when (this) {
-        TunnelState.Mode.Direct -> MLang.Proxy.Mode.Direct
-        TunnelState.Mode.Global -> MLang.Proxy.Mode.Global
-        TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
-        else -> MLang.Proxy.Mode.Unknown
-    }
+    private fun TunnelState.Mode.toModeName(): String =
+        when (this) {
+            TunnelState.Mode.Direct -> MLang.Proxy.Mode.Direct
+            TunnelState.Mode.Global -> MLang.Proxy.Mode.Global
+            TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
+            else -> MLang.Proxy.Mode.Unknown
+        }
 
     data class ProxyUiState(
         val isLoading: Boolean = false,
         val message: String? = null,
-        val error: String? = null
+        val error: String? = null,
     )
 }

@@ -26,61 +26,43 @@ plugins {
 
 android {
     namespace = "com.github.yumelira.yumebox.core.ui"
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm ?: gropify.project.jvm ?: "17"
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "DebugProbesKt.bin",
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     sourceSets {
         getByName("main") {
             kotlin.directories.apply {
                 clear()
                 add("src")
             }
-            res.srcDirs("res")
-            assets.srcDirs("assets")
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
+            res.directories.apply {
+                clear()
+                add("res")
+            }
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
         getByName("test") {
             kotlin.directories.clear()
-            resources.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
+            resources.directories.clear()
+            assets.directories.clear()
         }
         getByName("androidTest") {
             kotlin.directories.clear()
-            res.setSrcDirs(emptyList<String>())
-            assets.setSrcDirs(emptyList<String>())
-            aidl.setSrcDirs(emptyList<String>())
-            resources.setSrcDirs(emptyList<String>())
+            res.directories.clear()
+            assets.directories.clear()
+            aidl.directories.clear()
+            resources.directories.clear()
         }
     }
 
@@ -96,22 +78,18 @@ dependencies {
     implementation(project(":data:settings"))
     implementation(project(":runtime:api"))
 
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.core:core-ktx:${gropify.dep.version.coreKtx}")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:${gropify.dep.version.lifecycle}")
-    implementation("io.github.raamcosta.compose-destinations:core:${gropify.dep.version.composeDestinations}")
-    implementation("io.coil-kt.coil3:coil-compose:${gropify.dep.version.coil3}")
-    implementation("dev.chrisbanes.haze:haze:${gropify.dep.version.haze}")
-    implementation("io.github.fletchmckee.liquid:liquid:${gropify.dep.version.liquid}")
-    implementation("io.github.kyant0:shapes:1.2.0")
-    implementation("top.yukonga.miuix.kmp:miuix:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-icons:${gropify.dep.version.miuix}")
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.compose.destinations.core)
+    implementation(libs.coil3.compose)
+    implementation(libs.haze)
+    implementation(libs.liquid)
+    implementation(libs.kyant.shapes)
+    implementation(libs.miuix)
+    implementation(libs.miuix.icons)
 }
-
-
-
-

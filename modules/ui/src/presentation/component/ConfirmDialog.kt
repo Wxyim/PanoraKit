@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.Column
@@ -46,11 +44,7 @@ fun ConfirmDialog(
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
 ) {
-    AppActionBottomSheet(
-        show = show.value,
-        title = title,
-        onDismissRequest = onDismiss,
-    ) {
+    AppActionBottomSheet(show = show.value, title = title, onDismissRequest = onDismiss) {
         ConfirmDialogContent(
             message = message,
             onCancel = onDismiss,
@@ -104,10 +98,7 @@ private fun ConfirmDialogContent(
     confirmText: String,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = message,
-            style = MiuixTheme.textStyles.body1,
-        )
+        Text(text = message, style = MiuixTheme.textStyles.body1)
         Spacer(modifier = Modifier.height(16.dp))
         DialogButtonRow(
             onCancel = onCancel,

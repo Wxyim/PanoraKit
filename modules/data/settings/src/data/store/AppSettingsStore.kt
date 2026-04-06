@@ -18,12 +18,10 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.store
 
-import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.AppColorTheme
+import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.tencent.mmkv.MMKV
@@ -56,5 +54,4 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     val cleanupLastRunAt by longFlow(0L)
 
     val customUserAgent by strFlow("")
-
 }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.*
@@ -33,7 +31,6 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object SelectionSheetMetrics {
@@ -42,10 +39,7 @@ private object SelectionSheetMetrics {
     val SectionSpacing = 12.dp
 }
 
-data class OverrideSelectionGroup(
-    val title: String,
-    val items: List<String>,
-)
+data class OverrideSelectionGroup(val title: String, val items: List<String>)
 
 @Composable
 fun OverrideSingleValueSelectionSheet(
@@ -59,27 +53,19 @@ fun OverrideSingleValueSelectionSheet(
     onConfirm: (String) -> Unit,
 ) {
     val knownValues = remember(groups) { collectSelectionItems(groups) }
-    var selectedValue by remember(show, value, knownValues) {
-        mutableStateOf(value.trim())
-    }
+    var selectedValue by remember(show, value, knownValues) { mutableStateOf(value.trim()) }
     var showCustomInputDialog by remember(show) { mutableStateOf(false) }
-    val customValue = selectedValue
-        .trim()
-        .takeIf { allowCustomValue && it.isNotBlank() && it !in knownValues }
-    val selectedKnownValues = listOfNotNull(
-        selectedValue
-            .trim()
-            .takeIf { it.isNotBlank() && it in knownValues },
-    )
+    val customValue =
+        selectedValue.trim().takeIf { allowCustomValue && it.isNotBlank() && it !in knownValues }
+    val selectedKnownValues =
+        listOfNotNull(selectedValue.trim().takeIf { it.isNotBlank() && it in knownValues })
 
     AppActionBottomSheet(
         show = show,
         modifier = Modifier,
         title = title,
         enableNestedScroll = false,
-        startAction = {
-            AppBottomSheetCloseAction(onClick = onDismiss)
-        },
+        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         endAction = {
             AppBottomSheetConfirmAction(
                 contentDescription = MLang.Override.Editor.Confirm,
@@ -89,9 +75,8 @@ fun OverrideSingleValueSelectionSheet(
         onDismissRequest = onDismiss,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = SelectionSheetMetrics.BottomPadding),
+            modifier =
+                Modifier.fillMaxWidth().padding(bottom = SelectionSheetMetrics.BottomPadding),
             verticalArrangement = Arrangement.spacedBy(SelectionSheetMetrics.SectionSpacing),
         ) {
             if (allowCustomValue) {
@@ -116,11 +101,12 @@ fun OverrideSingleValueSelectionSheet(
                     items = knownValues,
                     selectedValues = selectedKnownValues,
                     onItemClick = { itemValue ->
-                        selectedValue = if (selectedValue == itemValue) {
-                            ""
-                        } else {
-                            itemValue
-                        }
+                        selectedValue =
+                            if (selectedValue == itemValue) {
+                                ""
+                            } else {
+                                itemValue
+                            }
                     },
                 )
             }
@@ -155,18 +141,11 @@ fun OverrideMultiValueSelectionSheet(
 
     LaunchedEffect(show, values) {
         selectedValues.clear()
-        selectedValues.addAll(
-            values
-                .map(String::trim)
-                .filter(String::isNotBlank)
-                .distinct(),
-        )
+        selectedValues.addAll(values.map(String::trim).filter(String::isNotBlank).distinct())
     }
 
-    val normalizedSelectedValues = selectedValues
-        .map(String::trim)
-        .filter(String::isNotBlank)
-        .distinct()
+    val normalizedSelectedValues =
+        selectedValues.map(String::trim).filter(String::isNotBlank).distinct()
     val customValues = normalizedSelectedValues.filterNot(knownValues::contains)
 
     AppActionBottomSheet(
@@ -174,9 +153,7 @@ fun OverrideMultiValueSelectionSheet(
         modifier = Modifier,
         title = title,
         enableNestedScroll = false,
-        startAction = {
-            AppBottomSheetCloseAction(onClick = onDismiss)
-        },
+        startAction = { AppBottomSheetCloseAction(onClick = onDismiss) },
         endAction = {
             AppBottomSheetConfirmAction(
                 contentDescription = MLang.Override.Editor.Confirm,
@@ -186,9 +163,8 @@ fun OverrideMultiValueSelectionSheet(
         onDismissRequest = onDismiss,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = SelectionSheetMetrics.BottomPadding),
+            modifier =
+                Modifier.fillMaxWidth().padding(bottom = SelectionSheetMetrics.BottomPadding),
             verticalArrangement = Arrangement.spacedBy(SelectionSheetMetrics.SectionSpacing),
         ) {
             SelectionAddCustomCard(
@@ -199,9 +175,7 @@ fun OverrideMultiValueSelectionSheet(
                 SelectionValueListCard(
                     items = customValues,
                     selectedValues = customValues,
-                    onItemClick = { itemValue ->
-                        selectedValues.remove(itemValue)
-                    },
+                    onItemClick = { itemValue -> selectedValues.remove(itemValue) },
                 )
             }
             if (knownValues.isNotEmpty()) {
@@ -236,10 +210,7 @@ fun OverrideMultiValueSelectionSheet(
 }
 
 @Composable
-private fun SelectionAddCustomCard(
-    title: String,
-    onClick: () -> Unit,
-) {
+private fun SelectionAddCustomCard(title: String, onClick: () -> Unit) {
     Card(applyHorizontalPadding = false) {
         BasicComponent(
             title = title,
@@ -262,15 +233,10 @@ private fun SelectionValueListCard(
     onItemClick: (String) -> Unit,
 ) {
     Card(applyHorizontalPadding = false) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = SelectionSheetMetrics.ListMaxHeight),
-                ) {
-            items(
-                items = items,
-                key = { itemValue -> itemValue },
-            ) { itemValue ->
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = SelectionSheetMetrics.ListMaxHeight)
+        ) {
+            items(items = items, key = { itemValue -> itemValue }) { itemValue ->
                 BasicComponent(
                     title = itemValue,
                     endActions = {
@@ -301,11 +267,7 @@ private fun OverrideSelectionInputDialog(
     var inputValue by remember(show) { mutableStateOf("") }
     var errorText by remember(show) { mutableStateOf<String?>(null) }
 
-    AppDialog(
-        show = show,
-        title = title,
-        onDismissRequest = onDismiss,
-    ) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -320,10 +282,7 @@ private fun OverrideSelectionInputDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             errorText?.let { message ->
-                OverrideFieldAssistText(
-                    text = message,
-                    color = MiuixTheme.colorScheme.error,
-                )
+                OverrideFieldAssistText(text = message, color = MiuixTheme.colorScheme.error)
             }
             DialogButtonRow(
                 onCancel = onDismiss,

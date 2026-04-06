@@ -18,11 +18,10 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox
 
 import android.app.Application
+import com.github.nomadboxlab.monadbox.BuildConfig
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.PlatformIdentifier
@@ -31,11 +30,12 @@ import com.github.yumelira.yumebox.core.Global
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
 import com.github.yumelira.yumebox.data.repository.TrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
-import com.github.yumelira.yumebox.di.appModule
 import com.github.yumelira.yumebox.di.APPLICATION_SCOPE_NAME
+import com.github.yumelira.yumebox.di.appModule
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.tencent.mmkv.MMKV
-import com.github.nomadboxlab.monadbox.BuildConfig
+import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -46,14 +46,13 @@ import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
-import java.io.File
-import java.io.IOException
 
 class App : Application() {
 
     companion object {
         lateinit var instance: App
             private set
+
         private const val TEMP_FILE_PREFIX = "temp_"
         private const val TEMP_FILE_SUFFIX = ".yaml"
         private const val TEMP_FILE_STALE_MS = 24L * 60L * 60L * 1000L
@@ -64,11 +63,9 @@ class App : Application() {
     private lateinit var appScope: CoroutineScope
     private lateinit var appSettingsStorage: AppSettingsStorage
 
-    @Volatile
-    private var deferredStartupInitialized = false
+    @Volatile private var deferredStartupInitialized = false
 
-    @Volatile
-    private var cleanupSchedulerStarted = false
+    @Volatile private var cleanupSchedulerStarted = false
 
     override fun onCreate() {
         super.onCreate()
@@ -97,7 +94,9 @@ class App : Application() {
     }
 
     fun ensureDeferredStartupInitialized() {
-        if (!::appSettingsStorage.isInitialized || !appSettingsStorage.initialSetupCompleted.value) {
+        if (
+            !::appSettingsStorage.isInitialized || !appSettingsStorage.initialSetupCompleted.value
+        ) {
             return
         }
         if (deferredStartupInitialized) {
@@ -128,26 +127,27 @@ class App : Application() {
     private fun cleanupLegacyData() {
         // Cleanup old Sub-store data and its legacy node.js env
         arrayOf(
-            "substore",
-            "nodejs", // Only if explicitly used by substore
-            "substore-static"
-        ).forEach { dir ->
-            File(filesDir, dir).let { file ->
-                if (file.exists()) file.deleteRecursively()
+                "substore",
+                "nodejs", // Only if explicitly used by substore
+                "substore-static",
+            )
+            .forEach { dir ->
+                File(filesDir, dir).let { file -> if (file.exists()) file.deleteRecursively() }
             }
-        }
         cleanupStaleTempDownloads()
     }
 
     private fun cleanupStaleTempDownloads() {
         val now = System.currentTimeMillis()
         runCatching {
-            cacheDir.listFiles { file ->
-                file.isFile &&
-                    file.name.startsWith(TEMP_FILE_PREFIX) &&
-                    file.name.endsWith(TEMP_FILE_SUFFIX) &&
-                    now - file.lastModified() >= TEMP_FILE_STALE_MS
-            }?.forEach { it.delete() }
+            cacheDir
+                .listFiles { file ->
+                    file.isFile &&
+                        file.name.startsWith(TEMP_FILE_PREFIX) &&
+                        file.name.endsWith(TEMP_FILE_SUFFIX) &&
+                        now - file.lastModified() >= TEMP_FILE_STALE_MS
+                }
+                ?.forEach { it.delete() }
         }
     }
 
@@ -162,9 +162,7 @@ class App : Application() {
                 try {
                     if (!extractCompressedAssetIfExists("$filename.xz", targetFile)) {
                         assets.open(filename).use { input ->
-                            targetFile.outputStream().use { output ->
-                                input.copyTo(output)
-                            }
+                            targetFile.outputStream().use { output -> input.copyTo(output) }
                         }
                     }
                 } catch (_: IOException) {
@@ -182,9 +180,7 @@ class App : Application() {
         return try {
             assets.open(assetName).use { input ->
                 XZInputStream(input.buffered()).use { xzInput ->
-                    targetFile.outputStream().buffered().use { output ->
-                        xzInput.copyTo(output)
-                    }
+                    targetFile.outputStream().buffered().use { output -> xzInput.copyTo(output) }
                 }
             }
             true
@@ -211,18 +207,16 @@ class App : Application() {
 
     private suspend fun runColdStartStorageCleanup() {
         runCatching {
-            val manager = koin.get<StorageCleanupManager>()
-            val result = manager.runColdStartCleanup()
-            if (result.orphanImportedDirsRemoved > 0 || result.processingArtifactsRemoved > 0) {
-                Timber.i(
-                    "Cold start cleanup finished: orphanImported=%d processingArtifacts=%d",
-                    result.orphanImportedDirsRemoved,
-                    result.processingArtifactsRemoved,
-                )
+                val manager = koin.get<StorageCleanupManager>()
+                val result = manager.runColdStartCleanup()
+                if (result.orphanImportedDirsRemoved > 0 || result.processingArtifactsRemoved > 0) {
+                    Timber.i(
+                        "Cold start cleanup finished: orphanImported=%d processingArtifacts=%d",
+                        result.orphanImportedDirsRemoved,
+                        result.processingArtifactsRemoved,
+                    )
+                }
             }
-        }.onFailure { error ->
-            Timber.w(error, "Cold start cleanup failed")
-        }
+            .onFailure { error -> Timber.w(error, "Cold start cleanup failed") }
     }
-
 }

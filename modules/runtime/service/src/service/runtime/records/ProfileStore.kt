@@ -18,21 +18,19 @@
  *
  */
 
-
-
 @file:UseSerializers(UUIDSerializer::class)
 
 package com.github.yumelira.yumebox.service.runtime.records
 
+import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.service.runtime.entity.Imported
 import com.github.yumelira.yumebox.service.runtime.entity.Selection
 import com.github.yumelira.yumebox.service.runtime.util.UUIDSerializer
-import com.github.yumelira.yumebox.core.StoreIds
 import com.tencent.mmkv.MMKV
+import java.util.*
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import java.util.*
 
 object ProfileStore {
     private const val IMPORTED_KEY = "imported"
@@ -88,7 +86,8 @@ object ProfileStore {
     }
 
     fun removeAllSelectionScopeKeys() {
-        mmkv.allKeys()
+        mmkv
+            .allKeys()
             ?.filter { it.startsWith(SELECTION_SCOPE_KEY_PREFIX) }
             ?.forEach(mmkv::removeValueForKey)
     }
@@ -112,8 +111,10 @@ object ProfileStore {
         if (mmkv.decodeString(IMPORTED_KEY) != null) count++
         if (mmkv.decodeString(SELECTIONS_KEY) != null) count++
         if (mmkv.decodeString(PROFILE_ORDER_KEY) != null) count++
-        count += loadImported()
-            .count { imported -> mmkv.decodeString("$SELECTION_SCOPE_KEY_PREFIX${imported.uuid}") != null }
+        count +=
+            loadImported().count { imported ->
+                mmkv.decodeString("$SELECTION_SCOPE_KEY_PREFIX${imported.uuid}") != null
+            }
         return count
     }
 

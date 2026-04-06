@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.theme
 
 import android.app.Activity
@@ -45,19 +43,23 @@ private val AndroidSystemUiEffect: @Composable () -> Unit = {
                 window.isNavigationBarContrastEnforced = false
             }
 
-            val isDarkMode = (view.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            val isDarkMode =
+                (view.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
             val useLightNavigationBarIcons = !isDarkMode
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.setSystemBarsAppearance(
-                    if (useLightNavigationBarIcons) WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS else 0,
+                    if (useLightNavigationBarIcons)
+                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    else 0,
                     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                 )
             } else {
                 @Suppress("DEPRECATION")
                 window.navigationBarColor = navBarColor.toArgb()
-                WindowCompat.getInsetsController(window, view)
-                    .isAppearanceLightNavigationBars = useLightNavigationBarIcons
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars =
+                    useLightNavigationBarIcons
             }
         }
     }

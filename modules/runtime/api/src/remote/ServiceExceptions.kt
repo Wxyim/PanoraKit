@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.remote
 
 import android.content.Intent
@@ -27,51 +25,52 @@ import android.content.Intent
 class VpnPermissionRequired(val intent: Intent) : Exception("VPN permission required")
 
 enum class RuntimeGatewayErrorCode {
-	CLIENT_NOT_CONNECTED,
-	CLIENT_INIT_FAILED,
-	CLIENT_OPERATION_FAILED,
-	ROOT_RUNTIME_DISCONNECTED,
-	ROOT_RUNTIME_QUERY_FAILED,
-	RUNTIME_SPEC_BUILD_FAILED,
-	RUNTIME_START_FAILED,
-	RUNTIME_RELOAD_FAILED,
-	RUNTIME_RESTART_FAILED,
-	RUNTIME_STOP_FAILED,
-	ROOT_TUN_START_FAILED,
-	ROOT_TUN_RELOAD_FAILED,
-	ROOT_TUN_CONFIG_ROLLBACK_FAILED,
-	ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
-	RUNTIME_CONFIG_COMPILE_FAILED,
-	RUNTIME_CONFIG_PREVIEW_FAILED,
+    CLIENT_NOT_CONNECTED,
+    CLIENT_INIT_FAILED,
+    CLIENT_OPERATION_FAILED,
+    ROOT_RUNTIME_DISCONNECTED,
+    ROOT_RUNTIME_QUERY_FAILED,
+    RUNTIME_SPEC_BUILD_FAILED,
+    RUNTIME_START_FAILED,
+    RUNTIME_RELOAD_FAILED,
+    RUNTIME_RESTART_FAILED,
+    RUNTIME_STOP_FAILED,
+    ROOT_TUN_START_FAILED,
+    ROOT_TUN_RELOAD_FAILED,
+    ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+    ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
+    RUNTIME_CONFIG_COMPILE_FAILED,
+    RUNTIME_CONFIG_PREVIEW_FAILED,
 }
 
 class RuntimeGatewayException(
-	val code: RuntimeGatewayErrorCode,
-	message: String,
-	cause: Throwable? = null,
+    val code: RuntimeGatewayErrorCode,
+    message: String,
+    cause: Throwable? = null,
 ) : IllegalStateException(message, cause)
 
 fun Throwable.runtimeGatewayMessage(defaultMessage: String): String {
-	return when (this) {
-		is RuntimeGatewayException -> {
-			val detail = message?.takeIf { it.isNotBlank() } ?: defaultMessage
-			"${code.name}: $detail"
-		}
+    return when (this) {
+        is RuntimeGatewayException -> {
+            val detail = message?.takeIf { it.isNotBlank() } ?: defaultMessage
+            "${code.name}: $detail"
+        }
 
-		else -> message?.takeIf { it.isNotBlank() } ?: defaultMessage
-	}
+        else -> message?.takeIf { it.isNotBlank() } ?: defaultMessage
+    }
 }
 
 fun Throwable.asRuntimeGatewayException(
-	code: RuntimeGatewayErrorCode,
-	defaultMessage: String,
+    code: RuntimeGatewayErrorCode,
+    defaultMessage: String,
 ): RuntimeGatewayException {
-	return when (this) {
-		is RuntimeGatewayException -> this
-		else -> RuntimeGatewayException(
-			code = code,
-			message = runtimeGatewayMessage(defaultMessage),
-			cause = this,
-		)
-	}
+    return when (this) {
+        is RuntimeGatewayException -> this
+        else ->
+            RuntimeGatewayException(
+                code = code,
+                message = runtimeGatewayMessage(defaultMessage),
+                cause = this,
+            )
+    }
 }

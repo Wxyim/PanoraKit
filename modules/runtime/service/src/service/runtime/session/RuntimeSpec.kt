@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.session
 
 import com.github.yumelira.yumebox.core.model.RootTunConfig
@@ -43,11 +41,7 @@ data class RuntimeSpec(
     val profileFingerprint: String = "",
 )
 
-@Serializable
-data class RuntimeFailure(
-    val code: RuntimeGatewayErrorCode,
-    val message: String,
-)
+@Serializable data class RuntimeFailure(val code: RuntimeGatewayErrorCode, val message: String)
 
 @Serializable
 data class RuntimeOperationResult(
@@ -92,14 +86,12 @@ internal fun Throwable.toRuntimeFailure(
 ): RuntimeFailure {
     val runtimeError = this as? RuntimeGatewayException
     val code = runtimeError?.code ?: fallbackCode
-    val message = runtimeError?.message?.takeIf { it.isNotBlank() }
-        ?: this.message?.takeIf { it.isNotBlank() }
-        ?: fallbackMessage
+    val message =
+        runtimeError?.message?.takeIf { it.isNotBlank() }
+            ?: this.message?.takeIf { it.isNotBlank() }
+            ?: fallbackMessage
     return RuntimeFailure(code = code, message = message)
 }
 
 @Serializable
-data class RuntimeLogChunk(
-    val nextSeq: Long = 0L,
-    val items: List<String> = emptyList(),
-)
+data class RuntimeLogChunk(val nextSeq: Long = 0L, val items: List<String> = emptyList())

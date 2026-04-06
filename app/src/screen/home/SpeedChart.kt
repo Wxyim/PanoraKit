@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.animation.core.*
@@ -62,47 +60,56 @@ fun SpeedChart(
     isRunning: Boolean,
     onClick: () -> Unit,
     chartHeight: Dp = AppConstants.UI.SPEED_CHART_HEIGHT,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val chartColor = MiuixTheme.colorScheme.primary
-    val fractions = remember(speedHistory.version, speedHistory.size, speedHistory.head) {
-        buildSpeedChartFractions(speedHistory = speedHistory)
-    }
-    val isCalmRunning = remember(speedHistory.version, speedHistory.size, speedHistory.head, isRunning) {
-        isRunning && isCalmTraffic(speedHistory)
-    }
+    val fractions =
+        remember(speedHistory.version, speedHistory.size, speedHistory.head) {
+            buildSpeedChartFractions(speedHistory = speedHistory)
+        }
+    val isCalmRunning =
+        remember(speedHistory.version, speedHistory.size, speedHistory.head, isRunning) {
+            isRunning && isCalmTraffic(speedHistory)
+        }
     val idleTransition = rememberInfiniteTransition(label = "speed_chart_idle")
-    val idlePhase by idleTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = SPEED_CHART_IDLE_SCROLL_DURATION_MS,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "speed_chart_idle_phase"
-    )
-    val calmPhase by idleTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = SPEED_CHART_CALM_SCROLL_DURATION_MS,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "speed_chart_calm_phase"
-    )
+    val idlePhase by
+        idleTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation =
+                        tween(
+                            durationMillis = SPEED_CHART_IDLE_SCROLL_DURATION_MS,
+                            easing = LinearEasing,
+                        ),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "speed_chart_idle_phase",
+        )
+    val calmPhase by
+        idleTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation =
+                        tween(
+                            durationMillis = SPEED_CHART_CALM_SCROLL_DURATION_MS,
+                            easing = LinearEasing,
+                        ),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "speed_chart_calm_phase",
+        )
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(chartHeight)
-            .clip(RoundedCornerShape(AppConstants.UI.CARD_CORNER_RADIUS))
-            .clickable(onClick = onClick)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(chartHeight)
+                .clip(RoundedCornerShape(AppConstants.UI.CARD_CORNER_RADIUS))
+                .clickable(onClick = onClick)
     ) {
         val barGapPx = SPEED_CHART_BAR_GAP.toPx()
         val chartBarCount = SPEED_CHART_SAMPLE_LIMIT
@@ -121,7 +128,7 @@ fun SpeedChart(
                 barWidthPx = barWidthPx,
                 barGapPx = barGapPx,
                 barColor = barColor,
-                wavePhase = idlePhase * chartBarCount
+                wavePhase = idlePhase * chartBarCount,
             )
         } else if (isCalmRunning) {
             drawCalmBars(
@@ -136,7 +143,7 @@ fun SpeedChart(
                 fractions = fractions,
                 barWidthPx = barWidthPx,
                 barGapPx = barGapPx,
-                barColor = barColor
+                barColor = barColor,
             )
         }
     }
@@ -147,9 +154,10 @@ private fun isCalmTraffic(speedHistory: SpeedHistoryBuffer): Boolean {
     val size = speedHistory.size.coerceAtMost(speedHistory.samples.size)
     val copyLength = minOf(size, SPEED_CHART_SAMPLE_LIMIT)
     val startOffset = size - copyLength
-    val fractions = List(copyLength) { index ->
-        TrafficChartConfig.calculateBarFraction(speedHistory.sampleAt(startOffset + index))
-    }
+    val fractions =
+        List(copyLength) { index ->
+            TrafficChartConfig.calculateBarFraction(speedHistory.sampleAt(startOffset + index))
+        }
     val minFraction = fractions.minOrNull() ?: TrafficChartConfig.MIN_VISIBLE_HEIGHT
     val maxFraction = fractions.maxOrNull() ?: TrafficChartConfig.MIN_VISIBLE_HEIGHT
     return maxFraction - minFraction <= SPEED_CHART_CALM_VARIANCE_THRESHOLD
@@ -157,7 +165,7 @@ private fun isCalmTraffic(speedHistory: SpeedHistoryBuffer): Boolean {
 
 internal fun buildSpeedChartFractions(
     speedHistory: SpeedHistoryBuffer,
-    sampleLimit: Int = SPEED_CHART_SAMPLE_LIMIT
+    sampleLimit: Int = SPEED_CHART_SAMPLE_LIMIT,
 ): FloatArray {
     require(sampleLimit > 0) { "sampleLimit must be greater than 0" }
 
@@ -169,7 +177,8 @@ internal fun buildSpeedChartFractions(
     val sourceStart = size - copyLength
     val offset = sampleLimit - copyLength
     repeat(copyLength) { index ->
-        fractions[offset + index] = TrafficChartConfig.calculateBarFraction(speedHistory.sampleAt(sourceStart + index))
+        fractions[offset + index] =
+            TrafficChartConfig.calculateBarFraction(speedHistory.sampleAt(sourceStart + index))
     }
     return fractions
 }
@@ -187,7 +196,7 @@ private fun DrawScope.drawStaticBars(
     fractions: FloatArray,
     barWidthPx: Float,
     barGapPx: Float,
-    barColor: Color
+    barColor: Color,
 ) {
     val barCornerRadius = createBarCornerRadius(barWidthPx)
     for (index in fractions.indices) {
@@ -200,7 +209,7 @@ private fun DrawScope.drawStaticBars(
             fraction = fractions[index],
             barWidthPx = barWidthPx,
             barColor = barColor,
-            barCornerRadius = barCornerRadius
+            barCornerRadius = barCornerRadius,
         )
     }
 }
@@ -210,7 +219,7 @@ private fun DrawScope.drawIdleBars(
     barWidthPx: Float,
     barGapPx: Float,
     barColor: Color,
-    wavePhase: Float
+    wavePhase: Float,
 ) {
     val barCornerRadius = createBarCornerRadius(barWidthPx)
     for (index in fractions.indices) {
@@ -220,14 +229,10 @@ private fun DrawScope.drawIdleBars(
         }
         drawChartBar(
             leftPx = barLeftPx,
-            fraction = applyIdleWave(
-                fraction = fractions[index],
-                index = index,
-                phase = wavePhase
-            ),
+            fraction = applyIdleWave(fraction = fractions[index], index = index, phase = wavePhase),
             barWidthPx = barWidthPx,
             barColor = barColor,
-            barCornerRadius = barCornerRadius
+            barCornerRadius = barCornerRadius,
         )
     }
 }
@@ -245,10 +250,7 @@ private fun DrawScope.drawCalmBars(
         color = barColor.copy(alpha = 0.16f),
         topLeft = Offset(0f, size.height - baselineHeightPx),
         size = Size(size.width, baselineHeightPx),
-        cornerRadius = CornerRadius(
-            x = barCornerRadius.x,
-            y = barCornerRadius.y,
-        ),
+        cornerRadius = CornerRadius(x = barCornerRadius.x, y = barCornerRadius.y),
     )
 
     for (index in fractions.indices) {
@@ -257,22 +259,28 @@ private fun DrawScope.drawCalmBars(
             continue
         }
 
-        val animatedFraction = applyWave(
-            fraction = fractions[index],
-            index = index,
-            phase = wavePhase,
-            sampleLimit = SPEED_CHART_SAMPLE_LIMIT,
-            span = SPEED_CHART_CALM_WAVE_SPAN,
-            amplitude = SPEED_CHART_CALM_WAVE_AMPLITUDE,
-        )
-        val distance = wrappedDistance(index = index, phase = wavePhase, sampleLimit = SPEED_CHART_SAMPLE_LIMIT)
+        val animatedFraction =
+            applyWave(
+                fraction = fractions[index],
+                index = index,
+                phase = wavePhase,
+                sampleLimit = SPEED_CHART_SAMPLE_LIMIT,
+                span = SPEED_CHART_CALM_WAVE_SPAN,
+                amplitude = SPEED_CHART_CALM_WAVE_AMPLITUDE,
+            )
+        val distance =
+            wrappedDistance(
+                index = index,
+                phase = wavePhase,
+                sampleLimit = SPEED_CHART_SAMPLE_LIMIT,
+            )
         val highlight = (1f - distance / SPEED_CHART_CALM_WAVE_SPAN).coerceIn(0f, 1f)
         drawChartBar(
             leftPx = barLeftPx,
             fraction = animatedFraction,
             barWidthPx = barWidthPx,
             barColor = barColor.copy(alpha = SPEED_CHART_BAR_ALPHA - 0.12f + highlight * 0.14f),
-            barCornerRadius = barCornerRadius
+            barCornerRadius = barCornerRadius,
         )
     }
 }
@@ -281,7 +289,7 @@ private fun DrawScope.createBarCornerRadius(barWidthPx: Float): CornerRadius {
     val cornerRadiusPx = SPEED_CHART_BAR_CORNER_RADIUS.toPx()
     return CornerRadius(
         x = cornerRadiusPx.coerceAtMost(barWidthPx / 2f),
-        y = cornerRadiusPx.coerceAtMost(size.height / 2f)
+        y = cornerRadiusPx.coerceAtMost(size.height / 2f),
     )
 }
 
@@ -290,29 +298,19 @@ private fun DrawScope.drawChartBar(
     fraction: Float,
     barWidthPx: Float,
     barColor: Color,
-    barCornerRadius: CornerRadius
+    barCornerRadius: CornerRadius,
 ) {
     val clampedFraction = fraction.coerceIn(TrafficChartConfig.MIN_VISIBLE_HEIGHT, 1f)
     val barHeightPx = size.height * clampedFraction
     drawRoundRect(
         color = barColor,
-        topLeft = Offset(
-            x = leftPx,
-            y = size.height - barHeightPx
-        ),
-        size = Size(
-            width = barWidthPx,
-            height = barHeightPx
-        ),
-        cornerRadius = barCornerRadius
+        topLeft = Offset(x = leftPx, y = size.height - barHeightPx),
+        size = Size(width = barWidthPx, height = barHeightPx),
+        cornerRadius = barCornerRadius,
     )
 }
 
-private fun applyIdleWave(
-    fraction: Float,
-    index: Int,
-    phase: Float
-): Float {
+private fun applyIdleWave(fraction: Float, index: Int, phase: Float): Float {
     return applyWave(
         fraction = fraction,
         index = index,
@@ -336,15 +334,7 @@ private fun applyWave(
     return fraction + wave * amplitude
 }
 
-private fun wrappedDistance(
-    index: Int,
-    phase: Float,
-    sampleLimit: Int,
-): Float {
+private fun wrappedDistance(index: Int, phase: Float, sampleLimit: Int): Float {
     val distance = kotlin.math.abs(index - phase)
-    return minOf(
-        distance,
-        distance + sampleLimit,
-        kotlin.math.abs(index + sampleLimit - phase)
-    )
+    return minOf(distance, distance + sampleLimit, kotlin.math.abs(index + sampleLimit - phase))
 }

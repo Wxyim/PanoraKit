@@ -18,14 +18,12 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
 import androidx.lifecycle.ViewModel
 import com.github.yumelira.yumebox.common.util.StorageCleanupManager
-import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.AppColorTheme
+import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
@@ -44,7 +42,8 @@ class AppSettingsViewModel(
     val colorTheme: Preference<AppColorTheme> = repository.colorTheme
     val themeSeedColorArgb: Preference<Long> = repository.themeSeedColorArgb
     val automaticRestart: Preference<Boolean> = repository.automaticRestart
-    val autoUpdateCurrentProfileOnStart: Preference<Boolean> = repository.autoUpdateCurrentProfileOnStart
+    val autoUpdateCurrentProfileOnStart: Preference<Boolean> =
+        repository.autoUpdateCurrentProfileOnStart
     val hideAppIcon: Preference<Boolean> = repository.hideAppIcon
     val excludeFromRecents: Preference<Boolean> = repository.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = repository.showTrafficNotification
@@ -62,23 +61,43 @@ class AppSettingsViewModel(
     val customUserAgent: Preference<String> = repository.customUserAgent
 
     fun onAppLanguageChange(language: AppLanguage) = repository.onAppLanguageChange(language)
+
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
+
     fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
+
     fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
+
     fun resetThemeSeedColor() = themeSeedColorArgb.set(0xFF138A74L)
+
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
+
     fun onTopBarBlurEnabledChange(enabled: Boolean) = topBarBlurEnabled.set(enabled)
-    fun onBottomBarLiquidGlassEnabledChange(enabled: Boolean) = bottomBarLiquidGlassEnabled.set(enabled)
+
+    fun onBottomBarLiquidGlassEnabledChange(enabled: Boolean) =
+        bottomBarLiquidGlassEnabled.set(enabled)
+
     fun onPageScaleChange(scale: Float) = pageScale.set(scale)
+
     fun onAutomaticRestartChange(enabled: Boolean) = automaticRestart.set(enabled)
-    fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) = autoUpdateCurrentProfileOnStart.set(enabled)
+
+    fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) =
+        autoUpdateCurrentProfileOnStart.set(enabled)
+
     fun onHideAppIconChange(hide: Boolean) = hideAppIcon.set(hide)
+
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
+
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
+
     fun onSingleNodeTestChange(enabled: Boolean) = singleNodeTest.set(enabled)
+
     fun onCleanupAutoEnabledChange(enabled: Boolean) = cleanupAutoEnabled.set(enabled)
+
     fun onCleanupPolicyChange(policy: CleanupPolicy) = cleanupPolicy.set(policy)
+
     fun onCleanupThresholdMbChange(value: Int) = cleanupThresholdMb.set(value.coerceIn(64, 4096))
+
     fun onCleanupIntervalHoursChange(value: Int) = cleanupIntervalHours.set(value.coerceIn(1, 48))
 
     fun applyCustomUserAgent(userAgent: String) = repository.applyCustomUserAgent(userAgent)
@@ -88,5 +107,6 @@ class AppSettingsViewModel(
     }
 
     fun setInitialSetupCompleted(completed: Boolean) = initialSetupCompleted.set(completed)
+
     fun setPrivacyPolicyAccepted(accepted: Boolean) = privacyPolicyAccepted.set(accepted)
 }

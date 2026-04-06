@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.navigation
 
 import androidx.compose.runtime.Composable
@@ -50,59 +48,68 @@ import org.koin.compose.koinInject
 fun OverrideScreen(navigator: DestinationsNavigator) {
     val overrideConfigViewModel: OverrideConfigViewModel = koinInject()
 
-    OverrideListScreen(navigator = navigator, onEditConfig = { configId ->
-        navigator.navigate(
-            OverrideEditRouteDestination(
-                configId = configId,
+    OverrideListScreen(
+        navigator = navigator,
+        onEditConfig = { configId ->
+            navigator.navigate(OverrideEditRouteDestination(configId = configId))
+        },
+        onOpenCodeEditor = { configId, configName ->
+            val jsonContent = overrideConfigViewModel.getConfigJsonContent(configId) ?: "{}"
+            val isReadOnly = overrideConfigViewModel.isCodeEditorReadOnly(configId)
+            OverrideStructuredEditorStore.setupConfigPreview(
+                title = configName,
+                content = jsonContent,
+                language = LanguageScope.Json,
+                callback =
+                    if (isReadOnly) {
+                        null
+                    } else {
+                        { content ->
+                            overrideConfigViewModel.saveConfigJsonContent(configId, content)
+                        }
+                    },
             )
-        )
-    }, onOpenCodeEditor = { configId, configName ->
-        val jsonContent = overrideConfigViewModel.getConfigJsonContent(configId) ?: "{}"
-        val isReadOnly = overrideConfigViewModel.isCodeEditorReadOnly(configId)
-        OverrideStructuredEditorStore.setupConfigPreview(
-            title = configName,
-            content = jsonContent,
-            language = LanguageScope.Json,
-            callback = if (isReadOnly) {
-                null
-            } else {
-                { content ->
-                    overrideConfigViewModel.saveConfigJsonContent(configId, content)
-                }
-            },
-        )
-        navigator.navigate(OverrideConfigPreviewRouteDestination)
-    })
+            navigator.navigate(OverrideConfigPreviewRouteDestination)
+        },
+    )
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideEditRoute(
-    navigator: DestinationsNavigator,
-    configId: String,
-) {
+fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
     OverrideEditScreen(
         navigator = navigator,
         configId = configId,
-        onOpenStringListEditor = { title, placeholder, replaceValue, startValue, endValue, onReplaceChange, onStartChange, onEndChange ->
-            val values = com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
-                replaceValue = replaceValue,
-                startValue = startValue,
-                endValue = endValue,
-            )
-            val availableModes = listOf(
-                com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
-                com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Start,
-                com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.End,
-            )
+        onOpenStringListEditor = {
+            title,
+            placeholder,
+            replaceValue,
+            startValue,
+            endValue,
+            onReplaceChange,
+            onStartChange,
+            onEndChange ->
+            val values =
+                com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
+                    replaceValue = replaceValue,
+                    startValue = startValue,
+                    endValue = endValue,
+                )
+            val availableModes =
+                listOf(
+                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
+                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Start,
+                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.End,
+                )
             OverrideStructuredEditorStore.setupStringListEditor(
                 title = title,
                 placeholder = placeholder,
                 availableModes = availableModes,
-                selectedMode = com.github.yumelira.yumebox.presentation.util.resolveInitialEditorMode(
-                    availableModes = availableModes,
-                    values = values,
-                ),
+                selectedMode =
+                    com.github.yumelira.yumebox.presentation.util.resolveInitialEditorMode(
+                        availableModes = availableModes,
+                        values = values,
+                    ),
                 values = values,
             ) { updatedValues ->
                 onReplaceChange(updatedValues.replaceValue)
@@ -111,7 +118,13 @@ fun OverrideEditRoute(
             }
             navigator.navigate(OverrideStringListEditorRouteDestination)
         },
-        onOpenRuleListEditor = { title, values, availableModes, selectedMode, referenceCatalog, callback ->
+        onOpenRuleListEditor = {
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
             OverrideStructuredEditorStore.setupRuleEditor(
                 title = title,
                 availableModes = availableModes,
@@ -122,7 +135,14 @@ fun OverrideEditRoute(
             )
             navigator.navigate(OverrideRuleListEditorRouteDestination)
         },
-        onOpenObjectListEditor = { type, title, values, availableModes, selectedMode, referenceCatalog, callback ->
+        onOpenObjectListEditor = {
+            type,
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
             OverrideStructuredEditorStore.setupObjectEditor(
                 type = type,
                 title = title,
@@ -145,7 +165,13 @@ fun OverrideEditRoute(
             )
             navigator.navigate(OverrideKeyedObjectMapEditorRouteDestination)
         },
-        onOpenSubRulesEditor = { title, values, availableModes, selectedMode, referenceCatalog, callback ->
+        onOpenSubRulesEditor = {
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
             OverrideStructuredEditorStore.setupSubRuleGroupEditor(
                 title = title,
                 availableModes = availableModes,
@@ -155,14 +181,13 @@ fun OverrideEditRoute(
                 callback = callback,
             )
             navigator.navigate(OverrideSubRuleMapEditorRouteDestination)
-        })
+        },
+    )
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideRuleListEditorRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideRuleListEditorRoute(navigator: DestinationsNavigator) {
     OverrideRuleListEditorScreen(
         navigator = navigator,
         onOpenRuleDraftEditor = { title, initialValue, callback ->
@@ -178,9 +203,7 @@ fun OverrideRuleListEditorRoute(
 
 @Composable
 @Destination<RootGraph>
-fun OverrideObjectListEditorRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideObjectListEditorRoute(navigator: DestinationsNavigator) {
     OverrideObjectListEditorScreen(
         navigator = navigator,
         onOpenProxyDraftEditor = { title, initialValue, callback ->
@@ -204,9 +227,7 @@ fun OverrideObjectListEditorRoute(
 
 @Composable
 @Destination<RootGraph>
-fun OverrideKeyedObjectMapEditorRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideKeyedObjectMapEditorRoute(navigator: DestinationsNavigator) {
     OverrideKeyedObjectMapEditorScreen(
         navigator = navigator,
         onOpenDraftEditor = { type, title, initialValue, callback ->
@@ -223,9 +244,7 @@ fun OverrideKeyedObjectMapEditorRoute(
 
 @Composable
 @Destination<RootGraph>
-fun OverrideSubRuleMapEditorRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideSubRuleMapEditorRoute(navigator: DestinationsNavigator) {
     OverrideSubRuleMapEditorScreen(
         navigator = navigator,
         onOpenDraftEditor = { title, initialValue, callback ->
@@ -241,62 +260,46 @@ fun OverrideSubRuleMapEditorRoute(
 
 @Composable
 @Destination<RootGraph>
-fun OverrideStringListEditorRoute(
-    navigator: DestinationsNavigator,
-) {
-    OverrideStringListEditorScreen(
-        navigator = navigator,
-    )
+fun OverrideStringListEditorRoute(navigator: DestinationsNavigator) {
+    OverrideStringListEditorScreen(navigator = navigator)
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideRuleDraftEditorRoute(
-    navigator: DestinationsNavigator,
-) {
-    OverrideRuleDraftEditorScreen(
-        navigator = navigator,
-    )
+fun OverrideRuleDraftEditorRoute(navigator: DestinationsNavigator) {
+    OverrideRuleDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideProxyDraftEditorRoute(
-    navigator: DestinationsNavigator,
-) {
-    OverrideProxyDraftEditorScreen(
-        navigator = navigator,
-    )
+fun OverrideProxyDraftEditorRoute(navigator: DestinationsNavigator) {
+    OverrideProxyDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideProxyGroupDraftEditorRoute(
-    navigator: DestinationsNavigator,
-) {
-    OverrideProxyGroupDraftEditorScreen(
-        navigator = navigator,
-    )
+fun OverrideProxyGroupDraftEditorRoute(navigator: DestinationsNavigator) {
+    OverrideProxyGroupDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideKeyedObjectDraftEditorRoute(
-    navigator: DestinationsNavigator,
-) {
-    OverrideKeyedObjectDraftEditorScreen(
-        navigator = navigator,
-    )
+fun OverrideKeyedObjectDraftEditorRoute(navigator: DestinationsNavigator) {
+    OverrideKeyedObjectDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
 @Destination<RootGraph>
-fun OverrideSubRuleDraftEditorRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideSubRuleDraftEditorScreen(
         navigator = navigator,
-        onOpenRuleListEditor = { title, values, availableModes, selectedMode, referenceCatalog, callback ->
+        onOpenRuleListEditor = {
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
             OverrideStructuredEditorStore.setupRuleEditor(
                 title = title,
                 availableModes = availableModes,
@@ -312,9 +315,7 @@ fun OverrideSubRuleDraftEditorRoute(
 
 @Composable
 @Destination<RootGraph>
-fun OverrideConfigPreviewRoute(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     ConfigPreviewScreen(
         navigator = navigator,
         title = OverrideStructuredEditorStore.configPreviewTitle,

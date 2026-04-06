@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.remote
 
 import android.content.Context
@@ -31,22 +29,20 @@ import com.github.yumelira.yumebox.service.remote.ILogObserver
 import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
-import kotlin.time.Duration.Companion.milliseconds
 
-class RuntimeClashManager(
-    context: Context,
-    private val local: IClashManager,
-) : IClashManager {
+class RuntimeClashManager(context: Context, private val local: IClashManager) : IClashManager {
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var rootLogJob: Job? = null
     private var rootLogSeq: Long = 0L
+
     private fun <T> rootCallBlocking(block: suspend () -> T): T = runSuspendBlocking(block)
 
     override fun queryTunnelState(): TunnelState {
@@ -116,9 +112,7 @@ class RuntimeClashManager(
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
         return queryWithRuntime(
             rootCall = {
-                rootCallBlocking {
-                    RootTunController.queryProxyGroup(appContext, name, proxySort)
-                }
+                rootCallBlocking { RootTunController.queryProxyGroup(appContext, name, proxySort) }
             },
             localCall = { local.queryProxyGroup(name, proxySort) },
             fallbackOnRootFailure = false,
@@ -134,17 +128,20 @@ class RuntimeClashManager(
     }
 
     override fun queryProviders(): ProviderList {
-        val providers = queryWithRuntime(
-            rootCall = { rootCallBlocking { RootTunController.queryProviders(appContext) } },
-            localCall = { local.queryProviders().toList() },
-            fallbackOnRootFailure = false,
-        )
+        val providers =
+            queryWithRuntime(
+                rootCall = { rootCallBlocking { RootTunController.queryProviders(appContext) } },
+                localCall = { local.queryProviders().toList() },
+                fallbackOnRootFailure = false,
+            )
         return ProviderList(providers)
     }
 
     override fun patchSelector(group: String, name: String): Boolean {
         return queryWithRuntime(
-            rootCall = { rootCallBlocking { RootTunController.patchSelector(appContext, group, name) } },
+            rootCall = {
+                rootCallBlocking { RootTunController.patchSelector(appContext, group, name) }
+            },
             localCall = { local.patchSelector(group, name) },
             fallbackOnRootFailure = false,
         )
@@ -210,27 +207,29 @@ class RuntimeClashManager(
                 rootLogSeq = 0L
                 return
             }
-            rootLogJob = scope.launch {
-                while (isActive) {
-                    runCatching {
-                        val chunk = RootTunController.queryRecentLogs(appContext, rootLogSeq)
-                        if (chunk.items.isNotEmpty()) {
-                            chunk.items.forEach { raw ->
-                                observer.newItem(
-                                    com.github.yumelira.yumebox.service.root.RootTunJson.Default.decodeFromString(
-                                        LogMessage.serializer(),
-                                        raw,
-                                    ),
-                                )
+            rootLogJob =
+                scope.launch {
+                    while (isActive) {
+                        runCatching {
+                                val chunk =
+                                    RootTunController.queryRecentLogs(appContext, rootLogSeq)
+                                if (chunk.items.isNotEmpty()) {
+                                    chunk.items.forEach { raw ->
+                                        observer.newItem(
+                                            com.github.yumelira.yumebox.service.root.RootTunJson
+                                                .Default
+                                                .decodeFromString(LogMessage.serializer(), raw)
+                                        )
+                                    }
+                                }
+                                rootLogSeq = chunk.nextSeq
                             }
-                        }
-                        rootLogSeq = chunk.nextSeq
-                    }.onFailure { error ->
-                        Timber.d(error, "Root runtime log polling skipped")
+                            .onFailure { error ->
+                                Timber.d(error, "Root runtime log polling skipped")
+                            }
+                        delay(300.milliseconds)
                     }
-                    delay(300.milliseconds)
                 }
-            }
         } else {
             rootLogJob?.cancel()
             rootLogSeq = 0L
@@ -279,18 +278,20 @@ class RuntimeClashManager(
 
     private fun mapRootRuntimeFailure(error: Throwable): RuntimeGatewayException {
         val binderFailure = RootTunRuntimeRecovery.isBinderConnectionFailure(error)
-        val message = if (binderFailure) {
-            RootTunRuntimeRecovery.binderFailureReason(error)
-        } else {
-            error.message?.takeIf { it.isNotBlank() } ?: "Root runtime query failed"
-        }
+        val message =
+            if (binderFailure) {
+                RootTunRuntimeRecovery.binderFailureReason(error)
+            } else {
+                error.message?.takeIf { it.isNotBlank() } ?: "Root runtime query failed"
+            }
 
         return RuntimeGatewayException(
-            code = if (binderFailure) {
-                RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED
-            } else {
-                RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED
-            },
+            code =
+                if (binderFailure) {
+                    RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED
+                } else {
+                    RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED
+                },
             message = message,
             cause = error,
         )
@@ -301,7 +302,10 @@ class RuntimeClashManager(
             rootLogJob?.cancel()
             rootLogJob = null
             rootLogSeq = 0L
-            RootTunRuntimeRecovery.handleBinderGone(appContext, RootTunRuntimeRecovery.binderFailureReason(error))
+            RootTunRuntimeRecovery.handleBinderGone(
+                appContext,
+                RootTunRuntimeRecovery.binderFailureReason(error),
+            )
             Timber.w(error, "Root runtime binder died")
             return
         }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.os.Bundle
@@ -35,11 +33,14 @@ internal class OnboardingFinishActivity : OnboardingBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                navigateBackwardTo(OnboardingPersonalizeActivity::class.java)
-            }
-        })
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigateBackwardTo(OnboardingPersonalizeActivity::class.java)
+                }
+            },
+        )
 
         setOnboardingContent {
             FinishHeroShell(
@@ -50,9 +51,7 @@ internal class OnboardingFinishActivity : OnboardingBaseActivity() {
                     }
                     finishOnboarding()
                 },
-                onGithubClick = {
-                    openUrl(this, "https://github.com/NomadBoxLab/NomadBox")
-                },
+                onGithubClick = { openUrl(this, "https://github.com/NomadBoxLab/NomadBox") },
             )
         }
     }

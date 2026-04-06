@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -40,6 +38,7 @@ import com.github.yumelira.yumebox.domain.model.OverrideMetadata
 import com.github.yumelira.yumebox.presentation.util.OverrideSaveEvent
 import com.github.yumelira.yumebox.presentation.util.OverrideSaveState
 import com.github.yumelira.yumebox.presentation.util.encodeOverrideConfigForDiff
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -51,7 +50,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import timber.log.Timber
-import dev.oom_wg.purejoy.mlang.MLang
 
 data class OverrideEditSession(
     val routeConfigId: String,
@@ -73,9 +71,10 @@ data class OverrideEditSession(
         get() = name.isNotBlank()
 
     val hasPersistedChanges: Boolean
-        get() = name != persistedName ||
-            description != persistedDescription ||
-            draftSnapshot != persistedSnapshot
+        get() =
+            name != persistedName ||
+                description != persistedDescription ||
+                draftSnapshot != persistedSnapshot
 
     val hasUnsavedInvalidChanges: Boolean
         get() = hasPersistedChanges && !canSave
@@ -89,10 +88,7 @@ enum class OverrideImportKind {
     PluginRules,
 }
 
-data class OverrideImportResult(
-    val kind: OverrideImportKind,
-    val count: Int,
-)
+data class OverrideImportResult(val kind: OverrideImportKind, val count: Int)
 
 class OverrideConfigViewModel(
     private val configRepo: OverrideConfigRepository,
@@ -166,18 +162,21 @@ class OverrideConfigViewModel(
                 val userConfigs = configRepo.getUserConfigs()
                 _userConfigs.value = userConfigs
 
-                _metadataMap.value = userConfigs.associate { userConfig ->
-                    userConfig.id to (configRepo.getMetadata(userConfig.id)
-                        ?: OverrideMetadata.create(
-                            name = userConfig.name,
-                            description = userConfig.description,
-                            isSystem = false,
-                        ).copy(
-                            id = userConfig.id,
-                            createdAt = userConfig.createdAt,
-                            updatedAt = userConfig.updatedAt,
-                        ))
-                }
+                _metadataMap.value =
+                    userConfigs.associate { userConfig ->
+                        userConfig.id to
+                            (configRepo.getMetadata(userConfig.id)
+                                ?: OverrideMetadata.create(
+                                        name = userConfig.name,
+                                        description = userConfig.description,
+                                        isSystem = false,
+                                    )
+                                    .copy(
+                                        id = userConfig.id,
+                                        createdAt = userConfig.createdAt,
+                                        updatedAt = userConfig.updatedAt,
+                                    ))
+                    }
 
                 _configs.value = presets + userConfigs
 
@@ -218,13 +217,10 @@ class OverrideConfigViewModel(
 
     private fun observeBindingChanges() {
         bindingObserverJob?.cancel()
-        bindingObserverJob = viewModelScope.launch {
-            bindingProvider.getAllBindingsFlow()
-                .drop(1)
-                .collectLatest {
-                    loadUsageCounts()
-                }
-        }
+        bindingObserverJob =
+            viewModelScope.launch {
+                bindingProvider.getAllBindingsFlow().drop(1).collectLatest { loadUsageCounts() }
+            }
     }
 
     fun createConfig(
@@ -235,15 +231,16 @@ class OverrideConfigViewModel(
         viewModelScope.launch {
             try {
                 val now = System.currentTimeMillis()
-                val config = OverrideConfig(
-                    id = OverrideMetadata.generateId(),
-                    name = name,
-                    description = description,
-                    config = ConfigurationOverride(),
-                    isSystem = false,
-                    createdAt = now,
-                    updatedAt = now,
-                )
+                val config =
+                    OverrideConfig(
+                        id = OverrideMetadata.generateId(),
+                        name = name,
+                        description = description,
+                        config = ConfigurationOverride(),
+                        isSystem = false,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
                 configRepo.save(config)
                 loadConfigs()
                 onCreated?.invoke(config.id)
@@ -269,27 +266,23 @@ class OverrideConfigViewModel(
         }
     }
 
-    fun saveConfigSilently(
-        config: OverrideConfig,
-        onSaved: ((OverrideConfig) -> Unit)? = null,
-    ) {
-        val shouldLaunchWorker = synchronized(silentSaveLock) {
-            pendingSilentConfigs[config.id] = config
-            if (onSaved != null) {
-                pendingSilentCallbacks[config.id] = onSaved
-            } else {
-                pendingSilentCallbacks.remove(config.id)
+    fun saveConfigSilently(config: OverrideConfig, onSaved: ((OverrideConfig) -> Unit)? = null) {
+        val shouldLaunchWorker =
+            synchronized(silentSaveLock) {
+                pendingSilentConfigs[config.id] = config
+                if (onSaved != null) {
+                    pendingSilentCallbacks[config.id] = onSaved
+                } else {
+                    pendingSilentCallbacks.remove(config.id)
+                }
+                activeSilentSaveIds.add(config.id)
             }
-            activeSilentSaveIds.add(config.id)
-        }
 
         if (!shouldLaunchWorker) {
             return
         }
 
-        viewModelScope.launch {
-            drainSilentSaveQueue(config.id)
-        }
+        viewModelScope.launch { drainSilentSaveQueue(config.id) }
     }
 
     private suspend fun persistConfig(
@@ -313,7 +306,8 @@ class OverrideConfigViewModel(
                 return
             }
             configRepo.save(config)
-            val runtimeSynced = activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(config.id)
+            val runtimeSynced =
+                activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(config.id)
             if (refreshAfterSave) {
                 loadConfigs()
             } else {
@@ -330,11 +324,7 @@ class OverrideConfigViewModel(
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to update config")
-            _events.emit(
-                OverrideSaveEvent.Failed(
-                    e.message ?: MLang.Override.Save.Failed,
-                ),
-            )
+            _events.emit(OverrideSaveEvent.Failed(e.message ?: MLang.Override.Save.Failed))
         } finally {
             if (updateSaveState) {
                 _saveState.value = OverrideSaveState.Idle
@@ -344,18 +334,19 @@ class OverrideConfigViewModel(
 
     private suspend fun drainSilentSaveQueue(configId: String) {
         while (true) {
-            val nextRequest = synchronized(silentSaveLock) {
-                val nextConfig = pendingSilentConfigs.remove(configId)
-                if (nextConfig == null) {
-                    activeSilentSaveIds.remove(configId)
-                    null
-                } else {
-                    SilentSaveRequest(
-                        config = nextConfig,
-                        onSaved = pendingSilentCallbacks.remove(configId),
-                    )
-                }
-            } ?: return
+            val nextRequest =
+                synchronized(silentSaveLock) {
+                    val nextConfig = pendingSilentConfigs.remove(configId)
+                    if (nextConfig == null) {
+                        activeSilentSaveIds.remove(configId)
+                        null
+                    } else {
+                        SilentSaveRequest(
+                            config = nextConfig,
+                            onSaved = pendingSilentCallbacks.remove(configId),
+                        )
+                    }
+                } ?: return
 
             persistConfig(
                 config = nextRequest.config,
@@ -403,42 +394,40 @@ class OverrideConfigViewModel(
         scheduleDraftSave(updatedSession, saveDelayMillis)
     }
 
-    private fun scheduleDraftSave(
-        session: OverrideEditSession,
-        delayMillis: Long,
-    ) {
+    private fun scheduleDraftSave(session: OverrideEditSession, delayMillis: Long) {
         pendingEditSaveJob?.cancel()
-        pendingEditSaveJob = viewModelScope.launch {
-            if (delayMillis > 0L) {
-                delay(delayMillis)
+        pendingEditSaveJob =
+            viewModelScope.launch {
+                if (delayMillis > 0L) {
+                    delay(delayMillis)
+                }
+                val latestSession = _editSession.value
+                if (
+                    latestSession == null || latestSession.targetConfigId != session.targetConfigId
+                ) {
+                    return@launch
+                }
+                saveDraftSession(latestSession)
             }
-            val latestSession = _editSession.value
-            if (latestSession == null || latestSession.targetConfigId != session.targetConfigId) {
-                return@launch
-            }
-            saveDraftSession(latestSession)
-        }
     }
 
-    private fun saveDraftSession(
-        session: OverrideEditSession,
-        onSaved: (() -> Unit)? = null,
-    ) {
+    private fun saveDraftSession(session: OverrideEditSession, onSaved: (() -> Unit)? = null) {
         if (!session.canSave || !session.hasPersistedChanges) {
             onSaved?.invoke()
             return
         }
 
         saveConfigSilently(
-            config = OverrideConfig(
-                id = session.targetConfigId,
-                name = session.name,
-                description = session.description.takeIf(String::isNotBlank),
-                config = session.config,
-                isSystem = false,
-                createdAt = session.createdAt,
-                updatedAt = System.currentTimeMillis(),
-            ),
+            config =
+                OverrideConfig(
+                    id = session.targetConfigId,
+                    name = session.name,
+                    description = session.description.takeIf(String::isNotBlank),
+                    config = session.config,
+                    isSystem = false,
+                    createdAt = session.createdAt,
+                    updatedAt = System.currentTimeMillis(),
+                )
         ) { savedConfig ->
             syncPersistedEditSession(savedConfig)
             onSaved?.invoke()
@@ -480,11 +469,16 @@ class OverrideConfigViewModel(
     fun deleteConfig(id: String) {
         viewModelScope.launch {
             try {
-                val shouldResyncRuntime = activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
+                val shouldResyncRuntime =
+                    activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
                 val deleted = configRepo.delete(id)
                 if (deleted) {
-                    if (shouldResyncRuntime && !activeProfileOverrideReloader.reapplyActiveProfileOverride()) {
-                        Timber.tag(TAG).w("Override deleted but failed to reapply active profile: $id")
+                    if (
+                        shouldResyncRuntime &&
+                            !activeProfileOverrideReloader.reapplyActiveProfileOverride()
+                    ) {
+                        Timber.tag(TAG)
+                            .w("Override deleted but failed to reapply active profile: $id")
                     }
                     loadConfigs()
                     Timber.tag(TAG).i("Deleted config: $id")
@@ -518,11 +512,12 @@ class OverrideConfigViewModel(
                 return@launch
             }
 
-            val reorderedConfigs = currentConfigs.toMutableList().also { configs ->
-                val movingConfig = configs.removeAt(fromIndex)
-                val targetIndex = toIndex.coerceIn(0, configs.size)
-                configs.add(targetIndex, movingConfig)
-            }
+            val reorderedConfigs =
+                currentConfigs.toMutableList().also { configs ->
+                    val movingConfig = configs.removeAt(fromIndex)
+                    val targetIndex = toIndex.coerceIn(0, configs.size)
+                    configs.add(targetIndex, movingConfig)
+                }
 
             _userConfigs.value = reorderedConfigs
             _configs.value = _systemPresets.value + reorderedConfigs
@@ -560,22 +555,23 @@ class OverrideConfigViewModel(
             if (configId == "new") {
                 _selectedConfig.value = null
                 val emptyConfig = ConfigurationOverride()
-                _editSession.value = OverrideEditSession(
-                    routeConfigId = configId,
-                    targetConfigId = OverrideMetadata.generateId(),
-                    persistedId = null,
-                    createdAt = System.currentTimeMillis(),
-                    name = "",
-                    description = "",
-                    config = emptyConfig,
-                    draftSnapshot = encodeOverrideConfigForDiff(emptyConfig),
-                    persistedName = "",
-                    persistedDescription = "",
-                    persistedSnapshot = encodeOverrideConfigForDiff(ConfigurationOverride()),
-                    remoteSourceUrl = null,
-                    remoteUpdateIntervalSeconds = null,
-                    remoteLastUpdatedAt = null,
-                )
+                _editSession.value =
+                    OverrideEditSession(
+                        routeConfigId = configId,
+                        targetConfigId = OverrideMetadata.generateId(),
+                        persistedId = null,
+                        createdAt = System.currentTimeMillis(),
+                        name = "",
+                        description = "",
+                        config = emptyConfig,
+                        draftSnapshot = encodeOverrideConfigForDiff(emptyConfig),
+                        persistedName = "",
+                        persistedDescription = "",
+                        persistedSnapshot = encodeOverrideConfigForDiff(ConfigurationOverride()),
+                        remoteSourceUrl = null,
+                        remoteUpdateIntervalSeconds = null,
+                        remoteLastUpdatedAt = null,
+                    )
                 return@launch
             }
 
@@ -598,10 +594,7 @@ class OverrideConfigViewModel(
             val persistedId = session.persistedId ?: return@launch
             val now = System.currentTimeMillis()
             configRepo.updateMetadata(persistedId) { metadata ->
-                metadata.copy(
-                    remoteSourceUrl = normalizedUrl,
-                    updatedAt = now,
-                )
+                metadata.copy(remoteSourceUrl = normalizedUrl, updatedAt = now)
             }
             loadConfigs()
         }
@@ -612,30 +605,23 @@ class OverrideConfigViewModel(
         if (!session.isRemoteResource || session.persistedId.isNullOrBlank()) {
             return
         }
-        val parsedInterval = value
-            ?.trim()
-            ?.toLongOrNull()
-            ?.coerceAtLeast(60L)
-            ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS
+        val parsedInterval =
+            value?.trim()?.toLongOrNull()?.coerceAtLeast(60L)
+                ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS
         _editSession.value = session.copy(remoteUpdateIntervalSeconds = parsedInterval)
 
         viewModelScope.launch {
             val persistedId = session.persistedId ?: return@launch
             val now = System.currentTimeMillis()
             configRepo.updateMetadata(persistedId) { metadata ->
-                metadata.copy(
-                    remoteUpdateIntervalSeconds = parsedInterval,
-                    updatedAt = now,
-                )
+                metadata.copy(remoteUpdateIntervalSeconds = parsedInterval, updatedAt = now)
             }
             loadConfigs()
         }
     }
 
     fun updateDraftName(value: String) {
-        updateEditSession(TEXT_AUTOSAVE_DELAY_MILLIS) { session ->
-            session.copy(name = value)
-        }
+        updateEditSession(TEXT_AUTOSAVE_DELAY_MILLIS) { session -> session.copy(name = value) }
     }
 
     fun updateDraftDescription(value: String) {
@@ -644,12 +630,9 @@ class OverrideConfigViewModel(
         }
     }
 
-    fun updateDraftConfig(
-        updatedConfig: ConfigurationOverride,
-        saveImmediately: Boolean = true,
-    ) {
+    fun updateDraftConfig(updatedConfig: ConfigurationOverride, saveImmediately: Boolean = true) {
         updateEditSession(
-            saveDelayMillis = if (saveImmediately) 0L else TEXT_AUTOSAVE_DELAY_MILLIS,
+            saveDelayMillis = if (saveImmediately) 0L else TEXT_AUTOSAVE_DELAY_MILLIS
         ) { session ->
             session.copy(
                 config = updatedConfig,
@@ -669,14 +652,9 @@ class OverrideConfigViewModel(
         )
     }
 
-    fun applyPresetTemplate(
-        selection: OverridePresetTemplateSelection,
-    ) {
+    fun applyPresetTemplate(selection: OverridePresetTemplateSelection) {
         mutateDraftConfig(saveImmediately = true) { currentConfig ->
-            applyPresetTemplateToConfig(
-                base = currentConfig,
-                selection = selection,
-            )
+            applyPresetTemplateToConfig(base = currentConfig, selection = selection)
         }
     }
 
@@ -702,16 +680,14 @@ class OverrideConfigViewModel(
         clearSelectedConfig()
     }
 
-    fun importConfigsFromJson(
-        jsonString: String,
-        sourceName: String? = null,
-    ): Result<Int> {
+    fun importConfigsFromJson(jsonString: String, sourceName: String? = null): Result<Int> {
         return try {
-            val importedConfigs = parseImportedOverrideConfigs(
-                json = json,
-                jsonString = jsonString,
-                sourceName = sourceName,
-            )
+            val importedConfigs =
+                parseImportedOverrideConfigs(
+                    json = json,
+                    jsonString = jsonString,
+                    sourceName = sourceName,
+                )
             viewModelScope.launch {
                 for (importedConfig in importedConfigs) {
                     configRepo.save(importedConfig)
@@ -725,24 +701,22 @@ class OverrideConfigViewModel(
         }
     }
 
-    fun importRulesFromSurgePlugin(
-        pluginText: String,
-        sourceName: String? = null,
-    ): Result<Int> {
+    fun importRulesFromSurgePlugin(pluginText: String, sourceName: String? = null): Result<Int> {
         return try {
             val rules = PluginRuleParser.parseRules(pluginText)
             require(rules.isNotEmpty()) { MLang.Override.Import.PluginNoRules }
             val name = buildImportedConfigName(sourceName, 0, false)
             val now = System.currentTimeMillis()
-            val config = OverrideConfig(
-                id = OverrideMetadata.generateId(),
-                name = name,
-                description = MLang.Override.Import.PluginImportDescription,
-                config = ConfigurationOverride(rulesStart = rules),
-                isSystem = false,
-                createdAt = now,
-                updatedAt = now,
-            )
+            val config =
+                OverrideConfig(
+                    id = OverrideMetadata.generateId(),
+                    name = name,
+                    description = MLang.Override.Import.PluginImportDescription,
+                    config = ConfigurationOverride(rulesStart = rules),
+                    isSystem = false,
+                    createdAt = now,
+                    updatedAt = now,
+                )
             viewModelScope.launch {
                 configRepo.save(config)
                 loadConfigs()
@@ -763,13 +737,15 @@ class OverrideConfigViewModel(
             return Result.failure(IllegalArgumentException(MLang.Override.Save.ImportEmpty))
         }
 
-        val jsonResult = runCatching {
-            parseImportedOverrideConfigs(
-                json = json,
-                jsonString = text,
-                sourceName = sourceName,
-            )
-        }.getOrNull()
+        val jsonResult =
+            runCatching {
+                    parseImportedOverrideConfigs(
+                        json = json,
+                        jsonString = text,
+                        sourceName = sourceName,
+                    )
+                }
+                .getOrNull()
 
         if (!jsonResult.isNullOrEmpty()) {
             viewModelScope.launch {
@@ -786,15 +762,16 @@ class OverrideConfigViewModel(
             require(rules.isNotEmpty()) { MLang.Override.Import.AutoDetectFailed }
             val name = buildImportedConfigName(sourceName, 0, false)
             val now = System.currentTimeMillis()
-            val config = OverrideConfig(
-                id = OverrideMetadata.generateId(),
-                name = name,
-                description = MLang.Override.Import.PluginImportDescription,
-                config = ConfigurationOverride(rulesStart = rules),
-                isSystem = false,
-                createdAt = now,
-                updatedAt = now,
-            )
+            val config =
+                OverrideConfig(
+                    id = OverrideMetadata.generateId(),
+                    name = name,
+                    description = MLang.Override.Import.PluginImportDescription,
+                    config = ConfigurationOverride(rulesStart = rules),
+                    isSystem = false,
+                    createdAt = now,
+                    updatedAt = now,
+                )
             viewModelScope.launch {
                 configRepo.save(config)
                 loadConfigs()
@@ -872,45 +849,53 @@ class OverrideConfigViewModel(
             val sourceName = extractUrlFileName(url)
             val now = System.currentTimeMillis()
 
-            val jsonResult = runCatching {
-                parseImportedOverrideConfigs(
-                    json = json,
-                    jsonString = text,
-                    sourceName = sourceName,
-                )
-            }.getOrNull()
+            val jsonResult =
+                runCatching {
+                        parseImportedOverrideConfigs(
+                            json = json,
+                            jsonString = text,
+                            sourceName = sourceName,
+                        )
+                    }
+                    .getOrNull()
 
-            val (kind, config, count) = if (!jsonResult.isNullOrEmpty()) {
-                val imported = jsonResult.first()
-                Triple(
-                    OverrideImportKind.Config,
-                    imported.copy(
-                        id = OverrideMetadata.generateId(),
-                        name = imported.name.ifBlank { buildImportedConfigName(sourceName, 0, false) },
-                        description = imported.description ?: MLang.Override.Import.PluginImportDescription,
-                        isSystem = false,
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                    1,
-                )
-            } else {
-                val rules = PluginRuleParser.parseRules(text)
-                require(rules.isNotEmpty()) { MLang.Override.Import.AutoDetectFailed }
-                Triple(
-                    OverrideImportKind.PluginRules,
-                    OverrideConfig(
-                        id = OverrideMetadata.generateId(),
-                        name = buildImportedConfigName(sourceName, 0, false),
-                        description = MLang.Override.Import.PluginImportDescription,
-                        config = ConfigurationOverride(rulesStart = rules),
-                        isSystem = false,
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                    rules.size,
-                )
-            }
+            val (kind, config, count) =
+                if (!jsonResult.isNullOrEmpty()) {
+                    val imported = jsonResult.first()
+                    Triple(
+                        OverrideImportKind.Config,
+                        imported.copy(
+                            id = OverrideMetadata.generateId(),
+                            name =
+                                imported.name.ifBlank {
+                                    buildImportedConfigName(sourceName, 0, false)
+                                },
+                            description =
+                                imported.description
+                                    ?: MLang.Override.Import.PluginImportDescription,
+                            isSystem = false,
+                            createdAt = now,
+                            updatedAt = now,
+                        ),
+                        1,
+                    )
+                } else {
+                    val rules = PluginRuleParser.parseRules(text)
+                    require(rules.isNotEmpty()) { MLang.Override.Import.AutoDetectFailed }
+                    Triple(
+                        OverrideImportKind.PluginRules,
+                        OverrideConfig(
+                            id = OverrideMetadata.generateId(),
+                            name = buildImportedConfigName(sourceName, 0, false),
+                            description = MLang.Override.Import.PluginImportDescription,
+                            config = ConfigurationOverride(rulesStart = rules),
+                            isSystem = false,
+                            createdAt = now,
+                            updatedAt = now,
+                        ),
+                        rules.size,
+                    )
+                }
 
             configRepo.save(config)
             configRepo.updateMetadata(config.id) { metadata ->
@@ -933,7 +918,8 @@ class OverrideConfigViewModel(
         return try {
             configRepo.refreshRemoteResource(
                 id = configId,
-                allowInsecureHttpNonLocalhost = appSettingsRepository.allowNonLocalhostHttpRemote.value,
+                allowInsecureHttpNonLocalhost =
+                    appSettingsRepository.allowNonLocalhostHttpRemote.value,
             )
             loadConfigs()
             Result.success(Unit)
@@ -943,30 +929,36 @@ class OverrideConfigViewModel(
         }
     }
 
-    private suspend fun fetchUrlText(urlString: String): String = withContext(Dispatchers.IO) {
-        try {
-            RemoteContentFetcher.fetchText(
-                urlString = urlString,
-                maxBytes = MAX_REMOTE_CONTENT_BYTES,
-                allowInsecureHttpNonLocalhost = appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                userAgent = "MonadBox",
-            )
-        } catch (e: RemoteFetchException) {
-            throw IllegalArgumentException(
-                when (e.reason) {
-                    RemoteFetchFailureReason.InvalidScheme -> MLang.Override.Import.UrlInvalidScheme
-                    RemoteFetchFailureReason.HttpsRequired -> MLang.Override.Import.UrlHttpsRequired
-                    RemoteFetchFailureReason.HttpError ->
-                        MLang.Override.Import.UrlHttpError.format(e.httpCode ?: -1)
-                    RemoteFetchFailureReason.ContentTooLarge ->
-                        MLang.Override.Import.UrlContentTooLarge.format(e.maxMegabytes ?: 0)
-                    RemoteFetchFailureReason.RedirectMissingLocation -> MLang.Override.Import.UrlRedirectInvalid
-                    RemoteFetchFailureReason.TooManyRedirects -> MLang.Override.Import.UrlTooManyRedirects
-                },
-                e,
-            )
+    private suspend fun fetchUrlText(urlString: String): String =
+        withContext(Dispatchers.IO) {
+            try {
+                RemoteContentFetcher.fetchText(
+                    urlString = urlString,
+                    maxBytes = MAX_REMOTE_CONTENT_BYTES,
+                    allowInsecureHttpNonLocalhost =
+                        appSettingsRepository.allowNonLocalhostHttpRemote.value,
+                    userAgent = "MonadBox",
+                )
+            } catch (e: RemoteFetchException) {
+                throw IllegalArgumentException(
+                    when (e.reason) {
+                        RemoteFetchFailureReason.InvalidScheme ->
+                            MLang.Override.Import.UrlInvalidScheme
+                        RemoteFetchFailureReason.HttpsRequired ->
+                            MLang.Override.Import.UrlHttpsRequired
+                        RemoteFetchFailureReason.HttpError ->
+                            MLang.Override.Import.UrlHttpError.format(e.httpCode ?: -1)
+                        RemoteFetchFailureReason.ContentTooLarge ->
+                            MLang.Override.Import.UrlContentTooLarge.format(e.maxMegabytes ?: 0)
+                        RemoteFetchFailureReason.RedirectMissingLocation ->
+                            MLang.Override.Import.UrlRedirectInvalid
+                        RemoteFetchFailureReason.TooManyRedirects ->
+                            MLang.Override.Import.UrlTooManyRedirects
+                    },
+                    e,
+                )
+            }
         }
-    }
 
     private fun extractUrlFileName(urlString: String): String? {
         return RemoteContentFetcher.extractDecodedFileName(urlString)
@@ -999,10 +991,11 @@ internal fun parseImportedOverrideConfigs(
     require(normalizedJsonString.isNotEmpty()) { MLang.Override.Save.ImportEmpty }
 
     val rootElement = json.parseToJsonElement(normalizedJsonString)
-    val importedElements = when (rootElement) {
-        is JsonArray -> rootElement
-        else -> JsonArray(listOf(rootElement))
-    }
+    val importedElements =
+        when (rootElement) {
+            is JsonArray -> rootElement
+            else -> JsonArray(listOf(rootElement))
+        }
     val hasMultipleEntries = importedElements.size > 1
 
     return importedElements.mapIndexed { index, element ->
@@ -1029,15 +1022,18 @@ private fun parseImportedOverrideConfigEntry(
         return json.decodeFromJsonElement(OverrideConfig.serializer(), element)
     }
 
-    val importEnvelope = runCatching {
-        json.decodeFromJsonElement(OverrideConfigImportEnvelope.serializer(), element)
-    }.getOrNull()
+    val importEnvelope =
+        runCatching {
+                json.decodeFromJsonElement(OverrideConfigImportEnvelope.serializer(), element)
+            }
+            .getOrNull()
 
     if (importEnvelope?.config != null) {
         return OverrideConfig(
             id = importEnvelope.id?.takeIf(String::isNotBlank) ?: OverrideMetadata.generateId(),
-            name = importEnvelope.name?.takeIf(String::isNotBlank)
-                ?: buildImportedConfigName(sourceName, index, hasMultipleEntries),
+            name =
+                importEnvelope.name?.takeIf(String::isNotBlank)
+                    ?: buildImportedConfigName(sourceName, index, hasMultipleEntries),
             description = importEnvelope.description?.takeIf(String::isNotBlank),
             config = importEnvelope.config,
             isSystem = false,
@@ -1046,7 +1042,8 @@ private fun parseImportedOverrideConfigEntry(
         )
     }
 
-    val configurationOverride = json.decodeFromJsonElement(ConfigurationOverride.serializer(), element)
+    val configurationOverride =
+        json.decodeFromJsonElement(ConfigurationOverride.serializer(), element)
     return OverrideConfig(
         id = OverrideMetadata.generateId(),
         name = buildImportedConfigName(sourceName, index, hasMultipleEntries),
@@ -1063,7 +1060,8 @@ internal fun buildImportedConfigName(
     index: Int,
     hasMultipleEntries: Boolean,
 ): String {
-    val baseName = normalizeImportedConfigSourceName(sourceName) ?: MLang.Override.Save.ImportDefaultName
+    val baseName =
+        normalizeImportedConfigSourceName(sourceName) ?: MLang.Override.Save.ImportDefaultName
     return if (hasMultipleEntries) {
         "$baseName ${index + 1}"
     } else {
@@ -1072,18 +1070,20 @@ internal fun buildImportedConfigName(
 }
 
 internal fun normalizeImportedConfigSourceName(sourceName: String?): String? {
-    var normalizedName = sourceName
-        ?.substringAfterLast('/')
-        ?.substringAfterLast('\\')
-        ?.trim()
-        ?.takeIf(String::isNotBlank)
-        ?: return null
+    var normalizedName =
+        sourceName
+            ?.substringAfterLast('/')
+            ?.substringAfterLast('\\')
+            ?.trim()
+            ?.takeIf(String::isNotBlank) ?: return null
 
     val removableSuffixes = listOf(".json", ".yaml", ".yml", ".sgmodule", ".lpx")
     while (true) {
-        val matchedSuffix = removableSuffixes.firstOrNull { suffix ->
-            normalizedName.length > suffix.length && normalizedName.endsWith(suffix, ignoreCase = true)
-        } ?: break
+        val matchedSuffix =
+            removableSuffixes.firstOrNull { suffix ->
+                normalizedName.length > suffix.length &&
+                    normalizedName.endsWith(suffix, ignoreCase = true)
+            } ?: break
         normalizedName = normalizedName.dropLast(matchedSuffix.length).trimEnd()
     }
 

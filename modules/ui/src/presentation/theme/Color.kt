@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.theme
 
 import androidx.compose.ui.graphics.Color
@@ -46,90 +44,90 @@ private data class ThemeColors(
     val onBackgroundVariant: Color,
 )
 
-private data class ThemePalette(
-    val light: ThemeColors,
-    val dark: ThemeColors,
-)
+private data class ThemePalette(val light: ThemeColors, val dark: ThemeColors)
 
 const val DEFAULT_THEME_SEED_ARGB: Long = 0xFFFFFFFFL
 
-private fun ThemeColors.toLightScheme() = lightColorScheme(
-    primary = primary,
-    onPrimary = onPrimary,
-    primaryVariant = primaryVariant,
-    onPrimaryVariant = onPrimaryVariant,
+private fun ThemeColors.toLightScheme() =
+    lightColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryVariant = primaryVariant,
+        onPrimaryVariant = onPrimaryVariant,
+        disabledPrimary = disabledPrimary,
+        disabledOnPrimary = disabledOnPrimary,
+        disabledPrimaryButton = disabledPrimaryButton,
+        disabledOnPrimaryButton = disabledOnPrimaryButton,
+        disabledPrimarySlider = disabledPrimarySlider,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        tertiaryContainerVariant = tertiaryContainerVariant,
+        onBackgroundVariant = onBackgroundVariant,
+    )
 
-    disabledPrimary = disabledPrimary,
-    disabledOnPrimary = disabledOnPrimary,
-    disabledPrimaryButton = disabledPrimaryButton,
-    disabledOnPrimaryButton = disabledOnPrimaryButton,
-    disabledPrimarySlider = disabledPrimarySlider,
-    primaryContainer = primaryContainer,
-    onPrimaryContainer = onPrimaryContainer,
-    tertiaryContainer = tertiaryContainer,
-    onTertiaryContainer = onTertiaryContainer,
-    tertiaryContainerVariant = tertiaryContainerVariant,
-    onBackgroundVariant = onBackgroundVariant,
-)
-
-private fun ThemeColors.toDarkScheme() = darkColorScheme(
-    primary = primary,
-    onPrimary = onPrimary,
-    primaryVariant = primaryVariant,
-    onPrimaryVariant = onPrimaryVariant,
-    disabledPrimary = disabledPrimary,
-    disabledOnPrimary = disabledOnPrimary,
-    disabledPrimaryButton = disabledPrimaryButton,
-    disabledOnPrimaryButton = disabledOnPrimaryButton,
-    disabledPrimarySlider = disabledPrimarySlider,
-    primaryContainer = primaryContainer,
-    onPrimaryContainer = onPrimaryContainer,
-    tertiaryContainer = tertiaryContainer,
-    onTertiaryContainer = onTertiaryContainer,
-    tertiaryContainerVariant = tertiaryContainerVariant,
-    onBackgroundVariant = onBackgroundVariant,
-)
+private fun ThemeColors.toDarkScheme() =
+    darkColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryVariant = primaryVariant,
+        onPrimaryVariant = onPrimaryVariant,
+        disabledPrimary = disabledPrimary,
+        disabledOnPrimary = disabledOnPrimary,
+        disabledPrimaryButton = disabledPrimaryButton,
+        disabledOnPrimaryButton = disabledOnPrimaryButton,
+        disabledPrimarySlider = disabledPrimarySlider,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        tertiaryContainerVariant = tertiaryContainerVariant,
+        onBackgroundVariant = onBackgroundVariant,
+    )
 
 private fun ThemePalette.toColorScheme(isDark: Boolean) =
     if (isDark) dark.toDarkScheme() else light.toLightScheme()
 
-
-private val basePalette = ThemePalette(
-    light = ThemeColors(
-        primary = Color(0xFF000000),
-        onPrimary = Color.White,
-        primaryVariant = Color(0xFF222222),
-        onPrimaryVariant = Color(0xFFAAAAAA),
-        disabledPrimary = Color(0xFFBDBDBD),
-        disabledOnPrimary = Color(0xFFE0E0E0),
-        disabledPrimaryButton = Color(0xFFBDBDBD),
-        disabledOnPrimaryButton = Color(0xFFEEEEEE),
-        disabledPrimarySlider = Color(0xFFDCDCDC),
-        primaryContainer = Color(0xFFF0F0F0),
-        onPrimaryContainer = Color(0xFF000000),
-        tertiaryContainer = Color(0xFFF8F8F8),
-        onTertiaryContainer = Color(0xFF000000),
-        tertiaryContainerVariant = Color(0xFFF8F8F8),
-        onBackgroundVariant = Color(0xFF000000),
-    ),
-    dark = ThemeColors(
-        primary = Color.White,
-        onPrimary = Color(0xFF000000),
-        primaryVariant = Color(0xFFE0E0E0),
-        onPrimaryVariant = Color(0xFF555555),
-        disabledPrimary = Color(0xFF333333),
-        disabledOnPrimary = Color(0xFF757575),
-        disabledPrimaryButton = Color(0xFF333333),
-        disabledOnPrimaryButton = Color(0xFF757575),
-        disabledPrimarySlider = Color(0xFF444444),
-        primaryContainer = Color(0xFF252525),
-        onPrimaryContainer = Color.White,
-        tertiaryContainer = Color(0xFF1C1C1C),
-        onTertiaryContainer = Color.White,
-        tertiaryContainerVariant = Color(0xFF303030),
-        onBackgroundVariant = Color(0xFFE0E0E0),
-    ),
-)
+private val basePalette =
+    ThemePalette(
+        light =
+            ThemeColors(
+                primary = Color(0xFF000000),
+                onPrimary = Color.White,
+                primaryVariant = Color(0xFF222222),
+                onPrimaryVariant = Color(0xFFAAAAAA),
+                disabledPrimary = Color(0xFFBDBDBD),
+                disabledOnPrimary = Color(0xFFE0E0E0),
+                disabledPrimaryButton = Color(0xFFBDBDBD),
+                disabledOnPrimaryButton = Color(0xFFEEEEEE),
+                disabledPrimarySlider = Color(0xFFDCDCDC),
+                primaryContainer = Color(0xFFF0F0F0),
+                onPrimaryContainer = Color(0xFF000000),
+                tertiaryContainer = Color(0xFFF8F8F8),
+                onTertiaryContainer = Color(0xFF000000),
+                tertiaryContainerVariant = Color(0xFFF8F8F8),
+                onBackgroundVariant = Color(0xFF000000),
+            ),
+        dark =
+            ThemeColors(
+                primary = Color.White,
+                onPrimary = Color(0xFF000000),
+                primaryVariant = Color(0xFFE0E0E0),
+                onPrimaryVariant = Color(0xFF555555),
+                disabledPrimary = Color(0xFF333333),
+                disabledOnPrimary = Color(0xFF757575),
+                disabledPrimaryButton = Color(0xFF333333),
+                disabledOnPrimaryButton = Color(0xFF757575),
+                disabledPrimarySlider = Color(0xFF444444),
+                primaryContainer = Color(0xFF252525),
+                onPrimaryContainer = Color.White,
+                tertiaryContainer = Color(0xFF1C1C1C),
+                onTertiaryContainer = Color.White,
+                tertiaryContainerVariant = Color(0xFF303030),
+                onBackgroundVariant = Color(0xFFE0E0E0),
+            ),
+    )
 
 fun colorSchemeFromSeed(seed: Color, isDark: Boolean) =
     derivePaletteFromSeed(seed).toColorScheme(isDark)
@@ -152,49 +150,57 @@ private fun deriveThemeColors(base: ThemeColors, seed: Color, dark: Boolean): Th
     val onPrimary = primary.autoOnColor()
     val onPrimaryVariant = primaryVariant.autoOnColor()
 
-    val disabledPrimary = if (dark) {
-        base.disabledPrimary.mix(seed, 0.18f)
-    } else {
-        base.disabledPrimary.mix(seed, 0.14f)
-    }
-    val disabledOnPrimary = if (dark) {
-        base.disabledOnPrimary.mix(seed, 0.08f)
-    } else {
-        base.disabledOnPrimary.mix(seed, 0.06f)
-    }
-    val disabledPrimaryButton = if (dark) {
-        base.disabledPrimaryButton.mix(seed, 0.16f)
-    } else {
-        base.disabledPrimaryButton.mix(seed, 0.12f)
-    }
-    val disabledOnPrimaryButton = if (dark) {
-        base.disabledOnPrimaryButton.mix(seed, 0.06f)
-    } else {
-        base.disabledOnPrimaryButton.mix(seed, 0.05f)
-    }
-    val disabledPrimarySlider = if (dark) {
-        base.disabledPrimarySlider.mix(seed, 0.14f)
-    } else {
-        base.disabledPrimarySlider.mix(seed, 0.10f)
-    }
+    val disabledPrimary =
+        if (dark) {
+            base.disabledPrimary.mix(seed, 0.18f)
+        } else {
+            base.disabledPrimary.mix(seed, 0.14f)
+        }
+    val disabledOnPrimary =
+        if (dark) {
+            base.disabledOnPrimary.mix(seed, 0.08f)
+        } else {
+            base.disabledOnPrimary.mix(seed, 0.06f)
+        }
+    val disabledPrimaryButton =
+        if (dark) {
+            base.disabledPrimaryButton.mix(seed, 0.16f)
+        } else {
+            base.disabledPrimaryButton.mix(seed, 0.12f)
+        }
+    val disabledOnPrimaryButton =
+        if (dark) {
+            base.disabledOnPrimaryButton.mix(seed, 0.06f)
+        } else {
+            base.disabledOnPrimaryButton.mix(seed, 0.05f)
+        }
+    val disabledPrimarySlider =
+        if (dark) {
+            base.disabledPrimarySlider.mix(seed, 0.14f)
+        } else {
+            base.disabledPrimarySlider.mix(seed, 0.10f)
+        }
 
-    val primaryContainer = if (dark) {
-        base.primaryContainer.mix(seed, 0.18f)
-    } else {
-        base.primaryContainer.mix(seed, 0.14f)
-    }
+    val primaryContainer =
+        if (dark) {
+            base.primaryContainer.mix(seed, 0.18f)
+        } else {
+            base.primaryContainer.mix(seed, 0.14f)
+        }
 
-    val tertiaryContainer = if (dark) {
-        base.tertiaryContainer.mix(seed, 0.13f)
-    } else {
-        base.tertiaryContainer.mix(seed, 0.16f)
-    }
+    val tertiaryContainer =
+        if (dark) {
+            base.tertiaryContainer.mix(seed, 0.13f)
+        } else {
+            base.tertiaryContainer.mix(seed, 0.16f)
+        }
 
-    val tertiaryContainerVariant = if (dark) {
-        base.tertiaryContainerVariant.mix(seed, 0.15f)
-    } else {
-        base.tertiaryContainerVariant.mix(seed, 0.13f)
-    }
+    val tertiaryContainerVariant =
+        if (dark) {
+            base.tertiaryContainerVariant.mix(seed, 0.15f)
+        } else {
+            base.tertiaryContainerVariant.mix(seed, 0.13f)
+        }
 
     val onPrimaryContainer = primaryContainer.autoOnColor()
     val onTertiaryContainer = tertiaryContainer.autoOnColor()
@@ -214,7 +220,8 @@ private fun deriveThemeColors(base: ThemeColors, seed: Color, dark: Boolean): Th
         tertiaryContainer = tertiaryContainer,
         onTertiaryContainer = onTertiaryContainer,
         tertiaryContainerVariant = tertiaryContainerVariant,
-        onBackgroundVariant = if (dark) seed.mix(Color.White, 0.25f) else seed.mix(Color.Black, 0.18f),
+        onBackgroundVariant =
+            if (dark) seed.mix(Color.White, 0.25f) else seed.mix(Color.Black, 0.18f),
     )
 }
 

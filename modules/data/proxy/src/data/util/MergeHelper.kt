@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.util
 
 import kotlinx.serialization.json.JsonElement
@@ -34,27 +32,22 @@ internal object MergeHelper {
         @Suppress("UNUSED_PARAMETER") start: List<T>?,
         @Suppress("UNUSED_PARAMETER") end: List<T>?,
     ): List<T>? {
-        val merged = when {
-            base == null -> replace
-            replace == null -> base
-            else -> base + replace
-        }
+        val merged =
+            when {
+                base == null -> replace
+                replace == null -> base
+                else -> base + replace
+            }
 
         return merged?.takeIf { it.isNotEmpty() }
     }
 
-    /**
-     * Simplified overload for the common case where start/end are always null.
-     */
+    /** Simplified overload for the common case where start/end are always null. */
     fun <T> mergeListSimple(base: List<T>?, replace: List<T>?): List<T>? {
         return mergeList(base, replace, start = null, end = null)
     }
 
-    fun <K, V> mergeMap(
-        base: Map<K, V>?,
-        replace: Map<K, V>?,
-        merge: Map<K, V>?,
-    ): Map<K, V>? {
+    fun <K, V> mergeMap(base: Map<K, V>?, replace: Map<K, V>?, merge: Map<K, V>?): Map<K, V>? {
         val mergedMap = buildMap {
             base?.let(::putAll)
             replace?.let(::putAll)
@@ -78,9 +71,7 @@ internal object MergeHelper {
         return deduplicateByName(allProxies).takeIf { it.isNotEmpty() }
     }
 
-    /**
-     * Simplified overload for the common case where start/end are always null.
-     */
+    /** Simplified overload for the common case where start/end are always null. */
     fun mergeProxyListSimple(
         base: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
@@ -116,9 +107,7 @@ internal object MergeHelper {
         return deduplicateByName(allGroups).takeIf { it.isNotEmpty() }
     }
 
-    /**
-     * Simplified overload for the common case where start/end are always null.
-     */
+    /** Simplified overload for the common case where start/end are always null. */
     fun mergeProxyGroupListSimple(
         base: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
@@ -127,7 +116,7 @@ internal object MergeHelper {
     }
 
     private fun deduplicateByName(
-        proxies: List<Map<String, JsonElement>>,
+        proxies: List<Map<String, JsonElement>>
     ): List<Map<String, JsonElement>> {
         if (proxies.isEmpty()) {
             return emptyList()

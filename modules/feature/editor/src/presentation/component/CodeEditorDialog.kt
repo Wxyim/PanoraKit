@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.feature.editor.component
 
 import androidx.compose.foundation.layout.*
@@ -49,28 +47,16 @@ fun CodeEditorDialog(
     onDismiss: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val editorState = remember(value, language) {
-        CodeEditorState(
-            initialContent = value ?: "",
-            language = language,
-            readOnly = false
-        )
-    }
+    val editorState =
+        remember(value, language) {
+            CodeEditorState(initialContent = value ?: "", language = language, readOnly = false)
+        }
 
-    LaunchedEffect(Unit) {
-        TextMateInitializer.initialize(context)
-    }
+    LaunchedEffect(Unit) { TextMateInitializer.initialize(context) }
 
     if (show) {
-        AppDialog(
-            show = show,
-            title = title,
-            onDismissRequest = onDismiss,
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-
+        AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 subtitle?.let { text ->
                     Text(
                         text = text,
@@ -82,10 +68,8 @@ fun CodeEditorDialog(
 
                 CodeEditor(
                     state = editorState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 280.dp, max = 400.dp),
-                    onTextChange = { }
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 280.dp, max = 400.dp),
+                    onTextChange = {},
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.ContentProvider
@@ -27,10 +25,10 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.util.Global
 import com.github.yumelira.yumebox.service.common.util.initializeServiceGlobal
-import com.github.yumelira.yumebox.core.StoreIds
 import com.tencent.mmkv.MMKV
 import java.util.concurrent.atomic.AtomicReference
 
@@ -38,12 +36,8 @@ class StatusProvider : ContentProvider() {
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         return when (method) {
             METHOD_CURRENT_PROFILE -> {
-                return if (serviceRunning)
-                    Bundle().apply {
-                        putString("name", currentProfile)
-                    }
-                else
-                    null
+                return if (serviceRunning) Bundle().apply { putString("name", currentProfile) }
+                else null
             }
             else -> super.call(method, arg, extras)
         }
@@ -58,7 +52,7 @@ class StatusProvider : ContentProvider() {
         projection: Array<out String>?,
         selection: String?,
         selectionArgs: Array<out String>?,
-        sortOrder: String?
+        sortOrder: String?,
     ): Cursor? {
         throw IllegalArgumentException("Stub!")
     }
@@ -67,7 +61,7 @@ class StatusProvider : ContentProvider() {
         uri: Uri,
         values: ContentValues?,
         selection: String?,
-        selectionArgs: Array<out String>?
+        selectionArgs: Array<out String>?,
     ): Int {
         throw IllegalArgumentException("Stub!")
     }
@@ -94,11 +88,8 @@ class StatusProvider : ContentProvider() {
     companion object {
         const val METHOD_CURRENT_PROFILE = "currentProfile"
 
-        private val legacyRuntimeFiles = listOf(
-            "service_running.lock",
-            "service_autostart.lock",
-            "service_running_mode.txt",
-        )
+        private val legacyRuntimeFiles =
+            listOf("service_running.lock", "service_autostart.lock", "service_running_mode.txt")
         private const val SERVICE_CACHE_ID = StoreIds.SERVICE_CACHE
         private const val KEY_TUN_STARTING = "local_tun_starting"
 
@@ -110,8 +101,7 @@ class StatusProvider : ContentProvider() {
         val runningMode: ProxyMode?
             get() = _runtimeMode.get()
 
-        @Volatile
-        var currentProfile: String? = null
+        @Volatile var currentProfile: String? = null
 
         fun markRuntimeStarted(mode: ProxyMode) {
             if (mode == ProxyMode.Tun) {
@@ -145,9 +135,7 @@ class StatusProvider : ContentProvider() {
 
         fun clearLegacyStateFiles() {
             val filesDir = Global.application.filesDir
-            legacyRuntimeFiles.forEach { name ->
-                runCatching { filesDir.resolve(name).delete() }
-            }
+            legacyRuntimeFiles.forEach { name -> runCatching { filesDir.resolve(name).delete() } }
         }
 
         private fun serviceCache(): MMKV {

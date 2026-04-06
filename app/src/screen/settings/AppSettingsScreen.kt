@@ -18,10 +18,9 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.settings
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,12 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.AppIconHelper
+import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
@@ -49,6 +47,11 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.text.toString
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -62,17 +65,10 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.text.toString
 
 @Composable
 @Destination<RootGraph>
-fun AppSettingsScreen(
-    navigator: DestinationsNavigator,
-) {
+fun AppSettingsScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
@@ -91,7 +87,8 @@ fun AppSettingsScreen(
     val showTrafficNotification = viewModel.showTrafficNotification.state.collectAsState().value
     val bottomBarAutoHide = viewModel.bottomBarAutoHide.state.collectAsState().value
     val topBarBlurEnabled = viewModel.topBarBlurEnabled.state.collectAsState().value
-    val bottomBarLiquidGlassEnabled = viewModel.bottomBarLiquidGlassEnabled.state.collectAsState().value
+    val bottomBarLiquidGlassEnabled =
+        viewModel.bottomBarLiquidGlassEnabled.state.collectAsState().value
     val pageScaleState = viewModel.pageScale.state.collectAsState().value
     var pageScaleLocal by remember(pageScaleState) { mutableFloatStateOf(pageScaleState) }
 
@@ -109,20 +106,17 @@ fun AppSettingsScreen(
     val showCleanupIntervalDialog = remember { mutableStateOf(false) }
 
     val customUserAgentTextFieldState = remember { mutableStateOf(TextFieldValue(customUserAgent)) }
-    var cleanupThresholdText by remember(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
-    var cleanupIntervalText by remember(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
+    var cleanupThresholdText by
+        remember(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
+    var cleanupIntervalText by
+        remember(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
     val dateTimeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
     Scaffold(
-        topBar = {
-            TopBar(title = MLang.AppSettings.Title, scrollBehavior = scrollBehavior)
-        },
+        topBar = { TopBar(title = MLang.AppSettings.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            ScreenLazyColumn(
-                scrollBehavior = scrollBehavior,
-                innerPadding = innerPadding,
-            ) {
+            ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
                 item {
                     SmallTitle(MLang.AppSettings.Section.Behavior)
                     Card {
@@ -136,7 +130,9 @@ fun AppSettingsScreen(
                             title = MLang.AppSettings.Behavior.AutoUpdateOnStartTitle,
                             summary = MLang.AppSettings.Behavior.AutoUpdateOnStartSummary,
                             checked = autoUpdateCurrentProfileOnStart,
-                            onCheckedChange = { viewModel.onAutoUpdateCurrentProfileOnStartChange(it) },
+                            onCheckedChange = {
+                                viewModel.onAutoUpdateCurrentProfileOnStartChange(it)
+                            },
                         )
                     }
                     SmallTitle(MLang.AppSettings.Section.Interface)
@@ -145,11 +141,12 @@ fun AppSettingsScreen(
                             title = MLang.AppSettings.Interface.LanguageTitle,
                             summary = MLang.AppSettings.Interface.LanguageSummary,
                             currentValue = appLanguage,
-                            items = listOf(
-                                MLang.AppSettings.Interface.LanguageSystem,
-                                MLang.AppSettings.Interface.LanguageChinese,
-                                MLang.AppSettings.Interface.LanguageEnglish,
-                            ),
+                            items =
+                                listOf(
+                                    MLang.AppSettings.Interface.LanguageSystem,
+                                    MLang.AppSettings.Interface.LanguageChinese,
+                                    MLang.AppSettings.Interface.LanguageEnglish,
+                                ),
                             values = AppLanguage.entries,
                             onValueChange = {
                                 viewModel.onAppLanguageChange(it)
@@ -161,11 +158,12 @@ fun AppSettingsScreen(
                             title = MLang.AppSettings.Interface.ThemeModeTitle,
                             summary = MLang.AppSettings.Interface.ThemeModeSummary,
                             currentValue = themeMode,
-                            items = listOf(
-                                MLang.AppSettings.Interface.ThemeModeSystem,
-                                MLang.AppSettings.Interface.ThemeModeLight,
-                                MLang.AppSettings.Interface.ThemeModeDark
-                            ),
+                            items =
+                                listOf(
+                                    MLang.AppSettings.Interface.ThemeModeSystem,
+                                    MLang.AppSettings.Interface.ThemeModeLight,
+                                    MLang.AppSettings.Interface.ThemeModeDark,
+                                ),
                             values = ThemeMode.entries,
                             onValueChange = { viewModel.onThemeModeChange(it) },
                         )
@@ -206,7 +204,9 @@ fun AppSettingsScreen(
                                 Slider(
                                     value = pageScaleLocal,
                                     onValueChange = { pageScaleLocal = it },
-                                    onValueChangeFinished = { viewModel.onPageScaleChange(pageScaleLocal) },
+                                    onValueChangeFinished = {
+                                        viewModel.onPageScaleChange(pageScaleLocal)
+                                    },
                                     valueRange = 0.8f..1.2f,
                                     magnetThreshold = 0.01f,
                                     hapticEffect = SliderDefaults.SliderHapticEffect.Step,
@@ -252,13 +252,15 @@ fun AppSettingsScreen(
                     Card {
                         BasicComponent(
                             title = MLang.AppSettings.Network.CustomUserAgentTitle,
-                            summary = customUserAgent.ifEmpty {
-                                MLang.AppSettings.Network.CustomUserAgentSummaryDefault
-                            },
+                            summary =
+                                customUserAgent.ifEmpty {
+                                    MLang.AppSettings.Network.CustomUserAgentSummaryDefault
+                                },
                             onClick = {
-                                customUserAgentTextFieldState.value = TextFieldValue(customUserAgent)
+                                customUserAgentTextFieldState.value =
+                                    TextFieldValue(customUserAgent)
                                 showEditCustomUserAgentDialog.value = true
-                            }
+                            },
                         )
                     }
                     SmallTitle(MLang.AppSettings.Section.Cleanup)
@@ -273,17 +275,21 @@ fun AppSettingsScreen(
                             title = MLang.AppSettings.Cleanup.PolicyTitle,
                             summary = MLang.AppSettings.Cleanup.PolicySummary,
                             currentValue = cleanupPolicy,
-                            items = listOf(
-                                MLang.AppSettings.Cleanup.PolicyAggressive,
-                                MLang.AppSettings.Cleanup.PolicyBalanced,
-                                MLang.AppSettings.Cleanup.PolicyConservative,
-                            ),
+                            items =
+                                listOf(
+                                    MLang.AppSettings.Cleanup.PolicyAggressive,
+                                    MLang.AppSettings.Cleanup.PolicyBalanced,
+                                    MLang.AppSettings.Cleanup.PolicyConservative,
+                                ),
                             values = CleanupPolicy.entries,
                             onValueChange = { viewModel.onCleanupPolicyChange(it) },
                         )
                         SuperArrow(
                             title = MLang.AppSettings.Cleanup.ThresholdTitle,
-                            summary = MLang.AppSettings.Cleanup.ThresholdSummary.format(cleanupThresholdMb),
+                            summary =
+                                MLang.AppSettings.Cleanup.ThresholdSummary.format(
+                                    cleanupThresholdMb
+                                ),
                             onClick = {
                                 cleanupThresholdText = cleanupThresholdMb.toString()
                                 showCleanupThresholdDialog.value = true
@@ -291,7 +297,10 @@ fun AppSettingsScreen(
                         )
                         SuperArrow(
                             title = MLang.AppSettings.Cleanup.IntervalTitle,
-                            summary = MLang.AppSettings.Cleanup.IntervalSummary.format(cleanupIntervalHours),
+                            summary =
+                                MLang.AppSettings.Cleanup.IntervalSummary.format(
+                                    cleanupIntervalHours
+                                ),
                             onClick = {
                                 cleanupIntervalText = cleanupIntervalHours.toString()
                                 showCleanupIntervalDialog.value = true
@@ -299,21 +308,27 @@ fun AppSettingsScreen(
                         )
                         BasicComponent(
                             title = MLang.AppSettings.Cleanup.CleanupNowTitle,
-                            summary = if (cleanupLastRunAt > 0L) {
-                                MLang.AppSettings.Cleanup.LastRunSummary.format(
-                                    dateTimeFormatter.format(Date(cleanupLastRunAt))
-                                )
-                            } else {
-                                MLang.AppSettings.Cleanup.LastRunNever
-                            },
+                            summary =
+                                if (cleanupLastRunAt > 0L) {
+                                    MLang.AppSettings.Cleanup.LastRunSummary.format(
+                                        dateTimeFormatter.format(Date(cleanupLastRunAt))
+                                    )
+                                } else {
+                                    MLang.AppSettings.Cleanup.LastRunNever
+                                },
                             onClick = {
                                 scope.launch {
                                     val result = viewModel.runCleanupNow()
                                     if (result.executed) {
                                         val freedMb = result.freedBytes / (1024 * 1024)
-                                        val archive = result.archiveFileName ?: MLang.AppSettings.Cleanup.ArchiveSkipped
+                                        val archive =
+                                            result.archiveFileName
+                                                ?: MLang.AppSettings.Cleanup.ArchiveSkipped
                                         context.toast(
-                                            MLang.AppSettings.Cleanup.CleanupNowSuccess.format(freedMb, archive)
+                                            MLang.AppSettings.Cleanup.CleanupNowSuccess.format(
+                                                freedMb,
+                                                archive,
+                                            )
                                         )
                                     } else {
                                         context.toast(MLang.AppSettings.Cleanup.CleanupNowSkipped)
@@ -329,10 +344,11 @@ fun AppSettingsScreen(
             WarningBottomSheet(
                 show = showHideIconDialog,
                 title = MLang.AppSettings.WarningDialog.Title,
-                messages = listOf(
-                    MLang.AppSettings.WarningDialog.HideIconMsg1,
-                    MLang.AppSettings.WarningDialog.HideIconMsg2
-                ),
+                messages =
+                    listOf(
+                        MLang.AppSettings.WarningDialog.HideIconMsg1,
+                        MLang.AppSettings.WarningDialog.HideIconMsg2,
+                    ),
                 onConfirm = {
                     viewModel.onHideAppIconChange(true)
                     AppIconHelper.toggleIcon(context, true)
@@ -354,13 +370,12 @@ fun AppSettingsScreen(
                 onDismissRequest = { showPageScaleSheet.value = false },
                 renderInRootScaffold = true,
                 content = {
-                    var scaleText by remember(showPageScaleSheet.value) {
-                        mutableStateOf((pageScaleLocal * 100).toInt().toString())
-                    }
+                    var scaleText by
+                        remember(showPageScaleSheet.value) {
+                            mutableStateOf((pageScaleLocal * 100).toInt().toString())
+                        }
                     TextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         value = scaleText,
                         maxLines = 1,
                         trailingIcon = {
@@ -387,7 +402,8 @@ fun AppSettingsScreen(
                             text = MLang.AppSettings.Button.Apply,
                             onClick = {
                                 val parsed = scaleText.toFloatOrNull()
-                                val clamped = (parsed?.coerceIn(80f, 120f) ?: (pageScaleLocal * 100)) / 100f
+                                val clamped =
+                                    (parsed?.coerceIn(80f, 120f) ?: (pageScaleLocal * 100)) / 100f
                                 pageScaleLocal = clamped
                                 viewModel.onPageScaleChange(clamped)
                                 showPageScaleSheet.value = false
@@ -396,7 +412,8 @@ fun AppSettingsScreen(
                             colors = ButtonDefaults.textButtonColorsPrimary(),
                         )
                     }
-                })
+                },
+            )
 
             AppDialog(
                 show = showCleanupThresholdDialog.value,
@@ -407,9 +424,7 @@ fun AppSettingsScreen(
                 renderInRootScaffold = true,
                 content = {
                     TextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         value = cleanupThresholdText,
                         maxLines = 1,
                         trailingIcon = {
@@ -437,7 +452,8 @@ fun AppSettingsScreen(
                         TextButton(
                             text = MLang.AppSettings.Button.Apply,
                             onClick = {
-                                val parsed = cleanupThresholdText.toIntOrNull() ?: cleanupThresholdMb
+                                val parsed =
+                                    cleanupThresholdText.toIntOrNull() ?: cleanupThresholdMb
                                 viewModel.onCleanupThresholdMbChange(parsed)
                                 showCleanupThresholdDialog.value = false
                             },
@@ -457,9 +473,7 @@ fun AppSettingsScreen(
                 renderInRootScaffold = true,
                 content = {
                     TextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         value = cleanupIntervalText,
                         maxLines = 1,
                         trailingIcon = {
@@ -487,7 +501,8 @@ fun AppSettingsScreen(
                         TextButton(
                             text = MLang.AppSettings.Button.Apply,
                             onClick = {
-                                val parsed = cleanupIntervalText.toIntOrNull() ?: cleanupIntervalHours
+                                val parsed =
+                                    cleanupIntervalText.toIntOrNull() ?: cleanupIntervalHours
                                 viewModel.onCleanupIntervalHoursChange(parsed)
                                 showCleanupIntervalDialog.value = false
                             },

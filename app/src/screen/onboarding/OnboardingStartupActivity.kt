@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.os.Bundle
@@ -38,9 +36,7 @@ internal class OnboardingStartupActivity : OnboardingBaseActivity() {
         }
 
         setOnboardingContent {
-            StartupHeroShell(
-                enabled = true,
-            ) {
+            StartupHeroShell(enabled = true) {
                 navigateForwardTo(OnboardingPermissionsActivity::class.java)
             }
         }

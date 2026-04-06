@@ -18,16 +18,14 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -56,10 +54,7 @@ private const val POPUP_ANIMATION_DURATION_MS = 320
 private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 
 @Composable
-fun ProxySheetContent(
-    onDismiss: () -> Unit,
-    proxyViewModel: ProxyViewModel = koinViewModel(),
-) {
+fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
     val scope = rememberCoroutineScope()
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
     val displayMode by proxyViewModel.displayMode.collectAsState()
@@ -70,25 +65,26 @@ fun ProxySheetContent(
     val showSheet = rememberSaveable { mutableStateOf(true) }
     val showSortPopup = rememberSaveable { mutableStateOf(false) }
     var selectedGroupName by rememberSaveable { mutableStateOf<String?>(null) }
-    val blurRadius by animateIntAsState(
-        targetValue = if (showSheet.value) 30 else 0,
-        animationSpec = tween(durationMillis = POPUP_ANIMATION_DURATION_MS, easing = AnimationSpecs.Legacy),
-        label = "notification_proxy_popup_blur",
-    )
+    val blurRadius by
+        animateIntAsState(
+            targetValue = if (showSheet.value) 30 else 0,
+            animationSpec =
+                tween(durationMillis = POPUP_ANIMATION_DURATION_MS, easing = AnimationSpecs.Legacy),
+            label = "notification_proxy_popup_blur",
+        )
 
     val groupsByName = remember(proxyGroups) { proxyGroups.associateBy { it.name } }
-    val selectedGroup by remember(selectedGroupName, groupsByName) {
-        derivedStateOf {
-            val name = selectedGroupName ?: return@derivedStateOf null
-            groupsByName[name]
+    val selectedGroup by
+        remember(selectedGroupName, groupsByName) {
+            derivedStateOf {
+                val name = selectedGroupName ?: return@derivedStateOf null
+                groupsByName[name]
+            }
         }
-    }
 
     DisposableEffect(Unit) {
         proxyViewModel.ensureCoreLoaded(true)
-        onDispose {
-            proxyViewModel.ensureCoreLoaded(false)
-        }
+        onDispose { proxyViewModel.ensureCoreLoaded(false) }
     }
 
     LaunchedEffect(proxyGroups, selectedGroupName) {
@@ -97,16 +93,17 @@ fun ProxySheetContent(
         }
     }
 
-    val dismissSheet = remember(onDismiss) {
-        {
-            showSortPopup.value = false
-            showSheet.value = false
-            scope.launch {
-                delay(POPUP_ANIMATION_DURATION_MS.toLong())
-                onDismiss()
+    val dismissSheet =
+        remember(onDismiss) {
+            {
+                showSortPopup.value = false
+                showSheet.value = false
+                scope.launch {
+                    delay(POPUP_ANIMATION_DURATION_MS.toLong())
+                    onDismiss()
+                }
             }
         }
-    }
 
     WindowBlurEffect(useBlur = true, blurRadius = blurRadius)
 
@@ -117,20 +114,22 @@ fun ProxySheetContent(
         startAction = {
             if (selectedGroup != null) {
                 AppBottomSheetIconAction(
-                    action = AppBottomSheetAction(
-                        icon = MiuixIcons.Back,
-                        contentDescription = MLang.Proxy.Action.Back,
-                        onClick = { selectedGroupName = null },
-                    ),
+                    action =
+                        AppBottomSheetAction(
+                            icon = MiuixIcons.Back,
+                            contentDescription = MLang.Proxy.Action.Back,
+                            onClick = { selectedGroupName = null },
+                        )
                 )
             } else {
                 Box {
                     AppBottomSheetIconAction(
-                        action = AppBottomSheetAction(
-                            icon = Yume.`List-chevrons-up-down`,
-                            contentDescription = MLang.Proxy.Action.SortMode,
-                            onClick = { showSortPopup.value = true },
-                        ),
+                        action =
+                            AppBottomSheetAction(
+                                icon = Yume.`List-chevrons-up-down`,
+                                contentDescription = MLang.Proxy.Action.SortMode,
+                                onClick = { showSortPopup.value = true },
+                            )
                     )
                     NodeSortPopup(
                         show = showSortPopup,
@@ -144,59 +143,84 @@ fun ProxySheetContent(
         },
         endAction = {
             AppBottomSheetIconAction(
-                action = AppBottomSheetAction(
-                    icon = Yume.Speed,
-                    contentDescription = MLang.Proxy.Action.Test,
-                    onClick = {
-                        val group = selectedGroup
-                        if (group == null) {
-                            proxyViewModel.testDelay()
-                        } else {
-                            proxyViewModel.testDelay(group.name)
-                        }
-                    },
-                ),
+                action =
+                    AppBottomSheetAction(
+                        icon = Yume.Speed,
+                        contentDescription = MLang.Proxy.Action.Test,
+                        onClick = {
+                            val group = selectedGroup
+                            if (group == null) {
+                                proxyViewModel.testDelay()
+                            } else {
+                                proxyViewModel.testDelay(group.name)
+                            }
+                        },
+                    )
             )
         },
-        onDismissRequest = {
-            dismissSheet()
-        },
+        onDismissRequest = { dismissSheet() },
         insideMargin = DpSize(16.dp, 16.dp),
-        enableNestedScroll = false
+        enableNestedScroll = false,
     ) {
         AnimatedContent(
             targetState = selectedGroupName,
             transitionSpec = {
                 if (targetState != null) {
                     (slideInHorizontally(
-                        animationSpec = tween(
-                            durationMillis = AnimationSpecs.Proxy.SheetSlideInDuration,
-                            easing = AnimationSpecs.Legacy
-                        ),
+                        animationSpec =
+                            tween(
+                                durationMillis = AnimationSpecs.Proxy.SheetSlideInDuration,
+                                easing = AnimationSpecs.Legacy,
+                            ),
                         initialOffsetX = { it },
-                    ) + fadeIn(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration))) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec = tween(
+                    ) +
+                        fadeIn(
+                            animationSpec =
+                                tween(durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration)
+                        )) togetherWith
+                        (slideOutHorizontally(
+                            animationSpec =
+                                tween(
                                     durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
-                                    easing = AnimationSpecs.Legacy
+                                    easing = AnimationSpecs.Legacy,
                                 ),
-                                targetOffsetX = { -it / 3 },
-                            ) + fadeOut(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration)))
+                            targetOffsetX = { -it / 3 },
+                        ) +
+                            fadeOut(
+                                animationSpec =
+                                    tween(
+                                        durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration
+                                    )
+                            ))
                 } else {
                     (slideInHorizontally(
-                        animationSpec = tween(
-                            durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
-                            easing = AnimationSpecs.Legacy
-                        ),
+                        animationSpec =
+                            tween(
+                                durationMillis = AnimationSpecs.Proxy.SheetSlideOutDuration,
+                                easing = AnimationSpecs.Legacy,
+                            ),
                         initialOffsetX = { -it / 3 },
-                    ) + fadeIn(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration - 20))) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec = tween(
+                    ) +
+                        fadeIn(
+                            animationSpec =
+                                tween(
+                                    durationMillis = AnimationSpecs.Proxy.SheetFadeInDuration - 20
+                                )
+                        )) togetherWith
+                        (slideOutHorizontally(
+                            animationSpec =
+                                tween(
                                     durationMillis = AnimationSpecs.Proxy.SheetSlideInDuration - 20,
-                                    easing = AnimationSpecs.Legacy
+                                    easing = AnimationSpecs.Legacy,
                                 ),
-                                targetOffsetX = { it },
-                            ) + fadeOut(animationSpec = tween(durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration)))
+                            targetOffsetX = { it },
+                        ) +
+                            fadeOut(
+                                animationSpec =
+                                    tween(
+                                        durationMillis = AnimationSpecs.Proxy.SheetFadeOutDuration
+                                    )
+                            ))
                 }
             },
             label = "notification_node_sheet_content",
@@ -205,9 +229,7 @@ fun ProxySheetContent(
             if (group == null) {
                 NodeGroupSheetContent(
                     groups = proxyGroups,
-                    onGroupClick = { targetGroup ->
-                        selectedGroupName = targetGroup.name
-                    },
+                    onGroupClick = { targetGroup -> selectedGroupName = targetGroup.name },
                     testingGroupNames = testingGroupNames,
                     sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                 )
@@ -224,12 +246,8 @@ fun ProxySheetContent(
                             proxyViewModel.testDelay(group.name)
                         }
                     },
-                    onTestDelay = {
-                        proxyViewModel.testDelay(group.name)
-                    },
-                    onTestProxyDelay = { proxyName ->
-                        proxyViewModel.testProxyDelay(proxyName)
-                    },
+                    onTestDelay = { proxyViewModel.testDelay(group.name) },
+                    onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
                     sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                 )
             }

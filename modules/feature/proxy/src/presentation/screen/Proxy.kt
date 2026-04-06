@@ -18,18 +18,13 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.rememberTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -64,12 +59,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
@@ -87,29 +81,29 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.screen.node.NodeCard
 import com.github.yumelira.yumebox.presentation.screen.node.NodeCardDefaults
-import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
-import com.github.yumelira.yumebox.presentation.screen.node.nodeLatencyLabel
 import com.github.yumelira.yumebox.presentation.screen.node.NodeGroupStylePopup
 import com.github.yumelira.yumebox.presentation.screen.node.NodeSortPopup
+import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
 import com.github.yumelira.yumebox.presentation.screen.node.nodeGroupItems
+import com.github.yumelira.yumebox.presentation.screen.node.nodeLatencyLabel
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
+import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -151,7 +145,7 @@ private object FloatingPanelMetrics {
 fun ProxyPager(
     mainInnerPadding: PaddingValues,
     onNavigateToProviders: () -> Unit,
-    isActive: Boolean
+    isActive: Boolean,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
 
@@ -173,12 +167,14 @@ fun ProxyPager(
     var floatingGroupName by rememberSaveable { mutableStateOf<String?>(null) }
     var retainedFloatingGroup by remember { mutableStateOf<ProxyGroupInfo?>(null) }
 
-    val expandedGroup by remember(expandedGroupName, proxyGroups) {
-        derivedStateOf { proxyGroups.firstOrNull { it.name == expandedGroupName } }
-    }
-    val floatingGroup by remember(floatingGroupName, proxyGroups) {
-        derivedStateOf { proxyGroups.firstOrNull { it.name == floatingGroupName } }
-    }
+    val expandedGroup by
+        remember(expandedGroupName, proxyGroups) {
+            derivedStateOf { proxyGroups.firstOrNull { it.name == expandedGroupName } }
+        }
+    val floatingGroup by
+        remember(floatingGroupName, proxyGroups) {
+            derivedStateOf { proxyGroups.firstOrNull { it.name == floatingGroupName } }
+        }
 
     BackHandler(enabled = expandedGroupName != null || floatingGroupName != null) {
         expandedGroupName = null
@@ -205,115 +201,115 @@ fun ProxyPager(
         }
     }
 
-    LaunchedEffect(isActive) {
-        proxyViewModel.ensureCoreLoaded(isActive)
-    }
+    LaunchedEffect(isActive) { proxyViewModel.ensureCoreLoaded(isActive) }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            Scaffold(
-                topBar = {
-                    ProxyTopBar(
-                        title = MLang.Proxy.Title,
-                        scrollBehavior = groupScrollBehavior,
-                        showBack = false,
-                        onBack = {},
-                        onNavigateToProviders = onNavigateToProviders,
-                        onTestDelay = (floatingGroup ?: expandedGroup)?.let { { proxyViewModel.testDelay(it.name) } }
-                            ?: { proxyViewModel.testDelay() },
-                        showSortPopup = showSortPopup,
-                        showStylePopup = showStylePopup,
-                        showMorePopup = showMorePopup,
-                        sortMode = sortMode,
-                        groupStyle = groupStyle,
-                        showHiddenGroups = showHiddenGroups,
-                        onSortSelected = proxyViewModel::setSortMode,
-                        onGroupStyleSelected = proxyViewModel::setGroupStyle,
-                        onShowHiddenGroupsChange = proxyViewModel::setShowHiddenGroups,
-                    )
-                },
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .let { mod -> if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod }
-                ) {
-                    if (proxyGroups.isEmpty()) {
-                        CenteredText(
-                            firstLine = MLang.Proxy.Empty.NoNodes,
-                            secondLine = MLang.Proxy.Empty.Hint,
-                        )
-                    } else {
-                        ProxyContent(
-                            proxyGroups = proxyGroups,
-                            groupStyle = groupStyle,
-                            scrollBehavior = groupScrollBehavior,
-                            innerPadding = it,
-                            mainInnerPadding = mainInnerPadding,
-                            testingGroupNames = testingGroupNames,
-                            testingProxyNames = testingProxyNames,
-                            expandedGroupName = expandedGroupName.takeIf { groupStyle == ProxyGroupStyle.INLINE },
-                            onGroupBoundsChanged = { _, _ -> },
-                            onGroupClick = { group ->
-                                when (groupStyle) {
-                                    ProxyGroupStyle.INLINE -> {
-                                        floatingGroupName = null
-                                        expandedGroupName =
-                                            if (expandedGroupName == group.name) null else group.name
-                                    }
-
-                                    ProxyGroupStyle.FLOATING -> {
-                                        expandedGroupName = null
-                                        floatingGroupName =
-                                            if (floatingGroupName == group.name) null else group.name
-                                    }
-                                }
-                            },
-                            onSelectProxy = { groupName, proxyName ->
-                                proxyViewModel.selectProxy(groupName, proxyName)
-                                if (groupStyle == ProxyGroupStyle.FLOATING) {
-                                    floatingGroupName = null
-                                }
-                            },
-                            onTestDelay = { groupName -> proxyViewModel.testDelay(groupName) },
-                            onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
-                            singleNodeTestEnabled = singleNodeTest,
-                        )
-                    }
-                }
-            }
-
-            if (groupStyle == ProxyGroupStyle.FLOATING && retainedFloatingGroup != null) {
-                FloatingGroupOverlay(
-                    visible = floatingGroup != null,
-                    group = retainedFloatingGroup!!,
-                    isDelayTesting = testingGroupNames.contains(retainedFloatingGroup!!.name),
-                    testingProxyNames = testingProxyNames,
-                    singleNodeTestEnabled = singleNodeTest,
-                    onDismiss = { floatingGroupName = null },
-                    onExited = {
-                        if (floatingGroupName == null) {
-                            retainedFloatingGroup = null
-                        }
-                    },
-                    onTestDelay = {
-                        retainedFloatingGroup?.let { proxyViewModel.testDelay(it.name) }
-                    },
-                    onSelectProxy = { proxyName ->
-                        val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
-                        if (group.type == Proxy.Type.Selector) {
-                            proxyViewModel.selectProxy(group.name, proxyName)
-                            floatingGroupName = null
-                        } else {
-                            proxyViewModel.testDelay(group.name)
-                        }
-                    },
-                    onTestProxyDelay = proxyViewModel::testProxyDelay,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                ProxyTopBar(
+                    title = MLang.Proxy.Title,
+                    scrollBehavior = groupScrollBehavior,
+                    showBack = false,
+                    onBack = {},
+                    onNavigateToProviders = onNavigateToProviders,
+                    onTestDelay =
+                        (floatingGroup ?: expandedGroup)?.let {
+                            { proxyViewModel.testDelay(it.name) }
+                        } ?: { proxyViewModel.testDelay() },
+                    showSortPopup = showSortPopup,
+                    showStylePopup = showStylePopup,
+                    showMorePopup = showMorePopup,
+                    sortMode = sortMode,
+                    groupStyle = groupStyle,
+                    showHiddenGroups = showHiddenGroups,
+                    onSortSelected = proxyViewModel::setSortMode,
+                    onGroupStyleSelected = proxyViewModel::setGroupStyle,
+                    onShowHiddenGroupsChange = proxyViewModel::setShowHiddenGroups,
                 )
             }
+        ) {
+            Box(
+                modifier =
+                    Modifier.fillMaxSize().let { mod ->
+                        if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState)
+                        else mod
+                    }
+            ) {
+                if (proxyGroups.isEmpty()) {
+                    CenteredText(
+                        firstLine = MLang.Proxy.Empty.NoNodes,
+                        secondLine = MLang.Proxy.Empty.Hint,
+                    )
+                } else {
+                    ProxyContent(
+                        proxyGroups = proxyGroups,
+                        groupStyle = groupStyle,
+                        scrollBehavior = groupScrollBehavior,
+                        innerPadding = it,
+                        mainInnerPadding = mainInnerPadding,
+                        testingGroupNames = testingGroupNames,
+                        testingProxyNames = testingProxyNames,
+                        expandedGroupName =
+                            expandedGroupName.takeIf { groupStyle == ProxyGroupStyle.INLINE },
+                        onGroupBoundsChanged = { _, _ -> },
+                        onGroupClick = { group ->
+                            when (groupStyle) {
+                                ProxyGroupStyle.INLINE -> {
+                                    floatingGroupName = null
+                                    expandedGroupName =
+                                        if (expandedGroupName == group.name) null else group.name
+                                }
+
+                                ProxyGroupStyle.FLOATING -> {
+                                    expandedGroupName = null
+                                    floatingGroupName =
+                                        if (floatingGroupName == group.name) null else group.name
+                                }
+                            }
+                        },
+                        onSelectProxy = { groupName, proxyName ->
+                            proxyViewModel.selectProxy(groupName, proxyName)
+                            if (groupStyle == ProxyGroupStyle.FLOATING) {
+                                floatingGroupName = null
+                            }
+                        },
+                        onTestDelay = { groupName -> proxyViewModel.testDelay(groupName) },
+                        onTestProxyDelay = { proxyName ->
+                            proxyViewModel.testProxyDelay(proxyName)
+                        },
+                        singleNodeTestEnabled = singleNodeTest,
+                    )
+                }
+            }
         }
+
+        if (groupStyle == ProxyGroupStyle.FLOATING && retainedFloatingGroup != null) {
+            FloatingGroupOverlay(
+                visible = floatingGroup != null,
+                group = retainedFloatingGroup!!,
+                isDelayTesting = testingGroupNames.contains(retainedFloatingGroup!!.name),
+                testingProxyNames = testingProxyNames,
+                singleNodeTestEnabled = singleNodeTest,
+                onDismiss = { floatingGroupName = null },
+                onExited = {
+                    if (floatingGroupName == null) {
+                        retainedFloatingGroup = null
+                    }
+                },
+                onTestDelay = { retainedFloatingGroup?.let { proxyViewModel.testDelay(it.name) } },
+                onSelectProxy = { proxyName ->
+                    val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
+                    if (group.type == Proxy.Type.Selector) {
+                        proxyViewModel.selectProxy(group.name, proxyName)
+                        floatingGroupName = null
+                    } else {
+                        proxyViewModel.testDelay(group.name)
+                    }
+                },
+                onTestProxyDelay = proxyViewModel::testProxyDelay,
+            )
+        }
+    }
 }
 
 @Composable
@@ -334,80 +330,77 @@ private fun ProxyTopBar(
     onGroupStyleSelected: (ProxyGroupStyle) -> Unit,
     onShowHiddenGroupsChange: (Boolean) -> Unit,
 ) {
-    TopBar(title = title, scrollBehavior = scrollBehavior, navigationIcon = {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            if (showBack) {
-                IconButton(
-                    modifier = Modifier.padding(start = 24.dp),
-                    onClick = onBack,
-                ) {
-                    Icon(MiuixIcons.Back, contentDescription = MLang.Proxy.Action.Back)
+    TopBar(
+        title = title,
+        scrollBehavior = scrollBehavior,
+        navigationIcon = {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (showBack) {
+                    IconButton(modifier = Modifier.padding(start = 24.dp), onClick = onBack) {
+                        Icon(MiuixIcons.Back, contentDescription = MLang.Proxy.Action.Back)
+                    }
                 }
             }
-        }
-    }, actions = {
-        if (onTestDelay != null) {
-            IconButton(
-                modifier = Modifier.padding(end = 16.dp), onClick = { onTestDelay.invoke() }
-            ) {
-                Icon(Yume.Speed, contentDescription = MLang.Proxy.Action.Test)
-            }
-        }
-        Box {
-            IconButton(
-                modifier = Modifier.padding(end = 16.dp),
-                onClick = { showStylePopup.value = true },
-            ) {
-                Icon(
-                    Yume.LayoutPanelLeft,
-                    contentDescription = MLang.Proxy.Action.GroupStyle,
-                )
-            }
-            NodeGroupStylePopup(
-                show = showStylePopup,
-                onDismiss = { showStylePopup.value = false },
-                groupStyle = groupStyle,
-                alignment = PopupPositionProvider.Align.BottomEnd,
-                onStyleSelected = onGroupStyleSelected,
-            )
-        }
-        Box {
+        },
+        actions = {
+            if (onTestDelay != null) {
                 IconButton(
-                modifier = Modifier.padding(end = 16.dp),
-                onClick = { showSortPopup.value = true },
-            ) {
-                Icon(
-                    Yume.`List-chevrons-up-down`,
-                    contentDescription = MLang.Proxy.Action.SortMode,
+                    modifier = Modifier.padding(end = 16.dp),
+                    onClick = { onTestDelay.invoke() },
+                ) {
+                    Icon(Yume.Speed, contentDescription = MLang.Proxy.Action.Test)
+                }
+            }
+            Box {
+                IconButton(
+                    modifier = Modifier.padding(end = 16.dp),
+                    onClick = { showStylePopup.value = true },
+                ) {
+                    Icon(Yume.LayoutPanelLeft, contentDescription = MLang.Proxy.Action.GroupStyle)
+                }
+                NodeGroupStylePopup(
+                    show = showStylePopup,
+                    onDismiss = { showStylePopup.value = false },
+                    groupStyle = groupStyle,
+                    alignment = PopupPositionProvider.Align.BottomEnd,
+                    onStyleSelected = onGroupStyleSelected,
                 )
             }
-            NodeSortPopup(
-                show = showSortPopup,
-                onDismiss = { showSortPopup.value = false },
-                sortMode = sortMode,
-                alignment = PopupPositionProvider.Align.BottomEnd,
-                onSortSelected = onSortSelected,
-            )
-        }
-        Box {
-            IconButton(
-                modifier = Modifier.padding(end = 24.dp),
-                onClick = { showMorePopup.value = true },
-            ) {
-                Icon(
-                    Yume.`Settings-2`,
-                    contentDescription = MLang.Proxy.Action.More,
+            Box {
+                IconButton(
+                    modifier = Modifier.padding(end = 16.dp),
+                    onClick = { showSortPopup.value = true },
+                ) {
+                    Icon(
+                        Yume.`List-chevrons-up-down`,
+                        contentDescription = MLang.Proxy.Action.SortMode,
+                    )
+                }
+                NodeSortPopup(
+                    show = showSortPopup,
+                    onDismiss = { showSortPopup.value = false },
+                    sortMode = sortMode,
+                    alignment = PopupPositionProvider.Align.BottomEnd,
+                    onSortSelected = onSortSelected,
                 )
             }
-            ProxyMorePopup(
-                show = showMorePopup,
-                onDismiss = { showMorePopup.value = false },
-                onOpenResources = onNavigateToProviders,
-                showHiddenGroups = showHiddenGroups,
-                onShowHiddenGroupsChange = onShowHiddenGroupsChange,
-            )
-        }
-    })
+            Box {
+                IconButton(
+                    modifier = Modifier.padding(end = 24.dp),
+                    onClick = { showMorePopup.value = true },
+                ) {
+                    Icon(Yume.`Settings-2`, contentDescription = MLang.Proxy.Action.More)
+                }
+                ProxyMorePopup(
+                    show = showMorePopup,
+                    onDismiss = { showMorePopup.value = false },
+                    onOpenResources = onNavigateToProviders,
+                    showHiddenGroups = showHiddenGroups,
+                    onShowHiddenGroupsChange = onShowHiddenGroupsChange,
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -470,12 +463,13 @@ private fun ProxyContent(
         scrollBehavior = scrollBehavior,
         innerPadding = innerPadding,
         enableGlobalScroll = true,
-        contentPadding = PaddingValues(
-            start = ProxyPageSpacing.ContentHorizontal,
-            end = ProxyPageSpacing.ContentHorizontal,
-            top = innerPadding.calculateTopPadding() + ProxyPageSpacing.ContentTop,
-            bottom = mainInnerPadding.calculateBottomPadding() + spacing.md,
-        ),
+        contentPadding =
+            PaddingValues(
+                start = ProxyPageSpacing.ContentHorizontal,
+                end = ProxyPageSpacing.ContentHorizontal,
+                top = innerPadding.calculateTopPadding() + ProxyPageSpacing.ContentTop,
+                bottom = mainInnerPadding.calculateBottomPadding() + spacing.md,
+            ),
     ) {
         nodeGroupItems(
             groups = proxyGroups,
@@ -483,7 +477,8 @@ private fun ProxyContent(
             testingGroupNames = testingGroupNames,
             testingProxyNames = testingProxyNames,
             expandedGroupName = expandedGroupName,
-            onGroupBoundsChanged = onGroupBoundsChanged.takeIf { groupStyle == ProxyGroupStyle.FLOATING },
+            onGroupBoundsChanged =
+                onGroupBoundsChanged.takeIf { groupStyle == ProxyGroupStyle.FLOATING },
             onSelectProxy = onSelectProxy,
             onTestDelay = onTestDelay,
             onTestProxyDelay = onTestProxyDelay,
@@ -509,9 +504,7 @@ private fun FloatingGroupOverlay(
     val dismissInteraction = remember { MutableInteractionSource() }
     val visibilityState = remember { MutableTransitionState(false) }
 
-    LaunchedEffect(visible) {
-        visibilityState.targetState = visible
-    }
+    LaunchedEffect(visible) { visibilityState.targetState = visible }
 
     LaunchedEffect(visibilityState.currentState, visibilityState.targetState) {
         if (!visibilityState.currentState && !visibilityState.targetState) {
@@ -519,135 +512,125 @@ private fun FloatingGroupOverlay(
         }
     }
 
-    val transition = rememberTransition(transitionState = visibilityState, label = "proxy_overlay_transition")
-    val overlayAlpha by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 180 else 320,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_overlay_alpha",
-    ) { shown ->
-        if (shown) 0.18f else 0f
-    }
+    val transition =
+        rememberTransition(transitionState = visibilityState, label = "proxy_overlay_transition")
+    val overlayAlpha by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 180 else 320, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_overlay_alpha",
+        ) { shown ->
+            if (shown) 0.18f else 0f
+        }
 
-    val panelAlpha by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 200 else 220,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_alpha",
-    ) { shown ->
-        if (shown) 1f else 0f
-    }
+    val panelAlpha by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 200 else 220, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_panel_alpha",
+        ) { shown ->
+            if (shown) 1f else 0f
+        }
 
-    val panelScale by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 260 else 220,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_scale",
-    ) { shown ->
-        if (shown) 1f else 0.96f
-    }
+    val panelScale by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 260 else 220, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_panel_scale",
+        ) { shown ->
+            if (shown) 1f else 0.96f
+        }
 
-    val panelTranslationY by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 280 else 220,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_translation_y",
-    ) { shown ->
-        if (shown) 0f else 96f
-    }
+    val panelTranslationY by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 280 else 220, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_panel_translation_y",
+        ) { shown ->
+            if (shown) 0f else 96f
+        }
 
-    val contentAlpha by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 220 else 160,
-                delayMillis = if (targetState) 60 else 0,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_content_alpha",
-    ) { shown ->
-        if (shown) 1f else 0f
-    }
+    val contentAlpha by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(
+                    durationMillis = if (targetState) 220 else 160,
+                    delayMillis = if (targetState) 60 else 0,
+                    easing = FastOutSlowInEasing,
+                )
+            },
+            label = "proxy_panel_content_alpha",
+        ) { shown ->
+            if (shown) 1f else 0f
+        }
 
-    val panelShadowAlpha by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 220 else 300,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_shadow_alpha",
-    ) { shown ->
-        if (shown) 0.08f else 0f
-    }
+    val panelShadowAlpha by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 220 else 300, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_panel_shadow_alpha",
+        ) { shown ->
+            if (shown) 0.08f else 0f
+        }
 
-    val panelBorderAlpha by transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 200 else 260,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "proxy_panel_border_alpha",
-    ) { shown ->
-        if (shown) 0.06f else 0f
-    }
+    val panelBorderAlpha by
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 200 else 260, easing = FastOutSlowInEasing)
+            },
+            label = "proxy_panel_border_alpha",
+        ) { shown ->
+            if (shown) 0.06f else 0f
+        }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = overlayAlpha))
-            .clickable(
-                interactionSource = dismissInteraction,
-                indication = null,
-                onClick = onDismiss,
-            ),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(Color.Black.copy(alpha = overlayAlpha))
+                .clickable(
+                    interactionSource = dismissInteraction,
+                    indication = null,
+                    onClick = onDismiss,
+                )
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val panelShape = RoundedCornerShape(FloatingPanelDefaults.CornerRadius)
             Column(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .graphicsLayer {
-                        alpha = panelAlpha
-                        scaleX = panelScale
-                        scaleY = panelScale
-                        translationY = panelTranslationY
-                    }
-                    .widthIn(max = FloatingPanelDefaults.MaxWidth)
-                    .fillMaxWidth(FloatingPanelDefaults.WidthFraction)
-                    .heightIn(max = FloatingPanelDefaults.MaxHeight)
-                    .shadow(
-                        elevation = 16.dp,
-                        shape = panelShape,
-                        ambientColor = Color.Black.copy(alpha = panelShadowAlpha),
-                        spotColor = Color.Black.copy(alpha = panelShadowAlpha),
-                    )
-                    .clip(panelShape)
-                    .background(MiuixTheme.colorScheme.surface)
-                    .border(
-                        width = 1.dp,
-                        color = MiuixTheme.colorScheme.onSurface.copy(alpha = panelBorderAlpha),
-                        shape = panelShape,
-                    )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    )
-                    .padding(FloatingPanelDefaults.OuterPadding),
+                modifier =
+                    Modifier.align(Alignment.Center)
+                        .graphicsLayer {
+                            alpha = panelAlpha
+                            scaleX = panelScale
+                            scaleY = panelScale
+                            translationY = panelTranslationY
+                        }
+                        .widthIn(max = FloatingPanelDefaults.MaxWidth)
+                        .fillMaxWidth(FloatingPanelDefaults.WidthFraction)
+                        .heightIn(max = FloatingPanelDefaults.MaxHeight)
+                        .shadow(
+                            elevation = 16.dp,
+                            shape = panelShape,
+                            ambientColor = Color.Black.copy(alpha = panelShadowAlpha),
+                            spotColor = Color.Black.copy(alpha = panelShadowAlpha),
+                        )
+                        .clip(panelShape)
+                        .background(MiuixTheme.colorScheme.surface)
+                        .border(
+                            width = 1.dp,
+                            color = MiuixTheme.colorScheme.onSurface.copy(alpha = panelBorderAlpha),
+                            shape = panelShape,
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        )
+                        .padding(FloatingPanelDefaults.OuterPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(
@@ -662,23 +645,24 @@ private fun FloatingGroupOverlay(
                     )
 
                     Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 1.dp, max = 1.dp)
-                            .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .heightIn(min = 1.dp, max = 1.dp)
+                                .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f))
                     )
                 }
 
                 LazyColumn(
-                    modifier = Modifier
-                        .graphicsLayer { alpha = contentAlpha }
-                        .fillMaxWidth()
-                        .heightIn(max = FloatingPanelDefaults.ListMaxHeight)
-                        .overScrollVertical(),
+                    modifier =
+                        Modifier.graphicsLayer { alpha = contentAlpha }
+                            .fillMaxWidth()
+                            .heightIn(max = FloatingPanelDefaults.ListMaxHeight)
+                            .overScrollVertical(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     overscrollEffect = null,
                 ) {
-                    items(group.proxies, key = { it.name }, contentType = { "FloatingNodeCard" }) { proxy ->
+                    items(group.proxies, key = { it.name }, contentType = { "FloatingNodeCard" }) {
+                        proxy ->
                         FloatingProxyNodeCard(
                             proxy = proxy,
                             isSelected = proxy.name == group.now,
@@ -703,23 +687,25 @@ private fun FloatingGroupHeader(
     onDismiss: () -> Unit,
 ) {
     val currentNode = remember(group.now) { extractFlaggedName(group.now) }
-    val currentNodeName = remember(currentNode.displayName) {
-        currentNode.displayName.ifBlank { MLang.Proxy.Mode.Direct }
-    }
-    val delayLabel = remember(group.proxies, group.now) {
-        nodeLatencyLabel(group.proxies.firstOrNull { it.name == group.now }?.delay)
-    }
+    val currentNodeName =
+        remember(currentNode.displayName) {
+            currentNode.displayName.ifBlank { MLang.Proxy.Mode.Direct }
+        }
+    val delayLabel =
+        remember(group.proxies, group.now) {
+            nodeLatencyLabel(group.proxies.firstOrNull { it.name == group.now }?.delay)
+        }
     val primary = MiuixTheme.colorScheme.primary
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(FloatingPanelMetrics.HeaderCornerRadius))
-            .background(MiuixTheme.colorScheme.background)
-            .padding(
-                horizontal = FloatingPanelMetrics.HeaderHorizontalPadding,
-                vertical = FloatingPanelMetrics.HeaderVerticalPadding,
-            ),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(FloatingPanelMetrics.HeaderCornerRadius))
+                .background(MiuixTheme.colorScheme.background)
+                .padding(
+                    horizontal = FloatingPanelMetrics.HeaderHorizontalPadding,
+                    vertical = FloatingPanelMetrics.HeaderVerticalPadding,
+                ),
         verticalArrangement = Arrangement.spacedBy(FloatingPanelMetrics.HeaderSectionSpacing),
     ) {
         Row(
@@ -739,35 +725,39 @@ private fun FloatingGroupHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(FloatingPanelMetrics.HeaderMetaSpacing),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(FloatingPanelMetrics.HeaderMetaSpacing),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = group.type.name,
-                        style = MiuixTheme.textStyles.footnote1.copy(
-                            fontSize = FloatingPanelMetrics.HeaderMetaChipFontSize,
-                        ),
-                        color = primary,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(primary.copy(alpha = 0.10f))
-                            .padding(
-                                horizontal = NodeCardDefaults.ChipHorizontalPadding,
-                                vertical = FloatingPanelMetrics.HeaderMetaChipVerticalPadding,
+                        style =
+                            MiuixTheme.textStyles.footnote1.copy(
+                                fontSize = FloatingPanelMetrics.HeaderMetaChipFontSize
                             ),
+                        color = primary,
+                        modifier =
+                            Modifier.clip(RoundedCornerShape(999.dp))
+                                .background(primary.copy(alpha = 0.10f))
+                                .padding(
+                                    horizontal = NodeCardDefaults.ChipHorizontalPadding,
+                                    vertical = FloatingPanelMetrics.HeaderMetaChipVerticalPadding,
+                                ),
                     )
                     Text(
                         text = MLang.Proxy.Selection.NodeCount.format(group.proxies.size),
-                        style = MiuixTheme.textStyles.footnote1.copy(
-                            fontSize = FloatingPanelMetrics.HeaderMetaCountFontSize,
-                        ),
+                        style =
+                            MiuixTheme.textStyles.footnote1.copy(
+                                fontSize = FloatingPanelMetrics.HeaderMetaCountFontSize
+                            ),
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                 }
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(FloatingPanelMetrics.HeaderActionSpacing),
+                horizontalArrangement =
+                    Arrangement.spacedBy(FloatingPanelMetrics.HeaderActionSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onTestDelay) {
@@ -822,11 +812,12 @@ private fun FloatingGroupHeader(
                 )
             }
             Column(
-                modifier = Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onTestDelay,
-                ),
+                modifier =
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onTestDelay,
+                    ),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(FloatingPanelMetrics.DetailLabelSpacing),
             ) {
@@ -881,18 +872,16 @@ private fun FloatingProxyNodeCard(
 ) {
     val primary = MiuixTheme.colorScheme.primary
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                if (isSelected) primary.copy(alpha = 0.09f) else Color.Transparent
-            )
-            .border(
-                width = if (isSelected) 1.dp else 0.dp,
-                color = if (isSelected) primary.copy(alpha = 0.24f) else Color.Transparent,
-                shape = RoundedCornerShape(24.dp),
-            )
-            .padding(2.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(if (isSelected) primary.copy(alpha = 0.09f) else Color.Transparent)
+                .border(
+                    width = if (isSelected) 1.dp else 0.dp,
+                    color = if (isSelected) primary.copy(alpha = 0.24f) else Color.Transparent,
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .padding(2.dp)
     ) {
         NodeCard(
             proxy = proxy,
@@ -909,22 +898,23 @@ private fun FloatingProxyNodeCard(
         if (isSelected) {
             Text(
                 text = MLang.Proxy.Selection.Current,
-                style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = FloatingPanelMetrics.CurrentBadgeFontSize,
-                ),
-                color = primary,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(
-                        top = FloatingPanelMetrics.CurrentBadgeTopPadding,
-                        end = FloatingPanelMetrics.CurrentBadgeEndPadding,
-                    )
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(primary.copy(alpha = 0.10f))
-                    .padding(
-                        horizontal = FloatingPanelMetrics.CurrentBadgeHorizontalPadding,
-                        vertical = FloatingPanelMetrics.CurrentBadgeVerticalPadding,
+                style =
+                    MiuixTheme.textStyles.footnote1.copy(
+                        fontSize = FloatingPanelMetrics.CurrentBadgeFontSize
                     ),
+                color = primary,
+                modifier =
+                    Modifier.align(Alignment.TopEnd)
+                        .padding(
+                            top = FloatingPanelMetrics.CurrentBadgeTopPadding,
+                            end = FloatingPanelMetrics.CurrentBadgeEndPadding,
+                        )
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(primary.copy(alpha = 0.10f))
+                        .padding(
+                            horizontal = FloatingPanelMetrics.CurrentBadgeHorizontalPadding,
+                            vertical = FloatingPanelMetrics.CurrentBadgeVerticalPadding,
+                        ),
             )
         }
     }

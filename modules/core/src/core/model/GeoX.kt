@@ -18,12 +18,14 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.core.model
 
 enum class GeoFileType {
-    GeoIP, GeoSite, Country, ASN, Model
+    GeoIP,
+    GeoSite,
+    Country,
+    ASN,
+    Model,
 }
 
 data class GeoXItem(
@@ -33,29 +35,30 @@ data class GeoXItem(
     val fileName: String,
 )
 
-val geoXItems = listOf(
-    GeoXItem(
-        GeoFileType.GeoIP,
-        "GeoIP.dat",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
-        "geoip.dat"
-    ),
-    GeoXItem(
-        GeoFileType.GeoSite,
-        "GeoSite.dat",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
-        "geosite.dat"
-    ),
-    GeoXItem(
-        GeoFileType.Country,
-        "Country.mmdb",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb",
-        "country.mmdb"
-    ),
-    GeoXItem(
-        GeoFileType.ASN,
-        "ASN.mmdb",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
-        "ASN.mmdb"
-    ),
-)
+val geoXItems =
+    listOf(
+        GeoXItem(
+            GeoFileType.GeoIP,
+            "GeoIP.dat",
+            "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+            "geoip.dat",
+        ),
+        GeoXItem(
+            GeoFileType.GeoSite,
+            "GeoSite.dat",
+            "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
+            "geosite.dat",
+        ),
+        GeoXItem(
+            GeoFileType.Country,
+            "Country.mmdb",
+            "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb",
+            "country.mmdb",
+        ),
+        GeoXItem(
+            GeoFileType.ASN,
+            "ASN.mmdb",
+            "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
+            "ASN.mmdb",
+        ),
+    )

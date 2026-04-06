@@ -23,50 +23,31 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-
 android {
-    namespace = gropify.project.namespace.core
-    compileSdk = gropify.android.compileSdk
-
-    val ndkVersionValue = gropify.android.ndkVersion
-    if (ndkVersionValue.isNotBlank()) {
-        ndkVersion = ndkVersionValue
-    }
-
-    defaultConfig {
-        minSdk = gropify.android.minSdk
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
-    compileOptions {
-        val javaVer = gropify.android.jvm
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
-
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "DebugProbesKt.bin",
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
+    namespace = providers.gradleProperty("project.namespace.core").get()
+    defaultConfig { consumerProguardFiles("consumer-rules.pro") }
     sourceSets {
         getByName("main") {
             kotlin.directories.apply {
                 clear()
                 add("src")
             }
-            res.srcDirs("res")
-            assets.srcDirs("assets")
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources")
+            res.directories.apply {
+                clear()
+                add("res")
+            }
+            assets.directories.apply {
+                clear()
+                add("assets")
+            }
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                add("resources")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }
@@ -75,12 +56,9 @@ android {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
-    implementation("androidx.annotation:annotation-jvm:${gropify.dep.version.annotationJvm}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
+    implementation(libs.serialization.json)
+    implementation(libs.annotation.jvm)
+    implementation(libs.timber)
 }
-
-
-

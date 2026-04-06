@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.connection
 
 import androidx.compose.animation.*
@@ -62,25 +60,20 @@ private object ConnectionPageSpacing {
     val EmptyStatePadding = 32.dp
 }
 
-private val SortModes = listOf(
-    ConnectionSort.Time,
-    ConnectionSort.Upload,
-    ConnectionSort.Download,
-    ConnectionSort.Host,
-)
+private val SortModes =
+    listOf(ConnectionSort.Time, ConnectionSort.Upload, ConnectionSort.Download, ConnectionSort.Host)
 
-private fun ConnectionSort.getDisplayName(): String = when (this) {
-    ConnectionSort.Time -> MLang.Connection.Sort.Time
-    ConnectionSort.Upload -> MLang.Connection.Sort.Upload
-    ConnectionSort.Download -> MLang.Connection.Sort.Download
-    ConnectionSort.Host -> MLang.Connection.Sort.Host
-}
+private fun ConnectionSort.getDisplayName(): String =
+    when (this) {
+        ConnectionSort.Time -> MLang.Connection.Sort.Time
+        ConnectionSort.Upload -> MLang.Connection.Sort.Upload
+        ConnectionSort.Download -> MLang.Connection.Sort.Download
+        ConnectionSort.Host -> MLang.Connection.Sort.Host
+    }
 
 @Destination<RootGraph>
 @Composable
-fun ConnectionScreen(
-    navigator: DestinationsNavigator,
-) {
+fun ConnectionScreen(navigator: DestinationsNavigator) {
     val viewModel = koinViewModel<ConnectionViewModel>()
     val state by viewModel.state.collectAsState()
     val filteredConnections by viewModel.filteredConnections.collectAsState()
@@ -115,8 +108,10 @@ fun ConnectionScreen(
                 actions = {
                     Box {
                         IconButton(
-                            modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
-                            onClick = { showSortPopup = true }) {
+                            modifier =
+                                Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
+                            onClick = { showSortPopup = true },
+                        ) {
                             Icon(
                                 imageVector = MiuixIcons.Sort,
                                 contentDescription = MLang.Component.Navigation.Sort,
@@ -147,7 +142,8 @@ fun ConnectionScreen(
                     }
                     IconButton(
                         modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionOuter),
-                        onClick = { showSearchBar = !showSearchBar }) {
+                        onClick = { showSearchBar = !showSearchBar },
+                    ) {
                         Icon(
                             imageVector = MiuixIcons.Search,
                             contentDescription = MLang.Component.Navigation.Search,
@@ -156,19 +152,19 @@ fun ConnectionScreen(
                     }
                 },
             )
-        },
+        }
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
-            contentPadding = PaddingValues(
-                start = ConnectionPageSpacing.ContentHorizontal,
-                end = ConnectionPageSpacing.ContentHorizontal,
-                top = innerPadding.calculateTopPadding() + ConnectionPageSpacing.ContentTop,
-                bottom = innerPadding.calculateBottomPadding(),
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = ConnectionPageSpacing.ContentHorizontal,
+                    end = ConnectionPageSpacing.ContentHorizontal,
+                    top = innerPadding.calculateTopPadding() + ConnectionPageSpacing.ContentTop,
+                    bottom = innerPadding.calculateBottomPadding(),
+                ),
         ) {
-
             item {
                 TabRowWithContour(
                     tabs = tabs,
@@ -180,19 +176,21 @@ fun ConnectionScreen(
             item {
                 AnimatedVisibility(
                     visible = showSearchBar,
-                    enter = expandVertically(
-                        animationSpec = tween(200, easing = FastOutSlowInEasing),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
-                    exit = shrinkVertically(
-                        animationSpec = tween(200, easing = FastOutSlowInEasing),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)),
+                    enter =
+                        expandVertically(
+                            animationSpec = tween(200, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
+                    exit =
+                        shrinkVertically(
+                            animationSpec = tween(200, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = ConnectionPageSpacing.SearchVerticalPadding),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(vertical = ConnectionPageSpacing.SearchVerticalPadding),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextField(
@@ -209,19 +207,20 @@ fun ConnectionScreen(
             if (filteredConnections.isEmpty()) {
                 item {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(ConnectionPageSpacing.EmptyStatePadding),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(ConnectionPageSpacing.EmptyStatePadding),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (state.isLoading) {
-                                MLang.Connection.Loading
-                            } else if (state.searchQuery.isNotEmpty()) {
-                                MLang.Connection.NoResults
-                            } else {
-                                MLang.Connection.Empty
-                            },
+                            text =
+                                if (state.isLoading) {
+                                    MLang.Connection.Loading
+                                } else if (state.searchQuery.isNotEmpty()) {
+                                    MLang.Connection.NoResults
+                                } else {
+                                    MLang.Connection.Empty
+                                },
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
@@ -229,10 +228,7 @@ fun ConnectionScreen(
                 }
             } else {
 
-                items(
-                    items = filteredConnections,
-                    key = { it.id },
-                ) { connection ->
+                items(items = filteredConnections, key = { it.id }) { connection ->
                     ConnectionCard(
                         connectionInfo = connection,
                         onClick = {

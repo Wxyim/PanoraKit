@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
@@ -30,6 +28,7 @@ import com.github.yumelira.yumebox.domain.model.MetadataIndex
 import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.domain.model.OverrideMetadata
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
@@ -38,11 +37,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import java.io.File
 
-class OverrideConfigRepository(
-    private val context: Context,
-) : OverrideConfigProvider {
+class OverrideConfigRepository(private val context: Context) : OverrideConfigProvider {
     companion object {
         const val INTERNAL_RUNTIME_PREFIX = "__runtime__"
         private const val DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS = 86_400L
@@ -64,8 +60,7 @@ class OverrideConfigRepository(
 
     private val _configsFlow = MutableStateFlow<List<OverrideConfig>>(emptyList())
 
-    @Volatile
-    private var systemPresetsCache: List<OverrideConfig>? = null
+    @Volatile private var systemPresetsCache: List<OverrideConfig>? = null
 
     private suspend fun refreshConfigsFlow() {
         _configsFlow.value = getAll()
@@ -80,344 +75,362 @@ class OverrideConfigRepository(
             refreshConfigsFlow()
             return
         }
-        val systemPresets = currentSnapshot
-            .filter(OverrideConfig::isSystem)
-            .ifEmpty { getSystemPresets() }
-        _configsFlow.value = systemPresets + metadataIndex.sortedUserMetadata().mapNotNull { metadata ->
-            userConfigsById[metadata.id]
-        }
+        val systemPresets =
+            currentSnapshot.filter(OverrideConfig::isSystem).ifEmpty { getSystemPresets() }
+        _configsFlow.value =
+            systemPresets +
+                metadataIndex.sortedUserMetadata().mapNotNull { metadata ->
+                    userConfigsById[metadata.id]
+                }
     }
 
-    override suspend fun getAll(): List<OverrideConfig> = withContext(Dispatchers.IO) {
-        val systemPresets = getSystemPresets()
-        val userConfigs = loadUserConfigs()
-        systemPresets + userConfigs
-    }
+    override suspend fun getAll(): List<OverrideConfig> =
+        withContext(Dispatchers.IO) {
+            val systemPresets = getSystemPresets()
+            val userConfigs = loadUserConfigs()
+            systemPresets + userConfigs
+        }
 
     override fun getAllFlow(): Flow<List<OverrideConfig>> = _configsFlow.asStateFlow()
 
-    override suspend fun getById(id: String): OverrideConfig? = withContext(Dispatchers.IO) {
-        if (isSystemPreset(id)) {
-            return@withContext getSystemPresets().find { it.id == id }
-        }
-        val metadata = loadMetadataIndex().getById(id) ?: return@withContext null
-        val config = loadConfigContent(id) ?: return@withContext null
-        OverrideConfig(
-            id = metadata.id,
-            name = metadata.name,
-            description = metadata.description,
-            config = config,
-            isSystem = false,
-            createdAt = metadata.createdAt,
-            updatedAt = metadata.updatedAt,
-        )
-    }
-
-    override suspend fun getSystemPresets(): List<OverrideConfig> = withContext(Dispatchers.IO) {
-
-        systemPresetsCache?.let { return@withContext it }
-
-        try {
-            val jsonContent = context.assets.open("override.json").bufferedReader().use { it.readText() }
-            val configOverride = json.decodeFromString<ConfigurationOverride>(jsonContent)
-            val metadata = OverrideMetadata.createSystemPreset()
-            val presets = listOf(OverrideConfig(
+    override suspend fun getById(id: String): OverrideConfig? =
+        withContext(Dispatchers.IO) {
+            if (isSystemPreset(id)) {
+                return@withContext getSystemPresets().find { it.id == id }
+            }
+            val metadata = loadMetadataIndex().getById(id) ?: return@withContext null
+            val config = loadConfigContent(id) ?: return@withContext null
+            OverrideConfig(
                 id = metadata.id,
                 name = metadata.name,
                 description = metadata.description,
-                config = configOverride,
-                isSystem = true,
+                config = config,
+                isSystem = false,
                 createdAt = metadata.createdAt,
                 updatedAt = metadata.updatedAt,
-            ))
-            systemPresetsCache = presets
-            presets
-        } catch (e: Exception) {
-            emptyList()
+            )
         }
-    }
+
+    override suspend fun getSystemPresets(): List<OverrideConfig> =
+        withContext(Dispatchers.IO) {
+            systemPresetsCache?.let {
+                return@withContext it
+            }
+
+            try {
+                val jsonContent =
+                    context.assets.open("override.json").bufferedReader().use { it.readText() }
+                val configOverride = json.decodeFromString<ConfigurationOverride>(jsonContent)
+                val metadata = OverrideMetadata.createSystemPreset()
+                val presets =
+                    listOf(
+                        OverrideConfig(
+                            id = metadata.id,
+                            name = metadata.name,
+                            description = metadata.description,
+                            config = configOverride,
+                            isSystem = true,
+                            createdAt = metadata.createdAt,
+                            updatedAt = metadata.updatedAt,
+                        )
+                    )
+                systemPresetsCache = presets
+                presets
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
 
     override suspend fun getUserConfigs(): List<OverrideConfig> = loadUserConfigs()
 
     override fun getUserConfigsFlow(): Flow<List<OverrideConfig>> =
         flow { emit(loadUserConfigs()) }.flowOn(Dispatchers.IO)
 
-    override suspend fun save(config: OverrideConfig) = withContext(Dispatchers.IO) {
-        if (isSystemPreset(config.id)) return@withContext
+    override suspend fun save(config: OverrideConfig) =
+        withContext(Dispatchers.IO) {
+            if (isSystemPreset(config.id)) return@withContext
 
-        configsDir.mkdirs()
+            configsDir.mkdirs()
 
-        val configFile = configsDir.resolve("${config.id}.json")
-        configFile.writeText(encodeConfigContent(config.config))
+            val configFile = configsDir.resolve("${config.id}.json")
+            configFile.writeText(encodeConfigContent(config.config))
 
-        val metadataIndex = loadMetadataIndex()
-        val existingMetadata = metadataIndex.getById(config.id)
-        val metadata = OverrideMetadata(
-            id = config.id,
-            name = config.name,
-            description = config.description,
-            isSystem = false,
-            remoteSourceUrl = existingMetadata?.remoteSourceUrl,
-            remoteUpdateIntervalSeconds = existingMetadata?.remoteUpdateIntervalSeconds,
-            remoteLastUpdatedAt = existingMetadata?.remoteLastUpdatedAt,
-            createdAt = config.createdAt,
-            updatedAt = config.updatedAt,
-            sortOrder = existingMetadata?.sortOrder ?: metadataIndex.nextUserSortOrder(),
-        )
-        val index = metadataIndex.upsert(metadata)
-        saveMetadataIndex(index)
-        val userConfigsById = _configsFlow.value
-            .filterNot(OverrideConfig::isSystem)
-            .associateBy(OverrideConfig::id)
-            .toMutableMap()
-            .apply { put(config.id, config) }
-        updateConfigsFlowSnapshot(
-            metadataIndex = index,
-            userConfigsById = userConfigsById,
-        )
-    }
-
-    override suspend fun delete(id: String): Boolean = withContext(Dispatchers.IO) {
-        if (isSystemPreset(id)) return@withContext false
-
-        val configFile = configsDir.resolve("$id.json")
-        val fileDeleted = !configFile.exists() || configFile.delete()
-        val metadataExists = loadMetadataIndex().getById(id) != null
-        val deleted = fileDeleted && metadataExists
-        if (fileDeleted && metadataExists) {
-            val index = loadMetadataIndex().remove(id)
+            val metadataIndex = loadMetadataIndex()
+            val existingMetadata = metadataIndex.getById(config.id)
+            val metadata =
+                OverrideMetadata(
+                    id = config.id,
+                    name = config.name,
+                    description = config.description,
+                    isSystem = false,
+                    remoteSourceUrl = existingMetadata?.remoteSourceUrl,
+                    remoteUpdateIntervalSeconds = existingMetadata?.remoteUpdateIntervalSeconds,
+                    remoteLastUpdatedAt = existingMetadata?.remoteLastUpdatedAt,
+                    createdAt = config.createdAt,
+                    updatedAt = config.updatedAt,
+                    sortOrder = existingMetadata?.sortOrder ?: metadataIndex.nextUserSortOrder(),
+                )
+            val index = metadataIndex.upsert(metadata)
             saveMetadataIndex(index)
-            val userConfigsById = _configsFlow.value
-                .filterNot(OverrideConfig::isSystem)
-                .associateBy(OverrideConfig::id)
-                .toMutableMap()
-                .apply { remove(id) }
-            updateConfigsFlowSnapshot(
-                metadataIndex = index,
-                userConfigsById = userConfigsById,
-            )
-            return@withContext true
+            val userConfigsById =
+                _configsFlow.value
+                    .filterNot(OverrideConfig::isSystem)
+                    .associateBy(OverrideConfig::id)
+                    .toMutableMap()
+                    .apply { put(config.id, config) }
+            updateConfigsFlowSnapshot(metadataIndex = index, userConfigsById = userConfigsById)
         }
-        if (fileDeleted && !metadataExists) {
-            refreshConfigsFlow()
+
+    override suspend fun delete(id: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (isSystemPreset(id)) return@withContext false
+
+            val configFile = configsDir.resolve("$id.json")
+            val fileDeleted = !configFile.exists() || configFile.delete()
+            val metadataExists = loadMetadataIndex().getById(id) != null
+            val deleted = fileDeleted && metadataExists
+            if (fileDeleted && metadataExists) {
+                val index = loadMetadataIndex().remove(id)
+                saveMetadataIndex(index)
+                val userConfigsById =
+                    _configsFlow.value
+                        .filterNot(OverrideConfig::isSystem)
+                        .associateBy(OverrideConfig::id)
+                        .toMutableMap()
+                        .apply { remove(id) }
+                updateConfigsFlowSnapshot(metadataIndex = index, userConfigsById = userConfigsById)
+                return@withContext true
+            }
+            if (fileDeleted && !metadataExists) {
+                refreshConfigsFlow()
+            }
+            false
         }
-        false
-    }
 
-    override suspend fun duplicate(id: String): OverrideConfig? = withContext(Dispatchers.IO) {
-        val original = getById(id) ?: return@withContext null
-        val newMetadata = OverrideMetadata(
-            id = OverrideMetadata.generateId(),
-            name = "${original.name} (副本)",
-            description = original.description,
-            isSystem = false,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis(),
-        )
-        val newConfig = OverrideConfig(
-            id = newMetadata.id,
-            name = newMetadata.name,
-            description = newMetadata.description,
-            config = original.config,
-            isSystem = false,
-            createdAt = newMetadata.createdAt,
-            updatedAt = newMetadata.updatedAt,
-        )
-        save(newConfig)
-        newConfig
-    }
+    override suspend fun duplicate(id: String): OverrideConfig? =
+        withContext(Dispatchers.IO) {
+            val original = getById(id) ?: return@withContext null
+            val newMetadata =
+                OverrideMetadata(
+                    id = OverrideMetadata.generateId(),
+                    name = "${original.name} (副本)",
+                    description = original.description,
+                    isSystem = false,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                )
+            val newConfig =
+                OverrideConfig(
+                    id = newMetadata.id,
+                    name = newMetadata.name,
+                    description = newMetadata.description,
+                    config = original.config,
+                    isSystem = false,
+                    createdAt = newMetadata.createdAt,
+                    updatedAt = newMetadata.updatedAt,
+                )
+            save(newConfig)
+            newConfig
+        }
 
-    override suspend fun exists(id: String): Boolean = withContext(Dispatchers.IO) {
-        if (isSystemPreset(id)) return@withContext true
-        configsDir.resolve("$id.json").exists()
-    }
+    override suspend fun exists(id: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (isSystemPreset(id)) return@withContext true
+            configsDir.resolve("$id.json").exists()
+        }
 
-    suspend fun getMetadata(id: String): OverrideMetadata? = withContext(Dispatchers.IO) {
-        loadMetadataIndex().getById(id)
-    }
+    suspend fun getMetadata(id: String): OverrideMetadata? =
+        withContext(Dispatchers.IO) { loadMetadataIndex().getById(id) }
 
     suspend fun updateMetadata(
         id: String,
         transform: (OverrideMetadata) -> OverrideMetadata,
-    ): OverrideMetadata? = withContext(Dispatchers.IO) {
-        val metadataIndex = loadMetadataIndex()
-        val original = metadataIndex.getById(id) ?: return@withContext null
-        val updated = transform(original)
-        val nextIndex = metadataIndex.upsert(updated)
-        saveMetadataIndex(nextIndex)
+    ): OverrideMetadata? =
+        withContext(Dispatchers.IO) {
+            val metadataIndex = loadMetadataIndex()
+            val original = metadataIndex.getById(id) ?: return@withContext null
+            val updated = transform(original)
+            val nextIndex = metadataIndex.upsert(updated)
+            saveMetadataIndex(nextIndex)
 
-        val userConfigsById = _configsFlow.value
-            .filterNot(OverrideConfig::isSystem)
-            .associateBy(OverrideConfig::id)
-        updateConfigsFlowSnapshot(
-            metadataIndex = nextIndex,
-            userConfigsById = userConfigsById,
-        )
-        updated
-    }
+            val userConfigsById =
+                _configsFlow.value
+                    .filterNot(OverrideConfig::isSystem)
+                    .associateBy(OverrideConfig::id)
+            updateConfigsFlowSnapshot(metadataIndex = nextIndex, userConfigsById = userConfigsById)
+            updated
+        }
 
-    suspend fun listRemoteResources(): List<RemoteOverrideResource> = withContext(Dispatchers.IO) {
-        val metadataIndex = loadMetadataIndex()
-        metadataIndex.sortedUserMetadata()
-            .filter(OverrideMetadata::isRemoteResource)
-            .mapNotNull { metadata ->
-                val sourceUrl = metadata.remoteSourceUrl?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-                val interval = metadata.remoteUpdateIntervalSeconds ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS
-                val config = loadConfigContent(metadata.id)
-                RemoteOverrideResource(
-                    id = metadata.id,
-                    name = metadata.name,
-                    description = metadata.description,
-                    sourceUrl = sourceUrl,
-                    updateIntervalSeconds = interval,
-                    lastUpdatedAt = metadata.remoteLastUpdatedAt ?: metadata.updatedAt,
-                    updatedAt = metadata.updatedAt,
-                    ruleCount = countOverrideRules(config),
-                )
-            }
-    }
+    suspend fun listRemoteResources(): List<RemoteOverrideResource> =
+        withContext(Dispatchers.IO) {
+            val metadataIndex = loadMetadataIndex()
+            metadataIndex
+                .sortedUserMetadata()
+                .filter(OverrideMetadata::isRemoteResource)
+                .mapNotNull { metadata ->
+                    val sourceUrl =
+                        metadata.remoteSourceUrl?.takeIf(String::isNotBlank)
+                            ?: return@mapNotNull null
+                    val interval =
+                        metadata.remoteUpdateIntervalSeconds
+                            ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS
+                    val config = loadConfigContent(metadata.id)
+                    RemoteOverrideResource(
+                        id = metadata.id,
+                        name = metadata.name,
+                        description = metadata.description,
+                        sourceUrl = sourceUrl,
+                        updateIntervalSeconds = interval,
+                        lastUpdatedAt = metadata.remoteLastUpdatedAt ?: metadata.updatedAt,
+                        updatedAt = metadata.updatedAt,
+                        ruleCount = countOverrideRules(config),
+                    )
+                }
+        }
 
     suspend fun refreshRemoteResource(
         id: String,
         allowInsecureHttpNonLocalhost: Boolean = false,
-    ): RemoteOverrideResource = withContext(Dispatchers.IO) {
-        val metadata = loadMetadataIndex().getById(id) ?: error("override metadata not found: $id")
-        val sourceUrl = metadata.remoteSourceUrl?.takeIf(String::isNotBlank)
-            ?: error("remote source url is empty: $id")
-        val existingConfig = getById(id) ?: error("override config not found: $id")
+    ): RemoteOverrideResource =
+        withContext(Dispatchers.IO) {
+            val metadata =
+                loadMetadataIndex().getById(id) ?: error("override metadata not found: $id")
+            val sourceUrl =
+                metadata.remoteSourceUrl?.takeIf(String::isNotBlank)
+                    ?: error("remote source url is empty: $id")
+            val existingConfig = getById(id) ?: error("override config not found: $id")
 
-        val content = fetchUrlText(
-            urlString = sourceUrl,
-            allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-        )
-        val parsed = RemoteOverrideParser.parse(json, content)
-        val now = System.currentTimeMillis()
+            val content =
+                fetchUrlText(
+                    urlString = sourceUrl,
+                    allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
+                )
+            val parsed = RemoteOverrideParser.parse(json, content)
+            val now = System.currentTimeMillis()
 
-        save(
-            existingConfig.copy(
-                config = parsed.config,
+            save(existingConfig.copy(config = parsed.config, updatedAt = now))
+            val updatedMetadata =
+                updateMetadata(id) { original ->
+                    original.copy(remoteLastUpdatedAt = now, updatedAt = now)
+                } ?: error("override metadata update failed: $id")
+
+            RemoteOverrideResource(
+                id = id,
+                name = existingConfig.name,
+                description = existingConfig.description,
+                sourceUrl = sourceUrl,
+                updateIntervalSeconds =
+                    updatedMetadata.remoteUpdateIntervalSeconds
+                        ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS,
+                lastUpdatedAt = now,
                 updatedAt = now,
-            ),
-        )
-        val updatedMetadata = updateMetadata(id) { original ->
-            original.copy(
-                remoteLastUpdatedAt = now,
-                updatedAt = now,
+                ruleCount = countOverrideRules(parsed.config),
             )
-        } ?: error("override metadata update failed: $id")
-
-        RemoteOverrideResource(
-            id = id,
-            name = existingConfig.name,
-            description = existingConfig.description,
-            sourceUrl = sourceUrl,
-            updateIntervalSeconds = updatedMetadata.remoteUpdateIntervalSeconds
-                ?: DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS,
-            lastUpdatedAt = now,
-            updatedAt = now,
-            ruleCount = countOverrideRules(parsed.config),
-        )
-    }
+        }
 
     override fun isSystemPreset(id: String): Boolean {
         return id.startsWith(OverrideMetadata.SYSTEM_PREFIX)
     }
 
-    suspend fun export(config: OverrideConfig): String = withContext(Dispatchers.IO) {
-        encodeConfigContent(config.config)
-    }
+    suspend fun export(config: OverrideConfig): String =
+        withContext(Dispatchers.IO) { encodeConfigContent(config.config) }
 
-    suspend fun import(jsonString: String, name: String): OverrideConfig? = withContext(Dispatchers.IO) {
-        try {
-            val configOverride = json.decodeFromString(ConfigurationOverride.serializer(), jsonString)
-            val now = System.currentTimeMillis()
-            val metadata = OverrideMetadata(
-                id = OverrideMetadata.generateId(),
-                name = name,
-                description = null,
-                isSystem = false,
-                createdAt = now,
-                updatedAt = now,
-            )
-            val config = OverrideConfig(
-                id = metadata.id,
-                name = metadata.name,
-                description = metadata.description,
-                config = configOverride,
-                isSystem = false,
-                createdAt = metadata.createdAt,
-                updatedAt = metadata.updatedAt,
-            )
-            save(config)
-            config
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    fun getConfigFilePath(id: String): File = configsDir.resolve("$id.json")
-    fun getConfigsDirectory(): File = configsDir
-
-    suspend fun reorderUserConfigs(orderedIds: List<String>) = withContext(Dispatchers.IO) {
-        if (orderedIds.isEmpty()) return@withContext
-
-        val metadataIndex = loadMetadataIndex()
-        val sortedUserMetadata = metadataIndex.sortedUserMetadata()
-        if (sortedUserMetadata.isEmpty()) return@withContext
-
-        val userMetadataById = sortedUserMetadata.associateBy(OverrideMetadata::id)
-        val reorderedIds = orderedIds.filter(userMetadataById::containsKey)
-        if (reorderedIds.isEmpty()) return@withContext
-
-        val remainingIds = sortedUserMetadata
-            .map(OverrideMetadata::id)
-            .filterNot(reorderedIds::contains)
-        val finalOrder = reorderedIds + remainingIds
-        val updatedConfigs = metadataIndex.configs.toMutableMap()
-        var hasChanges = false
-
-        finalOrder.forEachIndexed { index, id ->
-            val metadata = userMetadataById[id] ?: return@forEachIndexed
-            val newSortOrder = index.toLong() + 1L
-            if (metadata.sortOrder != newSortOrder) {
-                updatedConfigs[id] = metadata.copy(sortOrder = newSortOrder)
-                hasChanges = true
-            }
-        }
-
-        if (hasChanges) {
-            val updatedIndex = metadataIndex.copy(configs = updatedConfigs)
-            saveMetadataIndex(updatedIndex)
-            val userConfigsById = _configsFlow.value
-                .filterNot(OverrideConfig::isSystem)
-                .associateBy(OverrideConfig::id)
-            updateConfigsFlowSnapshot(
-                metadataIndex = updatedIndex,
-                userConfigsById = userConfigsById,
-            )
-        }
-    }
-
-    private fun loadUserConfigs(): List<OverrideConfig> {
-        if (!configsDir.exists()) return emptyList()
-        val index = loadMetadataIndex()
-        return index.sortedUserMetadata()
-            .mapNotNull { metadata ->
-                if (isInternalRuntimeConfig(metadata.id)) {
-                    return@mapNotNull null
-                }
-                loadConfigContent(metadata.id)?.let { config ->
+    suspend fun import(jsonString: String, name: String): OverrideConfig? =
+        withContext(Dispatchers.IO) {
+            try {
+                val configOverride =
+                    json.decodeFromString(ConfigurationOverride.serializer(), jsonString)
+                val now = System.currentTimeMillis()
+                val metadata =
+                    OverrideMetadata(
+                        id = OverrideMetadata.generateId(),
+                        name = name,
+                        description = null,
+                        isSystem = false,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                val config =
                     OverrideConfig(
                         id = metadata.id,
                         name = metadata.name,
                         description = metadata.description,
-                        config = config,
+                        config = configOverride,
                         isSystem = false,
                         createdAt = metadata.createdAt,
                         updatedAt = metadata.updatedAt,
                     )
+                save(config)
+                config
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    fun getConfigFilePath(id: String): File = configsDir.resolve("$id.json")
+
+    fun getConfigsDirectory(): File = configsDir
+
+    suspend fun reorderUserConfigs(orderedIds: List<String>) =
+        withContext(Dispatchers.IO) {
+            if (orderedIds.isEmpty()) return@withContext
+
+            val metadataIndex = loadMetadataIndex()
+            val sortedUserMetadata = metadataIndex.sortedUserMetadata()
+            if (sortedUserMetadata.isEmpty()) return@withContext
+
+            val userMetadataById = sortedUserMetadata.associateBy(OverrideMetadata::id)
+            val reorderedIds = orderedIds.filter(userMetadataById::containsKey)
+            if (reorderedIds.isEmpty()) return@withContext
+
+            val remainingIds =
+                sortedUserMetadata.map(OverrideMetadata::id).filterNot(reorderedIds::contains)
+            val finalOrder = reorderedIds + remainingIds
+            val updatedConfigs = metadataIndex.configs.toMutableMap()
+            var hasChanges = false
+
+            finalOrder.forEachIndexed { index, id ->
+                val metadata = userMetadataById[id] ?: return@forEachIndexed
+                val newSortOrder = index.toLong() + 1L
+                if (metadata.sortOrder != newSortOrder) {
+                    updatedConfigs[id] = metadata.copy(sortOrder = newSortOrder)
+                    hasChanges = true
                 }
             }
+
+            if (hasChanges) {
+                val updatedIndex = metadataIndex.copy(configs = updatedConfigs)
+                saveMetadataIndex(updatedIndex)
+                val userConfigsById =
+                    _configsFlow.value
+                        .filterNot(OverrideConfig::isSystem)
+                        .associateBy(OverrideConfig::id)
+                updateConfigsFlowSnapshot(
+                    metadataIndex = updatedIndex,
+                    userConfigsById = userConfigsById,
+                )
+            }
+        }
+
+    private fun loadUserConfigs(): List<OverrideConfig> {
+        if (!configsDir.exists()) return emptyList()
+        val index = loadMetadataIndex()
+        return index.sortedUserMetadata().mapNotNull { metadata ->
+            if (isInternalRuntimeConfig(metadata.id)) {
+                return@mapNotNull null
+            }
+            loadConfigContent(metadata.id)?.let { config ->
+                OverrideConfig(
+                    id = metadata.id,
+                    name = metadata.name,
+                    description = metadata.description,
+                    config = config,
+                    isSystem = false,
+                    createdAt = metadata.createdAt,
+                    updatedAt = metadata.updatedAt,
+                )
+            }
+        }
     }
 
     fun getConfigJsonContent(id: String): String? {
@@ -468,9 +481,10 @@ class OverrideConfigRepository(
         return when (element) {
             JsonNull -> null
             is JsonObject -> {
-                val cleaned = element.entries
-                    .mapNotNull { (key, value) -> pruneJson(value)?.let { key to it } }
-                    .toMap()
+                val cleaned =
+                    element.entries
+                        .mapNotNull { (key, value) -> pruneJson(value)?.let { key to it } }
+                        .toMap()
                 if (cleaned.isEmpty()) null else JsonObject(cleaned)
             }
             is JsonArray -> JsonArray(element.mapNotNull(::pruneJson))
@@ -479,15 +493,16 @@ class OverrideConfigRepository(
     }
 
     private fun loadMetadataIndex(): MetadataIndex {
-        val metadataIndex = if (!metadataFile.exists()) {
-            MetadataIndex()
-        } else {
-            try {
-                json.decodeFromString(MetadataIndex.serializer(), metadataFile.readText())
-            } catch (e: Exception) {
+        val metadataIndex =
+            if (!metadataFile.exists()) {
                 MetadataIndex()
+            } else {
+                try {
+                    json.decodeFromString(MetadataIndex.serializer(), metadataFile.readText())
+                } catch (e: Exception) {
+                    MetadataIndex()
+                }
             }
-        }
         val normalizedIndex = metadataIndex.normalizeUserSortOrders()
         if (normalizedIndex != metadataIndex) {
             saveMetadataIndex(normalizedIndex)
@@ -500,10 +515,7 @@ class OverrideConfigRepository(
         metadataFile.writeText(json.encodeToString(MetadataIndex.serializer(), index))
     }
 
-    private fun fetchUrlText(
-        urlString: String,
-        allowInsecureHttpNonLocalhost: Boolean,
-    ): String {
+    private fun fetchUrlText(urlString: String, allowInsecureHttpNonLocalhost: Boolean): String {
         return RemoteContentFetcher.fetchText(
             urlString = urlString,
             maxBytes = MAX_REMOTE_CONTENT_BYTES,
@@ -518,5 +530,4 @@ class OverrideConfigRepository(
             config.rulesStart.orEmpty().size +
             config.rulesEnd.orEmpty().size
     }
-
 }

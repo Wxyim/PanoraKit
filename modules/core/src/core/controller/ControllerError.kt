@@ -21,10 +21,11 @@
 package com.github.yumelira.yumebox.core.controller
 
 /**
- * Typed error hierarchy for Mihomo Controller API failures.
- * Shared across modules so feature layers can react to specific error conditions.
+ * Typed error hierarchy for Mihomo Controller API failures. Shared across modules so feature layers
+ * can react to specific error conditions.
  */
-sealed class ControllerError(message: String, cause: Throwable? = null) : Exception(message, cause) {
+sealed class ControllerError(message: String, cause: Throwable? = null) :
+    Exception(message, cause) {
     /** Controller returned HTTP 401 — secret mismatch. */
     class Unauthorized(cause: Throwable? = null) :
         ControllerError("Controller API returned 401 Unauthorized", cause)
@@ -38,6 +39,5 @@ sealed class ControllerError(message: String, cause: Throwable? = null) : Except
         ControllerError("Controller API is not reachable", cause)
 
     /** Any other controller failure with a descriptive message. */
-    class Unknown(message: String, cause: Throwable? = null) :
-        ControllerError(message, cause)
+    class Unknown(message: String, cause: Throwable? = null) : ControllerError(message, cause)
 }

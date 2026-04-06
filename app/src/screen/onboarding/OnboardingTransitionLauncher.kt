@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.app.Activity
@@ -55,17 +53,19 @@ internal object OnboardingTransitionLauncher {
             return false
         }
 
-        val launchIntent = Intent(targetIntent).apply {
-            sourceBounds = anchorView.globalVisibleRectCompat()
-            putExtra(EXTRA_SCALE_UP_ENTER, true)
-            putExtra(EXTRA_TRANSITION_FOREGROUND_COLOR, foregroundColor)
-        }
+        val launchIntent =
+            Intent(targetIntent).apply {
+                sourceBounds = anchorView.globalVisibleRectCompat()
+                putExtra(EXTRA_SCALE_UP_ENTER, true)
+                putExtra(EXTRA_TRANSITION_FOREGROUND_COLOR, foregroundColor)
+            }
 
         val thumbnail = captureRoundedBitmap(thumbnailView)
         return try {
-            val options = thumbnail?.let {
-                ActivityOptions.makeThumbnailScaleUpAnimation(anchorView, it, 0, 0)
-            }
+            val options =
+                thumbnail?.let {
+                    ActivityOptions.makeThumbnailScaleUpAnimation(anchorView, it, 0, 0)
+                }
             if (options != null) {
                 activity.startActivity(launchIntent, options.toBundle())
             } else {
@@ -86,23 +86,25 @@ internal object OnboardingTransitionLauncher {
         }
 
         return runCatching {
-            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { bitmap ->
-                val canvas = Canvas(bitmap)
-                val saveCount = canvas.save()
-                val path = Path().apply {
-                    val radius = resolveCornerRadius(view)
-                    addRoundRect(
-                        RectF(0f, 0f, width.toFloat(), height.toFloat()),
-                        radius,
-                        radius,
-                        Path.Direction.CW,
-                    )
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { bitmap ->
+                    val canvas = Canvas(bitmap)
+                    val saveCount = canvas.save()
+                    val path =
+                        Path().apply {
+                            val radius = resolveCornerRadius(view)
+                            addRoundRect(
+                                RectF(0f, 0f, width.toFloat(), height.toFloat()),
+                                radius,
+                                radius,
+                                Path.Direction.CW,
+                            )
+                        }
+                    canvas.clipPath(path)
+                    view.draw(canvas)
+                    canvas.restoreToCount(saveCount)
                 }
-                canvas.clipPath(path)
-                view.draw(canvas)
-                canvas.restoreToCount(saveCount)
             }
-        }.getOrNull()
+            .getOrNull()
     }
 
     private fun resolveCornerRadius(view: View): Float {

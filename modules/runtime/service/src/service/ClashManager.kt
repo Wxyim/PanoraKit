@@ -18,13 +18,12 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.core.Clash
+import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.core.model.*
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.constants.Intents
@@ -38,22 +37,18 @@ import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipelin
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
 import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
 import com.github.yumelira.yumebox.service.runtime.util.sendBroadcastSelf
-import com.github.yumelira.yumebox.core.StoreIds
 import com.tencent.mmkv.MMKV
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
-import java.util.concurrent.ConcurrentHashMap
 
-class ClashManager(private val context: Context) : IClashManager,
-    CoroutineScope by CoroutineScope(Dispatchers.IO) {
-    private data class ExternalSelectionCandidate(
-        val node: String,
-        val firstSeenAt: Long,
-    )
+class ClashManager(private val context: Context) :
+    IClashManager, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+    private data class ExternalSelectionCandidate(val node: String, val firstSeenAt: Long)
 
     private companion object {
         const val EXTERNAL_SELECTION_CONFIRM_MS = 1200L
@@ -62,7 +57,8 @@ class ClashManager(private val context: Context) : IClashManager,
     private val store = ServiceStore()
     private val compiledConfigPipeline = CompiledConfigPipeline(context)
     private val runtimeSpecFactory = SessionRuntimeSpecFactory(context)
-    private val networkSettings = MMKV.mmkvWithID(StoreIds.NETWORK_SETTINGS, MMKV.MULTI_PROCESS_MODE)
+    private val networkSettings =
+        MMKV.mmkvWithID(StoreIds.NETWORK_SETTINGS, MMKV.MULTI_PROCESS_MODE)
     private var logReceiver: ReceiveChannel<LogMessage>? = null
     private val externalCandidates = ConcurrentHashMap<String, ExternalSelectionCandidate>()
 
@@ -90,11 +86,12 @@ class ClashManager(private val context: Context) : IClashManager,
 
     override fun queryProfileProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         if (store.activeProfile == null) return emptyList()
-        val spec = when (configuredProxyMode()) {
-            ProxyMode.RootTun -> runtimeSpecFactory.createRootTunSpec()
-            ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
-            ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
-        }
+        val spec =
+            when (configuredProxyMode()) {
+                ProxyMode.RootTun -> runtimeSpecFactory.createRootTunSpec()
+                ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
+                ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
+            }
         return runSuspendBlocking {
             compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
         }
@@ -150,9 +147,7 @@ class ClashManager(private val context: Context) : IClashManager,
     }
 
     override fun requestStop() {
-        runCatching {
-            context.sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP))
-        }
+        runCatching { context.sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
 
         runCatching {
             context.stopService(Intent(context, TunService::class.java))
@@ -203,7 +198,8 @@ class ClashManager(private val context: Context) : IClashManager,
         }
         if (fallbackNode.isNotEmpty() && node == fallbackNode) {
 
-            val proxyNames = proxyGroup.proxies.mapNotNull { it.name?.trim()?.takeIf { it.isNotEmpty() } }
+            val proxyNames =
+                proxyGroup.proxies.mapNotNull { it.name?.trim()?.takeIf { it.isNotEmpty() } }
             if (remembered in proxyNames) {
                 launch { Clash.patchSelector(group, remembered) }
             }
@@ -235,7 +231,8 @@ class ClashManager(private val context: Context) : IClashManager,
     }
 
     private fun configuredProxyMode(): ProxyMode {
-        val raw = networkSettings.decodeString("proxyMode", ProxyMode.Tun.name) ?: ProxyMode.Tun.name
+        val raw =
+            networkSettings.decodeString("proxyMode", ProxyMode.Tun.name) ?: ProxyMode.Tun.name
         return runCatching { ProxyMode.valueOf(raw) }.getOrDefault(ProxyMode.Tun)
     }
 
@@ -248,25 +245,24 @@ class ClashManager(private val context: Context) : IClashManager,
             }
 
             if (observer != null) {
-                logReceiver = Clash.subscribeLogcat().also { c ->
-                    launch {
-                        try {
-                            while (isActive) {
-                                observer.newItem(c.receive())
-                            }
-                        } catch (e: CancellationException) {
+                logReceiver =
+                    Clash.subscribeLogcat().also { c ->
+                        launch {
+                            try {
+                                while (isActive) {
+                                    observer.newItem(c.receive())
+                                }
+                            } catch (e: CancellationException) {} catch (e: Exception) {
+                                Log.w("UI crashed", e)
+                            } finally {
+                                withContext(NonCancellable) {
+                                    c.cancel()
 
-                        } catch (e: Exception) {
-                            Log.w("UI crashed", e)
-                        } finally {
-                            withContext(NonCancellable) {
-                                c.cancel()
-
-                                Clash.forceGc()
+                                    Clash.forceGc()
+                                }
                             }
                         }
                     }
-                }
             }
         }
     }

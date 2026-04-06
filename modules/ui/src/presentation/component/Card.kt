@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,13 +36,14 @@ fun Card(
     content: @Composable () -> Unit,
 ) {
     Card(
-        modifier = if (applyHorizontalPadding) {
-            modifier.horizontalPadding()
-        } else {
-            modifier
-        },
+        modifier =
+            if (applyHorizontalPadding) {
+                modifier.horizontalPadding()
+            } else {
+                modifier
+            },
         cornerRadius = cornerRadius.dp,
-        insideMargin = insideMargin
+        insideMargin = insideMargin,
     ) {
         content()
     }

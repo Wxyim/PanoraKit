@@ -18,14 +18,13 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 object ProxyServiceContracts {
     const val ACTION_PROXY_STARTED = "com.github.yumelira.yumebox.action.PROXY_STARTED"
     const val ACTION_PROXY_STOPPED = "com.github.yumelira.yumebox.action.PROXY_STOPPED"
-    const val ACTION_PROXY_GROUPS_UPDATED = "com.github.yumelira.yumebox.action.PROXY_GROUPS_UPDATED"
+    const val ACTION_PROXY_GROUPS_UPDATED =
+        "com.github.yumelira.yumebox.action.PROXY_GROUPS_UPDATED"
     const val ACTION_PROFILE_LOADED = "com.github.yumelira.yumebox.action.PROFILE_LOADED"
     const val ACTION_PROFILE_CHANGED = "com.github.yumelira.yumebox.action.PROFILE_CHANGED"
     const val ACTION_REQUEST_STOP = "com.github.yumelira.yumebox.action.REQUEST_STOP"

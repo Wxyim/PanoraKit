@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.Box
@@ -36,7 +34,7 @@ enum class MessageType {
     SUCCESS,
     ERROR,
     WARNING,
-    INFO
+    INFO,
 }
 
 data class Message(
@@ -48,10 +46,7 @@ data class Message(
 )
 
 @Composable
-fun MessageHost(
-    message: Message?,
-    onDismiss: () -> Unit,
-) {
+fun MessageHost(message: Message?, onDismiss: () -> Unit) {
     val showDialog = remember { mutableStateOf(false) }
     val onDismissLatest = rememberUpdatedState(onDismiss)
     val dismissDialog: () -> Unit = {
@@ -59,9 +54,7 @@ fun MessageHost(
         onDismissLatest.value()
     }
 
-    LaunchedEffect(message) {
-        showDialog.value = message != null
-    }
+    LaunchedEffect(message) { showDialog.value = message != null }
 
     if (message != null) {
         AppDialog(
@@ -71,15 +64,10 @@ fun MessageHost(
             onDismissRequest = dismissDialog,
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 contentAlignment = Alignment.CenterEnd,
             ) {
-                SuperArrow(
-                    title = MLang.Component.Message.Confirm,
-                    onClick = dismissDialog,
-                )
+                SuperArrow(title = MLang.Component.Message.Confirm, onClick = dismissDialog)
             }
         }
 
@@ -93,46 +81,36 @@ fun MessageHost(
 }
 
 private fun getTitle(type: MessageType, title: String): String {
-    val prefix = when (type) {
-        MessageType.SUCCESS -> "✓ "
-        MessageType.ERROR -> "✗ "
-        MessageType.WARNING -> "⚠ "
-        MessageType.INFO -> ""
-    }
+    val prefix =
+        when (type) {
+            MessageType.SUCCESS -> "✓ "
+            MessageType.ERROR -> "✗ "
+            MessageType.WARNING -> "⚠ "
+            MessageType.INFO -> ""
+        }
     return prefix + title
 }
 
 @Composable
-fun SimpleMessage(
-    message: String?,
-    onDismiss: () -> Unit,
-) {
+fun SimpleMessage(message: String?, onDismiss: () -> Unit) {
     if (message != null) {
-        MessageHost(
-            message = Message(MLang.Component.Message.Hint, message),
-            onDismiss = onDismiss,
-        )
+        MessageHost(message = Message(MLang.Component.Message.Hint, message), onDismiss = onDismiss)
     }
 }
 
 @Composable
-fun ErrorMessage(
-    error: String?,
-    onDismiss: () -> Unit,
-) {
+fun ErrorMessage(error: String?, onDismiss: () -> Unit) {
     if (error != null) {
         MessageHost(
-            message = Message(MLang.Component.Message.Error, error, MessageType.ERROR, autoClose = false),
+            message =
+                Message(MLang.Component.Message.Error, error, MessageType.ERROR, autoClose = false),
             onDismiss = onDismiss,
         )
     }
 }
 
 @Composable
-fun SuccessMessage(
-    message: String?,
-    onDismiss: () -> Unit,
-) {
+fun SuccessMessage(message: String?, onDismiss: () -> Unit) {
     if (message != null) {
         MessageHost(
             message = Message(MLang.Component.Message.Success, message, MessageType.SUCCESS),

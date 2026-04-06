@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.common.util
 
 import android.content.Context
@@ -32,9 +30,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import timber.log.Timber
 
-class IntentController(
-    private val context: Context, private val scope: CoroutineScope
-) : KoinComponent {
+class IntentController(private val context: Context, private val scope: CoroutineScope) :
+    KoinComponent {
 
     private val proxyFacade: ProxyFacade by inject()
     private val profilesRepository: ProfilesRepository by inject()

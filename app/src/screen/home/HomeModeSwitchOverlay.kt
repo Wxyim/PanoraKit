@@ -28,10 +28,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,16 +43,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
@@ -70,94 +70,98 @@ fun HomeModeSwitchOverlay(
     onDismiss: () -> Unit,
     onSelectMode: (TunnelState.Mode) -> Unit,
 ) {
-    val modeItems = listOf(
-        TunnelState.Mode.Rule to MLang.Home.Profile.Rule,
-        TunnelState.Mode.Direct to MLang.Home.Profile.Direct,
-        TunnelState.Mode.Global to MLang.Home.Profile.Global,
-    )
+    val modeItems =
+        listOf(
+            TunnelState.Mode.Rule to MLang.Home.Profile.Rule,
+            TunnelState.Mode.Direct to MLang.Home.Profile.Direct,
+            TunnelState.Mode.Global to MLang.Home.Profile.Global,
+        )
 
     val visibilityState = remember { MutableTransitionState(false) }
-    LaunchedEffect(visible) {
-        visibilityState.targetState = visible
-    }
+    LaunchedEffect(visible) { visibilityState.targetState = visible }
     if (!visibilityState.currentState && !visibilityState.targetState) return
 
-    val transition = rememberTransition(transitionState = visibilityState, label = "home_mode_overlay")
-    val overlayAlpha = transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 180 else 220,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "home_mode_overlay_alpha",
-    ) { shown -> if (shown) 0.12f else 0f }
-    val panelAlpha = transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 140 else 100,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "home_mode_panel_alpha",
-    ) { shown -> if (shown) 1f else 0f }
-    val panelScale = transition.animateFloat(
-        transitionSpec = {
-            tween(
-                durationMillis = if (targetState) 180 else 140,
-                easing = FastOutSlowInEasing,
-            )
-        },
-        label = "home_mode_panel_scale",
-    ) { shown -> if (shown) 1f else 0.92f }
+    val transition =
+        rememberTransition(transitionState = visibilityState, label = "home_mode_overlay")
+    val overlayAlpha =
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 180 else 220, easing = FastOutSlowInEasing)
+            },
+            label = "home_mode_overlay_alpha",
+        ) { shown ->
+            if (shown) 0.12f else 0f
+        }
+    val panelAlpha =
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 140 else 100, easing = FastOutSlowInEasing)
+            },
+            label = "home_mode_panel_alpha",
+        ) { shown ->
+            if (shown) 1f else 0f
+        }
+    val panelScale =
+        transition.animateFloat(
+            transitionSpec = {
+                tween(durationMillis = if (targetState) 180 else 140, easing = FastOutSlowInEasing)
+            },
+            label = "home_mode_panel_scale",
+        ) { shown ->
+            if (shown) 1f else 0.92f
+        }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = overlayAlpha.value))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                ) { onDismiss() },
+            modifier =
+                Modifier.fillMaxSize()
+                    .background(Color.Black.copy(alpha = overlayAlpha.value))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                    ) {
+                        onDismiss()
+                    }
         )
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val density = LocalDensity.current
             val horizontalMargin = 14.dp
-            val anchorWidth = anchorBounds?.let { bounds ->
-                with(density) { bounds.width.toDp() }
-            }
-            val anchorHeight = anchorBounds?.let { bounds ->
-                with(density) { bounds.height.toDp() }
-            }
+            val anchorWidth = anchorBounds?.let { bounds -> with(density) { bounds.width.toDp() } }
+            val anchorHeight =
+                anchorBounds?.let { bounds -> with(density) { bounds.height.toDp() } }
             val panelWidth = ((anchorWidth ?: 96.dp) * 1.95f).coerceIn(168.dp, 188.dp)
             val panelSpacing = ((anchorHeight ?: 28.dp) * 0.28f).coerceIn(6.dp, 10.dp)
-            val panelX = anchorBounds?.let { bounds ->
-                with(density) {
-                    val anchored = bounds.right.toDp() - panelWidth
-                    anchored.coerceIn(horizontalMargin, maxWidth - panelWidth - horizontalMargin)
-                }
-            } ?: horizontalMargin
-            val panelY = anchorBounds?.let { bounds ->
-                with(density) { bounds.bottom.toDp() + panelSpacing }
-            } ?: 0.dp
+            val panelX =
+                anchorBounds?.let { bounds ->
+                    with(density) {
+                        val anchored = bounds.right.toDp() - panelWidth
+                        anchored.coerceIn(
+                            horizontalMargin,
+                            maxWidth - panelWidth - horizontalMargin,
+                        )
+                    }
+                } ?: horizontalMargin
+            val panelY =
+                anchorBounds?.let { bounds ->
+                    with(density) { bounds.bottom.toDp() + panelSpacing }
+                } ?: 0.dp
 
             Surface(
-                modifier = Modifier
-                    .absoluteOffset(x = panelX, y = panelY)
-                    .graphicsLayer {
-                        alpha = panelAlpha.value
-                        scaleX = panelScale.value
-                        scaleY = panelScale.value
-                        transformOrigin = TransformOrigin(1f, 0f)
-                    }
-                    .widthIn(min = panelWidth, max = panelWidth)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                        onClick = {},
-                    ),
+                modifier =
+                    Modifier.absoluteOffset(x = panelX, y = panelY)
+                        .graphicsLayer {
+                            alpha = panelAlpha.value
+                            scaleX = panelScale.value
+                            scaleY = panelScale.value
+                            transformOrigin = TransformOrigin(1f, 0f)
+                        }
+                        .widthIn(min = panelWidth, max = panelWidth)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                            onClick = {},
+                        ),
                 shape = RoundedCornerShape(28.dp),
             ) {
                 androidx.compose.foundation.layout.Column(
@@ -180,28 +184,25 @@ fun HomeModeSwitchOverlay(
 }
 
 @Composable
-private fun HomeModeMenuItem(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Unit) {
     val primary = MiuixTheme.colorScheme.primary
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 2.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .heightIn(min = 52.dp)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 18.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = text,
-            style = MiuixTheme.textStyles.body2.copy(
-                fontSize = 16.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            ),
+            style =
+                MiuixTheme.textStyles.body2.copy(
+                    fontSize = 16.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                ),
             color = if (selected) primary else MiuixTheme.colorScheme.onSurface,
         )
         if (selected) {

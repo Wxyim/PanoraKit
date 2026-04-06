@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.PaddingValues
@@ -61,58 +59,56 @@ fun ScreenLazyColumn(
     content: LazyListScope.() -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
-    val bottomBarScrollBehavior = if (enableGlobalScroll) {
-        LocalBottomBarScrollBehavior.current?.withLazyListState(lazyListState)
-    } else {
-        null
-    }
+    val bottomBarScrollBehavior =
+        if (enableGlobalScroll) {
+            LocalBottomBarScrollBehavior.current?.withLazyListState(lazyListState)
+        } else {
+            null
+        }
     val topBarHazeState = LocalTopBarHazeState.current
     val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
     var lastHiddenState by remember(lazyListState) { mutableStateOf(false) }
-    val resolvedContentPadding = remember(
-        contentPadding,
-        innerPadding,
-        topPadding,
-        bottomPadding,
-    ) {
-        contentPadding ?: PaddingValues(
-            top = innerPadding.calculateTopPadding() + topPadding,
-            bottom = innerPadding.calculateBottomPadding() + bottomPadding,
-            start = innerPadding.calculateStartPadding(layoutDirection),
-            end = innerPadding.calculateEndPadding(layoutDirection),
-        )
-    }
-    val fabScrollObserver = remember(lazyListState) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                val scrollDirectionCallback = latestScrollDirectionCallback ?: return Offset.Zero
-                val hiddenState = when {
-                    available.y < -1f -> true
-                    available.y > 1f -> false
-                    else -> return Offset.Zero
+    val resolvedContentPadding =
+        remember(contentPadding, innerPadding, topPadding, bottomPadding) {
+            contentPadding
+                ?: PaddingValues(
+                    top = innerPadding.calculateTopPadding() + topPadding,
+                    bottom = innerPadding.calculateBottomPadding() + bottomPadding,
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                )
+        }
+    val fabScrollObserver =
+        remember(lazyListState) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    val scrollDirectionCallback =
+                        latestScrollDirectionCallback ?: return Offset.Zero
+                    val hiddenState =
+                        when {
+                            available.y < -1f -> true
+                            available.y > 1f -> false
+                            else -> return Offset.Zero
+                        }
+                    if (hiddenState != lastHiddenState) {
+                        lastHiddenState = hiddenState
+                        scrollDirectionCallback(hiddenState)
+                    }
+                    return Offset.Zero
                 }
-                if (hiddenState != lastHiddenState) {
-                    lastHiddenState = hiddenState
-                    scrollDirectionCallback(hiddenState)
-                }
-                return Offset.Zero
-            }
 
-            override suspend fun onPostFling(
-                consumed: Velocity,
-                available: Velocity,
-            ): Velocity {
-                if (consumed.y > 1f || available.y > 1f) {
-                    latestScrollDirectionCallback?.invoke(false)
-                    lastHiddenState = false
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
+                    if (consumed.y > 1f || available.y > 1f) {
+                        latestScrollDirectionCallback?.invoke(false)
+                        lastHiddenState = false
+                    }
+                    return Velocity.Zero
                 }
-                return Velocity.Zero
             }
         }
-    }
 
     LaunchedEffect(lazyListState, latestScrollDirectionCallback) {
         val scrollDirectionCallback = onScrollDirectionChanged ?: return@LaunchedEffect
@@ -122,20 +118,21 @@ fun ScreenLazyColumn(
 
     LazyColumn(
         state = lazyListState,
-        modifier = modifier
-            .fillMaxSize()
-            .scrollEndHaptic()
-            .overScrollVertical()
-            .let { mod ->
-                if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
-            }
-            .nestedScroll(fabScrollObserver)
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .let { mod ->
-                if (enableGlobalScroll && bottomBarScrollBehavior != null) {
-                    mod.nestedScroll(bottomBarScrollBehavior.nestedScrollConnection)
-                } else mod
-            },
+        modifier =
+            modifier
+                .fillMaxSize()
+                .scrollEndHaptic()
+                .overScrollVertical()
+                .let { mod ->
+                    if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
+                }
+                .nestedScroll(fabScrollObserver)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .let { mod ->
+                    if (enableGlobalScroll && bottomBarScrollBehavior != null) {
+                        mod.nestedScroll(bottomBarScrollBehavior.nestedScrollConnection)
+                    } else mod
+                },
         contentPadding = resolvedContentPadding,
         overscrollEffect = null,
         content = content,
@@ -143,13 +140,13 @@ fun ScreenLazyColumn(
 }
 
 @Composable
-fun combinePaddingValues(
-    localPadding: PaddingValues,
-    mainPadding: PaddingValues,
-): PaddingValues {
+fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues): PaddingValues {
     return PaddingValues(
         top = localPadding.calculateTopPadding(),
-        bottom = localPadding.calculateBottomPadding() + mainPadding.calculateBottomPadding() + LocalSpacing.current.md,
+        bottom =
+            localPadding.calculateBottomPadding() +
+                mainPadding.calculateBottomPadding() +
+                LocalSpacing.current.md,
         start = localPadding.calculateStartPadding(LayoutDirection.Ltr),
         end = localPadding.calculateEndPadding(LayoutDirection.Ltr),
     )

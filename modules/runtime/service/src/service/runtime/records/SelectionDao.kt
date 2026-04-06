@@ -18,17 +18,13 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.records
 
 import com.github.yumelira.yumebox.service.runtime.entity.Selection
 import java.util.*
 
 object SelectionDao {
-    data class RestoreSelectionsResult(
-        val selections: List<Selection>,
-    )
+    data class RestoreSelectionsResult(val selections: List<Selection>)
 
     fun queryAll(): List<Selection> {
         return ProfileStore.loadSelections()
@@ -40,9 +36,7 @@ object SelectionDao {
 
     fun setSelected(selection: Selection) {
         val list = ProfileStore.loadSelections().toMutableList()
-        val index = list.indexOfFirst {
-            it.uuid == selection.uuid && it.proxy == selection.proxy
-        }
+        val index = list.indexOfFirst { it.uuid == selection.uuid && it.proxy == selection.proxy }
         if (index >= 0) {
             list[index] = selection
         } else {
@@ -70,9 +64,7 @@ object SelectionDao {
         val selections = querySelections(profileUUID)
         setSelectionScopeKey(profileUUID, currentScopeKey)
 
-        return RestoreSelectionsResult(
-            selections = selections,
-        )
+        return RestoreSelectionsResult(selections = selections)
     }
 
     fun clear(profileUUID: UUID) {

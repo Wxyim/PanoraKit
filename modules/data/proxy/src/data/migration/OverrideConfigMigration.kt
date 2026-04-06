@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.migration
 
 import android.content.Context
@@ -29,11 +27,11 @@ import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.domain.model.OverrideMetadata
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.tencent.mmkv.MMKV
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import timber.log.Timber
-import java.io.File
 
 object OverrideConfigMigration {
 
@@ -60,47 +58,46 @@ object OverrideConfigMigration {
         configRepo: OverrideConfigRepository,
         bindingRepo: ProfileBindingRepository,
         mmkv: MMKV,
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            if (isMigrated(mmkv)) {
+                Timber.d("[Migration] Already migrated to v$MIGRATION_VERSION, skipping")
+                return@withContext true
+            }
 
-        if (isMigrated(mmkv)) {
-            Timber.d("[Migration] Already migrated to v$MIGRATION_VERSION, skipping")
-            return@withContext true
+            Timber.i("[Migration] Starting OverrideConfig migration to v$MIGRATION_VERSION")
+
+            var success = true
+
+            try {
+                val templatesMigrated = migrateTemplates(context, configRepo)
+                Timber.i("[Migration] Migrated $templatesMigrated templates to configs")
+            } catch (e: Exception) {
+                Timber.e(e, "[Migration] Failed to migrate templates")
+                success = false
+            }
+
+            try {
+                val bindingsMigrated = migrateBindings(context, configRepo, bindingRepo)
+                Timber.i("[Migration] Migrated $bindingsMigrated bindings")
+            } catch (e: Exception) {
+                Timber.e(e, "[Migration] Failed to migrate bindings")
+                success = false
+            }
+
+            try {
+                migrateLegacyOverrideJson(context, configRepo)
+            } catch (e: Exception) {
+                Timber.e(e, "[Migration] Failed to migrate legacy override.json")
+            }
+
+            if (success) {
+                markMigrated(mmkv)
+                Timber.i("[Migration] Successfully completed OverrideConfig migration")
+            }
+
+            success
         }
-
-        Timber.i("[Migration] Starting OverrideConfig migration to v$MIGRATION_VERSION")
-
-        var success = true
-
-        try {
-            val templatesMigrated = migrateTemplates(context, configRepo)
-            Timber.i("[Migration] Migrated $templatesMigrated templates to configs")
-        } catch (e: Exception) {
-            Timber.e(e, "[Migration] Failed to migrate templates")
-            success = false
-        }
-
-        try {
-            val bindingsMigrated = migrateBindings(context, configRepo, bindingRepo)
-            Timber.i("[Migration] Migrated $bindingsMigrated bindings")
-        } catch (e: Exception) {
-            Timber.e(e, "[Migration] Failed to migrate bindings")
-            success = false
-        }
-
-        try {
-            migrateLegacyOverrideJson(context, configRepo)
-        } catch (e: Exception) {
-            Timber.e(e, "[Migration] Failed to migrate legacy override.json")
-
-        }
-
-        if (success) {
-            markMigrated(mmkv)
-            Timber.i("[Migration] Successfully completed OverrideConfig migration")
-        }
-
-        success
-    }
 
     private suspend fun migrateTemplates(
         context: Context,
@@ -121,15 +118,16 @@ object OverrideConfigMigration {
                 val oldTemplate = json.decodeFromString<OldOverrideTemplate>(content)
 
                 val now = System.currentTimeMillis()
-                val newConfig = OverrideConfig(
-                    id = oldTemplate.id,
-                    name = oldTemplate.name,
-                    description = oldTemplate.description,
-                    config = oldTemplate.config,
-                    isSystem = oldTemplate.isSystem,
-                    createdAt = oldTemplate.createdAt,
-                    updatedAt = oldTemplate.updatedAt,
-                )
+                val newConfig =
+                    OverrideConfig(
+                        id = oldTemplate.id,
+                        name = oldTemplate.name,
+                        description = oldTemplate.description,
+                        config = oldTemplate.config,
+                        isSystem = oldTemplate.isSystem,
+                        createdAt = oldTemplate.createdAt,
+                        updatedAt = oldTemplate.updatedAt,
+                    )
 
                 configRepo.save(newConfig)
                 count++
@@ -153,12 +151,13 @@ object OverrideConfigMigration {
         val oldBindingsKey = "profile_override_bindings"
         val str = mmkv.decodeString(oldBindingsKey, "{}") ?: "{}"
 
-        val oldBindingsMap: Map<String, OldProfileOverrideBinding> = try {
-            json.decodeFromString(str)
-        } catch (e: Exception) {
-            Timber.w(e, "[Migration] Failed to parse old bindings")
-            return 0
-        }
+        val oldBindingsMap: Map<String, OldProfileOverrideBinding> =
+            try {
+                json.decodeFromString(str)
+            } catch (e: Exception) {
+                Timber.w(e, "[Migration] Failed to parse old bindings")
+                return 0
+            }
 
         var count = 0
 
@@ -187,29 +186,33 @@ object OverrideConfigMigration {
                 if (oldBinding.customConfig != null) {
                     val customConfigId = OverrideMetadata.generateId()
                     val now = System.currentTimeMillis()
-                    val customConfig = OverrideConfig(
-                        id = customConfigId,
-                        name = "独立配置 (${profileId.take(8)})",
-                        description = "从旧版独立配置迁移",
-                        config = oldBinding.customConfig,
-                        isSystem = false,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
+                    val customConfig =
+                        OverrideConfig(
+                            id = customConfigId,
+                            name = "独立配置 (${profileId.take(8)})",
+                            description = "从旧版独立配置迁移",
+                            config = oldBinding.customConfig,
+                            isSystem = false,
+                            createdAt = now,
+                            updatedAt = now,
+                        )
                     configRepo.save(customConfig)
                     overrideIds.add(customConfigId)
                 }
 
-                val newBinding = ProfileBinding(
-                    profileId = profileId,
-                    overrideIds = overrideIds.distinct(),
-                    enabled = oldBinding.enabled,
-                )
+                val newBinding =
+                    ProfileBinding(
+                        profileId = profileId,
+                        overrideIds = overrideIds.distinct(),
+                        enabled = oldBinding.enabled,
+                    )
 
                 bindingRepo.setBinding(newBinding)
                 count++
 
-                Timber.d("[Migration] Migrated binding for profile: $profileId with ${overrideIds.size} overrides")
+                Timber.d(
+                    "[Migration] Migrated binding for profile: $profileId with ${overrideIds.size} overrides"
+                )
             } catch (e: Exception) {
                 Timber.w(e, "[Migration] Failed to migrate binding for profile: $profileId")
             }
@@ -229,18 +232,22 @@ object OverrideConfigMigration {
 
         try {
             val content = legacyFile.readText()
-            val config = json.decodeFromString<com.github.yumelira.yumebox.core.model.ConfigurationOverride>(content)
+            val config =
+                json.decodeFromString<com.github.yumelira.yumebox.core.model.ConfigurationOverride>(
+                    content
+                )
 
             val now = System.currentTimeMillis()
-            val newConfig = OverrideConfig(
-                id = OverrideMetadata.generateId(),
-                name = "从旧配置导入",
-                description = "由旧版 override.json 自动迁移",
-                config = config,
-                isSystem = false,
-                createdAt = now,
-                updatedAt = now,
-            )
+            val newConfig =
+                OverrideConfig(
+                    id = OverrideMetadata.generateId(),
+                    name = "从旧配置导入",
+                    description = "由旧版 override.json 自动迁移",
+                    config = config,
+                    isSystem = false,
+                    createdAt = now,
+                    updatedAt = now,
+                )
 
             configRepo.save(newConfig)
 

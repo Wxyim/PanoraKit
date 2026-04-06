@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.lazy.LazyListState
@@ -42,31 +40,32 @@ class BottomBarScrollBehavior {
 
     private var accumulatedScroll = 0f
 
-    val nestedScrollConnection = object : NestedScrollConnection {
-        override fun onPostScroll(
-            consumed: Offset,
-            available: Offset,
-            source: NestedScrollSource
-        ): Offset {
-            if (!isAutoHideEnabled) return Offset.Zero
-            if (source != NestedScrollSource.UserInput) return Offset.Zero
+    val nestedScrollConnection =
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (!isAutoHideEnabled) return Offset.Zero
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
 
-            val delta = consumed.y
-            if (kotlin.math.abs(delta) < 0.5f) return Offset.Zero
+                val delta = consumed.y
+                if (kotlin.math.abs(delta) < 0.5f) return Offset.Zero
 
-            if ((accumulatedScroll > 0 && delta < 0) || (accumulatedScroll < 0 && delta > 0)) {
-                accumulatedScroll = 0f
+                if ((accumulatedScroll > 0 && delta < 0) || (accumulatedScroll < 0 && delta > 0)) {
+                    accumulatedScroll = 0f
+                }
+
+                accumulatedScroll += delta
+
+                if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
+                    if (accumulatedScroll < 0) hideBottomBar() else showBottomBar()
+                    accumulatedScroll = 0f
+                }
+                return Offset.Zero
             }
-
-            accumulatedScroll += delta
-
-            if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
-                if (accumulatedScroll < 0) hideBottomBar() else showBottomBar()
-                accumulatedScroll = 0f
-            }
-            return Offset.Zero
         }
-    }
 
     fun showBottomBar() {
         val currentTime = System.currentTimeMillis()
@@ -86,24 +85,17 @@ class BottomBarScrollBehavior {
 }
 
 @Composable
-fun rememberBottomBarScrollBehavior(
-    autoHideEnabled: Boolean = true
-): BottomBarScrollBehavior {
+fun rememberBottomBarScrollBehavior(autoHideEnabled: Boolean = true): BottomBarScrollBehavior {
     return remember(autoHideEnabled) {
-        BottomBarScrollBehavior().apply {
-            isAutoHideEnabled = autoHideEnabled
-        }
+        BottomBarScrollBehavior().apply { isAutoHideEnabled = autoHideEnabled }
     }
 }
 
 @Composable
-fun BottomBarScrollBehavior.withLazyListState(
-    listState: LazyListState
-): BottomBarScrollBehavior {
+fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomBarScrollBehavior {
     val isAtTop by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 &&
-                    listState.firstVisibleItemScrollOffset == 0
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
         }
     }
 
@@ -131,6 +123,4 @@ fun BottomBarScrollBehavior.withLazyListState(
     return this
 }
 
-val LocalBottomBarScrollBehavior = compositionLocalOf<BottomBarScrollBehavior?> {
-    null
-}
+val LocalBottomBarScrollBehavior = compositionLocalOf<BottomBarScrollBehavior?> { null }

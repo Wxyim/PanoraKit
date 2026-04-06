@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.notification
 
 import android.app.Notification
@@ -32,36 +30,33 @@ import androidx.core.app.NotificationManagerCompat
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.common.util.formatSpeed
 import com.github.yumelira.yumebox.core.Clash
+import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
-import com.github.yumelira.yumebox.core.StoreIds
 import com.tencent.mmkv.MMKV
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.coroutines.*
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.*
 
-class ServiceNotificationManager(
-    private val service: Service,
-    private val config: Config,
-) {
-    data class Config(
-        val notificationId: Int,
-        val channelId: String,
-        val channelName: String,
-    )
+class ServiceNotificationManager(private val service: Service, private val config: Config) {
+    data class Config(val notificationId: Int, val channelId: String, val channelName: String)
 
     private val serviceStore by lazy { ServiceStore() }
-    private val settingsStore by lazy { MMKV.mmkvWithID(StoreIds.SETTINGS, MMKV.MULTI_PROCESS_MODE) }
+    private val settingsStore by lazy {
+        MMKV.mmkvWithID(StoreIds.SETTINGS, MMKV.MULTI_PROCESS_MODE)
+    }
     private val notificationManager by lazy { NotificationManagerCompat.from(service) }
 
     fun createChannel() {
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(
-                config.channelId,
-                NotificationManagerCompat.IMPORTANCE_LOW
-            ).setName(config.channelName).build()
+                    config.channelId,
+                    NotificationManagerCompat.IMPORTANCE_LOW,
+                )
+                .setName(config.channelName)
+                .build()
         )
     }
 
@@ -93,24 +88,26 @@ class ServiceNotificationManager(
         val downTotal = decodeTrafficHalf(total and 0xFFFFFFFFL)
 
         val speedStr = "↓ ${formatSpeed(downNow)} ↑ ${formatSpeed(upNow)}"
-        val totalStr = MLang.Service.Notification.TrafficFormat.format(formatBytes(upTotal + downTotal))
+        val totalStr =
+            MLang.Service.Notification.TrafficFormat.format(formatBytes(upTotal + downTotal))
         return buildNotification(profileName, "$speedStr | $totalStr")
     }
 
     private fun buildNotification(title: CharSequence, content: CharSequence): Notification {
-        val contentIntent = PendingIntent.getActivity(
-            service,
-            0,
-            Intent().apply {
-                component = Components.PROXY_SHEET_ACTIVITY
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_NO_ANIMATION
-                )
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val contentIntent =
+            PendingIntent.getActivity(
+                service,
+                0,
+                Intent().apply {
+                    component = Components.PROXY_SHEET_ACTIVITY
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_NO_ANIMATION
+                    )
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
         return NotificationCompat.Builder(service, config.channelId)
             .setContentTitle(title)
@@ -128,8 +125,7 @@ class ServiceNotificationManager(
 
     private fun resolveProfileName(): String {
         val active = serviceStore.activeProfile ?: return MLang.Service.Notification.UnknownProfile
-        return ImportedDao.queryByUUID(active)?.name
-            ?.takeIf { it.isNotBlank() }
+        return ImportedDao.queryByUUID(active)?.name?.takeIf { it.isNotBlank() }
             ?: MLang.Service.Notification.UnknownProfile
     }
 
@@ -154,16 +150,18 @@ class ServiceNotificationManager(
     }
 
     companion object {
-        val VPN_CONFIG = Config(
-            notificationId = 1001,
-            channelId = "clash_vpn_service",
-            channelName = "Clash VPN Service",
-        )
+        val VPN_CONFIG =
+            Config(
+                notificationId = 1001,
+                channelId = "clash_vpn_service",
+                channelName = "Clash VPN Service",
+            )
 
-        val HTTP_CONFIG = Config(
-            notificationId = 1002,
-            channelId = "clash_http_service",
-            channelName = "Clash HTTP Service",
-        )
+        val HTTP_CONFIG =
+            Config(
+                notificationId = 1002,
+                channelId = "clash_http_service",
+                channelName = "Clash HTTP Service",
+            )
     }
 }

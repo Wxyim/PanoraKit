@@ -28,18 +28,19 @@ import android.os.Build
 import com.github.yumelira.yumebox.service.common.constants.Intents
 
 /**
- * Registers [receiver] for the three intents that every runtime service must handle:
- * profile changed, override changed, and stop request.
+ * Registers [receiver] for the three intents that every runtime service must handle: profile
+ * changed, override changed, and stop request.
  *
  * Extracted from [ClashService] and [TunService] to eliminate the identical copy in each.
  */
 @SuppressLint("UnspecifiedRegisterReceiverFlag")
 internal fun Context.registerRuntimeEventsReceiver(receiver: BroadcastReceiver) {
-    val filter = IntentFilter().apply {
-        addAction(Intents.ACTION_PROFILE_CHANGED)
-        addAction(Intents.ACTION_OVERRIDE_CHANGED)
-        addAction(Intents.ACTION_CLASH_REQUEST_STOP)
-    }
+    val filter =
+        IntentFilter().apply {
+            addAction(Intents.ACTION_PROFILE_CHANGED)
+            addAction(Intents.ACTION_OVERRIDE_CHANGED)
+            addAction(Intents.ACTION_CLASH_REQUEST_STOP)
+        }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
     } else {

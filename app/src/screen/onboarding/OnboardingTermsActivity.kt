@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.os.Bundle
@@ -37,11 +35,14 @@ internal class OnboardingTermsActivity : OnboardingBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                navigateBackwardTo(OnboardingPermissionsActivity::class.java)
-            }
-        })
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigateBackwardTo(OnboardingPermissionsActivity::class.java)
+                }
+            },
+        )
 
         setOnboardingContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
@@ -59,16 +60,12 @@ internal class OnboardingTermsActivity : OnboardingBaseActivity() {
                         navigateForwardTo(OnboardingPersonalizeActivity::class.java)
                     }
                 },
-                onBack = {
-                    navigateBackwardTo(OnboardingPermissionsActivity::class.java)
-                },
+                onBack = { navigateBackwardTo(OnboardingPermissionsActivity::class.java) },
             ) {
                 TermsContent(
                     accepted = privacyState.accepted,
                     onAcceptedChange = privacyState.onAcceptedChange,
-                    onPrivacySheetRequest = {
-                        showPrivacySheet.value = true
-                    },
+                    onPrivacySheetRequest = { showPrivacySheet.value = true },
                 )
             }
 

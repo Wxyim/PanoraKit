@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.onboarding
 
 import android.os.Bundle
@@ -43,27 +41,32 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                navigateBackwardTo(OnboardingTermsActivity::class.java)
-            }
-        })
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigateBackwardTo(OnboardingTermsActivity::class.java)
+                }
+            },
+        )
 
         setOnboardingContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
             val themeState = rememberThemeCustomizationState(appSettingsViewModel)
             var showThemeColorPicker by remember { mutableStateOf(false) }
-            var editingThemeSeedColor by remember(themeState.themeSeedColorArgb) {
-                mutableStateOf(
-                    runCatching { colorFromArgb(themeState.themeSeedColorArgb) }
-                        .getOrDefault(Color.White)
-                )
-            }
-            var editingThemeSeedHex by remember(themeState.themeSeedColorArgb) {
-                mutableStateOf(
-                    "#${(themeState.themeSeedColorArgb and 0x00FFFFFFL).toString(16).uppercase().padStart(6, '0')}"
-                )
-            }
+            var editingThemeSeedColor by
+                remember(themeState.themeSeedColorArgb) {
+                    mutableStateOf(
+                        runCatching { colorFromArgb(themeState.themeSeedColorArgb) }
+                            .getOrDefault(Color.White)
+                    )
+                }
+            var editingThemeSeedHex by
+                remember(themeState.themeSeedColorArgb) {
+                    mutableStateOf(
+                        "#${(themeState.themeSeedColorArgb and 0x00FFFFFFL).toString(16).uppercase().padStart(6, '0')}"
+                    )
+                }
 
             ProvisionDetailShell(
                 previewIcon = Yume.Palette,
@@ -71,12 +74,8 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
                 subtitle = MLang.Onboarding.Personalize.Subtitle,
                 primaryText = MLang.Onboarding.Navigation.Next,
                 primaryEnabled = true,
-                onPrimaryClick = {
-                    navigateForwardTo(OnboardingFinishActivity::class.java)
-                },
-                onBack = {
-                    navigateBackwardTo(OnboardingTermsActivity::class.java)
-                },
+                onPrimaryClick = { navigateForwardTo(OnboardingFinishActivity::class.java) },
+                onBack = { navigateBackwardTo(OnboardingTermsActivity::class.java) },
             ) {
                 PersonalizeContent(
                     themeMode = themeState.themeMode,
@@ -106,7 +105,8 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
                         "#${(colorToArgbLong(it) and 0x00FFFFFFL).toString(16).uppercase().padStart(6, '0')}"
                 },
                 onEditingThemeSeedHexChange = { raw ->
-                    val normalized = "#${raw.uppercase().filter { ch -> ch in '0'..'9' || ch in 'A'..'F' }.take(6)}"
+                    val normalized =
+                        "#${raw.uppercase().filter { ch -> ch in '0'..'9' || ch in 'A'..'F' }.take(6)}"
                     editingThemeSeedHex = normalized
                     if (normalized.length == 7) {
                         normalized.removePrefix("#").toLongOrNull(16)?.let {

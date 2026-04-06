@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import android.content.Context
@@ -67,59 +65,72 @@ class ProvidersViewModel(
 
             _uiState.update { it.copy(isLoading = true) }
             val result = providersRepository.queryProviders()
-            result.onSuccess { providerList ->
-                _providers.value = providerList.sorted()
-            }.onFailure { e ->
-                _uiState.update {
-                    it.copy(error = MLang.Providers.Message.FetchFailed.format(e.message ?: MLang.Providers.Message.UnknownError))
+            result
+                .onSuccess { providerList -> _providers.value = providerList.sorted() }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error =
+                                MLang.Providers.Message.FetchFailed.format(
+                                    e.message ?: MLang.Providers.Message.UnknownError
+                                )
+                        )
+                    }
                 }
-            }
             _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     fun refreshRemoteOverrides() {
         viewModelScope.launch {
-            runCatching {
-                overrideConfigRepository.listRemoteResources()
-            }.onSuccess { resources ->
-                _remoteOverrides.value = resources
+            runCatching { overrideConfigRepository.listRemoteResources() }
+                .onSuccess { resources ->
+                    _remoteOverrides.value = resources
 
-                val now = System.currentTimeMillis()
-                val staleResources = resources.filter { resource ->
-                    val dueAt = resource.lastUpdatedAt + resource.updateIntervalSeconds * 1_000L
-                    now >= dueAt
-                }
+                    val now = System.currentTimeMillis()
+                    val staleResources =
+                        resources.filter { resource ->
+                            val dueAt =
+                                resource.lastUpdatedAt + resource.updateIntervalSeconds * 1_000L
+                            now >= dueAt
+                        }
 
-                if (staleResources.isNotEmpty()) {
-                    val failedResources = mutableListOf<String>()
-                    staleResources.forEach { stale ->
-                        runCatching {
-                            overrideConfigRepository.refreshRemoteResource(
-                                id = stale.id,
-                                allowInsecureHttpNonLocalhost = appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                            )
-                        }.onFailure {
-                            failedResources += stale.name
+                    if (staleResources.isNotEmpty()) {
+                        val failedResources = mutableListOf<String>()
+                        staleResources.forEach { stale ->
+                            runCatching {
+                                    overrideConfigRepository.refreshRemoteResource(
+                                        id = stale.id,
+                                        allowInsecureHttpNonLocalhost =
+                                            appSettingsRepository.allowNonLocalhostHttpRemote.value,
+                                    )
+                                }
+                                .onFailure { failedResources += stale.name }
+                        }
+                        _remoteOverrides.value = overrideConfigRepository.listRemoteResources()
+
+                        if (failedResources.isNotEmpty()) {
+                            _uiState.update {
+                                it.copy(
+                                    error =
+                                        MLang.Providers.Message.UpdateFailedResources.format(
+                                            failedResources.joinToString(", ")
+                                        )
+                                )
+                            }
                         }
                     }
-                    _remoteOverrides.value = overrideConfigRepository.listRemoteResources()
-
-                    if (failedResources.isNotEmpty()) {
-                        _uiState.update {
-                            it.copy(
-                                error = MLang.Providers.Message.UpdateFailedResources.format(
-                                    failedResources.joinToString(", "),
-                                ),
-                            )
-                        }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error =
+                                MLang.Providers.Message.FetchFailed.format(
+                                    e.message ?: MLang.Providers.Message.UnknownError
+                                )
+                        )
                     }
                 }
-            }.onFailure { e ->
-                _uiState.update {
-                    it.copy(error = MLang.Providers.Message.FetchFailed.format(e.message ?: MLang.Providers.Message.UnknownError))
-                }
-            }
         }
     }
 
@@ -128,18 +139,30 @@ class ProvidersViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
             runCatching {
-                overrideConfigRepository.refreshRemoteResource(
-                    id = resource.id,
-                    allowInsecureHttpNonLocalhost = appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                )
-            }.onSuccess {
-                refreshRemoteOverrides()
-                _uiState.update { it.copy(message = MLang.Providers.Message.UpdateSuccess.format(resource.name)) }
-            }.onFailure { e ->
-                _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: MLang.Providers.Message.UnknownError))
+                    overrideConfigRepository.refreshRemoteResource(
+                        id = resource.id,
+                        allowInsecureHttpNonLocalhost =
+                            appSettingsRepository.allowNonLocalhostHttpRemote.value,
+                    )
                 }
-            }
+                .onSuccess {
+                    refreshRemoteOverrides()
+                    _uiState.update {
+                        it.copy(
+                            message = MLang.Providers.Message.UpdateSuccess.format(resource.name)
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error =
+                                MLang.Providers.Message.UpdateFailed.format(
+                                    e.message ?: MLang.Providers.Message.UnknownError
+                                )
+                        )
+                    }
+                }
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - key) }
         }
     }
@@ -149,49 +172,62 @@ class ProvidersViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
             val result = providersRepository.updateProvider(provider)
-            result.onSuccess {
-                refreshProviders()
-                _uiState.update { it.copy(message = MLang.Providers.Message.UpdateSuccess.format(provider.name)) }
-            }.onFailure { e ->
-                _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: MLang.Providers.Message.UnknownError))
+            result
+                .onSuccess {
+                    refreshProviders()
+                    _uiState.update {
+                        it.copy(
+                            message = MLang.Providers.Message.UpdateSuccess.format(provider.name)
+                        )
+                    }
                 }
-            }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error =
+                                MLang.Providers.Message.UpdateFailed.format(
+                                    e.message ?: MLang.Providers.Message.UnknownError
+                                )
+                        )
+                    }
+                }
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
         }
     }
 
     fun updateAllProviders() {
         viewModelScope.launch {
-            val httpProviders = _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
+            val httpProviders =
+                _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
             val remoteOverrides = _remoteOverrides.value
             if (httpProviders.isEmpty() && remoteOverrides.isEmpty()) return@launch
 
             _uiState.update { it.copy(isUpdatingAll = true) }
-            val providerKeys = httpProviders.map { "${it.type}_${it.name}" }.toSet() +
-                remoteOverrides.map { remoteOverrideKey(it.id) }
+            val providerKeys =
+                httpProviders.map { "${it.type}_${it.name}" }.toSet() +
+                    remoteOverrides.map { remoteOverrideKey(it.id) }
             _uiState.update { it.copy(updatingProviders = providerKeys) }
 
             val failedItems = mutableListOf<String>()
 
             if (httpProviders.isNotEmpty()) {
                 val providerResult = providersRepository.updateAllProviders(httpProviders)
-                providerResult.onSuccess { updateResult ->
-                    failedItems += updateResult.failedProviders
-                }.onFailure { e ->
-                    failedItems += e.message ?: MLang.Providers.Message.UnknownError
-                }
+                providerResult
+                    .onSuccess { updateResult -> failedItems += updateResult.failedProviders }
+                    .onFailure { e ->
+                        failedItems += e.message ?: MLang.Providers.Message.UnknownError
+                    }
             }
 
             remoteOverrides.forEach { resource ->
                 runCatching {
-                    overrideConfigRepository.refreshRemoteResource(
-                        id = resource.id,
-                        allowInsecureHttpNonLocalhost = appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                    )
-                }.onFailure {
-                    failedItems += resource.name
-                }
+                        overrideConfigRepository.refreshRemoteResource(
+                            id = resource.id,
+                            allowInsecureHttpNonLocalhost =
+                                appSettingsRepository.allowNonLocalhostHttpRemote.value,
+                        )
+                    }
+                    .onFailure { failedItems += resource.name }
             }
 
             refreshProviders()
@@ -201,7 +237,10 @@ class ProvidersViewModel(
             } else {
                 _uiState.update {
                     it.copy(
-                        error = MLang.Providers.Message.UpdateFailedResources.format(failedItems.joinToString(", ")),
+                        error =
+                            MLang.Providers.Message.UpdateFailedResources.format(
+                                failedItems.joinToString(", ")
+                            )
                     )
                 }
             }
@@ -226,14 +265,25 @@ class ProvidersViewModel(
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
 
             val result = providersRepository.uploadProviderFile(context, provider, uri)
-            result.onSuccess {
-                refreshProviders()
-                _uiState.update { it.copy(message = MLang.Providers.Message.UploadSuccess.format(provider.name)) }
-            }.onFailure { e ->
-                _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UploadFailed.format(e.message ?: MLang.Providers.Message.UnknownError))
+            result
+                .onSuccess {
+                    refreshProviders()
+                    _uiState.update {
+                        it.copy(
+                            message = MLang.Providers.Message.UploadSuccess.format(provider.name)
+                        )
+                    }
                 }
-            }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error =
+                                MLang.Providers.Message.UploadFailed.format(
+                                    e.message ?: MLang.Providers.Message.UnknownError
+                                )
+                        )
+                    }
+                }
 
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
         }
@@ -244,6 +294,6 @@ class ProvidersViewModel(
         val isUpdatingAll: Boolean = false,
         val updatingProviders: Set<String> = emptySet(),
         val message: String? = null,
-        val error: String? = null
+        val error: String? = null,
     )
 }

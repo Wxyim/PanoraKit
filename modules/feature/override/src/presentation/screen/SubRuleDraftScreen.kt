@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.layout.*
@@ -39,18 +37,22 @@ import top.yukonga.miuix.kmp.extra.SuperArrow
 @Composable
 fun OverrideSubRuleDraftEditorScreen(
     navigator: DestinationsNavigator,
-    onOpenRuleListEditor: (
-        title: String,
-        values: OverrideListModeValues<List<String>>,
-        availableModes: List<OverrideListEditorMode>,
-        selectedMode: OverrideListEditorMode,
-        referenceCatalog: OverrideReferenceCatalog,
-        callback: (OverrideListModeValues<List<String>>) -> Unit,
-    ) -> Unit,
+    onOpenRuleListEditor:
+        (
+            title: String,
+            values: OverrideListModeValues<List<String>>,
+            availableModes: List<OverrideListEditorMode>,
+            selectedMode: OverrideListEditorMode,
+            referenceCatalog: OverrideReferenceCatalog,
+            callback: (OverrideListModeValues<List<String>>) -> Unit,
+        ) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = OverrideStructuredEditorStore.subRuleDraftEditorTitle.ifBlank { MLang.Override.Draft.SubRuleGroup }
+    val title =
+        OverrideStructuredEditorStore.subRuleDraftEditorTitle.ifBlank {
+            MLang.Override.Draft.SubRuleGroup
+        }
     val storeDraft = OverrideStructuredEditorStore.subRuleDraftEditorValue
     val saveFabController = rememberOverrideFabController()
     val draftUiId = remember { storeDraft?.uiId ?: OverrideSubRuleGroupDraft().uiId }
@@ -59,21 +61,19 @@ fun OverrideSubRuleDraftEditorScreen(
     var rules by remember { mutableStateOf(storeDraft?.rules.orEmpty()) }
     var errorText by remember { mutableStateOf<String?>(null) }
 
-    fun syncDraftSession(
-        updatedName: String = name,
-        updatedRules: List<String> = rules,
-    ) {
+    fun syncDraftSession(updatedName: String = name, updatedRules: List<String> = rules) {
         OverrideStructuredEditorStore.updateSubRuleDraftEditorSession(
             OverrideSubRuleGroupDraft(
                 name = updatedName,
                 rules = updatedRules,
                 uiId = OverrideStructuredEditorStore.subRuleDraftEditorValue?.uiId ?: draftUiId,
-            ),
+            )
         )
     }
 
     LaunchedEffect(storeDraft?.name, storeDraft?.rules) {
-        val latestDraft = OverrideStructuredEditorStore.subRuleDraftEditorValue ?: return@LaunchedEffect
+        val latestDraft =
+            OverrideStructuredEditorStore.subRuleDraftEditorValue ?: return@LaunchedEffect
         if (name != latestDraft.name) {
             name = latestDraft.name
         }
@@ -104,19 +104,16 @@ fun OverrideSubRuleDraftEditorScreen(
                         OverrideSubRuleGroupDraft(
                             name = name.trim(),
                             rules = rules,
-                            uiId = OverrideStructuredEditorStore.subRuleDraftEditorValue?.uiId ?: draftUiId,
-                        ),
+                            uiId =
+                                OverrideStructuredEditorStore.subRuleDraftEditorValue?.uiId
+                                    ?: draftUiId,
+                        )
                     )
                     navigator.navigateUp()
                 },
             )
         },
-        topBar = {
-            TopBar(
-                title = title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = title, scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -145,11 +142,12 @@ fun OverrideSubRuleDraftEditorScreen(
                     OverrideCardSection(MLang.Override.Draft.RuleList) {
                         SuperArrow(
                             title = MLang.Override.Draft.RuleList,
-                            summary = if (rules.isEmpty()) {
-                                MLang.Override.Draft.NoRules
-                            } else {
-                                MLang.Override.Draft.RulesConfigured.format(rules.size)
-                            },
+                            summary =
+                                if (rules.isEmpty()) {
+                                    MLang.Override.Draft.NoRules
+                                } else {
+                                    MLang.Override.Draft.RulesConfigured.format(rules.size)
+                                },
                             onClick = {
                                 syncDraftSession()
                                 onOpenRuleListEditor(
@@ -160,7 +158,10 @@ fun OverrideSubRuleDraftEditorScreen(
                                     OverrideStructuredEditorStore.currentReferenceCatalog(),
                                 ) { updatedValues ->
                                     syncDraftSession(
-                                        updatedName = OverrideStructuredEditorStore.subRuleDraftEditorValue?.name.orEmpty(),
+                                        updatedName =
+                                            OverrideStructuredEditorStore.subRuleDraftEditorValue
+                                                ?.name
+                                                .orEmpty(),
                                         updatedRules = updatedValues.replaceValue.orEmpty(),
                                     )
                                 }

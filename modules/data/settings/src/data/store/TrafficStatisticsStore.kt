@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.store
 
 import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
@@ -27,11 +25,11 @@ import com.github.yumelira.yumebox.data.model.ProfileTrafficUsage
 import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.model.TrafficSlotData
 import com.tencent.mmkv.MMKV
+import java.util.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
-import java.util.*
 
 class TrafficStatisticsStore(private val mmkv: MMKV) {
 
@@ -89,7 +87,12 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         }
     }
 
-    fun recordTraffic(uploadDelta: Long, downloadDelta: Long, profileId: String? = null, profileName: String? = null) {
+    fun recordTraffic(
+        uploadDelta: Long,
+        downloadDelta: Long,
+        profileId: String? = null,
+        profileName: String? = null,
+    ) {
         if (uploadDelta <= 0 && downloadDelta <= 0) return
 
         val now = System.currentTimeMillis()
@@ -99,27 +102,31 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         val slotIndex = TimeSlot.fromHour(currentHour).ordinal
 
         val currentSummaries = _dailySummaries.value.toMutableMap()
-        val todaySummary = currentSummaries[todayKey] ?: DailyTrafficSummary(
-            dateMillis = todayKey,
-            totalUpload = 0L,
-            totalDownload = 0L,
-            hourlyData = emptyMap()
-        )
+        val todaySummary =
+            currentSummaries[todayKey]
+                ?: DailyTrafficSummary(
+                    dateMillis = todayKey,
+                    totalUpload = 0L,
+                    totalDownload = 0L,
+                    hourlyData = emptyMap(),
+                )
 
         val currentHourlyData = todaySummary.hourlyData.toMutableMap()
         val currentSlot = currentHourlyData[slotIndex] ?: TrafficSlotData(slotIndex, 0L, 0L)
 
-        val updatedSlot = currentSlot.copy(
-            upload = currentSlot.upload + uploadDelta,
-            download = currentSlot.download + downloadDelta
-        )
+        val updatedSlot =
+            currentSlot.copy(
+                upload = currentSlot.upload + uploadDelta,
+                download = currentSlot.download + downloadDelta,
+            )
         currentHourlyData[slotIndex] = updatedSlot
 
-        val updatedSummary = todaySummary.copy(
-            totalUpload = todaySummary.totalUpload + uploadDelta,
-            totalDownload = todaySummary.totalDownload + downloadDelta,
-            hourlyData = currentHourlyData
-        )
+        val updatedSummary =
+            todaySummary.copy(
+                totalUpload = todaySummary.totalUpload + uploadDelta,
+                totalDownload = todaySummary.totalDownload + downloadDelta,
+                hourlyData = currentHourlyData,
+            )
 
         currentSummaries[todayKey] = updatedSummary
         _dailySummaries.value = cleanOldData(currentSummaries)
@@ -134,23 +141,26 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         profileId: String,
         profileName: String,
         uploadDelta: Long,
-        downloadDelta: Long
+        downloadDelta: Long,
     ) {
         if (uploadDelta <= 0 && downloadDelta <= 0) return
 
         val currentUsages = _profileUsages.value.toMutableMap()
-        val currentUsage = currentUsages[profileId] ?: ProfileTrafficUsage(
-            profileId = profileId,
-            profileName = profileName,
-            totalUpload = 0L,
-            totalDownload = 0L
-        )
+        val currentUsage =
+            currentUsages[profileId]
+                ?: ProfileTrafficUsage(
+                    profileId = profileId,
+                    profileName = profileName,
+                    totalUpload = 0L,
+                    totalDownload = 0L,
+                )
 
-        val updatedUsage = currentUsage.copy(
-            profileName = profileName,
-            totalUpload = currentUsage.totalUpload + uploadDelta,
-            totalDownload = currentUsage.totalDownload + downloadDelta
-        )
+        val updatedUsage =
+            currentUsage.copy(
+                profileName = profileName,
+                totalUpload = currentUsage.totalUpload + uploadDelta,
+                totalDownload = currentUsage.totalDownload + downloadDelta,
+            )
 
         currentUsages[profileId] = updatedUsage
         _profileUsages.value = currentUsages
@@ -163,9 +173,7 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     }
 
     fun getYesterdaySummary(): DailyTrafficSummary {
-        val calendar = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, -1)
-        }
+        val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
         val yesterdayKey = getDayKey(calendar)
         return _dailySummaries.value[yesterdayKey] ?: DailyTrafficSummary.EMPTY
     }
@@ -174,15 +182,15 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         val result = mutableListOf<DailyTrafficSummary>()
 
         repeat(days) { i ->
-            val targetCalendar = Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_YEAR, -i)
-            }
+            val targetCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -i) }
             val dayKey = getDayKey(targetCalendar)
-            val summary = _dailySummaries.value[dayKey] ?: DailyTrafficSummary(
-                dateMillis = dayKey,
-                totalUpload = 0L,
-                totalDownload = 0L
-            )
+            val summary =
+                _dailySummaries.value[dayKey]
+                    ?: DailyTrafficSummary(
+                        dateMillis = dayKey,
+                        totalUpload = 0L,
+                        totalDownload = 0L,
+                    )
             result.add(summary)
         }
 
@@ -197,8 +205,7 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     }
 
     fun getProfileUsagesSorted(): List<ProfileTrafficUsage> {
-        return _profileUsages.value.values
-            .sortedByDescending { it.totalBytes }
+        return _profileUsages.value.values.sortedByDescending { it.totalBytes }
     }
 
     fun clearAll() {
@@ -217,7 +224,9 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     }
 
     fun getLastTrafficUpload(): Long = mmkv.decodeLong(KEY_LAST_TRAFFIC_UPLOAD, 0L)
+
     fun getLastTrafficDownload(): Long = mmkv.decodeLong(KEY_LAST_TRAFFIC_DOWNLOAD, 0L)
+
     fun getLastProfileId(): String? = mmkv.decodeString(KEY_LAST_PROFILE_ID)
 
     private fun getDayKey(calendar: Calendar): Long {
@@ -229,7 +238,9 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         return cal.timeInMillis
     }
 
-    private fun cleanOldData(data: MutableMap<Long, DailyTrafficSummary>): Map<Long, DailyTrafficSummary> {
+    private fun cleanOldData(
+        data: MutableMap<Long, DailyTrafficSummary>
+    ): Map<Long, DailyTrafficSummary> {
         val cutoffTime = System.currentTimeMillis() - (MAX_DAYS_TO_KEEP * 24 * 60 * 60 * 1000L)
         return data.filterKeys { it >= cutoffTime }
     }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.data.model
 
 import kotlinx.serialization.Serializable
@@ -29,9 +27,10 @@ data class TrafficRecord(
     val timestamp: Long,
     val upload: Long,
     val download: Long,
-    val profileId: String? = null
+    val profileId: String? = null,
 ) {
-    val total: Long get() = upload + download
+    val total: Long
+        get() = upload + download
 }
 
 enum class TimeSlot(val startHour: Int, val endHour: Int, val label: String) {
@@ -54,9 +53,10 @@ data class DailyTrafficSummary(
     val dateMillis: Long,
     val totalUpload: Long,
     val totalDownload: Long,
-    val hourlyData: Map<Int, TrafficSlotData> = emptyMap()
+    val hourlyData: Map<Int, TrafficSlotData> = emptyMap(),
 ) {
-    val total: Long get() = totalUpload + totalDownload
+    val total: Long
+        get() = totalUpload + totalDownload
 
     companion object {
         val EMPTY = DailyTrafficSummary(0L, 0L, 0L)
@@ -64,12 +64,9 @@ data class DailyTrafficSummary(
 }
 
 @Serializable
-data class TrafficSlotData(
-    val slotIndex: Int,
-    val upload: Long,
-    val download: Long
-) {
-    val total: Long get() = upload + download
+data class TrafficSlotData(val slotIndex: Int, val upload: Long, val download: Long) {
+    val total: Long
+        get() = upload + download
 }
 
 @Serializable
@@ -77,9 +74,10 @@ data class ProfileTrafficUsage(
     val profileId: String,
     val profileName: String,
     val totalUpload: Long,
-    val totalDownload: Long
+    val totalDownload: Long,
 ) {
-    val totalBytes: Long get() = totalUpload + totalDownload
+    val totalBytes: Long
+        get() = totalUpload + totalDownload
 }
 
 enum class StatisticsTimeRange(val days: Int) {
@@ -87,10 +85,11 @@ enum class StatisticsTimeRange(val days: Int) {
     WEEK(7);
 
     val label: String
-        get() = when (this) {
-            TODAY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Today
-            WEEK -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Week
-        }
+        get() =
+            when (this) {
+                TODAY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Today
+                WEEK -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Week
+            }
 }
 
 enum class ChartGranularity {
@@ -98,8 +97,9 @@ enum class ChartGranularity {
     DAILY;
 
     val label: String
-        get() = when (this) {
-            HOURLY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Hourly
-            DAILY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Daily
-        }
+        get() =
+            when (this) {
+                HOURLY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Hourly
+                DAILY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Daily
+            }
 }

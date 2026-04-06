@@ -33,27 +33,25 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 
-typealias OpenStringListEditor = (
-    title: String,
-    placeholder: String,
-    value: List<String>?,
-    onValueChange: (List<String>?) -> Unit,
-) -> Unit
+typealias OpenStringListEditor =
+    (
+        title: String,
+        placeholder: String,
+        value: List<String>?,
+        onValueChange: (List<String>?) -> Unit,
+    ) -> Unit
 
-typealias OpenStringMapEditor = (
-    title: String,
-    keyPlaceholder: String,
-    valuePlaceholder: String,
-    value: Map<String, String>?,
-    onValueChange: (Map<String, String>?) -> Unit,
-) -> Unit
+typealias OpenStringMapEditor =
+    (
+        title: String,
+        keyPlaceholder: String,
+        valuePlaceholder: String,
+        value: Map<String, String>?,
+        onValueChange: (Map<String, String>?) -> Unit,
+    ) -> Unit
 
-typealias OpenJsonEditor = (
-    title: String,
-    placeholder: String,
-    value: String?,
-    onValueChange: (String?) -> Unit,
-) -> Unit
+typealias OpenJsonEditor =
+    (title: String, placeholder: String, value: String?, onValueChange: (String?) -> Unit) -> Unit
 
 @Composable
 private fun OverrideTextInputContent(
@@ -95,9 +93,7 @@ private fun OverrideIntInputContent(
         onDismissRequest = { showDialog.value = false },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TextField(
@@ -126,9 +122,7 @@ private fun OverrideIntInputContent(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(
-                        text = MLang.Component.Button.Confirm,
-                    )
+                    Text(text = MLang.Component.Button.Confirm)
                 }
             }
         }
@@ -136,16 +130,8 @@ private fun OverrideIntInputContent(
 }
 
 @Composable
-private fun OverridePortInputContent(
-    title: String,
-    value: Int?,
-    onValueChange: (Int?) -> Unit,
-) {
-    PortInputContent(
-        title = title,
-        value = value,
-        onValueChange = onValueChange,
-    )
+private fun OverridePortInputContent(title: String, value: Int?, onValueChange: (Int?) -> Unit) {
+    PortInputContent(title = title, value = value, onValueChange = onValueChange)
 }
 
 @Composable
@@ -154,9 +140,7 @@ fun InboundEditor(
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideFormSection(MLang.Override.Form.ProxyPorts) {
             OverridePortInputContent(
                 title = MLang.Override.General.HttpPort,
@@ -193,25 +177,25 @@ fun GeneralEditor(
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.RunAndLog) {
             NullableEnumSelector(
                 title = MLang.Override.General.ProxyMode,
                 value = config.mode,
-                items = listOf(
-                    MLang.Component.Selector.NotModify,
-                    MLang.Proxy.Mode.Direct,
-                    MLang.Proxy.Mode.Global,
-                    MLang.Proxy.Mode.Rule,
-                ),
-                values = listOf(
-                    null,
-                    TunnelState.Mode.Direct,
-                    TunnelState.Mode.Global,
-                    TunnelState.Mode.Rule,
-                ),
+                items =
+                    listOf(
+                        MLang.Component.Selector.NotModify,
+                        MLang.Proxy.Mode.Direct,
+                        MLang.Proxy.Mode.Global,
+                        MLang.Proxy.Mode.Rule,
+                    ),
+                values =
+                    listOf(
+                        null,
+                        TunnelState.Mode.Direct,
+                        TunnelState.Mode.Global,
+                        TunnelState.Mode.Rule,
+                    ),
                 onValueChange = { onConfigChange(config.copy(mode = it)) },
             )
             NullableBooleanSelector(
@@ -222,34 +206,37 @@ fun GeneralEditor(
             NullableEnumSelector(
                 title = MLang.Override.General.LogLevel,
                 value = config.logLevel,
-                items = listOf(
-                    MLang.Component.Selector.NotModify,
-                    "Info",
-                    "Warning",
-                    "Error",
-                    "Debug",
-                    "Silent",
-                ),
-                values = listOf(
-                    null,
-                    LogMessage.Level.Info,
-                    LogMessage.Level.Warning,
-                    LogMessage.Level.Error,
-                    LogMessage.Level.Debug,
-                    LogMessage.Level.Silent,
-                ),
+                items =
+                    listOf(
+                        MLang.Component.Selector.NotModify,
+                        "Info",
+                        "Warning",
+                        "Error",
+                        "Debug",
+                        "Silent",
+                    ),
+                values =
+                    listOf(
+                        null,
+                        LogMessage.Level.Info,
+                        LogMessage.Level.Warning,
+                        LogMessage.Level.Error,
+                        LogMessage.Level.Debug,
+                        LogMessage.Level.Silent,
+                    ),
                 onValueChange = { onConfigChange(config.copy(logLevel = it)) },
             )
             NullableEnumSelector(
                 title = MLang.Override.Form.ProcessMode,
                 value = config.findProcessMode,
                 items = listOf(MLang.Override.Form.NotModify, "Always", "Strict", "Off"),
-                values = listOf(
-                    null,
-                    ConfigurationOverride.FindProcessMode.Always,
-                    ConfigurationOverride.FindProcessMode.Strict,
-                    ConfigurationOverride.FindProcessMode.Off,
-                ),
+                values =
+                    listOf(
+                        null,
+                        ConfigurationOverride.FindProcessMode.Always,
+                        ConfigurationOverride.FindProcessMode.Strict,
+                        ConfigurationOverride.FindProcessMode.Off,
+                    ),
                 onValueChange = { onConfigChange(config.copy(findProcessMode = it)) },
             )
             NullableBooleanSelector(
@@ -412,28 +399,25 @@ fun GeneralEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            externalControllerCors = config.externalControllerCors.copy(
-                                allowOrigins = it,
-                            ),
-                        ),
+                            externalControllerCors =
+                                config.externalControllerCors.copy(allowOrigins = it)
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            externalControllerCors = config.externalControllerCors.copy(
-                                allowOriginsStart = it,
-                            ),
-                        ),
+                            externalControllerCors =
+                                config.externalControllerCors.copy(allowOriginsStart = it)
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            externalControllerCors = config.externalControllerCors.copy(
-                                allowOriginsEnd = it,
-                            ),
-                        ),
+                            externalControllerCors =
+                                config.externalControllerCors.copy(allowOriginsEnd = it)
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -444,10 +428,9 @@ fun GeneralEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            externalControllerCors = config.externalControllerCors.copy(
-                                allowPrivateNetwork = it,
-                            ),
-                        ),
+                            externalControllerCors =
+                                config.externalControllerCors.copy(allowPrivateNetwork = it)
+                        )
                     )
                 },
             )
@@ -519,9 +502,7 @@ fun TunEditor(
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.TunBasicSwitch) {
             NullableBooleanSelector(
                 title = MLang.Override.Label.Enable,
@@ -567,9 +548,7 @@ fun TunEditor(
                 title = MLang.Override.Form.EndpointIndependentNat,
                 value = config.tun.endpointIndependentNat,
                 onValueChange = {
-                    onConfigChange(
-                        config.copy(tun = config.tun.copy(endpointIndependentNat = it)),
-                    )
+                    onConfigChange(config.copy(tun = config.tun.copy(endpointIndependentNat = it)))
                 },
             )
         }
@@ -652,7 +631,7 @@ fun TunEditor(
                 },
                 onStartChange = {
                     onConfigChange(
-                        config.copy(tun = config.tun.copy(routeExcludeAddressStart = it)),
+                        config.copy(tun = config.tun.copy(routeExcludeAddressStart = it))
                     )
                 },
                 onEndChange = {
@@ -705,22 +684,19 @@ fun DnsEditor(
     onEditStringList: OpenStringListModifiersEditor,
     onEditStringMap: OpenStringMapEditor,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.DnsBasicSwitch) {
             NullableEnumSelector(
                 title = MLang.Override.Dns.Policy,
                 value = config.dns.enable,
-                items = listOf(
-                    MLang.Override.Dns.PolicyNotModify,
-                    MLang.Override.Dns.PolicyForceEnable,
-                    MLang.Override.Dns.PolicyUseBuiltin,
-                ),
+                items =
+                    listOf(
+                        MLang.Override.Dns.PolicyNotModify,
+                        MLang.Override.Dns.PolicyForceEnable,
+                        MLang.Override.Dns.PolicyUseBuiltin,
+                    ),
                 values = listOf(null, true, false),
-                onValueChange = {
-                    onConfigChange(config.copy(dns = config.dns.copy(enable = it)))
-                },
+                onValueChange = { onConfigChange(config.copy(dns = config.dns.copy(enable = it))) },
             )
             NullableBooleanSelector(
                 title = MLang.Override.Dns.PreferH3,
@@ -732,9 +708,7 @@ fun DnsEditor(
             NullableBooleanSelector(
                 title = MLang.Override.Dns.Ipv6,
                 value = config.dns.ipv6,
-                onValueChange = {
-                    onConfigChange(config.copy(dns = config.dns.copy(ipv6 = it)))
-                },
+                onValueChange = { onConfigChange(config.copy(dns = config.dns.copy(ipv6 = it))) },
             )
             NullableBooleanSelector(
                 title = MLang.Override.Dns.UseHosts,
@@ -767,18 +741,20 @@ fun DnsEditor(
             NullableEnumSelector(
                 title = MLang.Override.Dns.EnhancedMode,
                 value = config.dns.enhancedMode,
-                items = listOf(
-                    MLang.Override.Dns.EnhancedNotModify,
-                    MLang.Override.Dns.EnhancedDisable,
-                    MLang.Override.Dns.EnhancedFakeip,
-                    MLang.Override.Dns.EnhancedMapping,
-                ),
-                values = listOf(
-                    null,
-                    ConfigurationOverride.DnsEnhancedMode.None,
-                    ConfigurationOverride.DnsEnhancedMode.FakeIp,
-                    ConfigurationOverride.DnsEnhancedMode.Mapping,
-                ),
+                items =
+                    listOf(
+                        MLang.Override.Dns.EnhancedNotModify,
+                        MLang.Override.Dns.EnhancedDisable,
+                        MLang.Override.Dns.EnhancedFakeip,
+                        MLang.Override.Dns.EnhancedMapping,
+                    ),
+                values =
+                    listOf(
+                        null,
+                        ConfigurationOverride.DnsEnhancedMode.None,
+                        ConfigurationOverride.DnsEnhancedMode.FakeIp,
+                        ConfigurationOverride.DnsEnhancedMode.Mapping,
+                    ),
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(enhancedMode = it)))
                 },
@@ -829,18 +805,20 @@ fun DnsEditor(
             NullableEnumSelector(
                 title = MLang.Override.Dns.FakeipFilterMode,
                 value = config.dns.fakeIPFilterMode,
-                items = listOf(
-                    MLang.Override.Dns.EnhancedNotModify,
-                    MLang.Override.Dns.FakeipBlacklist,
-                    MLang.Override.Dns.FakeipWhitelist,
-                    "Rule",
-                ),
-                values = listOf(
-                    null,
-                    ConfigurationOverride.FilterMode.BlackList,
-                    ConfigurationOverride.FilterMode.WhiteList,
-                    ConfigurationOverride.FilterMode.Rule,
-                ),
+                items =
+                    listOf(
+                        MLang.Override.Dns.EnhancedNotModify,
+                        MLang.Override.Dns.FakeipBlacklist,
+                        MLang.Override.Dns.FakeipWhitelist,
+                        "Rule",
+                    ),
+                values =
+                    listOf(
+                        null,
+                        ConfigurationOverride.FilterMode.BlackList,
+                        ConfigurationOverride.FilterMode.WhiteList,
+                        ConfigurationOverride.FilterMode.Rule,
+                    ),
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(fakeIPFilterMode = it)))
                 },
@@ -937,12 +915,12 @@ fun DnsEditor(
                 },
                 onStartChange = {
                     onConfigChange(
-                        config.copy(dns = config.dns.copy(proxyServerNameserverStart = it)),
+                        config.copy(dns = config.dns.copy(proxyServerNameserverStart = it))
                     )
                 },
                 onEndChange = {
                     onConfigChange(
-                        config.copy(dns = config.dns.copy(proxyServerNameserverEnd = it)),
+                        config.copy(dns = config.dns.copy(proxyServerNameserverEnd = it))
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -991,12 +969,12 @@ fun DnsEditor(
                 valuePlaceholder = MLang.Override.Dns.ProxyServerNameserverPolicyValue,
                 onReplaceChange = {
                     onConfigChange(
-                        config.copy(dns = config.dns.copy(proxyServerNameserverPolicy = it)),
+                        config.copy(dns = config.dns.copy(proxyServerNameserverPolicy = it))
                     )
                 },
                 onMergeChange = {
                     onConfigChange(
-                        config.copy(dns = config.dns.copy(proxyServerNameserverPolicyMerge = it)),
+                        config.copy(dns = config.dns.copy(proxyServerNameserverPolicyMerge = it))
                     )
                 },
                 onEditMap = { _, title, keyPlaceholder, valuePlaceholder, value, callback ->
@@ -1044,10 +1022,11 @@ fun DnsEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(geoIp = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(geoIp = it)
+                                )
+                        )
                     )
                 },
             )
@@ -1061,10 +1040,11 @@ fun DnsEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(geoIpCode = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(geoIpCode = it)
+                                )
+                        )
                     )
                 },
             )
@@ -1080,28 +1060,32 @@ fun DnsEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(domain = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(domain = it)
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(domainStart = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter =
+                                        config.dns.fallbackFilter.copy(domainStart = it)
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(domainEnd = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(domainEnd = it)
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1115,28 +1099,32 @@ fun DnsEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(ipcidr = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(ipcidr = it)
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(ipcidrStart = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter =
+                                        config.dns.fallbackFilter.copy(ipcidrStart = it)
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(ipcidrEnd = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(ipcidrEnd = it)
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1150,28 +1138,32 @@ fun DnsEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(geosite = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(geosite = it)
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(geositeStart = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter =
+                                        config.dns.fallbackFilter.copy(geositeStart = it)
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            dns = config.dns.copy(
-                                fallbackFilter = config.dns.fallbackFilter.copy(geositeEnd = it),
-                            ),
-                        ),
+                            dns =
+                                config.dns.copy(
+                                    fallbackFilter = config.dns.fallbackFilter.copy(geositeEnd = it)
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1186,9 +1178,7 @@ fun SnifferEditor(
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.BasicPolicy) {
             NullableBooleanSelector(
                 title = MLang.Override.Label.Enable,
@@ -1216,7 +1206,7 @@ fun SnifferEditor(
                 value = config.sniffer.overrideDestination,
                 onValueChange = {
                     onConfigChange(
-                        config.copy(sniffer = config.sniffer.copy(overrideDestination = it)),
+                        config.copy(sniffer = config.sniffer.copy(overrideDestination = it))
                     )
                 },
             )
@@ -1231,34 +1221,40 @@ fun SnifferEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    http = config.sniffer.sniff.http.copy(ports = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            http = config.sniffer.sniff.http.copy(ports = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    http = config.sniffer.sniff.http.copy(portsStart = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            http = config.sniffer.sniff.http.copy(portsStart = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    http = config.sniffer.sniff.http.copy(portsEnd = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            http = config.sniffer.sniff.http.copy(portsEnd = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1269,14 +1265,17 @@ fun SnifferEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    http = config.sniffer.sniff.http.copy(
-                                        overrideDestination = it,
-                                    ),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            http =
+                                                config.sniffer.sniff.http.copy(
+                                                    overrideDestination = it
+                                                )
+                                        )
+                                )
+                        )
                     )
                 },
             )
@@ -1291,34 +1290,40 @@ fun SnifferEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    tls = config.sniffer.sniff.tls.copy(ports = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            tls = config.sniffer.sniff.tls.copy(ports = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    tls = config.sniffer.sniff.tls.copy(portsStart = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            tls = config.sniffer.sniff.tls.copy(portsStart = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    tls = config.sniffer.sniff.tls.copy(portsEnd = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            tls = config.sniffer.sniff.tls.copy(portsEnd = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1329,14 +1334,17 @@ fun SnifferEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    tls = config.sniffer.sniff.tls.copy(
-                                        overrideDestination = it,
-                                    ),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            tls =
+                                                config.sniffer.sniff.tls.copy(
+                                                    overrideDestination = it
+                                                )
+                                        )
+                                )
+                        )
                     )
                 },
             )
@@ -1351,34 +1359,40 @@ fun SnifferEditor(
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    quic = config.sniffer.sniff.quic.copy(ports = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            quic = config.sniffer.sniff.quic.copy(ports = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onStartChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    quic = config.sniffer.sniff.quic.copy(portsStart = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            quic = config.sniffer.sniff.quic.copy(portsStart = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEndChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    quic = config.sniffer.sniff.quic.copy(portsEnd = it),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            quic = config.sniffer.sniff.quic.copy(portsEnd = it)
+                                        )
+                                )
+                        )
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1389,14 +1403,17 @@ fun SnifferEditor(
                 onValueChange = {
                     onConfigChange(
                         config.copy(
-                            sniffer = config.sniffer.copy(
-                                sniff = config.sniffer.sniff.copy(
-                                    quic = config.sniffer.sniff.quic.copy(
-                                        overrideDestination = it,
-                                    ),
-                                ),
-                            ),
-                        ),
+                            sniffer =
+                                config.sniffer.copy(
+                                    sniff =
+                                        config.sniffer.sniff.copy(
+                                            quic =
+                                                config.sniffer.sniff.quic.copy(
+                                                    overrideDestination = it
+                                                )
+                                        )
+                                )
+                        )
                     )
                 },
             )
@@ -1412,7 +1429,9 @@ fun SnifferEditor(
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(forceDomain = it)))
                 },
                 onStartChange = {
-                    onConfigChange(config.copy(sniffer = config.sniffer.copy(forceDomainStart = it)))
+                    onConfigChange(
+                        config.copy(sniffer = config.sniffer.copy(forceDomainStart = it))
+                    )
                 },
                 onEndChange = {
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(forceDomainEnd = it)))
@@ -1447,12 +1466,12 @@ fun SnifferEditor(
                 },
                 onStartChange = {
                     onConfigChange(
-                        config.copy(sniffer = config.sniffer.copy(skipSrcAddressStart = it)),
+                        config.copy(sniffer = config.sniffer.copy(skipSrcAddressStart = it))
                     )
                 },
                 onEndChange = {
                     onConfigChange(
-                        config.copy(sniffer = config.sniffer.copy(skipSrcAddressEnd = it)),
+                        config.copy(sniffer = config.sniffer.copy(skipSrcAddressEnd = it))
                     )
                 },
                 onEditListGroup = onEditStringList,
@@ -1468,12 +1487,12 @@ fun SnifferEditor(
                 },
                 onStartChange = {
                     onConfigChange(
-                        config.copy(sniffer = config.sniffer.copy(skipDstAddressStart = it)),
+                        config.copy(sniffer = config.sniffer.copy(skipDstAddressStart = it))
                     )
                 },
                 onEndChange = {
                     onConfigChange(
-                        config.copy(sniffer = config.sniffer.copy(skipDstAddressEnd = it)),
+                        config.copy(sniffer = config.sniffer.copy(skipDstAddressEnd = it))
                     )
                 },
                 onEditListGroup = onEditStringList,

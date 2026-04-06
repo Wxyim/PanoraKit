@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.compose.foundation.layout.*
@@ -40,12 +38,14 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.extra.WindowDropdown
 
 @Composable
-fun OverrideProxyDraftEditorScreen(
-    navigator: DestinationsNavigator,
-) {
+fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val title = remember { OverrideStructuredEditorStore.proxyDraftEditorTitle.ifBlank { MLang.Override.Editor.ProxyNode } }
+    val title = remember {
+        OverrideStructuredEditorStore.proxyDraftEditorTitle.ifBlank {
+            MLang.Override.Editor.ProxyNode
+        }
+    }
     val initialValue = remember { OverrideStructuredEditorStore.proxyDraftEditorValue }
     val saveFabController = rememberOverrideFabController()
 
@@ -55,7 +55,9 @@ fun OverrideProxyDraftEditorScreen(
     var portText by remember { mutableStateOf(initialValue?.port?.toString().orEmpty()) }
     var ipVersion by remember { mutableStateOf(initialValue?.ipVersion.orEmpty()) }
     var interfaceName by remember { mutableStateOf(initialValue?.interfaceName.orEmpty()) }
-    var routingMarkText by remember { mutableStateOf(initialValue?.routingMark?.toString().orEmpty()) }
+    var routingMarkText by remember {
+        mutableStateOf(initialValue?.routingMark?.toString().orEmpty())
+    }
     var dialerProxy by remember { mutableStateOf(initialValue?.dialerProxy.orEmpty()) }
     var udp by remember { mutableStateOf(initialValue?.udp) }
     var tfo by remember { mutableStateOf(initialValue?.tfo) }
@@ -64,15 +66,11 @@ fun OverrideProxyDraftEditorScreen(
     var editingExtraKey by remember { mutableStateOf<String?>(null) }
     var showExtraFieldDialog by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
-    val selectedPresetIndex = OverrideProxyTypePresets.indexOfFirst {
-        it.equals(type, ignoreCase = true)
-    }.coerceAtLeast(0)
+    val selectedPresetIndex =
+        OverrideProxyTypePresets.indexOfFirst { it.equals(type, ignoreCase = true) }
+            .coerceAtLeast(0)
 
-    DisposableEffect(Unit) {
-        onDispose {
-            OverrideStructuredEditorStore.clearProxyDraftEditor()
-        }
-    }
+    DisposableEffect(Unit) { onDispose { OverrideStructuredEditorStore.clearProxyDraftEditor() } }
 
     Scaffold(
         floatingActionButton = {
@@ -105,18 +103,13 @@ fun OverrideProxyDraftEditorScreen(
                             dialerProxy = dialerProxy.trim(),
                             extraFields = extraFields,
                             uiId = initialValue?.uiId ?: OverrideProxyDraft().uiId,
-                        ),
+                        )
                     )
                     navigator.navigateUp()
                 },
             )
         },
-        topBar = {
-            TopBar(
-                title = title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = title, scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -151,7 +144,8 @@ fun OverrideProxyDraftEditorScreen(
                                     errorText = null
                                 },
                                 label = MLang.Override.Draft.Name,
-                                errorText = errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
+                                errorText =
+                                    errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
                             )
                             OverrideFormField(
                                 value = server,
@@ -217,9 +211,7 @@ fun OverrideProxyDraftEditorScreen(
                                 editingExtraKey = key
                                 showExtraFieldDialog = true
                             },
-                            onDeleteClick = { key ->
-                                extraFields = extraFields - key
-                            },
+                            onDeleteClick = { key -> extraFields = extraFields - key },
                         )
                     }
                     Spacer(modifier = Modifier.height(OverrideSectionBottomSpacing))
@@ -228,7 +220,9 @@ fun OverrideProxyDraftEditorScreen(
         }
         OverrideExtraFieldDialog(
             show = showExtraFieldDialog,
-            title = if (editingExtraKey == null) MLang.Override.Draft.AddExtraField else MLang.Override.Draft.EditExtraField,
+            title =
+                if (editingExtraKey == null) MLang.Override.Draft.AddExtraField
+                else MLang.Override.Draft.EditExtraField,
             initialValue = editingExtraKey?.let(extraFields::toExtraFieldDraft),
             onConfirm = { draft: OverrideExtraFieldDraft ->
                 extraFields = extraFields.updateExtraField(editingExtraKey, draft)

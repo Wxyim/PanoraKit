@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service
 
 import android.content.BroadcastReceiver
@@ -33,18 +31,16 @@ class RestartReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_MY_PACKAGE_REPLACED,
-                -> {
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 val serviceIntent = Intent(context, AutoRestartService::class.java)
                 runCatching {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
                     }
-                }.onFailure { e ->
-                    Timber.e(e, "Start auto-restart service failed")
-                }
+                    .onFailure { e -> Timber.e(e, "Start auto-restart service failed") }
             }
         }
     }

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.animation.*
@@ -39,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.common.util.formatBytesForDisplay
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -61,18 +58,16 @@ fun TrafficDisplay(
     isRunning: Boolean,
     proxyMode: ProxyMode,
     onModeBadgeBoundsChanged: (Rect) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val metrics = remember(maxWidth) { HomeTrafficMetrics.from(maxWidth) }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = metrics.topPadding, bottom = metrics.bottomPadding),
-            verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(top = metrics.topPadding, bottom = metrics.bottomPadding),
+            verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
         ) {
             DownloadSection(
                 downloadSpeed = trafficNow.download,
@@ -82,43 +77,57 @@ fun TrafficDisplay(
                 onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
             )
 
-            UploadSection(
-                uploadSpeed = trafficNow.upload,
-                metrics = metrics,
-            )
+            UploadSection(uploadSpeed = trafficNow.upload, metrics = metrics)
 
             Column(
-                modifier = Modifier.animateContentSize(
-                    tween(
-                        AnimationSpecs.DURATION_FAST,
-                        easing = AnimationSpecs.EmphasizedDecelerate
-                    )
-                ),
-                verticalArrangement = Arrangement.spacedBy(metrics.capsuleSectionSpacing)
+                modifier =
+                    Modifier.animateContentSize(
+                        tween(
+                            AnimationSpecs.DURATION_FAST,
+                            easing = AnimationSpecs.EmphasizedDecelerate,
+                        )
+                    ),
+                verticalArrangement = Arrangement.spacedBy(metrics.capsuleSectionSpacing),
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(metrics.capsuleSpacing),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ProxyStatusCapsule(
-                        isRunning = isRunning,
-                        metrics = metrics,
-                    )
+                    ProxyStatusCapsule(isRunning = isRunning, metrics = metrics)
                     AnimatedVisibility(
                         visible = isRunning,
-                        enter = slideInHorizontally(
-                            initialOffsetX = { it / 2 },
-                            animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate)
-                        ) + fadeIn(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)),
-                        exit = slideOutHorizontally(
-                            targetOffsetX = { it / 2 },
-                            animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
-                        ) + fadeOut(tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.ExitEasing))
+                        enter =
+                            slideInHorizontally(
+                                initialOffsetX = { it / 2 },
+                                animationSpec =
+                                    tween(
+                                        AnimationSpecs.DURATION_FAST,
+                                        easing = AnimationSpecs.EmphasizedDecelerate,
+                                    ),
+                            ) +
+                                fadeIn(
+                                    tween(
+                                        AnimationSpecs.DURATION_FAST,
+                                        easing = AnimationSpecs.EnterEasing,
+                                    )
+                                ),
+                        exit =
+                            slideOutHorizontally(
+                                targetOffsetX = { it / 2 },
+                                animationSpec =
+                                    tween(
+                                        AnimationSpecs.DURATION_INSTANT,
+                                        easing = AnimationSpecs.EmphasizedAccelerate,
+                                    ),
+                            ) +
+                                fadeOut(
+                                    tween(
+                                        AnimationSpecs.DURATION_INSTANT,
+                                        easing = AnimationSpecs.ExitEasing,
+                                    )
+                                ),
                     ) {
-                        ProxyTypeCapsule(
-                            proxyMode = proxyMode,
-                            metrics = metrics,
-                        )
+                        ProxyTypeCapsule(proxyMode = proxyMode, metrics = metrics)
                     }
                 }
             }
@@ -138,12 +147,12 @@ private fun DownloadSection(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "DOWNLOAD",
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
 
             ProfileModeBadge(
@@ -168,39 +177,40 @@ private fun ProfileModeBadge(
     Surface(
         color = MiuixTheme.colorScheme.primary.copy(alpha = 0.08f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier
-            .height(metrics.capsuleHeight)
-            .onGloballyPositioned { coordinates ->
+        modifier =
+            Modifier.height(metrics.capsuleHeight).onGloballyPositioned { coordinates ->
                 onBoundsChanged(coordinates.boundsInRoot())
-            }
+            },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleInnerSpacing)
+            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleInnerSpacing),
         ) {
             Text(
                 text = profileName ?: MLang.Home.Profile.NoProfile,
-                style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = metrics.capsuleTextSize,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MiuixTheme.colorScheme.primary
+                style =
+                    MiuixTheme.textStyles.footnote1.copy(
+                        fontSize = metrics.capsuleTextSize,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                color = MiuixTheme.colorScheme.primary,
             )
 
             Box(
-                modifier = Modifier
-                    .size(metrics.capsuleDotSize)
-                    .background(MiuixTheme.colorScheme.primary, CircleShape)
+                modifier =
+                    Modifier.size(metrics.capsuleDotSize)
+                        .background(MiuixTheme.colorScheme.primary, CircleShape)
             )
 
             Text(
                 text = tunnelMode.toDisplayName(),
-                style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = metrics.capsuleTextSize,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MiuixTheme.colorScheme.primary
+                style =
+                    MiuixTheme.textStyles.footnote1.copy(
+                        fontSize = metrics.capsuleTextSize,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                color = MiuixTheme.colorScheme.primary,
             )
         }
     }
@@ -212,20 +222,23 @@ private fun SpeedValue(speed: Long, metrics: HomeTrafficMetrics) {
     Row(verticalAlignment = Alignment.Bottom) {
         Text(
             text = value,
-            style = MiuixTheme.textStyles.headline1.copy(
-                fontSize = metrics.trafficFontSize,
-                lineHeight = metrics.trafficFontSize,
-                letterSpacing = metrics.trafficLetterSpacing
-            ),
-            color = MiuixTheme.colorScheme.primary
+            style =
+                MiuixTheme.textStyles.headline1.copy(
+                    fontSize = metrics.trafficFontSize,
+                    lineHeight = metrics.trafficFontSize,
+                    letterSpacing = metrics.trafficLetterSpacing,
+                ),
+            color = MiuixTheme.colorScheme.primary,
         )
         Text(
             text = unit,
-            style = MiuixTheme.textStyles.title2.copy(
-                fontSize = metrics.trafficUnitFontSize
-            ),
+            style = MiuixTheme.textStyles.title2.copy(fontSize = metrics.trafficUnitFontSize),
             color = MiuixTheme.colorScheme.primary.copy(alpha = 0.5f),
-            modifier = Modifier.padding(bottom = metrics.unitBottomPadding, start = metrics.unitStartPadding)
+            modifier =
+                Modifier.padding(
+                    bottom = metrics.unitBottomPadding,
+                    start = metrics.unitStartPadding,
+                ),
         )
     }
 }
@@ -235,21 +248,21 @@ private fun UploadSection(uploadSpeed: Long, metrics: HomeTrafficMetrics) {
     val (value, unit) = formatBytesForDisplay(uploadSpeed)
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing)
+        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(metrics.uploadValueSpacing)
+            horizontalArrangement = Arrangement.spacedBy(metrics.uploadValueSpacing),
         ) {
             Text(
                 text = "UPLOAD",
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Text(
                 text = "$value $unit",
                 style = MiuixTheme.textStyles.title2.copy(fontSize = metrics.uploadValueFontSize),
-                color = MiuixTheme.colorScheme.primary
+                color = MiuixTheme.colorScheme.primary,
             )
         }
     }
@@ -261,98 +274,122 @@ private fun ProxyTypeCapsule(proxyMode: ProxyMode, metrics: HomeTrafficMetrics) 
     Surface(
         color = primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier.height(metrics.capsuleHeight)
+        modifier = Modifier.height(metrics.capsuleHeight),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing)
+            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing),
         ) {
             Icon(
-                imageVector = when (proxyMode) {
-                    ProxyMode.Tun -> Yume.PlaneTakeoff
-                    ProxyMode.RootTun -> Yume.Tun
-                    ProxyMode.Http -> Yume.Wifi
-                },
+                imageVector =
+                    when (proxyMode) {
+                        ProxyMode.Tun -> Yume.PlaneTakeoff
+                        ProxyMode.RootTun -> Yume.Tun
+                        ProxyMode.Http -> Yume.Wifi
+                    },
                 contentDescription = null,
                 tint = primary,
-                modifier = Modifier.size(metrics.capsuleIconSize)
+                modifier = Modifier.size(metrics.capsuleIconSize),
             )
             Text(
-                text = when (proxyMode) {
-                    ProxyMode.Tun -> "VPN"
-                    ProxyMode.RootTun -> "TUN"
-                    ProxyMode.Http -> "HTTP"
-                },
-                style = MiuixTheme.textStyles.footnote1.copy(
-                    fontSize = metrics.capsuleTextSize,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = primary
+                text =
+                    when (proxyMode) {
+                        ProxyMode.Tun -> "VPN"
+                        ProxyMode.RootTun -> "TUN"
+                        ProxyMode.Http -> "HTTP"
+                    },
+                style =
+                    MiuixTheme.textStyles.footnote1.copy(
+                        fontSize = metrics.capsuleTextSize,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                color = primary,
             )
         }
     }
 }
 
 @Composable
-private fun ProxyStatusCapsule(
-    isRunning: Boolean,
-    metrics: HomeTrafficMetrics,
-) {
+private fun ProxyStatusCapsule(isRunning: Boolean, metrics: HomeTrafficMetrics) {
     val primary = MiuixTheme.colorScheme.primary
     Surface(
         color = primary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(50),
-        modifier = Modifier
-            .height(metrics.capsuleHeight)
-            .animateContentSize(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate))
+        modifier =
+            Modifier.height(metrics.capsuleHeight)
+                .animateContentSize(
+                    tween(
+                        AnimationSpecs.DURATION_FAST,
+                        easing = AnimationSpecs.EmphasizedDecelerate,
+                    )
+                ),
     ) {
         AnimatedContent(
             targetState = isRunning,
             transitionSpec = {
                 (slideInHorizontally(
-                    initialOffsetX = { it / 2 },
-                    animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EmphasizedDecelerate)
-                ) + fadeIn(tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing))
-                ).togetherWith(
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 2 },
-                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
-                    ) + fadeOut(tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.ExitEasing))
-                )
+                        initialOffsetX = { it / 2 },
+                        animationSpec =
+                            tween(
+                                AnimationSpecs.DURATION_FAST,
+                                easing = AnimationSpecs.EmphasizedDecelerate,
+                            ),
+                    ) +
+                        fadeIn(
+                            tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)
+                        ))
+                    .togetherWith(
+                        slideOutHorizontally(
+                            targetOffsetX = { -it / 2 },
+                            animationSpec =
+                                tween(
+                                    AnimationSpecs.DURATION_INSTANT,
+                                    easing = AnimationSpecs.EmphasizedAccelerate,
+                                ),
+                        ) +
+                            fadeOut(
+                                tween(
+                                    AnimationSpecs.DURATION_INSTANT,
+                                    easing = AnimationSpecs.ExitEasing,
+                                )
+                            )
+                    )
             },
-            label = "CapsuleStateTransition"
+            label = "CapsuleStateTransition",
         ) { running ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
-                horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing)
+                horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing),
             ) {
                 Icon(
                     imageVector = if (running) Yume.Activity else Yume.Rocket,
                     contentDescription = null,
                     tint = primary,
-                    modifier = Modifier.size(metrics.capsuleIconSize)
+                    modifier = Modifier.size(metrics.capsuleIconSize),
                 )
                 Text(
                     text = if (running) MLang.Home.Status.Running else MLang.Home.Status.TapToStart,
-                    style = MiuixTheme.textStyles.footnote1.copy(
-                        fontSize = metrics.capsuleTextSize,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = primary
+                    style =
+                        MiuixTheme.textStyles.footnote1.copy(
+                            fontSize = metrics.capsuleTextSize,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    color = primary,
                 )
             }
         }
     }
 }
 
-private fun TunnelState.Mode?.toDisplayName(): String = when (this) {
-    TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
-    TunnelState.Mode.Global -> MLang.Home.Profile.Global
-    TunnelState.Mode.Rule -> MLang.Home.Profile.Rule
-    else -> MLang.Home.Profile.Rule
-}
+private fun TunnelState.Mode?.toDisplayName(): String =
+    when (this) {
+        TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
+        TunnelState.Mode.Global -> MLang.Home.Profile.Global
+        TunnelState.Mode.Rule -> MLang.Home.Profile.Rule
+        else -> MLang.Home.Profile.Rule
+    }
 
 private data class HomeTrafficMetrics(
     val topPadding: Dp,

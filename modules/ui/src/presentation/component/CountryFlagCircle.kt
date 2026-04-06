@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.Image
@@ -37,19 +35,13 @@ import com.github.yumelira.yumebox.common.util.LocaleUtil
 import dev.oom_wg.purejoy.mlang.MLang
 
 @Composable
-fun CountryFlagCircle(
-    countryCode: String,
-    modifier: Modifier = Modifier,
-    size: Dp = 18.dp,
-) {
+fun CountryFlagCircle(countryCode: String, modifier: Modifier = Modifier, size: Dp = 18.dp) {
     val flagUrl = remember(countryCode) { LocaleUtil.normalizeFlagUrl(countryCode) }
     val displaySize = size.coerceIn(16.dp, 28.dp)
     Image(
         painter = rememberAsyncImagePainter(model = flagUrl),
         contentDescription = MLang.Component.Accessibility.CountryFlag.format(countryCode),
-        modifier = modifier
-            .size(displaySize)
-            .clip(CircleShape),
+        modifier = modifier.size(displaySize).clip(CircleShape),
         contentScale = ContentScale.Crop,
     )
 }

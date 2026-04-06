@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.foundation.layout.*
@@ -44,52 +42,47 @@ private val NODE_DELAY_WIDTH = 72.dp
 fun NodeInfoDisplay(
     selectedServer: HomeSelectedServerState?,
     tunnelMode: TunnelState.Mode,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val groupName = selectedServer?.groupName
     val serverName = selectedServer?.name
     val serverPing = selectedServer?.delay
-    val normalizedGroupName = remember(groupName) {
-        groupName?.trim()?.takeIf { it.isNotEmpty() && it != "-" }
-    }
-    val displayName = remember(serverName, tunnelMode) {
-        when {
-            tunnelMode == TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
-            tunnelMode == TunnelState.Mode.Global && serverName.isNullOrBlank() -> MLang.Home.Profile.Global
-            serverName.isNullOrBlank() -> null
-            isDirectLikeNodeName(serverName) -> MLang.Home.Profile.Direct
-            else -> serverName
+    val normalizedGroupName =
+        remember(groupName) { groupName?.trim()?.takeIf { it.isNotEmpty() && it != "-" } }
+    val displayName =
+        remember(serverName, tunnelMode) {
+            when {
+                tunnelMode == TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
+                tunnelMode == TunnelState.Mode.Global && serverName.isNullOrBlank() ->
+                    MLang.Home.Profile.Global
+                serverName.isNullOrBlank() -> null
+                isDirectLikeNodeName(serverName) -> MLang.Home.Profile.Direct
+                else -> serverName
+            }
         }
-    }
-    val flagged = remember(displayName) {
-        displayName?.let(::extractFlaggedName)
-    }
+    val flagged = remember(displayName) { displayName?.let(::extractFlaggedName) }
     val showRuleGroup = tunnelMode == TunnelState.Mode.Rule && !normalizedGroupName.isNullOrBlank()
     val hasKnownNode = flagged != null || !displayName.isNullOrBlank() || showRuleGroup
 
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             horizontalAlignment = Alignment.Start,
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 16.dp)
+            modifier = Modifier.weight(1f).padding(end = 16.dp),
         ) {
             Text(
                 text = MLang.Home.NodeInfo.Node,
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(modifier = Modifier.height(4.dp))
             if (hasKnownNode) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(INFO_TEXT_HEIGHT),
+                    modifier = Modifier.fillMaxWidth().height(INFO_TEXT_HEIGHT),
                 ) {
                     val countryCode = flagged?.countryCode
                     if (showRuleGroup) {
@@ -118,27 +111,25 @@ fun NodeInfoDisplay(
                     text = MLang.Home.NodeInfo.Unknown,
                     style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.height(INFO_TEXT_HEIGHT)
+                    modifier = Modifier.height(INFO_TEXT_HEIGHT),
                 )
             }
         }
 
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.width(NODE_DELAY_WIDTH)
-        ) {
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(NODE_DELAY_WIDTH)) {
             Text(
                 text = MLang.Home.NodeInfo.Delay,
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(modifier = Modifier.height(4.dp))
             PingValue(
-                ping = if (tunnelMode == TunnelState.Mode.Direct) {
-                    null
-                } else {
-                    serverPing
-                }
+                ping =
+                    if (tunnelMode == TunnelState.Mode.Direct) {
+                        null
+                    } else {
+                        serverPing
+                    }
             )
         }
     }
@@ -152,7 +143,7 @@ private fun PingValue(ping: Int?) {
                 text = "--",
                 style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+                modifier = Modifier.height(INFO_TEXT_HEIGHT),
             )
         }
 
@@ -161,21 +152,22 @@ private fun PingValue(ping: Int?) {
                 text = "TIMEOUT",
                 style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+                modifier = Modifier.height(INFO_TEXT_HEIGHT),
             )
         }
 
         else -> {
-            val color = when {
-                ping <= 300 -> Color(0xFF007906)
-                ping <= 1000 -> Color(0xFFFFB300)
-                else -> Color(0xFFE53935)
-            }
+            val color =
+                when {
+                    ping <= 300 -> Color(0xFF007906)
+                    ping <= 1000 -> Color(0xFFFFB300)
+                    else -> Color(0xFFE53935)
+                }
             Text(
                 text = "${ping}ms",
                 style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
                 color = color,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT)
+                modifier = Modifier.height(INFO_TEXT_HEIGHT),
             )
         }
     }

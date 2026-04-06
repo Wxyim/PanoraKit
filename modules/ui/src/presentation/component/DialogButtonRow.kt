@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.component
 
 import android.annotation.SuppressLint
@@ -40,19 +38,8 @@ fun DialogButtonRow(
     confirmText: String = MLang.Component.Button.Confirm,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        TextButton(
-            text = cancelText,
-            onClick = onCancel,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(
-            text = confirmText,
-            onClick = onConfirm,
-            modifier = Modifier.weight(1f),
-        )
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        TextButton(text = cancelText, onClick = onCancel, modifier = Modifier.weight(1f))
+        TextButton(text = confirmText, onClick = onConfirm, modifier = Modifier.weight(1f))
     }
 }

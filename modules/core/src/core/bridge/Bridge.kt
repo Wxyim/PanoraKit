@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.core.bridge
 
 import android.os.Build
@@ -30,8 +28,7 @@ import java.io.File
 
 @Keep
 object Bridge {
-    @Volatile
-    private var loaded = false
+    @Volatile private var loaded = false
 
     @Synchronized
     internal fun ensureLoaded() {
@@ -47,7 +44,8 @@ object Bridge {
             .detachFd()
 
         val home = ctx.filesDir.resolve("clash").apply { mkdirs() }.absolutePath
-        val versionName = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "unknown"
+        val versionName =
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "unknown"
         val sdkVersion = Build.VERSION.SDK_INT
 
         nativeInit(home, versionName, sdkVersion)
@@ -68,7 +66,10 @@ object Bridge {
         excludeNotSelectable: Boolean,
     ): String?
 
-    external fun nativeLoadCompiledConfig(path: kotlinx.coroutines.CompletableDeferred<Unit>, configPath: String)
+    external fun nativeLoadCompiledConfig(
+        path: kotlinx.coroutines.CompletableDeferred<Unit>,
+        configPath: String,
+    )
 
     external fun nativeReset()
 
@@ -134,9 +135,15 @@ object Bridge {
 
     external fun nativeQueryGroup(name: String, sort: String): String?
 
-    external fun nativeHealthCheck(completable: kotlinx.coroutines.CompletableDeferred<Unit>, name: String)
+    external fun nativeHealthCheck(
+        completable: kotlinx.coroutines.CompletableDeferred<Unit>,
+        name: String,
+    )
 
-    external fun nativeHealthCheckProxy(completable: kotlinx.coroutines.CompletableDeferred<String>, proxyName: String)
+    external fun nativeHealthCheckProxy(
+        completable: kotlinx.coroutines.CompletableDeferred<String>,
+        proxyName: String,
+    )
 
     external fun nativeHealthCheckAll()
 

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.screen.about
 
 import androidx.activity.compose.BackHandler
@@ -60,19 +58,12 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
     val showLicenseSheet = remember { mutableStateOf(false) }
     val selectedLibrary = remember { mutableStateOf<Library?>(null) }
 
-    BackHandler {
-        navigator.popBackStack()
-    }
+    BackHandler { navigator.popBackStack() }
 
     val libraries by produceLibraries(R.raw.aboutlibraries)
 
     Scaffold(
-        topBar = {
-            TopBar(
-                title = MLang.OpenSourceLicenses.Title,
-                scrollBehavior = scrollBehavior,
-            )
-        },
+        topBar = { TopBar(title = MLang.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior) }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             ScreenLazyColumn(
@@ -92,9 +83,7 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
                         )
                     }
 
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
             }
 
@@ -111,19 +100,10 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LibraryItem(
-    library: Library,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.padding(bottom = 12.dp),
-        insideMargin = PaddingValues(0.dp),
-    ) {
+private fun LibraryItem(library: Library, onClick: () -> Unit) {
+    Card(modifier = Modifier.padding(bottom = 12.dp), insideMargin = PaddingValues(0.dp)) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
@@ -162,9 +142,7 @@ private fun LibraryItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    library.licenses.forEach { license ->
-                        LicenseChip(licenseName = license.name)
-                    }
+                    library.licenses.forEach { license -> LicenseChip(licenseName = license.name) }
                 }
             }
         }
@@ -174,10 +152,10 @@ private fun LibraryItem(
 @Composable
 private fun LicenseChip(licenseName: String) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+        modifier =
+            Modifier.clip(RoundedCornerShape(12.dp))
+                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
             text = licenseName,
@@ -194,16 +172,15 @@ private fun LicenseBottomSheet(
     onDismiss: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    val licenseContent = remember(library) { library.strippedLicenseContent.takeIf { it.isNotEmpty() } }
+    val licenseContent =
+        remember(library) { library.strippedLicenseContent.takeIf { it.isNotEmpty() } }
 
     AppActionBottomSheet(
         show = show.value,
         title = library.name,
         onDismissRequest = onDismiss,
         content = {
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 450.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp)) {
                 if (licenseContent != null) {
                     Text(
                         modifier = Modifier.verticalScroll(scrollState),
@@ -212,10 +189,7 @@ private fun LicenseBottomSheet(
                         color = MiuixTheme.colorScheme.onSurface,
                     )
                 } else {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), insideMargin = PaddingValues(16.dp)) {
                         Text(
                             text = MLang.OpenSourceLicenses.LicenseSheet.NoContent,
                             style = MiuixTheme.textStyles.body2,
@@ -224,6 +198,6 @@ private fun LicenseBottomSheet(
                     }
                 }
             }
-        }
+        },
     )
 }

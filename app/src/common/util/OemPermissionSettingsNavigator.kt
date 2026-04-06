@@ -42,83 +42,106 @@ object OemPermissionSettingsNavigator {
         incrementCounter(stats, "${STATS_PREFIX}.attempt.$manufacturer")
 
         when {
-            manufacturer.contains("xiaomi") || manufacturer.contains("redmi") || manufacturer.contains("poco") -> {
-                candidates += candidateOf(
-                    tag = "miui_autostart",
-                    component = ComponentName(
-                        "com.miui.securitycenter",
-                        "com.miui.permcenter.autostart.AutoStartManagementActivity",
-                    ),
-                )
-                candidates += candidateOf(
-                    tag = "miui_perm_editor",
-                    action = "miui.intent.action.APP_PERM_EDITOR",
-                    packageName = "com.miui.securitycenter",
-                    extras = mapOf("extra_pkgname" to packageName),
-                )
+            manufacturer.contains("xiaomi") ||
+                manufacturer.contains("redmi") ||
+                manufacturer.contains("poco") -> {
+                candidates +=
+                    candidateOf(
+                        tag = "miui_autostart",
+                        component =
+                            ComponentName(
+                                "com.miui.securitycenter",
+                                "com.miui.permcenter.autostart.AutoStartManagementActivity",
+                            ),
+                    )
+                candidates +=
+                    candidateOf(
+                        tag = "miui_perm_editor",
+                        action = "miui.intent.action.APP_PERM_EDITOR",
+                        packageName = "com.miui.securitycenter",
+                        extras = mapOf("extra_pkgname" to packageName),
+                    )
             }
 
-            manufacturer.contains("oppo") || manufacturer.contains("oneplus") || manufacturer.contains("realme") || manufacturer.contains("oplus") -> {
-                candidates += candidateOf(
-                    tag = "coloros_startup",
-                    component = ComponentName(
-                        "com.coloros.safecenter",
-                        "com.coloros.safecenter.permission.startup.StartupAppListActivity",
-                    ),
-                )
-                candidates += candidateOf(
-                    tag = "oplus_startup",
-                    component = ComponentName(
-                        "com.oplus.safecenter",
-                        "com.oplus.safecenter.permission.startup.StartupAppListActivity",
-                    ),
-                )
+            manufacturer.contains("oppo") ||
+                manufacturer.contains("oneplus") ||
+                manufacturer.contains("realme") ||
+                manufacturer.contains("oplus") -> {
+                candidates +=
+                    candidateOf(
+                        tag = "coloros_startup",
+                        component =
+                            ComponentName(
+                                "com.coloros.safecenter",
+                                "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+                            ),
+                    )
+                candidates +=
+                    candidateOf(
+                        tag = "oplus_startup",
+                        component =
+                            ComponentName(
+                                "com.oplus.safecenter",
+                                "com.oplus.safecenter.permission.startup.StartupAppListActivity",
+                            ),
+                    )
             }
 
             manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> {
-                candidates += candidateOf(
-                    tag = "iqoo_whitelist",
-                    component = ComponentName(
-                        "com.iqoo.secure",
-                        "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
-                    ),
-                )
-                candidates += candidateOf(
-                    tag = "vivo_bg_startup",
-                    component = ComponentName(
-                        "com.vivo.permissionmanager",
-                        "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
-                    ),
-                )
+                candidates +=
+                    candidateOf(
+                        tag = "iqoo_whitelist",
+                        component =
+                            ComponentName(
+                                "com.iqoo.secure",
+                                "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
+                            ),
+                    )
+                candidates +=
+                    candidateOf(
+                        tag = "vivo_bg_startup",
+                        component =
+                            ComponentName(
+                                "com.vivo.permissionmanager",
+                                "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+                            ),
+                    )
             }
 
             manufacturer.contains("honor") || manufacturer.contains("huawei") -> {
-                candidates += candidateOf(
-                    tag = "honor_protect",
-                    component = ComponentName(
-                        "com.hihonor.systemmanager",
-                        "com.hihonor.systemmanager.optimize.process.ProtectActivity",
-                    ),
-                )
-                candidates += candidateOf(
-                    tag = "huawei_protect",
-                    component = ComponentName(
-                        "com.huawei.systemmanager",
-                        "com.huawei.systemmanager.optimize.process.ProtectActivity",
-                    ),
-                )
+                candidates +=
+                    candidateOf(
+                        tag = "honor_protect",
+                        component =
+                            ComponentName(
+                                "com.hihonor.systemmanager",
+                                "com.hihonor.systemmanager.optimize.process.ProtectActivity",
+                            ),
+                    )
+                candidates +=
+                    candidateOf(
+                        tag = "huawei_protect",
+                        component =
+                            ComponentName(
+                                "com.huawei.systemmanager",
+                                "com.huawei.systemmanager.optimize.process.ProtectActivity",
+                            ),
+                    )
             }
         }
 
-        candidates += CandidateIntent(
-            tag = "battery_optimization_settings",
-            intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-        )
-        candidates += CandidateIntent(
-            tag = "app_details",
-            intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                .setData(android.net.Uri.fromParts("package", packageName, null)),
-        )
+        candidates +=
+            CandidateIntent(
+                tag = "battery_optimization_settings",
+                intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+            )
+        candidates +=
+            CandidateIntent(
+                tag = "app_details",
+                intent =
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(android.net.Uri.fromParts("package", packageName, null)),
+            )
 
         for ((index, candidate) in candidates.withIndex()) {
             val launchIntent = candidate.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -132,18 +155,21 @@ object OemPermissionSettingsNavigator {
                 )
                 continue
             }
-            val launched = runCatching {
-                context.startActivity(launchIntent)
-                true
-            }.onFailure {
-                Timber.w(
-                    it,
-                    "OEM nav launch failed manufacturer=%s candidate=%s index=%d",
-                    manufacturer,
-                    candidate.tag,
-                    index,
-                )
-            }.getOrDefault(false)
+            val launched =
+                runCatching {
+                        context.startActivity(launchIntent)
+                        true
+                    }
+                    .onFailure {
+                        Timber.w(
+                            it,
+                            "OEM nav launch failed manufacturer=%s candidate=%s index=%d",
+                            manufacturer,
+                            candidate.tag,
+                            index,
+                        )
+                    }
+                    .getOrDefault(false)
             if (launched) {
                 incrementCounter(stats, "${STATS_PREFIX}.success.total")
                 incrementCounter(stats, "${STATS_PREFIX}.success.$manufacturer")
@@ -154,7 +180,10 @@ object OemPermissionSettingsNavigator {
 
         incrementCounter(stats, "${STATS_PREFIX}.failure.total")
         incrementCounter(stats, "${STATS_PREFIX}.failure.$manufacturer")
-        stats?.encode("${STATS_PREFIX}.last.failure", "$manufacturer:${candidates.joinToString("|") { it.tag }}")
+        stats?.encode(
+            "${STATS_PREFIX}.last.failure",
+            "$manufacturer:${candidates.joinToString("|") { it.tag }}",
+        )
         Timber.w(
             "OEM nav failed manufacturer=%s candidates=%s",
             manufacturer,
@@ -178,19 +207,17 @@ object OemPermissionSettingsNavigator {
     ): CandidateIntent {
         return CandidateIntent(
             tag = tag,
-            intent = intentOf(
-                action = action,
-                component = component,
-                packageName = packageName,
-                extras = extras,
-            ),
+            intent =
+                intentOf(
+                    action = action,
+                    component = component,
+                    packageName = packageName,
+                    extras = extras,
+                ),
         )
     }
 
-    private data class CandidateIntent(
-        val tag: String,
-        val intent: Intent,
-    )
+    private data class CandidateIntent(val tag: String, val intent: Intent)
 
     private fun intentOf(
         action: String? = null,
@@ -206,7 +233,8 @@ object OemPermissionSettingsNavigator {
     }
 
     fun dumpStats(): Map<String, Int> {
-        val mmkv = MMKV.mmkvWithID(StoreIds.SERVICE_CACHE, MMKV.MULTI_PROCESS_MODE) ?: return emptyMap()
+        val mmkv =
+            MMKV.mmkvWithID(StoreIds.SERVICE_CACHE, MMKV.MULTI_PROCESS_MODE) ?: return emptyMap()
         val keys = mmkv.allKeys()?.filter { it.startsWith("$STATS_PREFIX.") } ?: return emptyMap()
         return keys.associateWith { mmkv.decodeInt(it, 0) }
     }

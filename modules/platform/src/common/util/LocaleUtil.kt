@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.common.util
 
 import java.util.*
@@ -41,10 +39,11 @@ object LocaleUtil {
 
     fun normalizeFlagUrl(
         countryCode: String,
-        baseUrl: String = "https://hatscripts.github.io/circle-flags/flags/"
+        baseUrl: String = "https://hatscripts.github.io/circle-flags/flags/",
     ): String {
         val upperCode = countryCode.uppercase()
-        val normalizedCode = if (upperCode in NORMALIZED_REGION_CODES) "cn" else countryCode.lowercase()
+        val normalizedCode =
+            if (upperCode in NORMALIZED_REGION_CODES) "cn" else countryCode.lowercase()
         return "${baseUrl}${normalizedCode}.svg"
     }
 }
