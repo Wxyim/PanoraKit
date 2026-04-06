@@ -22,6 +22,7 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.api.JavaVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.android.application) apply false
@@ -110,6 +111,15 @@ subprojects {
                 sourceCompatibility = JavaVersion.toVersion(javaVer)
                 targetCompatibility = JavaVersion.toVersion(javaVer)
             }
+        }
+    }
+
+    tasks.withType(KotlinCompile::class.java).configureEach {
+        val persistentDir =
+            rootProject.findProperty("kotlin.project.persistent.dir")?.toString()?.trim().orEmpty()
+        if (persistentDir.isNotEmpty()) {
+            val sessionsDir = rootProject.file(persistentDir).resolve("sessions")
+            doFirst { sessionsDir.mkdirs() }
         }
     }
 }
