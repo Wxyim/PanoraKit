@@ -252,17 +252,7 @@ val syncLegacyJniLibs =
         into(unifiedJniLibsDir)
     }
 
-val collectDebugApk =
-    tasks.register<Sync>("collectDebugApk") {
-        from(layout.buildDirectory.dir("outputs/apk/debug")) {
-            include("*.apk", "output-metadata.json")
-        }
-        into(rootProject.layout.buildDirectory.dir("apk/debug"))
-    }
-
 tasks.named("preBuild") { dependsOn(syncLegacyJniLibs) }
-
-tasks.matching { it.name == "assembleDebug" }.configureEach { finalizedBy(collectDebugApk) }
 
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
