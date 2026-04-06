@@ -5,8 +5,11 @@ on:
     branches: [ "Monad" ]
     paths-ignore:
       - '**.md'
+      - '**.example'
       - 'docs/**'
-      - 'website/**'
+      - '.clang-format'
+      - '.github/kernel-state/**'
+      - '.gitignore'
 
 permissions:
   contents: read

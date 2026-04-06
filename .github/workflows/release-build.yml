@@ -1,87 +1,37 @@
-name: Build MonadBox
+name: Build Release
 
 on:
-  push:
-    branches: [ "Monad" ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'website/**'
-      - '.gitignore'
-  schedule:
-    - cron: '0 18 * * *'
-    - cron: '20 18 * * *'
-  workflow_dispatch:
+  workflow_call:
     inputs:
       kernel_channel:
-        description: 'Kernel channel to build'
         required: true
-        default: all
-        type: choice
-        options:
-          - all
-          - alpha
-          - meta
-          - smart
-  workflow_call:
+        type: string
+      upstream_repo:
+        required: true
+        type: string
+      upstream_tag:
+        required: true
+        type: string
+      upstream_revision:
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 concurrency:
   group: Build-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: write
-
-
 jobs:
-  prepare-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - name: Prepare matrix
-        id: set-matrix
-        shell: bash
-        run: |
-          set -eu
-
-          alpha='{"variant":"alpha","cron":"0 18 * * *","kernel_channel":"alpha","title":"MonadBox Alpha","artifact_prefix":"monadbox-alpha","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Pre-release","release_name":"Pre-release"}'
-          meta='{"variant":"meta","cron":"","kernel_channel":"meta","title":"MonadBox Meta","artifact_prefix":"monadbox-meta","aliyun_secret_name":"ALIYUN_SERVICES_JSON","release_tag":"Meta","release_name":"Meta"}'
-          smart='{"variant":"smart","cron":"20 18 * * *","kernel_channel":"smart","title":"MonadBox Smart","artifact_prefix":"monadbox-smart","aliyun_secret_name":"ALIYUN_SERVICES_JSON_SMART","release_tag":"Smart","release_name":"Smart"}'
-
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            case "${{ github.event.schedule }}" in
-              '0 18 * * *') matrix="{\"include\":[${alpha}]}" ;;
-              '20 18 * * *') matrix="{\"include\":[${smart}]}" ;;
-              *)
-                echo "Unsupported schedule: ${{ github.event.schedule }}" >&2
-                exit 1
-                ;;
-            esac
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            case "${{ github.event.inputs.kernel_channel }}" in
-              alpha) matrix="{\"include\":[${alpha}]}" ;;
-              meta) matrix="{\"include\":[${meta}]}" ;;
-              smart) matrix="{\"include\":[${smart}]}" ;;
-              all) matrix="{\"include\":[${alpha},${meta},${smart}]}" ;;
-              *)
-                echo "Unsupported kernel_channel: ${{ github.event.inputs.kernel_channel }}" >&2
-                exit 1
-                ;;
-            esac
-          else
-            matrix="{\"include\":[${alpha},${meta},${smart}]}"
-          fi
-
-          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: prepare-matrix
-    name: Build (${{ matrix.variant }})
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+
+    env:
+      CHANNEL: ${{ inputs.kernel_channel }}
+      REPO: ${{ inputs.upstream_repo }}
+      TAG: ${{ inputs.upstream_tag }}
+      REV: ${{ inputs.upstream_revision }}
 
     steps:
       - name: Checkout
@@ -141,13 +91,9 @@ jobs:
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel
-        run: |
+        run:  |
           chmod +x scripts/sync-kernel.sh
-          ./scripts/sync-kernel.sh ${{ matrix.kernel_channel }}
-
-      - name: Check upload availability
-        id: check_upload
-        run: echo "UPLOAD=${{ secrets.BOT_TOKEN != '' }}" >> $GITHUB_OUTPUT
+          ./scripts/sync-kernel.sh $CHANNEL
 
       - name: Restore signing files
         shell: bash
@@ -198,38 +144,39 @@ jobs:
 
           find build/app/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | while read -r file; do
             base="$(basename "$file")"
-            cp -f "$file" "ci-artifacts/apk/${{ matrix.artifact_prefix }}-${base}"
+            artifact_prefix="monadbox-${CHANNEL}"
+            cp -f "$file" "ci-artifacts/apk/${artifact_prefix}-${base}"
           done
 
           if [ -d build/app/outputs/mapping/release ]; then
-            cp -r build/app/outputs/mapping/release "ci-artifacts/mapping/${{ matrix.variant }}"
+            cp -r build/app/outputs/mapping/release "ci-artifacts/mapping/${CHANNEL}"
           fi
 
       - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_prefix }}-arm64-v8a
+          name: monadbox-${CHANNEL}-arm64-v8a
           path: ci-artifacts/apk/*arm64-v8a*.apk
           archive: false
 
       - name: Upload armeabi-v7a APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_prefix }}-armeabi-v7a
+          name: monadbox-${CHANNEL}-armeabi-v7a
           path: ci-artifacts/apk/*armeabi-v7a*.apk
           archive: false
 
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_prefix }}-x86_64
+          name: monadbox-${CHANNEL}-x86_64
           path: ci-artifacts/apk/*x86_64*.apk
           archive: false
 
       - name: Upload x86 APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_prefix }}-x86
+          name: monadbox-${CHANNEL}-x86
           path: |
             ci-artifacts/apk/*x86*.apk
             !ci-artifacts/apk/*x86_64*.apk
@@ -238,7 +185,7 @@ jobs:
       - name: Upload universal APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_prefix }}-universal
+          name: monadbox-${CHANNEL}-universal
           path: ci-artifacts/apk/*universal*.apk
           archive: false
           if-no-files-found: error
@@ -246,19 +193,37 @@ jobs:
       - name: Upload mappings
         uses: actions/upload-artifact@v7
         with:
-          name: mappings-${{ matrix.variant }}
-          path: ci-artifacts/mapping/${{ matrix.variant }}/
+          name: mappings-${CHANNEL}
+          path: ci-artifacts/mapping/${CHANNEL}/
 
-      - name: Publish pre-release
-        if: github.event_name != 'workflow_call'
+      - name: Compute tag
+        id: tag
+        run: |
+          short=${REV:0:8}
+          tag="${CHANNEL}-${TAG}-${short}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ matrix.release_tag }}
-          name: ${{ matrix.release_name }}
-          prerelease: true
-          draft: false
-          target_commitish: ${{ github.sha }}
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: |
-            ci-artifacts/apk/${{ matrix.artifact_prefix }}-*.apk
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          prerelease: ${{ inputs.kernel_channel != 'meta' }}
+          files: ci-artifacts/apk/${{ matrix.artifact_prefix }}-*.apk
+
+      - name: Update state
+        run: |
+          mkdir -p .github/kernel-state
+          echo "$REPO|$TAG|$REV" > .github/kernel-state/$CHANNEL.txt
+
+      - name: Short revision
+        run: echo "REV_SHORT=${REV:0:8}" >> $GITHUB_ENV
+
+      - name: Commit state
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: '.github/kernel-state/*'
+          message: >
+            chore(kernel-state): sync ${{ env.CHANNEL }}
+            to ${{ env.TAG }} (${{ env.REV_SHORT }})
+          default_author: github_actions
