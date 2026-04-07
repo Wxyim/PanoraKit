@@ -8,7 +8,7 @@ on:
       - '**.example'
       - 'docs/**'
       - '.clang-format'
-      - '.github/kernel-state/**'
+      - '.github/**'
       - '.gitignore'
 
 permissions:
