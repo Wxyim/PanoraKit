@@ -61,11 +61,7 @@ dependencyResolutionManagement {
     }
 }
 
-buildCache {
-    local {
-        directory = file("$rootDir/.gradle/build-cache")
-    }
-}
+buildCache { local { directory = file("$rootDir/.gradle/build-cache") } }
 
 include(
     ":core",

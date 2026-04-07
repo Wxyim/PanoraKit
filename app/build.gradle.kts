@@ -333,13 +333,11 @@ dependencies {
     implementation(libs.camera.core)
     implementation(libs.camera.video)
 
-    implementation(libs.coil3.compose)
-    implementation(libs.coil3.network.okhttp)
-    implementation(libs.coil3.svg)
     implementation(libs.sketch4.compose)
     implementation(libs.sketch4.http)
     implementation(libs.sketch4.animated.webp)
 
+    implementation(libs.okhttp)
     implementation(libs.reorderable)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)

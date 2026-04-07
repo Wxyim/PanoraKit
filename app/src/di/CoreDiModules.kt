@@ -24,6 +24,7 @@ import com.github.yumelira.yumebox.common.util.StorageCleanupManager
 import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.data.repository.*
 import com.github.yumelira.yumebox.data.store.*
+import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.tencent.mmkv.MMKV
@@ -94,8 +95,10 @@ val appDataRuntimeModule = module {
     single { com.github.yumelira.yumebox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get()) }
     single { ProfilesRepository(androidContext()) }
+    single { AppIdentityResolver(androidContext()) }
 
     single { TrafficStatisticsCollector(get(), get()) }
+    single { AppTrafficStatisticsCollector(androidContext(), get(), get(), get()) }
     single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
 }
 

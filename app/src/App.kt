@@ -27,6 +27,7 @@ import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.PlatformIdentifier
 import com.github.yumelira.yumebox.common.util.StorageCleanupManager
 import com.github.yumelira.yumebox.core.Global
+import com.github.yumelira.yumebox.data.repository.AppTrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
 import com.github.yumelira.yumebox.data.repository.TrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
@@ -119,6 +120,7 @@ class App : Application() {
         appScope.launch {
             koin.get<ProxyFacade>().warmUpProxyGroups()
             koin.get<TrafficStatisticsCollector>()
+            koin.get<AppTrafficStatisticsCollector>()
             koin.get<ConnectionActivityRepository>()
             PlatformIdentifier.getPlatformIdentifier()
         }

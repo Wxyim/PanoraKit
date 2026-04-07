@@ -69,15 +69,9 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            TopBar(title = MLang.About.Title, scrollBehavior = scrollBehavior)
-        },
-    ) { innerPadding ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = innerPadding,
-        ) {
+    Scaffold(topBar = { TopBar(title = MLang.About.Title, scrollBehavior = scrollBehavior) }) {
+        innerPadding ->
+        ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -88,9 +82,9 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Icon(
                         painter = painterResource(id = R.drawable.monadbox_about_logo),
                         contentDescription = null,
-                        modifier = Modifier
-                            .size(AboutPageMetrics.HeroIconSize)
-                            .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
+                        modifier =
+                            Modifier.size(AboutPageMetrics.HeroIconSize)
+                                .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
                         tint = Color.Unspecified,
                     )
 
@@ -101,10 +95,11 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
 
                     Text(
-                        text = MLang.About.App.VersionWithMihomo.format(
-                            BuildConfig.VERSION_NAME,
-                            BuildConfig.MIHOMO_VERSION,
-                        ),
+                        text =
+                            MLang.About.App.VersionWithMihomo.format(
+                                BuildConfig.VERSION_NAME,
+                                BuildConfig.MIHOMO_VERSION,
+                            ),
                         style = MiuixTheme.textStyles.body1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
@@ -112,12 +107,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
                 }
 
-                Card {
-                    BasicComponent(
-                        title = "MonadBox",
-                        summary = MLang.About.App.Description,
-                    )
-                }
+                Card { BasicComponent(title = "MonadBox", summary = MLang.About.App.Description) }
 
                 SmallTitle(MLang.About.Section.ProjectLinks)
                 Card {
@@ -167,15 +157,11 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
             item {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = AboutPageMetrics.FooterTopPadding),
+                    modifier =
+                        Modifier.fillMaxWidth().padding(top = AboutPageMetrics.FooterTopPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = MLang.About.Copyright,
-                        style = MiuixTheme.textStyles.footnote1,
-                    )
+                    Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
                 }
                 Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
             }
@@ -191,16 +177,8 @@ private fun AboutLinkItem(
     showArrow: Boolean,
 ) {
     if (showArrow) {
-        SuperArrow(
-            title = title,
-            summary = url,
-            onClick = { onOpenUrl(url) },
-        )
+        SuperArrow(title = title, summary = url, onClick = { onOpenUrl(url) })
     } else {
-        BasicComponent(
-            title = title,
-            summary = url,
-            onClick = { onOpenUrl(url) },
-        )
+        BasicComponent(title = title, summary = url, onClick = { onOpenUrl(url) })
     }
 }

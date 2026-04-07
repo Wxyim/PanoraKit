@@ -23,6 +23,7 @@ package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
+import com.github.yumelira.yumebox.data.model.AppTrafficUsage
 import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
 import com.github.yumelira.yumebox.data.model.TimeSlot
@@ -129,6 +130,11 @@ class TrafficStatisticsViewModel(
                     StatisticsTimeRange.WEEK -> getDailyChartItems()
                 }
             }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val appUsages: StateFlow<List<AppTrafficUsage>> =
+        selectedTimeRange
+            .map { range -> trafficStatisticsStore.getAppUsagesSorted(range) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setTimeRange(range: StatisticsTimeRange) {

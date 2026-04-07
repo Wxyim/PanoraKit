@@ -24,7 +24,6 @@ ktor = "3.4.0"
 miuix = "0.8.8"
 haze = "1.7.2"
 liquid = "1.1.1"
-coil3 = "3.3.0"
 sketch4 = "4.3.1"
 mlkitBarcodeScanning = "17.3.0"
 reorderable = "3.0.0"
@@ -81,9 +80,6 @@ miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
 miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons", version.ref = "miuix" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 liquid = { module = "io.github.fletchmckee.liquid:liquid", version.ref = "liquid" }
-coil3-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
-coil3-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil3" }
-coil3-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil3" }
 sketch4-compose = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch4" }
 sketch4-http = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch4" }
 sketch4-animated-webp = { module = "io.github.panpf.sketch4:sketch-animated-webp", version.ref = "sketch4" }

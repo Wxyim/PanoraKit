@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
+    implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.annotation.jvm)
     implementation(libs.timber)
 }

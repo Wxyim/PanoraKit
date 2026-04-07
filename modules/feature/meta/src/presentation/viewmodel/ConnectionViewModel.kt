@@ -20,18 +20,15 @@
 
 package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
+import com.github.yumelira.yumebox.core.presentation.BaseViewModel
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -60,10 +57,9 @@ data class ConnectionState(
 }
 
 class ConnectionViewModel(connectionActivityRepository: ConnectionActivityRepository) :
-    ViewModel() {
+    BaseViewModel<ConnectionState>(ConnectionState()) {
 
-    private val _state = MutableStateFlow(ConnectionState())
-    val state: StateFlow<ConnectionState> = _state.asStateFlow()
+    val state: StateFlow<ConnectionState> = uiState
 
     val filteredConnections: StateFlow<List<ConnectionInfo>> =
         combine(
@@ -114,7 +110,7 @@ class ConnectionViewModel(connectionActivityRepository: ConnectionActivityReposi
     init {
         viewModelScope.launch {
             connectionActivityRepository.activeConnections.collect { activeConnections ->
-                _state.update {
+                updateState {
                     it.copy(activeConnections = activeConnections, isLoading = false, error = null)
                 }
             }
@@ -122,18 +118,18 @@ class ConnectionViewModel(connectionActivityRepository: ConnectionActivityReposi
     }
 
     fun setSearchQuery(query: String) {
-        _state.update { it.copy(searchQuery = query) }
+        updateState { it.copy(searchQuery = query) }
     }
 
     fun setSortBy(sort: ConnectionSort) {
-        _state.update { it.copy(sortBy = sort) }
+        updateState { it.copy(sortBy = sort) }
     }
 
     fun setTab(tab: ConnectionTab) {
-        _state.update { it.copy(selectedTab = tab) }
+        updateState { it.copy(selectedTab = tab) }
     }
 
     fun clearError() {
-        _state.update { it.copy(error = null) }
+        updateState { it.copy(error = null) }
     }
 }
