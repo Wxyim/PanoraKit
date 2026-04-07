@@ -1,0 +1,92 @@
+name: Reusable Build Native
+
+on:
+  workflow_call:
+    inputs:
+      kernel_channel:
+        required: true
+        type: string
+      artifact_name:
+        required: false
+        type: string
+        default: native-libs
+
+permissions:
+  contents: read
+
+jobs:
+  build-native:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Kotlin
+        uses: fwilhe2/setup-kotlin@main
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3.2.2
+        with:
+          packages: ''
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+          key: ${{ runner.os }}-ndk-27.3.13750724-v1
+          restore-keys: |
+            ${{ runner.os }}-ndk-27.3.13750724-
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;27.3.13750724"
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
+
+      - name: Update CA certificates
+        run: |
+          sudo apt-get update && sudo apt-get install -y ca-certificates
+          sudo update-ca-certificates
+          mkdir -p modules/core/src/foss/golang/mihomo/component/ca
+          cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+
+      - name: Sync kernel
+        run: |
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh ${{ inputs.kernel_channel }}
+
+      - name: Build Native Libraries
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+        run: kotlin scripts/native-build.main.kts --all
+
+      - name: Upload native libs
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: jniLibs/
+          if-no-files-found: error
+          archive: false

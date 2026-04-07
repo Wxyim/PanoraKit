@@ -19,18 +19,30 @@ on:
 permissions:
   contents: write
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+concurrency:
+  group: release-${{ inputs.kernel_channel }}-${{ github.ref_name }}
+  cancel-in-progress: false
 
+jobs:
+  build-native:
+    uses: ./.github/workflows/reusable-build-native.yml
+    with:
+      kernel_channel: ${{ inputs.kernel_channel }}
+      artifact_name: native-libs-${{ inputs.kernel_channel }}
+
+  release:
+    name: Build And Publish Release
+    needs: build-native
+    runs-on: ubuntu-latest
     env:
       CHANNEL: ${{ inputs.kernel_channel }}
       REPO: ${{ inputs.upstream_repo }}
       TAG: ${{ inputs.upstream_tag }}
       REV: ${{ inputs.upstream_revision }}
+      GH_TOKEN: ${{ github.token }}
 
     steps:
-      - name: Checkout
+      - name: Checkout branch with full history
         uses: actions/checkout@v6
         with:
           submodules: recursive
@@ -72,24 +84,48 @@ jobs:
 
       - name: Install NDK
         if: steps.cache-ndk.outputs.cache-hit != 'true'
-        run: sdkmanager "ndk;27.3.13750724"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "ndk;27.3.13750724"
 
       - name: Configure local.properties
+        shell: bash
         run: |
+          set -euo pipefail
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
           echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
 
       - name: Update CA certificates
+        shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y ca-certificates
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates
           sudo update-ca-certificates
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel
-        run:  |
+        shell: bash
+        run: |
+          set -euo pipefail
           chmod +x scripts/sync-kernel.sh
-          ./scripts/sync-kernel.sh $CHANNEL
+          ./scripts/sync-kernel.sh "${CHANNEL}"
+
+      - name: Download native libs
+        uses: actions/download-artifact@v5
+        with:
+          name: native-libs-${{ inputs.kernel_channel }}
+          path: .
+
+      - name: Verify native outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f jniLibs/arm64-v8a/libclash.so
+          test -f jniLibs/arm64-v8a/liboverride.so
+          test -f jniLibs/arm64-v8a/libbridge.so
 
       - name: Restore signing files
         shell: bash
@@ -100,127 +136,141 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-
-          if [ -z "${SIGNING_KEYSTORE_BASE64:-}" ] || \
-            [ -z "${SIGNING_STORE_PASSWORD:-}" ] || \
-            [ -z "${SIGNING_KEY_ALIAS:-}" ] || \
-            [ -z "${SIGNING_KEY_PASSWORD:-}" ]; then
+          if [ -z "${SIGNING_KEYSTORE_BASE64:-}" ] || [ -z "${SIGNING_STORE_PASSWORD:-}" ] || [ -z "${SIGNING_KEY_ALIAS:-}" ] || [ -z "${SIGNING_KEY_PASSWORD:-}" ]; then
             echo "::error::Signing secrets are missing"
             exit 1
           fi
 
-          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > release.keystore
-
-          keytool -list \
-            -keystore release.keystore \
-            -storepass "$SIGNING_STORE_PASSWORD" \
-            -alias "$SIGNING_KEY_ALIAS" > /dev/null 2>&1
-
-      - name: Build Native Libraries
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
-        run: kotlin scripts/native-build.main.kts --all
+          printf '%s' "${SIGNING_KEYSTORE_BASE64}" | base64 --decode > release.keystore
+          keytool -list -keystore release.keystore -storepass "${SIGNING_STORE_PASSWORD}" -alias "${SIGNING_KEY_ALIAS}" > /dev/null 2>&1
 
       - name: Build Release APKs
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease -Prelease.signing.required=true --no-daemon
+        shell: bash
         env:
           YUMEBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
           YUMEBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           YUMEBOX_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           YUMEBOX_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-
-      - name: Prepare renamed artifacts
         run: |
-          set -eu
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare artifacts and release metadata
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p ci-artifacts/apk ci-artifacts/mapping
 
           find build/app/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | while read -r file; do
             base="$(basename "$file")"
-            artifact_prefix="monadbox-${CHANNEL}"
-            cp -f "$file" "ci-artifacts/apk/${artifact_prefix}-${base}"
+            cp -f "$file" "ci-artifacts/apk/monadbox-${CHANNEL}-${base}"
           done
 
           if [ -d build/app/outputs/mapping/release ]; then
             cp -r build/app/outputs/mapping/release "ci-artifacts/mapping/${CHANNEL}"
           fi
 
-      - name: Upload arm64-v8a APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: monadbox-${{ env.CHANNEL }}-arm64-v8a
-          path: ci-artifacts/apk/*arm64-v8a*.apk
-          archive: false
+          rev_short="${REV:0:8}"
+          release_tag="${CHANNEL}-${TAG}-${rev_short}"
+          if [ "${CHANNEL}" = "meta" ]; then
+            prerelease="false"
+          else
+            prerelease="true"
+          fi
 
-      - name: Upload armeabi-v7a APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: monadbox-${{ env.CHANNEL }}-armeabi-v7a
-          path: ci-artifacts/apk/*armeabi-v7a*.apk
-          archive: false
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload x86_64 APK
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-${{ env.CHANNEL }}-x86_64
-          path: ci-artifacts/apk/*x86_64*.apk
-          archive: false
-
-      - name: Upload x86 APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: monadbox-${{ env.CHANNEL }}-x86
+          name: monadbox-${{ env.CHANNEL }}-release-bundle
           path: |
-            ci-artifacts/apk/*x86*.apk
-            !ci-artifacts/apk/*x86_64*.apk
-          archive: false
-
-      - name: Upload universal APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: monadbox-${{ env.CHANNEL }}-universal
-          path: ci-artifacts/apk/*universal*.apk
-          archive: false
+            ci-artifacts/apk/*.apk
+            ci-artifacts/mapping/${{ env.CHANNEL }}/**
           if-no-files-found: error
+          archive: false
 
-      - name: Upload mappings
-        uses: actions/upload-artifact@v7
-        with:
-          name: mappings-${{ env.CHANNEL }}
-          path: ci-artifacts/mapping/${{ env.CHANNEL }}/
-
-      - name: Compute tag
-        id: tag
+      - name: Commit kernel state if changed and push
+        id: commit_state
+        shell: bash
         run: |
-          short=${REV:0:8}
-          tag="${CHANNEL}-${TAG}-${short}"
-          echo "tag=$tag" >> $GITHUB_OUTPUT
-
-      - name: Update state
-        run: |
+          set -euo pipefail
           mkdir -p .github/kernel-state
-          echo "$REPO|$TAG|$REV" > .github/kernel-state/$CHANNEL.txt
+          state_file=".github/kernel-state/${CHANNEL}.txt"
+          printf '%s|%s|%s\n' "${REPO}" "${TAG}" "${REV}" > "${state_file}"
 
-      - name: Short revision
-        run: echo "REV_SHORT=${REV:0:8}" >> $GITHUB_ENV
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit state
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: '.github/kernel-state/*'
-          message: >
-            chore(kernel-state): sync ${{ env.CHANNEL }}
-            to ${{ env.TAG }} (${{ env.REV_SHORT }})
-          default_author: github_actions
+          if git diff --quiet -- "${state_file}"; then
+            echo "committed=false" >> "${GITHUB_OUTPUT}"
+          else
+            git add "${state_file}"
+            git commit -m "chore(kernel-state): sync ${CHANNEL} to ${TAG} (${REV:0:8})"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+            echo "committed=true" >> "${GITHUB_OUTPUT}"
+          fi
 
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ steps.tag.outputs.tag }}
-          prerelease: ${{ inputs.kernel_channel != 'meta' }}
-          target_commitish: ${{ github.sha }}
-          files: ci-artifacts/apk/monadbox-${{ env.CHANNEL }}-*.apk
+      - name: Resolve final release target SHA
+        id: final_sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          # IMPORTANT: github.sha is the event trigger commit only.
+          # If this workflow creates and pushes a new commit, github.sha becomes stale.
+          # We must always resolve the final release target from git HEAD after all mutations.
+          final_sha="$(git rev-parse HEAD)"
+          echo "final_sha=${final_sha}" >> "${GITHUB_OUTPUT}"
+          echo "final_sha=${final_sha}" >> "${GITHUB_ENV}"
+
+      - name: Ensure tag and release do not already exist
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag already exists: ${RELEASE_TAG}"
+            exit 1
+          fi
+
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Release already exists for tag: ${RELEASE_TAG}"
+            exit 1
+          fi
+
+      - name: Create and push release tag from final SHA
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
+          FINAL_SHA: ${{ steps.final_sha.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          git tag --annotate "${RELEASE_TAG}" "${FINAL_SHA}" --message "Release ${RELEASE_TAG}"
+          git push origin "refs/tags/${RELEASE_TAG}"
+
+      - name: Create GitHub release from final SHA and upload assets
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
+          PRERELEASE: ${{ steps.prep.outputs.prerelease }}
+          FINAL_SHA: ${{ steps.final_sha.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          # target_commitish is explicitly set to FINAL_SHA.
+          # This prevents stale linkage to the original trigger commit.
+          gh api \
+            --method POST \
+            --header "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="${RELEASE_TAG}" \
+            -f target_commitish="${FINAL_SHA}" \
+            -f name="${RELEASE_TAG}" \
+            -f prerelease="${PRERELEASE}" \
+            -F generate_release_notes=true
+
+          gh release upload "${RELEASE_TAG}" ci-artifacts/apk/*.apk
