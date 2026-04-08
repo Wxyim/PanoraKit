@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +46,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 
 @Composable
@@ -53,7 +55,7 @@ fun ConfigPreviewScreen(
     title: String = MLang.Component.Editor.Dialog.ConfigPreviewTitle,
     initialContent: String = "",
     language: LanguageScope = LanguageScope.Yaml,
-    onSave: ((String) -> Unit)? = null,
+    onSave: (suspend (String) -> Result<Unit>)? = null,
 ) {
     val context = LocalContext.current
     val isReadOnly = onSave == null
@@ -80,6 +82,7 @@ fun ConfigPreviewScreen(
 
     val editorThemeState = EditorThemeManager.rememberEditorTheme()
     val scrollBehavior = MiuixScrollBehavior()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { TextMateInitializer.initialize(context) }
 
@@ -91,13 +94,22 @@ fun ConfigPreviewScreen(
         if (isSaving || onSave == null) return
         editorState.syncContentFromEditor()
         isSaving = true
-        runCatching { onSave(editorState.content) }
-            .onSuccess {
-                editorState.resetModified()
-                navigator.navigateUp()
+        coroutineScope.launch {
+            try {
+                onSave(editorState.content)
+                    .onSuccess {
+                        editorState.resetModified()
+                        navigator.navigateUp()
+                    }
+                    .onFailure {
+                        context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed)
+                    }
+            } catch (e: Exception) {
+                context.toast(e.message ?: MLang.Component.Editor.Error.SaveFailed)
+            } finally {
+                isSaving = false
             }
-            .onFailure { context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed) }
-        isSaving = false
+        }
     }
 
     fun requestExit() {

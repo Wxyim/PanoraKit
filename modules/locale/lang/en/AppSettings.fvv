@@ -61,6 +61,8 @@ AppSettings = {
         TrafficNotificationSummary = "Display traffic usage in notification bar"
         SingleNodeTestTitle = "Single Node Test"
         SingleNodeTestSummary = "Tap icon on node card to test individual node delay"
+        AutoStartLogRecordingTitle = "Auto-record on Log page"
+        AutoStartLogRecordingSummary = "Automatically start log recording when entering the Log page"
     }
 
     Network = {

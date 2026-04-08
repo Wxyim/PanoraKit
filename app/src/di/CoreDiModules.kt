@@ -38,10 +38,14 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 const val APPLICATION_SCOPE_NAME = "applicationScope"
+const val APPLICATION_IO_SCOPE_NAME = "applicationIoScope"
 
 val appFoundationModule = module {
     single<CoroutineScope>(named(APPLICATION_SCOPE_NAME)) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+    single<CoroutineScope>(named(APPLICATION_IO_SCOPE_NAME)) {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     single { MMKVProvider() }
@@ -97,8 +101,16 @@ val appDataRuntimeModule = module {
     single { ProfilesRepository(androidContext()) }
     single { AppIdentityResolver(androidContext()) }
 
-    single { TrafficStatisticsCollector(get(), get()) }
-    single { AppTrafficStatisticsCollector(androidContext(), get(), get(), get()) }
+    single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
+    single {
+        AppTrafficStatisticsCollector(
+            androidContext(),
+            get(),
+            get(),
+            get(),
+            get(named(APPLICATION_IO_SCOPE_NAME)),
+        )
+    }
     single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
 }
 

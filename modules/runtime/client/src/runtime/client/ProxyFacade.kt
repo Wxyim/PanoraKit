@@ -846,6 +846,20 @@ class ProxyFacade(
     }
 
     private suspend fun handleRuntimeStopped(reason: String?) {
+        when (resolveRuntimeStopResolution(_runtimeSnapshot.value.phase, reason)) {
+            RuntimeStopResolution.IgnoreAsStale -> {
+                Timber.d("handleRuntimeStopped: ignoring stale stop event (phase=Starting)")
+                return
+            }
+
+            RuntimeStopResolution.SkipAsRedundant -> {
+                Timber.d("handleRuntimeStopped: skipping redundant idle transition")
+                return
+            }
+
+            RuntimeStopResolution.TransitionToIdle -> Unit
+        }
+
         val configuredMode = networkSettingsStorage.proxyMode.value
         val generation = nextGeneration()
 

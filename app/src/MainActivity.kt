@@ -56,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.github.yumelira.yumebox.common.runtime.StartupGate
@@ -166,14 +167,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-            val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
+            val themeMode = appSettingsViewModel.themeMode.state.collectAsStateWithLifecycle().value
             val themeSeedColorArgb =
-                appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
+                appSettingsViewModel.themeSeedColorArgb.state.collectAsStateWithLifecycle().value
             val excludeFromRecents =
-                appSettingsViewModel.excludeFromRecents.state.collectAsState().value
+                appSettingsViewModel.excludeFromRecents.state.collectAsStateWithLifecycle().value
             val topBarBlurEnabled =
-                appSettingsViewModel.topBarBlurEnabled.state.collectAsState().value
-            val pageScale = appSettingsViewModel.pageScale.state.collectAsState().value
+                appSettingsViewModel.topBarBlurEnabled.state.collectAsStateWithLifecycle().value
+            val pageScale = appSettingsViewModel.pageScale.state.collectAsStateWithLifecycle().value
 
             LaunchedEffect(excludeFromRecents) {
                 this@MainActivity.applyExcludeFromRecents(excludeFromRecents)
@@ -305,9 +306,10 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
     val bottomBarLiquidState = rememberLiquidState()
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-    val bottomBarAutoHideEnabled by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
+    val bottomBarAutoHideEnabled by
+        appSettingsViewModel.bottomBarAutoHide.state.collectAsStateWithLifecycle()
     val bottomBarLiquidGlassEnabled by
-        appSettingsViewModel.bottomBarLiquidGlassEnabled.state.collectAsState()
+        appSettingsViewModel.bottomBarLiquidGlassEnabled.state.collectAsStateWithLifecycle()
 
     val bottomBarScrollBehavior =
         rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)

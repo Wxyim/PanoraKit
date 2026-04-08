@@ -23,6 +23,8 @@ package com.github.yumelira.yumebox.screen.log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -37,6 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.presentation.component.Card
@@ -80,6 +83,11 @@ private object LogScreenMetrics {
     val MessageTopSpacing = 6.dp
 }
 
+private enum class LogContentMode {
+    Browser,
+    Detail,
+}
+
 @Composable
 @Destination<RootGraph>
 fun LogScreen(navigator: DestinationsNavigator) {
@@ -88,14 +96,14 @@ fun LogScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val isRecording by viewModel.isRecording.collectAsState()
-    val logEntries by viewModel.tempLogEntries.collectAsState()
-    val historyFiles by viewModel.historyFiles.collectAsState()
-    val startupFiles by viewModel.startupFiles.collectAsState()
-    val selectedHistoryFileName by viewModel.selectedHistoryFileName.collectAsState()
-    val selectedStartupFileName by viewModel.selectedStartupFileName.collectAsState()
-    val selectedHistoryEntries by viewModel.selectedHistoryEntries.collectAsState()
-    val selectedStartupEntries by viewModel.selectedStartupEntries.collectAsState()
+    val isRecording by viewModel.isRecording.collectAsStateWithLifecycle()
+    val logEntries by viewModel.tempLogEntries.collectAsStateWithLifecycle()
+    val historyFiles by viewModel.historyFiles.collectAsStateWithLifecycle()
+    val startupFiles by viewModel.startupFiles.collectAsStateWithLifecycle()
+    val selectedHistoryFileName by viewModel.selectedHistoryFileName.collectAsStateWithLifecycle()
+    val selectedStartupFileName by viewModel.selectedStartupFileName.collectAsStateWithLifecycle()
+    val selectedHistoryEntries by viewModel.selectedHistoryEntries.collectAsStateWithLifecycle()
+    val selectedStartupEntries by viewModel.selectedStartupEntries.collectAsStateWithLifecycle()
     val viewingHistory = selectedHistoryFileName != null
     val viewingStartup = selectedStartupFileName != null
     val viewingSavedFile = viewingHistory || viewingStartup
@@ -266,119 +274,154 @@ fun LogScreen(navigator: DestinationsNavigator) {
             return@Scaffold
         }
 
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = innerPadding,
-            topPadding = 20.dp,
-            lazyListState = listState,
+        AnimatedContent(
+            targetState = if (viewingSavedFile) LogContentMode.Detail else LogContentMode.Browser,
+            transitionSpec = {
+                if (targetState == LogContentMode.Detail) {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    ) + fadeIn(tween(180)) togetherWith
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        ) + fadeOut(tween(120))
+                } else {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    ) + fadeIn(tween(180)) togetherWith
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.End,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        ) + fadeOut(tween(120))
+                }
+            },
+            label = "log_content_switch_animation",
         ) {
-            if (viewingSavedFile) {
-                item(key = "history_header") {
-                    Card(
-                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
-                    ) {
-                        Row(
+            ScreenLazyColumn(
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                topPadding = 20.dp,
+                lazyListState = listState,
+            ) {
+                if (viewingSavedFile) {
+                    item(key = "history_header") {
+                        Card(
                             modifier =
-                                Modifier.fillMaxWidth()
-                                    .clickable { viewModel.closeHistoryViewer() }
-                                    .padding(
-                                        horizontal = LogScreenMetrics.CardHorizontalPadding,
-                                        vertical = LogScreenMetrics.CardVerticalInnerPadding,
-                                    ),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(
-                                    imageVector = Yume.ArrowLeft,
-                                    contentDescription = MLang.Component.Navigation.Back,
-                                )
-                                Text(
-                                    text =
-                                        selectedHistoryFileName
-                                            ?: selectedStartupFileName.orEmpty(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        val historyFileName = selectedHistoryFileName
-                                        val startupFileName = selectedStartupFileName
-                                        val success =
-                                            when {
-                                                historyFileName != null -> {
-                                                    viewModel.deleteHistoryFile(historyFileName)
-                                                }
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                                        .clickable { viewModel.closeHistoryViewer() }
+                                        .padding(
+                                            horizontal = LogScreenMetrics.CardHorizontalPadding,
+                                            vertical = LogScreenMetrics.CardVerticalInnerPadding,
+                                        ),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(
+                                        imageVector = Yume.ArrowLeft,
+                                        contentDescription = MLang.Component.Navigation.Back,
+                                    )
+                                    Text(
+                                        text =
+                                            selectedHistoryFileName
+                                                ?: selectedStartupFileName.orEmpty(),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+                                            val historyFileName = selectedHistoryFileName
+                                            val startupFileName = selectedStartupFileName
+                                            val success =
+                                                when {
+                                                    historyFileName != null -> {
+                                                        viewModel.deleteHistoryFile(historyFileName)
+                                                    }
 
-                                                startupFileName != null -> {
-                                                    viewModel.deleteStartupFile(startupFileName)
-                                                }
+                                                    startupFileName != null -> {
+                                                        viewModel.deleteStartupFile(startupFileName)
+                                                    }
 
-                                                else -> false
+                                                    else -> false
+                                                }
+                                            if (!success) {
+                                                context.toast(MLang.Util.Error.UnknownError)
                                             }
-                                        if (!success) {
-                                            context.toast(MLang.Util.Error.UnknownError)
                                         }
                                     }
+                                ) {
+                                    Icon(
+                                        imageVector = Yume.Delete,
+                                        contentDescription = MLang.Component.Editor.Action.Delete,
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Yume.Delete,
-                                    contentDescription = MLang.Component.Editor.Action.Delete,
-                                )
                             }
                         }
                     }
-                }
-            } else if (historyFiles.isNotEmpty()) {
-                item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
-                itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file ->
-                    Card(
-                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
-                    ) {
-                        SuperArrow(
-                            title = file.name,
-                            summary =
-                                MLang.Log.History.ItemSummary.format(
-                                    dateFormatter.format(Date(file.createdAt)),
-                                    formatFileSize(file.size),
-                                ) +
-                                    if (file.isRecording) " · ${MLang.Log.History.Recording}"
-                                    else "",
-                            onClick = { viewModel.openHistoryFile(file.name) },
-                        )
+                } else if (historyFiles.isNotEmpty()) {
+                    item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
+                    itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file ->
+                        Card(
+                            modifier =
+                                Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                        ) {
+                            SuperArrow(
+                                title = file.name,
+                                summary =
+                                    MLang.Log.History.ItemSummary.format(
+                                        dateFormatter.format(Date(file.createdAt)),
+                                        formatFileSize(file.size),
+                                    ) +
+                                        if (file.isRecording) " · ${MLang.Log.History.Recording}"
+                                        else "",
+                                onClick = { viewModel.openHistoryFile(file.name) },
+                            )
+                        }
                     }
                 }
-                item(key = "live_title") { SmallTitle(MLang.Log.History.LiveSection) }
-            }
 
-            if (!viewingSavedFile && startupFiles.isNotEmpty()) {
-                item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
-                itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file ->
-                    Card(
-                        modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
-                    ) {
-                        SuperArrow(
-                            title = file.name,
-                            summary =
-                                MLang.Log.Startup.ItemSummary.format(
-                                    dateFormatter.format(Date(file.updatedAt)),
-                                    formatFileSize(file.size),
-                                ),
-                            onClick = { viewModel.openStartupFile(file.name) },
-                        )
+                if (!viewingSavedFile && startupFiles.isNotEmpty()) {
+                    item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
+                    itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file ->
+                        Card(
+                            modifier =
+                                Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                        ) {
+                            SuperArrow(
+                                title = file.name,
+                                summary =
+                                    MLang.Log.Startup.ItemSummary.format(
+                                        dateFormatter.format(Date(file.updatedAt)),
+                                        formatFileSize(file.size),
+                                    ),
+                                onClick = { viewModel.openStartupFile(file.name) },
+                            )
+                        }
                     }
                 }
-                item(key = "startup_live_title") { SmallTitle(MLang.Log.Startup.LiveSection) }
-            }
 
-            val reversed = displayEntries.asReversed()
-            itemsIndexed(
-                items = reversed,
-                key = { index, item -> "${item.time}_${item.level}_${item.message}_$index" },
-            ) { _, entry ->
-                LogEntryRow(entry = entry)
+                if (
+                    !viewingSavedFile &&
+                        (historyFiles.isNotEmpty() || startupFiles.isNotEmpty()) &&
+                        displayEntries.isNotEmpty()
+                ) {
+                    item(key = "live_title") { SmallTitle(MLang.Log.History.LiveSection) }
+                }
+
+                val reversed = displayEntries.asReversed()
+                itemsIndexed(
+                    items = reversed,
+                    key = { index, item -> "${item.time}_${item.level}_${item.message}_$index" },
+                ) { _, entry ->
+                    LogEntryRow(entry = entry)
+                }
             }
         }
     }

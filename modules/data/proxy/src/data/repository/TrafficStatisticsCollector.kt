@@ -28,7 +28,7 @@ import timber.log.Timber
 class TrafficStatisticsCollector(
     private val proxyFacade: ProxyFacade,
     private val trafficStatisticsStore: TrafficStatisticsStore,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val scope: CoroutineScope,
 ) {
     companion object {
         private const val TAG = "TrafficStatisticsCollector"

@@ -47,6 +47,7 @@ class AppSettingsViewModel(
     val hideAppIcon: Preference<Boolean> = repository.hideAppIcon
     val excludeFromRecents: Preference<Boolean> = repository.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = repository.showTrafficNotification
+    val autoStartLogRecording: Preference<Boolean> = repository.autoStartLogRecording
     val bottomBarAutoHide: Preference<Boolean> = repository.bottomBarAutoHide
     val topBarBlurEnabled: Preference<Boolean> = repository.topBarBlurEnabled
     val bottomBarLiquidGlassEnabled: Preference<Boolean> = repository.bottomBarLiquidGlassEnabled
@@ -89,6 +90,8 @@ class AppSettingsViewModel(
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)
+
+    fun onAutoStartLogRecordingChange(enabled: Boolean) = autoStartLogRecording.set(enabled)
 
     fun onSingleNodeTestChange(enabled: Boolean) = singleNodeTest.set(enabled)
 

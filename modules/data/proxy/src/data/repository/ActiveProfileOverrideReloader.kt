@@ -55,6 +55,22 @@ class ActiveProfileOverrideReloader(
         return applied
     }
 
+    suspend fun reapplyIfActiveProfile(profileId: String): Boolean {
+        val activeProfile = profilesRepository.queryActiveProfile() ?: return true
+        if (activeProfile.uuid.toString() != profileId) {
+            return true
+        }
+
+        val applied = overrideService.applyOverride(profileId)
+        if (!applied) {
+            Timber.e(
+                "Failed to reapply override after binding change for active profile: profile=%s",
+                profileId,
+            )
+        }
+        return applied
+    }
+
     suspend fun isActiveProfileUsingOverride(overrideId: String): Boolean {
         val activeProfile = profilesRepository.queryActiveProfile() ?: return false
         val binding = bindingProvider.getBinding(activeProfile.uuid.toString()) ?: return false

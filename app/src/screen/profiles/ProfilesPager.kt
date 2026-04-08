@@ -32,10 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.FileProvider
 import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.data.repository.OverrideService
+import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
@@ -79,14 +80,14 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val navigator = LocalNavigator.current
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
-    val profiles by profilesViewModel.profiles.collectAsState()
-    val isRunning by homeViewModel.isRunning.collectAsState()
+    val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
+    val isRunning by homeViewModel.isRunning.collectAsStateWithLifecycle()
 
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
+    val activeProfileOverrideReloader: ActiveProfileOverrideReloader = koinInject()
     val bindingProvider: ProfileBindingProvider = koinInject()
-    val overrideService: OverrideService = koinInject()
-    val systemPresets by overrideConfigViewModel.systemPresets.collectAsState()
-    val userConfigs by overrideConfigViewModel.userConfigs.collectAsState()
+    val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
+    val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
 
     val showAddBottomSheet = remember { mutableStateOf(false) }
     var isDeleteDialogVisible by remember { mutableStateOf(false) }
@@ -102,7 +103,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     var isDownloading by remember { mutableStateOf(false) }
 
     var importUrlFromScheme by remember { mutableStateOf<String?>(null) }
-    val pendingImportUrl by MainActivity.pendingImportUrl.collectAsState()
+    val pendingImportUrl by MainActivity.pendingImportUrl.collectAsStateWithLifecycle()
 
     var scannedUrl by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pendingImportUrl) {
@@ -156,6 +157,13 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 runCatching {
                         configFile.writeText(updatedContent)
                         profilesViewModel.refreshProfiles()
+                        check(
+                            activeProfileOverrideReloader.reapplyIfActiveProfile(
+                                profileUuid.toString()
+                            )
+                        ) {
+                            MLang.Override.Save.ApplyFailed
+                        }
                     }
                     .onFailure {
                         throw IllegalStateException(
@@ -318,7 +326,12 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             profileName = profile.name,
             onConfirm = {
                 isDeleteDialogVisible = false
-                profilesViewModel.deleteProfile(profile.uuid)
+                scope.launch {
+                    if (profile.active && isRunning) {
+                        homeViewModel.stopProxy()
+                    }
+                    profilesViewModel.deleteProfile(profile.uuid)
+                }
             },
             onDismiss = { isDeleteDialogVisible = false },
             onDismissFinished = { showDeleteDialog = null },
@@ -367,9 +380,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     bindingProvider.setBinding(updatedBinding)
                     profileBinding = bindingProvider.getBinding(profileId)
 
-                    if (isRunning && homeViewModel.isCurrentProfile(currentProfileToEdit.uuid)) {
-                        overrideService.applyOverride(profileId)
-                    }
+                    activeProfileOverrideReloader.reapplyIfActiveProfile(profileId)
                 }
             },
         )

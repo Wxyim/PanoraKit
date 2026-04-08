@@ -40,10 +40,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.domain.model.TrafficData
+import com.github.yumelira.yumebox.presentation.component.CollectFlowWithLifecycle
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
@@ -57,21 +59,22 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val homeViewModel = koinViewModel<HomeViewModel>()
     val proxyViewModel = koinViewModel<ProxyViewModel>()
 
-    val uiState by homeViewModel.uiState.collectAsState()
-    val proxyUiState by proxyViewModel.uiState.collectAsState()
-    val trafficNow by homeViewModel.trafficNow.collectAsState()
-    val displayRunning by homeViewModel.displayRunning.collectAsState()
-    val isToggling by homeViewModel.isToggling.collectAsState()
-    val profilesLoaded by homeViewModel.profilesLoaded.collectAsState()
-    val profiles by homeViewModel.profiles.collectAsState()
-    val hasEnabledProfile by homeViewModel.hasEnabledProfile.collectAsState(initial = false)
-    val recommendedProfile by homeViewModel.recommendedProfile.collectAsState()
-    val currentProfile by homeViewModel.currentProfile.collectAsState()
-    val selectedServer by homeViewModel.selectedServer.collectAsState()
-    val ipMonitoringState by homeViewModel.ipMonitoringState.collectAsState()
-    val speedHistory by homeViewModel.speedHistory.collectAsState()
-    val currentProxyMode by homeViewModel.proxyMode.collectAsState()
-    val currentTunnelMode by proxyViewModel.currentMode.collectAsState()
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val proxyUiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
+    val trafficNow by homeViewModel.trafficNow.collectAsStateWithLifecycle()
+    val displayRunning by homeViewModel.displayRunning.collectAsStateWithLifecycle()
+    val isToggling by homeViewModel.isToggling.collectAsStateWithLifecycle()
+    val profilesLoaded by homeViewModel.profilesLoaded.collectAsStateWithLifecycle()
+    val profiles by homeViewModel.profiles.collectAsStateWithLifecycle()
+    val hasEnabledProfile by
+        homeViewModel.hasEnabledProfile.collectAsStateWithLifecycle(initialValue = false)
+    val recommendedProfile by homeViewModel.recommendedProfile.collectAsStateWithLifecycle()
+    val currentProfile by homeViewModel.currentProfile.collectAsStateWithLifecycle()
+    val selectedServer by homeViewModel.selectedServer.collectAsStateWithLifecycle()
+    val ipMonitoringState by homeViewModel.ipMonitoringState.collectAsStateWithLifecycle()
+    val speedHistory by homeViewModel.speedHistory.collectAsStateWithLifecycle()
+    val currentProxyMode by homeViewModel.proxyMode.collectAsStateWithLifecycle()
+    val currentTunnelMode by proxyViewModel.currentMode.collectAsStateWithLifecycle()
 
     var pendingProfileId by remember { mutableStateOf<String?>(null) }
     var pendingProxyMode by remember {
@@ -107,8 +110,8 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
             pendingProxyMode = null
         }
 
-    LaunchedEffect(homeViewModel) {
-        homeViewModel.vpnPrepareIntent.collect { intent -> vpnPermissionLauncher.launch(intent) }
+    CollectFlowWithLifecycle(flow = homeViewModel.vpnPrepareIntent) { intent ->
+        vpnPermissionLauncher.launch(intent)
     }
 
     val requestProxyToggle:

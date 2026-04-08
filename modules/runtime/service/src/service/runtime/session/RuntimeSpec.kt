@@ -88,9 +88,33 @@ internal fun Throwable.toRuntimeFailure(
     val code = runtimeError?.code ?: fallbackCode
     val message =
         runtimeError?.message?.takeIf { it.isNotBlank() }
-            ?: this.message?.takeIf { it.isNotBlank() }
-            ?: fallbackMessage
+            ?: this.toDiagnosticMessage(fallbackMessage)
     return RuntimeFailure(code = code, message = message)
+}
+
+internal fun Throwable.toDiagnosticMessage(fallbackMessage: String): String {
+    val root = rootCause()
+    val rootType = root::class.java.name
+    val rootMessage = root.message?.trim().orEmpty()
+    val localMessage = message?.trim().orEmpty()
+
+    val preferred =
+        when {
+            localMessage.isNotBlank() && localMessage != this::class.java.name -> localMessage
+            rootMessage.isNotBlank() && rootMessage != rootType -> rootMessage
+            else -> fallbackMessage
+        }
+
+    val normalized = if (preferred.contains(":")) preferred else "$rootType: $preferred"
+    return normalized.take(512)
+}
+
+private fun Throwable.rootCause(): Throwable {
+    var current: Throwable = this
+    while (current.cause != null && current.cause !== current) {
+        current = current.cause!!
+    }
+    return current
 }
 
 @Serializable

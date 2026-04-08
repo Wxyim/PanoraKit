@@ -20,12 +20,16 @@
 
 package com.github.yumelira.yumebox.screen.traffic
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,8 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
+import com.github.yumelira.yumebox.data.model.AppTrafficUsage
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.RecentRequestRecord
@@ -76,6 +82,8 @@ private object TrafficStatisticsMetrics {
     val RecentRequestItemPadding = 12.dp
     val RecentRequestItemSpacing = 10.dp
     val RecentRequestChipCorner = 100.dp
+    val AppUsageItemPadding = 12.dp
+    val AppUsageItemSpacing = 8.dp
 }
 
 @Destination<RootGraph>
@@ -84,13 +92,14 @@ fun TrafficStatisticsScreen() {
     val viewModel = koinViewModel<TrafficStatisticsViewModel>()
     val scrollBehavior = MiuixScrollBehavior()
 
-    val todaySummary by viewModel.todaySummary.collectAsState()
-    val weekSummary by viewModel.weekSummary.collectAsState()
-    val trafficDifference by viewModel.trafficDifference.collectAsState()
-    val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
-    val chartItems by viewModel.chartItems.collectAsState()
-    val selectedBarIndex by viewModel.selectedBarIndex.collectAsState()
-    val recentRequests by viewModel.recentRequests.collectAsState()
+    val todaySummary by viewModel.todaySummary.collectAsStateWithLifecycle()
+    val weekSummary by viewModel.weekSummary.collectAsStateWithLifecycle()
+    val trafficDifference by viewModel.trafficDifference.collectAsStateWithLifecycle()
+    val selectedTimeRange by viewModel.selectedTimeRange.collectAsStateWithLifecycle()
+    val chartItems by viewModel.chartItems.collectAsStateWithLifecycle()
+    val selectedBarIndex by viewModel.selectedBarIndex.collectAsStateWithLifecycle()
+    val appUsages by viewModel.appUsages.collectAsStateWithLifecycle()
+    val recentRequests by viewModel.recentRequests.collectAsStateWithLifecycle()
     var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
     var showConnectionDetail by remember { mutableStateOf(false) }
 
@@ -154,21 +163,82 @@ fun TrafficStatisticsScreen() {
                             )
                         }
 
+                        val selectedLabelText =
+                            if (selectedBarIndex >= 0 && chartItems.isNotEmpty()) {
+                                chartItems
+                                    .getOrNull(selectedBarIndex)
+                                    ?.takeIf { it.label.isNotEmpty() }
+                                    ?.let { "${it.label}: ${formatBytes(it.value)}" }
+                            } else null
+
                         Box(
                             modifier =
                                 Modifier.fillMaxWidth()
                                     .height(TrafficStatisticsMetrics.SelectedLabelHeight),
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            if (selectedBarIndex >= 0 && chartItems.isNotEmpty()) {
-                                val selectedItem = chartItems.getOrNull(selectedBarIndex)
-                                if (selectedItem != null && selectedItem.label.isNotEmpty()) {
+                            AnimatedContent(
+                                targetState = selectedLabelText,
+                                transitionSpec = {
+                                    fadeIn(tween(250)) togetherWith fadeOut(tween(150))
+                                },
+                                label = "selected_bar_label",
+                            ) { labelText ->
+                                if (labelText != null) {
                                     Text(
-                                        text =
-                                            "${selectedItem.label}: ${formatBytes(selectedItem.value)}",
+                                        text = labelText,
                                         style = MiuixTheme.textStyles.footnote1,
                                         color = MiuixTheme.colorScheme.primary,
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.CardSpacing)) }
+
+            item {
+                top.yukonga.miuix.kmp.basic.Card(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.padding(TrafficStatisticsMetrics.RecentRequestCardPadding),
+                        verticalArrangement =
+                            Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = MLang.TrafficStatistics.AppUsage.Title,
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = MLang.TrafficStatistics.AppUsage.Summary,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+
+                        if (appUsages.isEmpty()) {
+                            Text(
+                                text = MLang.TrafficStatistics.AppUsage.Empty,
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement =
+                                    Arrangement.spacedBy(
+                                        TrafficStatisticsMetrics.AppUsageItemSpacing
+                                    )
+                            ) {
+                                appUsages.take(15).forEach { usage ->
+                                    AppUsageItem(usage = usage)
                                 }
                             }
                         }
@@ -252,6 +322,53 @@ fun TrafficStatisticsScreen() {
             onDismiss = { showConnectionDetail = false },
             onDismissFinished = { selectedConnection = null },
         )
+    }
+}
+
+@Composable
+private fun AppUsageItem(usage: AppTrafficUsage) {
+    val appDisplayName = usage.appName.ifBlank { MLang.TrafficStatistics.AppUsage.UnknownApp }
+    val packageName = usage.packageName.orEmpty()
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+        color = MiuixTheme.colorScheme.background,
+    ) {
+        Column(
+            modifier = Modifier.padding(TrafficStatisticsMetrics.AppUsageItemPadding),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = appDisplayName,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (packageName.isNotBlank()) {
+                Text(
+                    text = packageName,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = formatBytes(usage.totalBytes),
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.primary,
+            )
+            Text(
+                text =
+                    MLang.TrafficStatistics.AppUsage.Breakdown.format(
+                        formatBytes(usage.totalUpload),
+                        formatBytes(usage.totalDownload),
+                    ),
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
     }
 }
 

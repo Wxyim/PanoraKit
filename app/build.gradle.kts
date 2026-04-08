@@ -52,6 +52,8 @@ val mihomoVersion =
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
 val legacyJniLibsDir = rootProject.layout.projectDirectory.dir("jniLibs")
+val nativeCppOutputDir = rootProject.layout.buildDirectory.dir("native/cpp/obj")
+val nativeGoOutputDir = rootProject.layout.buildDirectory.dir("native/go")
 
 android {
     namespace = providers.gradleProperty("project.namespace.base").get()
@@ -105,6 +107,16 @@ android {
             }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
+            }
+        }
+        getByName("test") {
+            kotlin.directories.apply {
+                clear()
+                add("test")
+            }
+            resources.directories.apply {
+                clear()
+                add("test/resources")
             }
         }
     }
@@ -271,7 +283,40 @@ val syncLegacyJniLibs =
         into(unifiedJniLibsDir)
     }
 
-tasks.named("preBuild") { dependsOn(syncLegacyJniLibs) }
+val syncBuiltNativeJniLibs =
+    tasks.register<Sync>("syncBuiltNativeJniLibs") {
+        val abiList = appAbiList
+        val cppRoot = nativeCppOutputDir.get().asFile
+        val goRoot = nativeGoOutputDir.get().asFile
+
+        doFirst {
+            val missing = mutableListOf<String>()
+            abiList.forEach { abi ->
+                val bridge = cppRoot.resolve("$abi/libbridge.so")
+                val clash = goRoot.resolve("$abi/libclash.so")
+                if (!bridge.isFile) {
+                    missing += bridge.absolutePath
+                }
+                if (!clash.isFile) {
+                    missing += clash.absolutePath
+                }
+            }
+
+            if (missing.isNotEmpty()) {
+                throw GradleException(
+                    "Missing native runtime libraries for APK packaging:\n" +
+                        missing.joinToString(separator = "\n") +
+                        "\nBuild native artifacts first via scripts/native-build.main.kts."
+                )
+            }
+        }
+
+        from(cppRoot) { include("*/libbridge.so") }
+        from(goRoot) { include("*/libclash.so") }
+        into(unifiedJniLibsDir)
+    }
+
+tasks.named("preBuild") { dependsOn(syncLegacyJniLibs, syncBuiltNativeJniLibs) }
 
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
@@ -342,6 +387,8 @@ dependencies {
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
     implementation(libs.fytxt.common.android)
+
+    testImplementation("junit:junit:4.13.2")
 
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)

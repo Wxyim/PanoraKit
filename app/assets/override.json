@@ -1,4 +1,5 @@
 {
+  "find-process-mode": "strict",
   "rule-providers": {
     "private": {
       "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/private.yaml",

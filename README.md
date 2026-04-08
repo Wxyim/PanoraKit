@@ -126,3 +126,20 @@ Fork base: `68ff390`.
 - Refined app-facing copy and metadata expression for a consistent fork narrative.
 - Updated root README and Chinese docs structure; cleaned legacy website docs bundle tracked in repository.
 - Added project-wide formatting baselines (`.editorconfig`, `.clang-format`) and executed style alignment on native/Go/Kotlin sources.
+
+### 5.8 Feedback & Bug Reports
+
+To report a bug, open an issue: [NomadBoxLab/NomadBox Issues](https://github.com/NomadBoxLab/NomadBox/issues)
+
+Feature suggestions and improvement proposals are also welcome through the issue tracker.
+
+### 5.9 Contributing
+
+To contribute to MonadBox, see [CONTRIBUTING](docs/CONTRIBUTING.md).
+To contribute localization improvements, create or update the corresponding translation files under `modules/locale/lang/`.
+
+### 5.10 Acknowledgements
+
+~~The author has no idea what any of the code in this project does. The code either works or it doesn't, there is no third state.~~
+
+This project also uses the following [third-party](docs/ThirdParty.md) libraries.

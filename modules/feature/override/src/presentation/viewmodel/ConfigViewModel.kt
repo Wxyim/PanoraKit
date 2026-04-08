@@ -204,11 +204,29 @@ class OverrideConfigViewModel(
         return configRepo.getConfigJsonContent(configId)
     }
 
-    fun saveConfigJsonContent(configId: String, content: String): Boolean {
+    suspend fun saveConfigJsonContent(configId: String, content: String): Result<Unit> {
         if (isCodeEditorReadOnly(configId)) {
-            return false
+            return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
         }
-        return configRepo.saveConfigJsonContent(configId, content)
+        return try {
+            val updatedConfig =
+                configRepo.saveConfigJsonContent(configId, content)
+                    ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
+
+            updateLocalCacheAfterSave(updatedConfig)
+            _metadataMap.update { current ->
+                current.toMutableMap().apply {
+                    current[configId]?.let { metadata ->
+                        put(configId, metadata.copy(updatedAt = updatedConfig.updatedAt))
+                    }
+                }
+            }
+
+            syncActiveOverrideAfterMutation(configId)
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to save config JSON content: %s", configId)
+            Result.failure(e)
+        }
     }
 
     fun isCodeEditorReadOnly(configId: String): Boolean {
@@ -329,6 +347,15 @@ class OverrideConfigViewModel(
             if (updateSaveState) {
                 _saveState.value = OverrideSaveState.Idle
             }
+        }
+    }
+
+    private suspend fun syncActiveOverrideAfterMutation(configId: String): Result<Unit> {
+        val runtimeSynced = activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
+        return if (runtimeSynced) {
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalStateException(MLang.Override.Save.ApplyFailed))
         }
     }
 
@@ -922,7 +949,7 @@ class OverrideConfigViewModel(
                     appSettingsRepository.allowNonLocalhostHttpRemote.value,
             )
             loadConfigs()
-            Result.success(Unit)
+            syncActiveOverrideAfterMutation(configId)
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to refresh remote override: $configId")
             Result.failure(e)

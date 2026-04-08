@@ -25,6 +25,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.Provider
+import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.ProvidersRepository
@@ -42,6 +43,7 @@ class ProvidersViewModel(
     private val providersRepository: ProvidersRepository,
     private val overrideConfigRepository: OverrideConfigRepository,
     private val appSettingsRepository: AppSettingsRepository,
+    private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
 ) : ViewModel() {
 
     private val _providers = MutableStateFlow<List<Provider>>(emptyList())
@@ -98,13 +100,7 @@ class ProvidersViewModel(
                     if (staleResources.isNotEmpty()) {
                         val failedResources = mutableListOf<String>()
                         staleResources.forEach { stale ->
-                            runCatching {
-                                    overrideConfigRepository.refreshRemoteResource(
-                                        id = stale.id,
-                                        allowInsecureHttpNonLocalhost =
-                                            appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                                    )
-                                }
+                            refreshRemoteOverrideInternal(stale.id)
                                 .onFailure { failedResources += stale.name }
                         }
                         _remoteOverrides.value = overrideConfigRepository.listRemoteResources()
@@ -138,13 +134,7 @@ class ProvidersViewModel(
         val key = remoteOverrideKey(resource.id)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
-            runCatching {
-                    overrideConfigRepository.refreshRemoteResource(
-                        id = resource.id,
-                        allowInsecureHttpNonLocalhost =
-                            appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                    )
-                }
+            refreshRemoteOverrideInternal(resource.id)
                 .onSuccess {
                     refreshRemoteOverrides()
                     _uiState.update {
@@ -220,14 +210,7 @@ class ProvidersViewModel(
             }
 
             remoteOverrides.forEach { resource ->
-                runCatching {
-                        overrideConfigRepository.refreshRemoteResource(
-                            id = resource.id,
-                            allowInsecureHttpNonLocalhost =
-                                appSettingsRepository.allowNonLocalhostHttpRemote.value,
-                        )
-                    }
-                    .onFailure { failedItems += resource.name }
+                refreshRemoteOverrideInternal(resource.id).onFailure { failedItems += resource.name }
             }
 
             refreshProviders()
@@ -251,6 +234,23 @@ class ProvidersViewModel(
 
     private fun remoteOverrideKey(id: String): String = "override_$id"
 
+    private suspend fun refreshRemoteOverrideInternal(id: String): Result<Unit> {
+        return try {
+            overrideConfigRepository.refreshRemoteResource(
+                id = id,
+                allowInsecureHttpNonLocalhost =
+                    appSettingsRepository.allowNonLocalhostHttpRemote.value,
+            )
+            if (activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(id)) {
+                Result.success(Unit)
+            } else {
+                Result.failure(IllegalStateException(MLang.Override.Save.ApplyFailed))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
@@ -267,12 +267,32 @@ class ProvidersViewModel(
             val result = providersRepository.uploadProviderFile(context, provider, uri)
             result
                 .onSuccess {
-                    refreshProviders()
-                    _uiState.update {
-                        it.copy(
-                            message = MLang.Providers.Message.UploadSuccess.format(provider.name)
-                        )
-                    }
+                    val applyResult =
+                        if (proxyFacade.isRunning.value) {
+                            providersRepository.updateProvider(provider)
+                        } else {
+                            Result.success(Unit)
+                        }
+
+                    applyResult
+                        .onSuccess {
+                            refreshProviders()
+                            _uiState.update {
+                                it.copy(
+                                    message = MLang.Providers.Message.UploadSuccess.format(provider.name)
+                                )
+                            }
+                        }
+                        .onFailure { e ->
+                            _uiState.update {
+                                it.copy(
+                                    error =
+                                        MLang.Providers.Message.UpdateFailed.format(
+                                            e.message ?: MLang.Providers.Message.UnknownError
+                                        )
+                                )
+                            }
+                        }
                 }
                 .onFailure { e ->
                     _uiState.update {

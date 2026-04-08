@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.ToastDialogBridge
 import com.github.yumelira.yumebox.common.util.ToastDialogEvent
 import com.github.yumelira.yumebox.common.util.ToastMode
@@ -38,7 +39,7 @@ import top.yukonga.miuix.kmp.extra.WindowDialog
 
 @Composable
 fun ToastDialogHost() {
-    val event by ToastDialogBridge.event.collectAsState()
+    val event by ToastDialogBridge.event.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var eventSnapshot by remember { mutableStateOf<ToastDialogEvent?>(null) }
     val showDialog = remember { mutableStateOf(false) }

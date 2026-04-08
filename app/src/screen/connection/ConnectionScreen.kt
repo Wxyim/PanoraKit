@@ -29,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionCard
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
@@ -75,8 +76,8 @@ private fun ConnectionSort.getDisplayName(): String =
 @Composable
 fun ConnectionScreen(navigator: DestinationsNavigator) {
     val viewModel = koinViewModel<ConnectionViewModel>()
-    val state by viewModel.state.collectAsState()
-    val filteredConnections by viewModel.filteredConnections.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val filteredConnections by viewModel.filteredConnections.collectAsStateWithLifecycle()
 
     val scrollBehavior = MiuixScrollBehavior()
     var showSearchBar by remember { mutableStateOf(false) }

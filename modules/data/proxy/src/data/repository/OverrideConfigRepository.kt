@@ -443,17 +443,43 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         }
     }
 
-    fun saveConfigJsonContent(id: String, content: String): Boolean {
-        if (isSystemPreset(id)) return false
-        configsDir.mkdirs()
-        val configFile = configsDir.resolve("$id.json")
-        return try {
-            configFile.writeText(content)
-            true
-        } catch (e: Exception) {
-            false
+    suspend fun saveConfigJsonContent(id: String, content: String): OverrideConfig? =
+        withContext(Dispatchers.IO) {
+            if (isSystemPreset(id)) return@withContext null
+
+            val metadataIndex = loadMetadataIndex()
+            val metadata = metadataIndex.getById(id) ?: return@withContext null
+            val decoded = json.decodeFromString(ConfigurationOverride.serializer(), content)
+            val updatedAt = System.currentTimeMillis()
+
+            configsDir.mkdirs()
+            configsDir.resolve("$id.json").writeText(content)
+
+            val updatedMetadata = metadata.copy(updatedAt = updatedAt)
+            val nextIndex = metadataIndex.upsert(updatedMetadata)
+            saveMetadataIndex(nextIndex)
+
+            val updatedConfig =
+                OverrideConfig(
+                    id = id,
+                    name = updatedMetadata.name,
+                    description = updatedMetadata.description,
+                    config = decoded,
+                    isSystem = false,
+                    createdAt = updatedMetadata.createdAt,
+                    updatedAt = updatedMetadata.updatedAt,
+                )
+
+            val userConfigsById =
+                _configsFlow.value
+                    .filterNot(OverrideConfig::isSystem)
+                    .associateBy(OverrideConfig::id)
+                    .toMutableMap()
+                    .apply { put(id, updatedConfig) }
+            updateConfigsFlowSnapshot(metadataIndex = nextIndex, userConfigsById = userConfigsById)
+
+            updatedConfig
         }
-    }
 
     private fun loadConfigContent(id: String): ConfigurationOverride? {
         val file = configsDir.resolve("$id.json")

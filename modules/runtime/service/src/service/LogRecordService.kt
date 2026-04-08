@@ -86,6 +86,8 @@ class LogRecordService : Service() {
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val stateLock = Any()
+    private val writerLock = Any()
 
     private var logWriter: BufferedWriter? = null
     private var logCollectJob: Job? = null
@@ -111,7 +113,7 @@ class LogRecordService : Service() {
     }
 
     override fun onDestroy() {
-        closeLogWriter()
+        stopRecordingInternal(stopService = false)
         serviceScope.cancel()
         isRecording = false
         currentLogFileName = null
@@ -119,81 +121,95 @@ class LogRecordService : Service() {
     }
 
     private fun startRecording() {
-        if (isRecording) return
+        synchronized(stateLock) {
+            if (isRecording) return
 
-        runCatching {
-                val logDir = getLogDir(applicationContext)
-                pruneLogFiles(logDir)
-                val timestamp = fileNameFormatter.format(Instant.now())
-                val fileName = "$LOG_PREFIX$timestamp$LOG_SUFFIX"
-                logFile = File(logDir, fileName)
-                logWriter = BufferedWriter(FileWriter(logFile, true))
+            runCatching {
+                    val logDir = getLogDir(applicationContext)
+                    pruneLogFiles(logDir)
+                    val timestamp = fileNameFormatter.format(Instant.now())
+                    val fileName = "$LOG_PREFIX$timestamp$LOG_SUFFIX"
+                    logFile = File(logDir, fileName)
+                    logWriter = BufferedWriter(FileWriter(logFile, true))
 
-                currentLogFileName = fileName
-                isRecording = true
+                    currentLogFileName = fileName
+                    isRecording = true
 
-                startForeground(NOTIFICATION_ID, createNotification())
+                    startForeground(NOTIFICATION_ID, createNotification())
 
-                logCollectJob =
-                    serviceScope.launch {
-                        try {
-                            val observer =
-                                object : ILogObserver {
-                                    override fun newItem(log: LogMessage) {
-                                        if (isRecording) {
-                                            runCatching {
-                                                    val line =
-                                                        "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
-                                                    logWriter?.write(line)
-                                                    logWriter?.flush()
-                                                }
-                                                .onFailure { e ->
-                                                    Timber.tag(TAG).e(e, "Log write failed")
-                                                }
+                    logCollectJob =
+                        serviceScope.launch {
+                            val clash = ClashManager(applicationContext)
+                            try {
+                                val observer =
+                                    object : ILogObserver {
+                                        override fun newItem(log: LogMessage) {
+                                            if (!isRecording) return
+                                            val line =
+                                                "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
+                                            writeLogLine(line)
                                         }
                                     }
-                                }
-                            val clash = ClashManager(applicationContext)
-                            clash.setLogObserver(observer)
-
-                            try {
+                                clash.setLogObserver(observer)
                                 awaitCancellation()
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (t: Throwable) {
+                                Timber.tag(TAG).e(t, "Log observer failed")
+                                stopRecordingInternal(stopService = true)
                             } finally {
                                 runCatching { clash.setLogObserver(null) }
                             }
-                        } catch (e: Exception) {
-                            Timber.tag(TAG).e(e, "Log observer setup failed")
                         }
-                    }
-            }
-            .onFailure { e ->
-                Timber.tag(TAG).e(e, "Log recording start failed")
-                isRecording = false
-                currentLogFileName = null
-                stopSelf()
-            }
+                }
+                .onFailure { e ->
+                    Timber.tag(TAG).e(e, "Log recording start failed")
+                    stopRecordingInternal(stopService = true)
+                }
+        }
     }
 
     private fun stopRecording() {
-        logCollectJob?.cancel()
-        logCollectJob = null
-        closeLogWriter()
+        stopRecordingInternal(stopService = true)
+    }
 
-        isRecording = false
-        currentLogFileName = null
+    private fun stopRecordingInternal(stopService: Boolean) {
+        synchronized(stateLock) {
+            logCollectJob?.cancel()
+            logCollectJob = null
+            closeLogWriter()
 
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+            isRecording = false
+            currentLogFileName = null
+
+            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+            if (stopService) {
+                stopSelf()
+            }
+        }
+    }
+
+    private fun writeLogLine(line: String) {
+        synchronized(writerLock) {
+            runCatching {
+                    val writer = logWriter ?: return
+                    writer.write(line)
+                    writer.flush()
+                }
+                .onFailure { e -> Timber.tag(TAG).e(e, "Log write failed") }
+        }
     }
 
     private fun closeLogWriter() {
-        runCatching {
-                logWriter?.flush()
-                logWriter?.close()
-                logWriter = null
-                logFile = null
-            }
-            .onFailure { e -> Timber.tag(TAG).e(e, "Log writer close failed") }
+        synchronized(writerLock) {
+            runCatching {
+                    logWriter?.flush()
+                    logWriter?.close()
+                    logWriter = null
+                    logFile = null
+                }
+                .onFailure { e -> Timber.tag(TAG).e(e, "Log writer close failed") }
+        }
     }
 
     private fun pruneLogFiles(logDir: File) {

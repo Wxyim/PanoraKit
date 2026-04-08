@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -47,6 +47,7 @@ import com.ramcosta.composedestinations.generated.destinations.LogScreenDestinat
 import com.ramcosta.composedestinations.generated.destinations.MetaFeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -194,6 +195,21 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 
                 Card {
                     SuperArrow(
+                        title = MLang.Settings.More.TrafficStatistics,
+                        summary = MLang.Settings.More.TrafficStatisticsSummary,
+                        onClick = {
+                            navigator.navigate(TrafficStatisticsScreenDestination) {
+                                launchSingleTop = true
+                            }
+                        },
+                        startAction = {
+                            CircularIcon(
+                                imageVector = Yume.`Chart-column`,
+                                contentDescription = null,
+                            )
+                        },
+                    )
+                    SuperArrow(
                         title = MLang.Settings.More.Logs,
                         summary = MLang.Settings.More.LogsSummary,
                         onClick = {
@@ -201,7 +217,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         },
                         startAction = {
                             CircularIcon(
-                                imageVector = Yume.`Chart-column`,
+                                imageVector = Yume.Activity,
                                 contentDescription = null,
                             )
                         },

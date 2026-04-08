@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.VpnUtils
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.RootTunDnsMode
@@ -40,6 +41,7 @@ import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.presentation.component.AppDialog
+import com.github.yumelira.yumebox.presentation.component.CollectFlowWithLifecycle
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.EnumSelector
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
@@ -66,30 +68,31 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<NetworkSettingsViewModel>()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val proxyMode by viewModel.currentProxyMode.collectAsState()
-    val bypassPrivateNetwork by viewModel.bypassPrivateNetwork.state.collectAsState()
-    val dnsHijack by viewModel.dnsHijack.state.collectAsState()
-    val allowBypass by viewModel.allowBypass.state.collectAsState()
-    val enableIPv6 by viewModel.enableIPv6.state.collectAsState()
-    val systemProxy by viewModel.systemProxy.state.collectAsState()
-    val tunStack by viewModel.tunStack.state.collectAsState()
-    val rootTunAutoRoute by viewModel.rootTunAutoRoute.state.collectAsState()
-    val rootTunStrictRoute by viewModel.rootTunStrictRoute.state.collectAsState()
-    val rootTunAutoRedirect by viewModel.rootTunAutoRedirect.state.collectAsState()
-    val rootTunDnsMode by viewModel.rootTunDnsMode.state.collectAsState()
-    val allowNonLocalhostHttpRemote by viewModel.allowNonLocalhostHttpRemote.state.collectAsState()
-    val accessControlMode by viewModel.accessControlMode.state.collectAsState()
+    val proxyMode by viewModel.currentProxyMode.collectAsStateWithLifecycle()
+    val bypassPrivateNetwork by viewModel.bypassPrivateNetwork.state.collectAsStateWithLifecycle()
+    val dnsHijack by viewModel.dnsHijack.state.collectAsStateWithLifecycle()
+    val allowBypass by viewModel.allowBypass.state.collectAsStateWithLifecycle()
+    val enableIPv6 by viewModel.enableIPv6.state.collectAsStateWithLifecycle()
+    val systemProxy by viewModel.systemProxy.state.collectAsStateWithLifecycle()
+    val tunStack by viewModel.tunStack.state.collectAsStateWithLifecycle()
+    val rootTunAutoRoute by viewModel.rootTunAutoRoute.state.collectAsStateWithLifecycle()
+    val rootTunStrictRoute by viewModel.rootTunStrictRoute.state.collectAsStateWithLifecycle()
+    val rootTunAutoRedirect by viewModel.rootTunAutoRedirect.state.collectAsStateWithLifecycle()
+    val rootTunDnsMode by viewModel.rootTunDnsMode.state.collectAsStateWithLifecycle()
+    val allowNonLocalhostHttpRemote by
+        viewModel.allowNonLocalhostHttpRemote.state.collectAsStateWithLifecycle()
+    val accessControlMode by viewModel.accessControlMode.state.collectAsStateWithLifecycle()
 
-    val rootTunIfNameDraft by viewModel.rootTunIfNameDraft.collectAsState()
-    val rootTunMtuDraft by viewModel.rootTunMtuDraft.collectAsState()
-    val rootTunFakeIpRangeDraft by viewModel.rootTunFakeIpRangeDraft.collectAsState()
-    val rootTunFakeIpRange6Draft by viewModel.rootTunFakeIpRange6Draft.collectAsState()
+    val rootTunIfNameDraft by viewModel.rootTunIfNameDraft.collectAsStateWithLifecycle()
+    val rootTunMtuDraft by viewModel.rootTunMtuDraft.collectAsStateWithLifecycle()
+    val rootTunFakeIpRangeDraft by viewModel.rootTunFakeIpRangeDraft.collectAsStateWithLifecycle()
+    val rootTunFakeIpRange6Draft by viewModel.rootTunFakeIpRange6Draft.collectAsStateWithLifecycle()
     var enableModeTransition by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { viewModel.errors.collect { message -> context.toast(message) } }
+    CollectFlowWithLifecycle(flow = viewModel.errors) { message -> context.toast(message) }
 
     LaunchedEffect(Unit) { enableModeTransition = true }
 

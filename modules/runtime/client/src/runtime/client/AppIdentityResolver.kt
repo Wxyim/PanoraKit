@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 data class AppIdentity(val appKey: String, val packageName: String? = null, val appName: String)
 
@@ -22,9 +23,21 @@ class AppIdentityResolver(context: Context) {
 
     fun resolve(metadata: JsonObject): AppIdentity {
         val explicitPackageName =
-            metadata["packageName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-        val processName = metadata["process"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-        val uid = metadata["uid"]?.jsonPrimitive?.intOrNull
+            metadata.firstNonBlankValue(
+                "packageName",
+                "package",
+                "package-name",
+                "package_name",
+            )
+        val processName =
+            metadata.firstNonBlankValue(
+                "process",
+                "processName",
+                "process-name",
+                "process_name",
+                "appProcess",
+            )
+        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid")
         return resolve(
             explicitPackageName = explicitPackageName,
             processName = processName,
@@ -94,10 +107,19 @@ class AppIdentityResolver(context: Context) {
     private fun resolveByProcess(processName: String): String? {
         if (processName.isBlank()) return null
 
+        val processBaseName = processName.substringAfterLast('/').trim()
+        val processBaseWithoutSuffix = processBaseName.substringBefore(':').trim()
+
         val candidates =
             buildList {
                     add(processName)
                     add(processName.substringBefore(':'))
+                    if (processBaseName.isNotEmpty()) {
+                        add(processBaseName)
+                    }
+                    if (processBaseWithoutSuffix.isNotEmpty()) {
+                        add(processBaseWithoutSuffix)
+                    }
                 }
                 .map(String::trim)
                 .filter(String::isNotEmpty)
@@ -173,4 +195,28 @@ class AppIdentityResolver(context: Context) {
         const val UNKNOWN_APP_KEY = "unknown"
         const val UNKNOWN_APP_NAME = "Unknown App"
     }
+}
+
+private fun JsonObject.firstNonBlankValue(vararg keys: String): String {
+    keys.forEach { key ->
+        val value = this[key]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        if (value.isNotBlank()) return value
+    }
+    return ""
+}
+
+private fun JsonObject.firstUidValue(vararg keys: String): Int? {
+    keys.forEach { key ->
+        val primitive = this[key]?.jsonPrimitive ?: return@forEach
+        primitive.intOrNull?.let {
+            if (it > 0) return it
+        }
+        primitive.longOrNull?.let {
+            if (it in 1..Int.MAX_VALUE.toLong()) return it.toInt()
+        }
+        primitive.contentOrNull?.trim()?.toIntOrNull()?.let {
+            if (it > 0) return it
+        }
+    }
+    return null
 }

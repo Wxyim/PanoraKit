@@ -20,14 +20,14 @@ Log = {
 
     History = {
         Title = "History Files"
-        LiveSection = "Live Stream"
+        LiveSection = "Live Recording Stream"
         Recording = "Recording"
         ItemSummary = "%s · %s"
     }
 
     Startup = {
         Title = "Startup Logs"
-        LiveSection = "Live Stream"
+        LiveSection = "Startup Process Logs"
         ItemSummary = "%s · %s"
     }
 }

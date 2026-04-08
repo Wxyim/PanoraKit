@@ -1,7 +1,7 @@
 <Traffic Statistics Page>
 TrafficStatistics = {
-    Title = "Recent Requests"
-    EntrySummary = "View recent requests and traffic overview"
+    Title = "Traffic Statistics & Recent Requests"
+    EntrySummary = "View app-level traffic usage and recent requests"
 
     OverviewTitle = "Traffic Overview"
 
@@ -11,6 +11,14 @@ TrafficStatistics = {
         Empty = "No recent requests"
         UnknownRequest = "Unknown Request"
         Count = "%d"
+    }
+
+    AppUsage = {
+        Title = "App Traffic Usage"
+        Summary = "Ranked app-level traffic from runtime collector"
+        Empty = "No app traffic data yet"
+        UnknownApp = "Unknown App"
+        Breakdown = "Up %s · Down %s"
     }
 
     Status = {

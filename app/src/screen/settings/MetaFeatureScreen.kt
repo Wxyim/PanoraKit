@@ -37,7 +37,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
-import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
@@ -74,15 +73,6 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                         summary = MLang.Connection.Summary,
                         onClick = {
                             navigator.navigate(ConnectionScreenDestination) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.MetaFeature.RecentRequests.Title,
-                        summary = MLang.MetaFeature.RecentRequests.Summary,
-                        onClick = {
-                            navigator.navigate(TrafficStatisticsScreenDestination) {
                                 launchSingleTop = true
                             }
                         },

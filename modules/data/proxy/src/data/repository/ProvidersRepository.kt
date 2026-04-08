@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.Provider
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.ServiceClient
@@ -106,7 +105,8 @@ class ProvidersRepository(private val context: Context) {
 
     private suspend fun updateProviderInternal(type: Provider.Type, name: String): Result<Unit> {
         return try {
-            Clash.updateProvider(type, name).await()
+            ServiceClient.connect(context)
+            ServiceClient.clash().updateProvider(type, name)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(

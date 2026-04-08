@@ -28,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetIconAction
@@ -56,11 +57,11 @@ private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
     val scope = rememberCoroutineScope()
-    val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
-    val displayMode by proxyViewModel.displayMode.collectAsState()
-    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
-    val testingProxyNames by proxyViewModel.testingProxyNames.collectAsState()
-    val sortMode by proxyViewModel.sortMode.collectAsState()
+    val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
+    val displayMode by proxyViewModel.displayMode.collectAsStateWithLifecycle()
+    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsStateWithLifecycle()
+    val testingProxyNames by proxyViewModel.testingProxyNames.collectAsStateWithLifecycle()
+    val sortMode by proxyViewModel.sortMode.collectAsStateWithLifecycle()
 
     val showSheet = rememberSaveable { mutableStateOf(true) }
     val showSortPopup = rememberSaveable { mutableStateOf(false) }

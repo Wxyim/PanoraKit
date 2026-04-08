@@ -51,12 +51,24 @@ android {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
+        getByName("test") {
+            kotlin.directories.apply {
+                clear()
+                add("test")
+            }
+            resources.directories.apply {
+                clear()
+                add("test/resources")
+            }
+        }
     }
 
     buildFeatures {
         aidl = true
         buildConfig = false
     }
+
+    testOptions { unitTests.isReturnDefaultValues = true }
 }
 
 dependencies {
@@ -81,4 +93,6 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
+
+    testImplementation("junit:junit:4.13.2")
 }

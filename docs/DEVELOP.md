@@ -1,218 +1,209 @@
 # Development Guide
 
-This document describes the local development setup for MonadBox/YumeBox.
+[English](DEVELOP.md) | [简体中文](DEVELOP_ZH_HANS.md)
 
-## 1. Platform Scope
+This document defines environment and build procedures. Style and architectural constraints are specified in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- GitHub Actions CI is Ubuntu-only.
-- Local development is supported on Windows, macOS, and Linux.
+## 1. Platform and Toolchain
 
-## 2. Prerequisites
+Supported local platforms: Windows, macOS, Linux.
+
+CI platform: Ubuntu (GitHub Actions).
+
+Required toolchain:
 
 - JDK 21
-- Android SDK (compile/target SDK 36)
-- Android NDK `27.3.13750724`
-- Kotlin command runner available in PATH for `scripts/native-build.main.kts`
+- Android SDK (compile/target 36)
+- Android NDK 27.3.13750724
+- Kotlin command runner in PATH (for `scripts/native-build.main.kts`)
 
-Project-wide versions are defined in [gradle.properties](../gradle.properties).
+Authoritative version file: [gradle.properties](../gradle.properties)
 
-## 3. Local Configuration Templates
+## 2. One-Time Local Setup
 
-Copy and fill the following templates at repository root:
+Copy templates at repository root:
 
-- [local.properties.example](../local.properties.example) -> `local.properties`
-- [startup-gate.local.properties.example](../startup-gate.local.properties.example) -> `startup-gate.local.properties`
-- [signing.properties.example](../signing.properties.example) -> `signing.properties` (only when signing is required)
+| Template | Local file |
+| --- | --- |
+| `local.properties.example` | `local.properties` |
+| `startup-gate.local.properties.example` | `startup-gate.local.properties` |
+| `signing.properties.example` | `signing.properties` (release only) |
 
-## 4. Build And Test
+Do not commit local credentials or machine-specific paths.
+
+## 3. Native + Gradle Build Sequence
+
+Native outputs are preconditions for APK packaging.
+
+Linux/macOS:
+
+```bash
+./scripts/sync-kernel.sh alpha
+kotlin scripts/native-build.main.kts --all
+./gradlew build
+```
+
+Windows PowerShell:
+
+```powershell
+./scripts/sync-kernel.ps1 alpha
+kotlin scripts/native-build.main.kts --all
+.\gradlew.bat build
+```
+
+Required native outputs:
+
+- `build/native/cpp/obj/*/libbridge.so`
+- `build/native/go/*/libclash.so`
+
+## 4. Verification Tasks
 
 Run from repository root:
 
 ```bash
-./gradlew build
+./gradlew spotlessApply
+./gradlew checkUiContracts
+./gradlew checkModernizationBaseline
 ./gradlew test
 ./gradlew lint
-./gradlew spotlessApply
 ```
 
-On Windows PowerShell, use `./gradlew.bat`.
+Windows equivalent:
 
-## 5. APK Build Outputs
-
-Common APK build commands (run from repository root):
-
-```bash
-./gradlew assembleDebug
-./gradlew assembleRelease
+```powershell
+.\gradlew.bat spotlessApply
+.\gradlew.bat checkUiContracts
+.\gradlew.bat checkModernizationBaseline
+.\gradlew.bat test
+.\gradlew.bat lint
 ```
 
-If you only need the app module:
+Root `check` includes both `checkUiContracts` and `checkModernizationBaseline`.
 
-```bash
-./gradlew :app:assembleDebug
-./gradlew :app:assembleRelease
+## 5. Module Topology
+
+Dependency direction:
+
+`app -> modules/feature/* -> shared/data/runtime modules`
+
+| Module group | Responsibility |
+| --- | --- |
+| `app/` | entry point, startup wiring, navigation host, Android packaging |
+| `modules/feature/*` | user-facing features |
+| `modules/data/*` | persistence and repository layer |
+| `modules/runtime/*` | runtime API/client/service boundary |
+| `modules/ui/`, `modules/locale/`, `modules/platform/`, `modules/core/` | shared foundations |
+
+Prefer module-local changes.
+
+## 6. APK Build Outputs
+
+| Command | Output directory |
+| --- | --- |
+| `./gradlew assembleDebug` | `build/app/outputs/apk/debug/` |
+| `./gradlew assembleRelease` | `build/app/outputs/apk/release/` |
+
+## 7. Android Emulator Workflow
+
+The Android SDK `emulator` and `adb` tools are required in PATH.
+
+- (1) List available AVD definitions:
+
+```sh
+emulator -list-avds
 ```
 
-Output paths:
+- (2) Start a target emulator:
 
-- Debug APK: `app/build/outputs/apk/debug/`
-- Raw Debug/Release outputs: `app/build/outputs/apk/`
-- Release APK: `app/build/outputs/apk/release/`
+```sh
+emulator -avd <AVD_NAME>
+```
 
-On Windows PowerShell, replace the commands with `./gradlew.bat ...`.
+- (3) Wait for boot completion (optional but recommended in scripts):
 
-## 6. Release Signing Setup
+```sh
+adb devices -l
+adb wait-for-device
+adb shell getprop sys.boot_completed
+```
 
-The project supports these signing sources (highest priority first):
+- (4) Build and install Debug APK to the running emulator:
 
-- Gradle properties (for example `-Pkeystore.path=...`)
-- Environment variables
-- `signing.properties`
+```sh
+.\gradlew.bat :app:installDebug
+```
 
-### 6.1 Option 1: Use signing.properties (simplest for local dev)
+- (5) Optional launch command (replace placeholders):
 
-1. Copy [signing.properties.example](../signing.properties.example) to `signing.properties`
-2. Fill your signing values:
+```sh
+adb shell am start -n <applicationId>/<launcherActivity>
+```
+
+- (6) Validate runtime behavior with targeted logs:
+
+```sh
+adb logcat -v time | rg -i "clash|runtime|traffic|override"
+```
+
+- (7) Reinstall release artifact when validating packaging-specific behavior:
+
+```sh
+adb install -r build/app/outputs/apk/release/MonadBox-universal-release.apk
+```
+
+- (8) Optional cleanup for deterministic regression runs:
+
+```sh
+adb uninstall <applicationId>
+```
+
+## 8. Release Signing
+
+Signing source priority:
+
+1. Gradle properties
+2. environment variables
+3. `signing.properties`
+
+Local signing setup:
+
+1. Copy [signing.properties.example](../signing.properties.example) to `signing.properties`.
+2. Fill values:
 
 ```properties
 keystore.path=/absolute/or/relative/path/to/release.jks
-keystore.password=YOUR_KEYSTORE_PASSWORD
-key.alias=YOUR_KEY_ALIAS
-key.password=YOUR_KEY_PASSWORD
+keystore.password=
+key.alias=
+key.password=
 ```
 
-Notes:
+CI variables:
 
-- `keystore.path` can be absolute, or relative to repository root.
-- `signing.properties` is local-only and should not be committed.
+- `YUMEBOX_KEYSTORE_PATH`
+- `YUMEBOX_KEYSTORE_PASSWORD`
+- `YUMEBOX_KEY_ALIAS`
+- `YUMEBOX_KEY_PASSWORD`
 
-### 6.2 Option 2: Use environment variables (recommended for CI)
+Validation command:
 
-```text
-YUMEBOX_KEYSTORE_PATH
-YUMEBOX_KEYSTORE_PASSWORD
-YUMEBOX_KEY_ALIAS
-YUMEBOX_KEY_PASSWORD
+```sh
+.\gradlew.bat :app:assembleRelease
 ```
 
-### 6.3 Validate Signing
+## 9. Utility Scripts
 
-```bash
-./gradlew :app:assembleRelease
-```
+| Script | Function |
+| --- | --- |
+| `scripts/sync-kernel.{sh,ps1,bat}` | kernel source/channel sync |
+| `kotlin scripts/native-build.main.kts --all` | native artifact build |
+| `scripts/repo-health.{sh,ps1}` | repository health checks |
+| `scripts/setup-release-signing.{sh,ps1}` | release signing bootstrap |
+| `scripts/llm-runtime-fuzz.{sh,ps1}` | runtime fuzz helper |
 
-If signing is incomplete, the release build fails with a signing configuration error.
+## 10. Troubleshooting
 
-### 6.4 One-Command Bootstrap Script (Windows/macOS/Linux)
-
-The repository provides cross-platform bootstrap scripts that can create a keystore, write `signing.properties` and `startup-gate.local.properties`, and validate a release build:
-
-```powershell
-./scripts/setup-release-signing.ps1
-```
-
-```bash
-./scripts/setup-release-signing.sh
-```
-
-Common options:
-
-```powershell
-./scripts/setup-release-signing.ps1 -KeystorePath "D:\keystore\monadbox-release.jks" -Alias "monadbox-release"
-./scripts/setup-release-signing.ps1 -SkipBuild
-./scripts/setup-release-signing.ps1 -ForceRegenerate
-./scripts/setup-release-signing.ps1 -DryRun
-```
-
-```bash
-./scripts/setup-release-signing.sh --keystore-path "$HOME/.android/keystore/monadbox-release.jks" --alias "monadbox-release"
-./scripts/setup-release-signing.sh --skip-build
-./scripts/setup-release-signing.sh --force-regenerate
-./scripts/setup-release-signing.sh --dry-run
-```
-
-Note: release startup enforces StartupGate checks. If the local signing fingerprint is missing in `startup-gate.local.properties`, the app can exit immediately on launch. The bootstrap scripts generate this fingerprint config automatically.
-
-## 7. Kernel Sync Helper
-
-Pick one based on your shell:
-
-- Linux/macOS:
-
-```bash
-./scripts/sync-kernel.sh alpha
-```
-
-- Windows PowerShell:
-
-```powershell
-./scripts/sync-kernel.ps1 alpha
-```
-
-- Windows CMD:
-
-```bat
-scripts\sync-kernel.bat alpha
-```
-
-Channels: `alpha`, `meta`, `smart`.
-
-## 8. Native Build
-
-```bash
-kotlin scripts/native-build.main.kts --all
-```
-
-## 9. Development Helper Scripts
-
-Repository health checks:
-
-- Linux/macOS:
-
-```bash
-./scripts/repo-health.sh
-```
-
-- Windows PowerShell:
-
-```powershell
-./scripts/repo-health.ps1
-```
-
-Runtime fuzz helper:
-
-- Linux/macOS:
-
-```bash
-./scripts/llm-runtime-fuzz.sh --rounds 5 --events-per-round 200
-```
-
-- Windows PowerShell:
-
-```powershell
-./scripts/llm-runtime-fuzz.ps1 -Rounds 5 -EventsPerRound 200
-```
-
-Release signing bootstrap script (Windows/macOS/Linux):
-
-```powershell
-./scripts/setup-release-signing.ps1
-```
-
-```bash
-./scripts/setup-release-signing.sh
-```
-
-## 10. Script Executable Bit (macOS/Linux)
-
-If cloned on Unix-like systems, ensure shell scripts are executable:
-
-```bash
-chmod +x gradlew scripts/*.sh
-```
-
-## 11. Related Docs
-
-- [Contributing](./CONTRIBUTING.md)
-- [Chinese Project Overview](./README_ZH_HANS.md)
-- [Third-party dependencies](./ThirdParty.md)
+| Symptom | Action |
+| --- | --- |
+| Release build fails before packaging | verify native outputs, then rerun native build script |
+| Gradle daemon instability | inspect JVM settings in `gradle.properties`, retry with `--no-configuration-cache` for diagnosis |
+| UI contract failure | update `config/ui-capability-registry.txt` and align with code |

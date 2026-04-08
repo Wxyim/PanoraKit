@@ -52,8 +52,14 @@ android {
             }
         }
         getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
+            kotlin.directories.apply {
+                clear()
+                add("test")
+            }
+            resources.directories.apply {
+                clear()
+                add("test/resources")
+            }
             assets.directories.clear()
         }
         getByName("androidTest") {
@@ -66,6 +72,8 @@ android {
     }
 
     buildFeatures { buildConfig = false }
+
+    testOptions { unitTests.isReturnDefaultValues = true }
 }
 
 dependencies {
@@ -88,4 +96,6 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
+
+    testImplementation("junit:junit:4.13.2")
 }

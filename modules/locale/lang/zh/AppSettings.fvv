@@ -61,6 +61,8 @@ AppSettings = {
         TrafficNotificationSummary = "在通知栏中显示流量使用情况"
         SingleNodeTestTitle = "单节点测试"
         SingleNodeTestSummary = "点击节点卡片右侧图标测试单个节点延迟"
+        AutoStartLogRecordingTitle = "进入日志页自动录制"
+        AutoStartLogRecordingSummary = "进入日志页时自动开启日志录制"
     }
 
     Network = {

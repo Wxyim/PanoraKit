@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.util.defaultOverridePresetTemplateSelection
 import com.github.yumelira.yumebox.data.util.inferPresetTemplateSelection
@@ -51,8 +52,8 @@ fun OverrideEditScreen(
     onOpenSubRulesEditor: OpenSubRulesEditor,
 ) {
     val viewModel: OverrideConfigViewModel = koinViewModel()
-    val editSession by viewModel.editSession.collectAsState()
-    val saveState by viewModel.saveState.collectAsState()
+    val editSession by viewModel.editSession.collectAsStateWithLifecycle()
+    val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val isNewConfig = configId == "new"

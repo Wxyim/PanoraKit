@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -106,8 +107,8 @@ internal fun AddProfileSheet(
     var error by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
 
-    val downloadProgress by profilesViewModel.downloadProgress.collectAsState()
-    val uiState by profilesViewModel.uiState.collectAsState()
+    val downloadProgress by profilesViewModel.downloadProgress.collectAsStateWithLifecycle()
+    val uiState by profilesViewModel.uiState.collectAsStateWithLifecycle()
     var hasShownCompleteAnimation by remember { mutableStateOf(false) }
 
     LaunchedEffect(show.value) {

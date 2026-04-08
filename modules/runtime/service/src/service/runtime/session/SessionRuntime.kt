@@ -25,6 +25,7 @@ import com.github.yumelira.yumebox.core.controller.MihomoControllerEndpoint
 import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
 import com.github.yumelira.yumebox.core.model.*
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
+import com.github.yumelira.yumebox.remote.RuntimeGatewayException
 import com.github.yumelira.yumebox.service.ServiceNetworkObserver
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
@@ -80,6 +81,13 @@ class SessionRuntime(
                                 fallbackCode = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
                                 fallbackMessage = "start runtime failed",
                             )
+                        Timber.e(
+                            error,
+                            "SessionRuntime start failed: %s %s",
+                            failure.code,
+                            failure.message,
+                        )
+                        startupLog(spec, "failed=${failure.code.name}:${failure.message}")
                         rollback(spec, failure)
                         RuntimeOperationResult.fail(failure)
                     }
@@ -101,6 +109,12 @@ class SessionRuntime(
                                 fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
                                 fallbackMessage = "reload runtime failed",
                             )
+                        Timber.e(
+                            error,
+                            "SessionRuntime reload failed: %s %s",
+                            failure.code,
+                            failure.message,
+                        )
                         startupLog(spec, "failed=${failure.message}")
                         RuntimeOperationResult.fail(failure)
                     }
@@ -123,6 +137,13 @@ class SessionRuntime(
                                 fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
                                 fallbackMessage = "restart runtime failed",
                             )
+                        Timber.e(
+                            error,
+                            "SessionRuntime restart failed: %s %s",
+                            failure.code,
+                            failure.message,
+                        )
+                        startupLog(spec, "failed=${failure.code.name}:${failure.message}")
                         rollback(spec, failure)
                         RuntimeOperationResult.fail(failure)
                     }
@@ -326,6 +347,7 @@ class SessionRuntime(
     }
 
     private suspend fun startInternal(spec: RuntimeSpec) {
+        validateStartupSpec(spec)
         val startedAt = System.currentTimeMillis()
         currentSpec = spec
         publishSnapshot(
@@ -501,6 +523,58 @@ class SessionRuntime(
             spec,
             "runtime load: uiConfiguration=${MihomoControllerEndpoint.diagnostics(runtimeConfiguration).summary()}",
         )
+    }
+
+    private fun validateStartupSpec(spec: RuntimeSpec) {
+        ensureCoreAvailable()
+
+        val profileDir = File(spec.profileDir)
+        if (!profileDir.exists() || !profileDir.isDirectory) {
+            throw RuntimeGatewayException(
+                code = RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+                message = "Profile directory missing or invalid: ${profileDir.absolutePath}",
+            )
+        }
+
+        val profilePath = profileDir.resolve("config.yaml")
+        if (!profilePath.exists() || !profilePath.isFile || !profilePath.canRead()) {
+            throw RuntimeGatewayException(
+                code = RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+                message = "Profile config missing or unreadable: ${profilePath.absolutePath}",
+            )
+        }
+
+        spec.overridePaths.forEach { overridePath ->
+            val file = File(overridePath)
+            if (!file.exists() || !file.isFile || !file.canRead()) {
+                throw RuntimeGatewayException(
+                    code = RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+                    message = "Override file missing or unreadable: ${file.absolutePath}",
+                )
+            }
+        }
+
+        val runtimeConfigFile = File(spec.runtimeConfigPath)
+        runtimeConfigFile.parentFile?.let { parent ->
+            if (!parent.exists() && !parent.mkdirs()) {
+                throw RuntimeGatewayException(
+                    code = RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+                    message =
+                        "Runtime config directory cannot be created: ${parent.absolutePath}",
+                )
+            }
+        }
+    }
+
+    private fun ensureCoreAvailable() {
+        runCatching { Clash.forceGc() }
+            .getOrElse { error ->
+                throw RuntimeGatewayException(
+                    code = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                    message = error.toDiagnosticMessage("Core bridge initialization failed"),
+                    cause = error,
+                )
+            }
     }
 
     private suspend fun awaitProxyGroupsReady(spec: RuntimeSpec) {

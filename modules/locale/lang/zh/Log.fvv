@@ -20,14 +20,14 @@ Log = {
 
     History = {
         Title = "历史文件"
-        LiveSection = "实时日志"
+        LiveSection = "录制中的实时日志"
         Recording = "记录中"
         ItemSummary = "%s · %s"
     }
 
     Startup = {
         Title = "启动日志"
-        LiveSection = "实时日志"
+        LiveSection = "启动过程日志"
         ItemSummary = "%s · %s"
     }
 }

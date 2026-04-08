@@ -25,6 +25,7 @@ import org.gradle.api.JavaVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    base
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -35,6 +36,9 @@ plugins {
     alias(libs.plugins.purejoy.fytxt) apply false
     alias(libs.plugins.spotless)
 }
+
+apply(from = "gradle/ui-contract-validation.gradle.kts")
+apply(from = "gradle/modernization-baseline.gradle.kts")
 
 extensions.configure(SpotlessExtension::class.java) {
     kotlin {

@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.ProxyGroupStyle
@@ -149,13 +150,13 @@ fun ProxyPager(
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
 
-    val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
-    val groupStyle by proxyViewModel.groupStyle.collectAsState()
-    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsState()
-    val testingProxyNames by proxyViewModel.testingProxyNames.collectAsState()
-    val sortMode by proxyViewModel.sortMode.collectAsState()
-    val showHiddenGroups by proxyViewModel.showHiddenGroups.collectAsState()
-    val singleNodeTest by proxyViewModel.singleNodeTest.collectAsState()
+    val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
+    val groupStyle by proxyViewModel.groupStyle.collectAsStateWithLifecycle()
+    val testingGroupNames by proxyViewModel.testingGroupNames.collectAsStateWithLifecycle()
+    val testingProxyNames by proxyViewModel.testingProxyNames.collectAsStateWithLifecycle()
+    val sortMode by proxyViewModel.sortMode.collectAsStateWithLifecycle()
+    val showHiddenGroups by proxyViewModel.showHiddenGroups.collectAsStateWithLifecycle()
+    val singleNodeTest by proxyViewModel.singleNodeTest.collectAsStateWithLifecycle()
     val groupScrollBehavior = MiuixScrollBehavior()
     val topBarHazeState = LocalTopBarHazeState.current
 

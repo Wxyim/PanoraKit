@@ -60,6 +60,10 @@ class ProfilesRepository(private val context: Context) {
         Timber.d("Deleting profile: uuid=$uuid")
         runGatewayCall("Failed to delete profile") {
             ServiceClient.connect(context)
+            ServiceClient.profile().queryByUUID(uuid)?.takeIf { it.active }?.let { activeProfile ->
+                ServiceClient.profile().clearActive(activeProfile)
+                notifyRuntimeOverrideChanged()
+            }
             ServiceClient.profile().delete(uuid)
         }
     }
@@ -144,6 +148,7 @@ class ProfilesRepository(private val context: Context) {
         runGatewayCall("Failed to update profile") {
             ServiceClient.connect(context)
             ServiceClient.profile().update(uuid, callback)
+            scheduleRootTunReloadIfActiveProfile(uuid)
         }
     }
 
@@ -152,6 +157,7 @@ class ProfilesRepository(private val context: Context) {
         runGatewayCall("Failed to patch profile") {
             ServiceClient.connect(context)
             ServiceClient.profile().patch(uuid, name, source, interval)
+            scheduleRootTunReloadIfActiveProfile(uuid)
         }
     }
 
@@ -195,6 +201,17 @@ class ProfilesRepository(private val context: Context) {
     private fun isRootTunActive(): Boolean {
         val status = rootTunStateStore.snapshot()
         return status.state.isActive || status.runtimeReady
+    }
+
+    private suspend fun scheduleRootTunReloadIfActiveProfile(uuid: UUID) {
+        if (!isRootTunActive()) {
+            return
+        }
+        val activeProfile = ServiceClient.profile().queryActive() ?: return
+        if (activeProfile.uuid != uuid) {
+            return
+        }
+        RootTunReloadScheduler.schedule(appContext, RootTunReloadScheduler.Reason.PROFILE_CHANGED)
     }
 
     private fun notifyRuntimeOverrideChanged() {

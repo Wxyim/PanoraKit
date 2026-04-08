@@ -42,6 +42,7 @@ class AppSettingsRepository(private val storage: AppSettingsStorage) {
     val hideAppIcon: Preference<Boolean> = storage.hideAppIcon
     val excludeFromRecents: Preference<Boolean> = storage.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = storage.showTrafficNotification
+    val autoStartLogRecording: Preference<Boolean> = storage.autoStartLogRecording
     val bottomBarAutoHide: Preference<Boolean> = storage.bottomBarAutoHide
     val topBarBlurEnabled: Preference<Boolean> = storage.topBarBlurEnabled
     val bottomBarLiquidGlassEnabled: Preference<Boolean> = storage.bottomBarLiquidGlassEnabled

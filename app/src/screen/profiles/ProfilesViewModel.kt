@@ -25,6 +25,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.FetchStatus
+import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.data.store.ProfileLink
@@ -49,6 +50,7 @@ class ProfilesViewModel(
     application: Application,
     private val profilesRepository: ProfilesRepository,
     profileLinksStorage: ProfileLinksStorage,
+    private val bindingProvider: ProfileBindingProvider,
 ) : AndroidViewModel(application) {
     companion object {
         private const val BLANK_PROFILE_SOURCE = "blank://local-config"
@@ -238,7 +240,14 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.DeleteFailed.format(e.uiErrorMessage())
             },
         ) {
+            profilesRepository.queryProfileByUUID(uuid)?.takeIf { it.active }?.let { activeProfile ->
+                profilesRepository.clearActiveProfile(activeProfile)
+            }
             profilesRepository.deleteProfile(uuid)
+            runCatching { bindingProvider.removeBinding(uuid.toString()) }
+                .onFailure { error ->
+                    Timber.w(error, "Failed to remove profile binding after delete: %s", uuid)
+                }
             showMessage(MLang.ProfilesVM.Message.ProfileDeleted)
             refreshProfiles()
             Timber.i("Profile deleted: $uuid")

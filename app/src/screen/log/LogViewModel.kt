@@ -24,6 +24,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.LogMessage
+import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.LogRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LogViewModel(private val repository: LogRepository) : ViewModel() {
+class LogViewModel(
+    private val repository: LogRepository,
+    private val appSettingsRepository: AppSettingsRepository,
+) : ViewModel() {
 
     private val _isRecording = MutableStateFlow(repository.isRecording())
     val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
@@ -59,6 +63,9 @@ class LogViewModel(private val repository: LogRepository) : ViewModel() {
     val selectedStartupEntries: StateFlow<List<LogEntry>> = _selectedStartupEntries.asStateFlow()
 
     init {
+        if (appSettingsRepository.autoStartLogRecording.value && !repository.isRecording()) {
+            startRecording()
+        }
         refreshHistoryFiles()
         refreshStartupFiles()
     }

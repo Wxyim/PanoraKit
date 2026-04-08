@@ -1,0 +1,27 @@
+# destination|screenFile|capabilityId|ownerModule|uiType|entryMode|settingsSection|implementationFiles
+AppStartScreen|app/src/screen/onboarding/AppStartScreen.kt|app-start|app|system|start||app/src/screen/onboarding/AppStartScreen.kt
+ActivationWizardScreen|app/src/screen/onboarding/ActivationWizardScreen.kt|activation-wizard|app|system|implicit||app/src/screen/onboarding/ActivationWizardScreen.kt;app/src/screen/onboarding/OnboardingLauncher.kt
+MainScreen|app/src/MainActivity.kt|main-shell|app|top-level|navigation||app/src/MainActivity.kt
+TrafficStatisticsScreen|app/src/screen/traffic/TrafficStatisticsScreen.kt|traffic-statistics|feature/meta|top-level|navigation|more|app/src/screen/traffic/TrafficStatisticsScreen.kt;modules/feature/meta/src/presentation/viewmodel/TrafficStatisticsViewModel.kt
+ConnectionScreen|app/src/screen/connection/ConnectionScreen.kt|connection-inspector|feature/meta|detail|navigation||app/src/screen/connection/ConnectionScreen.kt;modules/feature/meta/src/presentation/viewmodel/ConnectionViewModel.kt
+AboutScreen|app/src/screen/about/AboutScreen.kt|about|app|top-level|navigation|more|app/src/screen/about/AboutScreen.kt
+OpenSourceLicensesScreen|app/src/screen/about/OpenSourceLicensesScreen.kt|open-source-licenses|app|detail|navigation||app/src/screen/about/OpenSourceLicensesScreen.kt
+ProvidersScreen|app/src/screen/navigation/ProvidersNavigation.kt|providers|feature/proxy|detail|navigation||app/src/screen/navigation/ProvidersNavigation.kt
+LogScreen|app/src/screen/log/LogScreen.kt|logs|data/log|top-level|navigation|more|app/src/screen/log/LogScreen.kt;app/src/screen/log/LogViewModel.kt;modules/data/log/src/data/repository/LogRepository.kt
+NetworkSettingsScreen|app/src/screen/settings/NetworkSettingsScreen.kt|network-settings|app|top-level|navigation|ui-settings|app/src/screen/settings/NetworkSettingsScreen.kt;app/src/screen/settings/NetworkSettingsViewModel.kt
+OverrideScreen|app/src/screen/navigation/OverrideNavigation.kt|override-home|feature/override|top-level|navigation|ui-settings|app/src/screen/navigation/OverrideNavigation.kt
+OverrideEditRoute|app/src/screen/navigation/OverrideNavigation.kt|override-edit|feature/override|editor|start||app/src/screen/navigation/OverrideNavigation.kt
+OverrideRuleListEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-rule-list-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideObjectListEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-object-list-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideKeyedObjectMapEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-keyed-object-map-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideSubRuleMapEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-sub-rule-map-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideStringListEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-string-list-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideRuleDraftEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-rule-draft-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideProxyDraftEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-proxy-draft-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideProxyGroupDraftEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-proxy-group-draft-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideKeyedObjectDraftEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-keyed-object-draft-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideSubRuleDraftEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-sub-rule-draft-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+OverrideConfigPreviewRoute|app/src/screen/navigation/OverrideNavigation.kt|override-config-preview|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
+AccessControlScreen|app/src/screen/settings/AccessControlScreen.kt|access-control|app|detail|navigation||app/src/screen/settings/AccessControlScreen.kt;app/src/screen/settings/AccessControlViewModel.kt;app/src/screen/settings/AccessControlSupport.kt
+AppSettingsScreen|app/src/screen/settings/AppSettingsScreen.kt|app-settings|app|top-level|navigation|ui-settings|app/src/screen/settings/AppSettingsScreen.kt;app/src/screen/settings/AppSettingsViewModel.kt
+MetaFeatureScreen|app/src/screen/settings/MetaFeatureScreen.kt|meta-features|app|top-level|navigation|ui-settings|app/src/screen/settings/MetaFeatureScreen.kt

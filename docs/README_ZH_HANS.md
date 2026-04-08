@@ -4,14 +4,14 @@
 
 **简体中文** | [English](../README.md)
 
-<img src="logo.webp" style="width: 96px;" alt="logo">
+<img src="logo.webp" width="96" alt="MonadBox logo">
 
-## MonadBox
+# MonadBox
 
 YumeBox 的定制化版本
 
 [![Latest release](https://img.shields.io/github/v/release/NomadBoxLab/NomadBox?label=Release&logo=github)](https://github.com/NomadBoxLab/NomadBox/releases/latest)
-[![GitHub License](https://img.shields.io/github/license/NomadBoxLab/NomadBox?logo=gnu)](/LICENSE)
+[![GitHub License](https://img.shields.io/github/license/NomadBoxLab/NomadBox?logo=gnu)](../LICENSE)
 [![Upstream](https://img.shields.io/badge/Upstream-YumeBox-informational)](https://github.com/YumeLira/YumeBox)
 
 **一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 内核的开源 Android 客户端，从 [YumeBox](https://github.com/YumeLira/YumeBox) 定制而来**
@@ -25,7 +25,7 @@ MonadBox（基于 YumeBox 定制）目前仅支持 **Android 8.0（API 26）及�
 - Release 安装包：[NomadBoxLab/NomadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
 - 问题反馈：[Issues](https://github.com/NomadBoxLab/NomadBox/issues)
 - 隐私政策：[PRIVACY_POLICY](../PRIVACY_POLICY.md)
-- 参与贡献：[CONTRIBUTING](CONTRIBUTING.md)
+- 参与贡献：[CONTRIBUTING_ZH_HANS](CONTRIBUTING_ZH_HANS.md)
 - 开发指南（中文）：[DEVELOP_ZH_HANS](DEVELOP_ZH_HANS.md)
 - 开发指南（English）：[DEVELOP](DEVELOP.md)
 - 第三方依赖清单请参考：[ThirdParty](ThirdParty.md)

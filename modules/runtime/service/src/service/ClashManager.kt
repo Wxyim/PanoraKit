@@ -60,6 +60,7 @@ class ClashManager(private val context: Context) :
     private val networkSettings =
         MMKV.mmkvWithID(StoreIds.NETWORK_SETTINGS, MMKV.MULTI_PROCESS_MODE)
     private var logReceiver: ReceiveChannel<LogMessage>? = null
+    private var logObserverJob: Job? = null
     private val externalCandidates = ConcurrentHashMap<String, ExternalSelectionCandidate>()
 
     override fun queryTunnelState(): TunnelState {
@@ -238,32 +239,50 @@ class ClashManager(private val context: Context) :
 
     override fun setLogObserver(observer: ILogObserver?) {
         synchronized(this) {
+            logObserverJob?.cancel()
+            logObserverJob = null
+
             logReceiver?.apply {
                 cancel()
 
                 Clash.forceGc()
             }
+            logReceiver = null
 
-            if (observer != null) {
-                logReceiver =
-                    Clash.subscribeLogcat().also { c ->
-                        launch {
-                            try {
-                                while (isActive) {
-                                    observer.newItem(c.receive())
-                                }
-                            } catch (e: CancellationException) {} catch (e: Exception) {
-                                Log.w("UI crashed", e)
-                            } finally {
-                                withContext(NonCancellable) {
-                                    c.cancel()
+            if (observer == null) {
+                return
+            }
 
-                                    Clash.forceGc()
-                                }
-                            }
+            if (!StatusProvider.serviceRunning) {
+                Log.w("Ignore setLogObserver because runtime is not running")
+                return
+            }
+
+            val channel =
+                runCatching { Clash.subscribeLogcat() }
+                    .onFailure { error ->
+                        Log.w("Subscribe runtime log stream failed", error)
+                    }
+                    .getOrNull() ?: return
+
+            logReceiver = channel
+            logObserverJob =
+                launch {
+                    try {
+                        while (isActive) {
+                            observer.newItem(channel.receive())
+                        }
+                    } catch (e: CancellationException) {
+                        // No-op, lifecycle cancellation.
+                    } catch (t: Throwable) {
+                        Log.w("Runtime log observer stopped", t)
+                    } finally {
+                        withContext(NonCancellable) {
+                            runCatching { channel.cancel() }
+                            runCatching { Clash.forceGc() }
                         }
                     }
-            }
+                }
         }
     }
 }

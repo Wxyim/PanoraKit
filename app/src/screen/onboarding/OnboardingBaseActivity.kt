@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.runtime.StartupGate
@@ -128,9 +129,10 @@ internal abstract class OnboardingBaseActivity : ComponentActivity() {
 @Composable
 private fun OnboardingActivityTheme(content: @Composable () -> Unit) {
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-    val themeMode by appSettingsViewModel.themeMode.state.collectAsState()
-    val themeSeedColorArgb by appSettingsViewModel.themeSeedColorArgb.state.collectAsState()
-    val pageScale by appSettingsViewModel.pageScale.state.collectAsState()
+    val themeMode by appSettingsViewModel.themeMode.state.collectAsStateWithLifecycle()
+    val themeSeedColorArgb by
+        appSettingsViewModel.themeSeedColorArgb.state.collectAsStateWithLifecycle()
+    val pageScale by appSettingsViewModel.pageScale.state.collectAsStateWithLifecycle()
 
     ProvideAndroidPlatformTheme {
         val systemDensity = LocalDensity.current

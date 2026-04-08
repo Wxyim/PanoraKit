@@ -15,9 +15,7 @@ import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -27,7 +25,7 @@ class AppTrafficStatisticsCollector(
     private val proxyFacade: ProxyFacade,
     private val trafficStatisticsStore: TrafficStatisticsStore,
     private val appIdentityResolver: AppIdentityResolver,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val scope: CoroutineScope,
 ) {
     private var collectionJob: Job? = null
     private var monitoringJob: Job? = null

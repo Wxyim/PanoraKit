@@ -75,7 +75,7 @@ fun OverrideScreen(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>(start = true)
 fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
     OverrideEditScreen(
         navigator = navigator,
@@ -186,7 +186,7 @@ fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideRuleListEditorRoute(navigator: DestinationsNavigator) {
     OverrideRuleListEditorScreen(
         navigator = navigator,
@@ -202,7 +202,7 @@ fun OverrideRuleListEditorRoute(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideObjectListEditorRoute(navigator: DestinationsNavigator) {
     OverrideObjectListEditorScreen(
         navigator = navigator,
@@ -226,7 +226,7 @@ fun OverrideObjectListEditorRoute(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideKeyedObjectMapEditorRoute(navigator: DestinationsNavigator) {
     OverrideKeyedObjectMapEditorScreen(
         navigator = navigator,
@@ -243,7 +243,7 @@ fun OverrideKeyedObjectMapEditorRoute(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideSubRuleMapEditorRoute(navigator: DestinationsNavigator) {
     OverrideSubRuleMapEditorScreen(
         navigator = navigator,
@@ -259,37 +259,37 @@ fun OverrideSubRuleMapEditorRoute(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideStringListEditorRoute(navigator: DestinationsNavigator) {
     OverrideStringListEditorScreen(navigator = navigator)
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideRuleDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideRuleDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideProxyDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideProxyDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideProxyGroupDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideProxyGroupDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideKeyedObjectDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideKeyedObjectDraftEditorScreen(navigator = navigator)
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
     OverrideSubRuleDraftEditorScreen(
         navigator = navigator,
@@ -314,7 +314,7 @@ fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<OverrideEditorNavGraph>
 fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     ConfigPreviewScreen(
         navigator = navigator,

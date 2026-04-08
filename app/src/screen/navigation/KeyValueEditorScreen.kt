@@ -112,7 +112,6 @@ object EditorDataHolder {
 }
 
 @SuppressLint("MutableCollectionMutableState")
-@Destination<RootGraph>
 @Composable
 fun StringListEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -484,7 +483,6 @@ private fun RuleAddDialog(title: String, onConfirm: (String) -> Unit, onDismiss:
 }
 
 @SuppressLint("MutableCollectionMutableState")
-@Destination<RootGraph>
 @Composable
 fun KeyValueEditorScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()

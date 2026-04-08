@@ -38,10 +38,10 @@ val appIntegrationModule = module { single<LogRecordGateway> { LogRecordServiceG
 val appViewModelModule = module {
     viewModel { AppSettingsViewModel(get(), get()) }
     viewModel { HomeViewModel(androidApplication(), get(), get(), get(), get(), get(), get()) }
-    viewModel { ProfilesViewModel(androidApplication(), get(), get()) }
+    viewModel { ProfilesViewModel(androidApplication(), get(), get(), get()) }
     viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get()) }
     viewModel { AccessControlViewModel(androidApplication(), get(), get()) }
-    viewModel { LogViewModel(get()) }
+    viewModel { LogViewModel(get(), get()) }
 }
 
 val appModule: List<Module> =

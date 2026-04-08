@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.AppIconHelper
 import com.github.yumelira.yumebox.common.util.AppLanguageManager
 import com.github.yumelira.yumebox.common.util.toast
@@ -75,29 +76,32 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<AppSettingsViewModel>()
 
-    val appLanguage = viewModel.appLanguage.state.collectAsState().value
-    val themeMode = viewModel.themeMode.state.collectAsState().value
-    val themeSeedColorArgb = viewModel.themeSeedColorArgb.state.collectAsState().value
+    val appLanguage = viewModel.appLanguage.state.collectAsStateWithLifecycle().value
+    val themeMode = viewModel.themeMode.state.collectAsStateWithLifecycle().value
+    val themeSeedColorArgb = viewModel.themeSeedColorArgb.state.collectAsStateWithLifecycle().value
 
-    val automaticRestart = viewModel.automaticRestart.state.collectAsState().value
+    val automaticRestart = viewModel.automaticRestart.state.collectAsStateWithLifecycle().value
     val autoUpdateCurrentProfileOnStart =
-        viewModel.autoUpdateCurrentProfileOnStart.state.collectAsState().value
-    val hideAppIcon = viewModel.hideAppIcon.state.collectAsState().value
-    val excludeFromRecents = viewModel.excludeFromRecents.state.collectAsState().value
-    val showTrafficNotification = viewModel.showTrafficNotification.state.collectAsState().value
-    val bottomBarAutoHide = viewModel.bottomBarAutoHide.state.collectAsState().value
-    val topBarBlurEnabled = viewModel.topBarBlurEnabled.state.collectAsState().value
+        viewModel.autoUpdateCurrentProfileOnStart.state.collectAsStateWithLifecycle().value
+    val hideAppIcon = viewModel.hideAppIcon.state.collectAsStateWithLifecycle().value
+    val excludeFromRecents = viewModel.excludeFromRecents.state.collectAsStateWithLifecycle().value
+    val showTrafficNotification =
+        viewModel.showTrafficNotification.state.collectAsStateWithLifecycle().value
+    val autoStartLogRecording =
+        viewModel.autoStartLogRecording.state.collectAsStateWithLifecycle().value
+    val bottomBarAutoHide = viewModel.bottomBarAutoHide.state.collectAsStateWithLifecycle().value
+    val topBarBlurEnabled = viewModel.topBarBlurEnabled.state.collectAsStateWithLifecycle().value
     val bottomBarLiquidGlassEnabled =
-        viewModel.bottomBarLiquidGlassEnabled.state.collectAsState().value
-    val pageScaleState = viewModel.pageScale.state.collectAsState().value
+        viewModel.bottomBarLiquidGlassEnabled.state.collectAsStateWithLifecycle().value
+    val pageScaleState = viewModel.pageScale.state.collectAsStateWithLifecycle().value
     var pageScaleLocal by remember(pageScaleState) { mutableFloatStateOf(pageScaleState) }
 
-    val customUserAgent = viewModel.customUserAgent.state.collectAsState().value
-    val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsState().value
-    val cleanupPolicy = viewModel.cleanupPolicy.state.collectAsState().value
-    val cleanupThresholdMb = viewModel.cleanupThresholdMb.state.collectAsState().value
-    val cleanupIntervalHours = viewModel.cleanupIntervalHours.state.collectAsState().value
-    val cleanupLastRunAt = viewModel.cleanupLastRunAt.state.collectAsState().value
+    val customUserAgent = viewModel.customUserAgent.state.collectAsStateWithLifecycle().value
+    val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsStateWithLifecycle().value
+    val cleanupPolicy = viewModel.cleanupPolicy.state.collectAsStateWithLifecycle().value
+    val cleanupThresholdMb = viewModel.cleanupThresholdMb.state.collectAsStateWithLifecycle().value
+    val cleanupIntervalHours = viewModel.cleanupIntervalHours.state.collectAsStateWithLifecycle().value
+    val cleanupLastRunAt = viewModel.cleanupLastRunAt.state.collectAsStateWithLifecycle().value
 
     val showHideIconDialog = remember { mutableStateOf(false) }
     val showEditCustomUserAgentDialog = remember { mutableStateOf(false) }
@@ -244,8 +248,16 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                         SuperSwitch(
                             title = MLang.AppSettings.ServiceSection.SingleNodeTestTitle,
                             summary = MLang.AppSettings.ServiceSection.SingleNodeTestSummary,
-                            checked = viewModel.singleNodeTest.state.collectAsState().value,
+                            checked =
+                                viewModel.singleNodeTest.state.collectAsStateWithLifecycle().value,
                             onCheckedChange = { viewModel.onSingleNodeTestChange(it) },
+                        )
+                        SuperSwitch(
+                            title = MLang.AppSettings.ServiceSection.AutoStartLogRecordingTitle,
+                            summary =
+                                MLang.AppSettings.ServiceSection.AutoStartLogRecordingSummary,
+                            checked = autoStartLogRecording,
+                            onCheckedChange = { viewModel.onAutoStartLogRecordingChange(it) },
                         )
                     }
                     SmallTitle(MLang.AppSettings.Section.Network)

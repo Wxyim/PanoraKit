@@ -33,7 +33,7 @@ object OverrideStructuredEditorStore {
     var configPreviewTitle: String by mutableStateOf("")
     var configPreviewContent: String by mutableStateOf("")
     var configPreviewLanguage: LanguageScope by mutableStateOf(LanguageScope.Json)
-    var configPreviewCallback: ((String) -> Unit)? = null
+    var configPreviewCallback: (suspend (String) -> Result<Unit>)? = null
 
     var stringListEditorTitle: String by mutableStateOf("")
     var stringListEditorPlaceholder: String by mutableStateOf("")
@@ -889,7 +889,7 @@ object OverrideStructuredEditorStore {
         title: String,
         content: String,
         language: LanguageScope = LanguageScope.Json,
-        callback: ((String) -> Unit)? = null,
+        callback: (suspend (String) -> Result<Unit>)? = null,
     ) {
         configPreviewTitle = title
         configPreviewContent = content

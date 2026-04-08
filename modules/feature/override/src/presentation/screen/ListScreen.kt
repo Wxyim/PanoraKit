@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.github.yumelira.yumebox.common.util.ToastMode
 import com.github.yumelira.yumebox.common.util.toast
@@ -140,8 +141,8 @@ fun OverrideListScreen(
     onOpenCodeEditor: (configId: String, configName: String) -> Unit = { _, _ -> },
 ) {
     val viewModel: OverrideConfigViewModel = koinViewModel()
-    val userConfigs by viewModel.userConfigs.collectAsState()
-    val usageCountMap by viewModel.usageCountMap.collectAsState()
+    val userConfigs by viewModel.userConfigs.collectAsStateWithLifecycle()
+    val usageCountMap by viewModel.usageCountMap.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current

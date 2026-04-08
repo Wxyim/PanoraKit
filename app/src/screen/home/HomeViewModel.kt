@@ -532,6 +532,8 @@ class HomeViewModel(
                 _displayRunning.value = false
                 _isToggling.value = false
                 Timber.i("VPN permission required")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _displayRunning.value = false
                 _isToggling.value = false
@@ -556,6 +558,8 @@ class HomeViewModel(
         try {
             withContext(Dispatchers.IO) { proxyFacade.stopProxy() }
             _isToggling.value = false
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             _displayRunning.value = true
             _isToggling.value = false

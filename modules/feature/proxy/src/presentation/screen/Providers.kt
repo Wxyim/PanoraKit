@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Provider
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
@@ -77,10 +78,10 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
 
-    val providers by viewModel.providers.collectAsState()
-    val remoteOverrides by viewModel.remoteOverrides.collectAsState()
-    val isRunning by viewModel.isRunning.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val providers by viewModel.providers.collectAsStateWithLifecycle()
+    val remoteOverrides by viewModel.remoteOverrides.collectAsStateWithLifecycle()
+    val isRunning by viewModel.isRunning.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(isRunning) { viewModel.refreshProviders() }
 

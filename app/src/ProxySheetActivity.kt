@@ -23,7 +23,7 @@ package com.github.yumelira.yumebox
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
@@ -37,9 +37,9 @@ class ProxySheetActivity : ComponentActivity() {
 
         setContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-            val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
+            val themeMode = appSettingsViewModel.themeMode.state.collectAsStateWithLifecycle().value
             val themeSeedColorArgb =
-                appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
+                appSettingsViewModel.themeSeedColorArgb.state.collectAsStateWithLifecycle().value
 
             ProvideAndroidPlatformTheme {
                 YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
