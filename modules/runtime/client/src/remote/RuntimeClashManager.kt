@@ -29,6 +29,7 @@ import com.github.yumelira.yumebox.service.remote.ILogObserver
 import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
+import java.io.Closeable
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.int
@@ -36,7 +37,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
-class RuntimeClashManager(context: Context, private val local: IClashManager) : IClashManager {
+class RuntimeClashManager(context: Context, private val local: IClashManager) :
+    IClashManager,
+    Closeable {
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -235,6 +238,14 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) : 
             rootLogSeq = 0L
             local.setLogObserver(observer)
         }
+    }
+
+    override fun close() {
+        rootLogJob?.cancel()
+        rootLogJob = null
+        rootLogSeq = 0L
+        local.setLogObserver(null)
+        scope.cancel()
     }
 
     private fun useRootRuntime(): Boolean {

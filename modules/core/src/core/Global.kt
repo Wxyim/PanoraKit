@@ -23,19 +23,21 @@ package com.github.yumelira.yumebox.core
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 
-object Global : CoroutineScope by CoroutineScope(Dispatchers.IO) {
+object Global {
     val application: Context
         get() = _application
 
     private lateinit var _application: Context
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun init(application: Context) {
         _application = application.applicationContext ?: application
     }
 
     fun destroy() {
-        cancel()
+        applicationScope.cancel()
     }
 }

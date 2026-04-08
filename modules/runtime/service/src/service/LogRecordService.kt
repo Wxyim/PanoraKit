@@ -159,6 +159,7 @@ class LogRecordService : Service() {
                                 stopRecordingInternal(stopService = true)
                             } finally {
                                 runCatching { clash.setLogObserver(null) }
+                                runCatching { clash.close() }
                             }
                         }
                 }

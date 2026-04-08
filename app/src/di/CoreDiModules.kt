@@ -27,6 +27,9 @@ import com.github.yumelira.yumebox.data.store.*
 import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeMutationCoordinator
+import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadDispatcher
+import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,12 +96,15 @@ val appDataRuntimeModule = module {
     single<ProfileBindingProvider> { get<ProfileBindingRepository>() }
 
     single { OverrideResolver(get(), get()) }
-    single { OverrideService(androidContext(), get()) }
+    single { RootTunReloadScheduler(androidContext(), get(named(APPLICATION_SCOPE_NAME))) }
+    single<RootTunReloadDispatcher> { get<RootTunReloadScheduler>() }
+    single { RuntimeMutationCoordinator(androidContext(), get()) }
+    single { OverrideService(get(), get()) }
     single { ActiveProfileOverrideReloader(get(), get(), get()) }
 
     single { com.github.yumelira.yumebox.remote.ServiceClient }
-    single { ProxyFacade(androidContext(), get()) }
-    single { ProfilesRepository(androidContext()) }
+    single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }
+    single { ProfilesRepository(androidContext(), get()) }
     single { AppIdentityResolver(androidContext()) }
 
     single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }

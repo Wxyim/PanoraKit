@@ -38,6 +38,7 @@ import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFac
 import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
 import com.github.yumelira.yumebox.service.runtime.util.sendBroadcastSelf
 import com.tencent.mmkv.MMKV
+import java.io.Closeable
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -46,14 +47,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
-class ClashManager(private val context: Context) :
-    IClashManager, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+class ClashManager(private val context: Context) : IClashManager, Closeable {
     private data class ExternalSelectionCandidate(val node: String, val firstSeenAt: Long)
 
     private companion object {
         const val EXTERNAL_SELECTION_CONFIRM_MS = 1200L
     }
 
+    private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val store = ServiceStore()
     private val compiledConfigPipeline = CompiledConfigPipeline(context)
     private val runtimeSpecFactory = SessionRuntimeSpecFactory(context)
@@ -202,7 +203,7 @@ class ClashManager(private val context: Context) :
             val proxyNames =
                 proxyGroup.proxies.mapNotNull { it.name?.trim()?.takeIf { it.isNotEmpty() } }
             if (remembered in proxyNames) {
-                launch { Clash.patchSelector(group, remembered) }
+                managerScope.launch { Clash.patchSelector(group, remembered) }
             }
             return
         }
@@ -239,15 +240,7 @@ class ClashManager(private val context: Context) :
 
     override fun setLogObserver(observer: ILogObserver?) {
         synchronized(this) {
-            logObserverJob?.cancel()
-            logObserverJob = null
-
-            logReceiver?.apply {
-                cancel()
-
-                Clash.forceGc()
-            }
-            logReceiver = null
+            clearLogObserverLocked()
 
             if (observer == null) {
                 return
@@ -267,7 +260,7 @@ class ClashManager(private val context: Context) :
 
             logReceiver = channel
             logObserverJob =
-                launch {
+                managerScope.launch {
                     try {
                         while (isActive) {
                             observer.newItem(channel.receive())
@@ -284,5 +277,21 @@ class ClashManager(private val context: Context) :
                     }
                 }
         }
+    }
+
+    override fun close() {
+        synchronized(this) { clearLogObserverLocked() }
+        managerScope.cancel()
+    }
+
+    private fun clearLogObserverLocked() {
+        logObserverJob?.cancel()
+        logObserverJob = null
+
+        logReceiver?.apply {
+            cancel()
+            Clash.forceGc()
+        }
+        logReceiver = null
     }
 }

@@ -34,17 +34,14 @@ import com.github.yumelira.yumebox.service.runtime.util.importedDir
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
 import java.io.FileNotFoundException
 import java.util.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ProfileManager(private val context: Context) :
-    IProfileManager, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+class ProfileManager(private val context: Context) : IProfileManager {
     private val store = ServiceStore()
 
     init {
-        launch { context.importedDir.mkdirs() }
+        context.importedDir.mkdirs()
     }
 
     override suspend fun create(type: Profile.Type, name: String, source: String): UUID {

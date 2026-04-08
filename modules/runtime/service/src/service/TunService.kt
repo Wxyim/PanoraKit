@@ -44,9 +44,15 @@ import java.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
-class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
+class TunService : VpnService(), CoroutineScope {
+    private val serviceJob = SupervisorJob()
+
+    override val coroutineContext: CoroutineContext = Dispatchers.Default + serviceJob
+
     private var reason: String? = null
     private val notificationManager by lazy {
         ServiceNotificationManager(this, ServiceNotificationManager.VPN_CONFIG)

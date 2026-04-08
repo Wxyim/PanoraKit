@@ -42,6 +42,7 @@ import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlin.LazyThreadSafetyMode
 import kotlinx.coroutines.*
 import timber.log.Timber
 
@@ -52,8 +53,8 @@ class ProxyTileService : TileService() {
         private const val TAG = "ProxyTileService"
     }
 
-    private val profileManager by lazy { ProfileManager(applicationContext) }
-    private val clashManager by lazy { ClashManager(applicationContext) }
+    private val profileManagerHolder = lazy(LazyThreadSafetyMode.NONE) { ProfileManager(applicationContext) }
+    private val clashManagerHolder = lazy(LazyThreadSafetyMode.NONE) { ClashManager(applicationContext) }
     private val networkSettingsStorage by lazy {
         NetworkSettingsStorage(MMKVProvider().getMMKV(StoreIds.NETWORK_SETTINGS))
     }
@@ -62,13 +63,22 @@ class ProxyTileService : TileService() {
         applicationInfo.loadLabel(packageManager)?.toString().orEmpty().ifBlank { "MonadBox" }
     }
 
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var updateJob: Job? = null
     private var toggleJob: Job? = null
+
+    private val profileManager: ProfileManager
+        get() = profileManagerHolder.value
+
+    private val clashManager: ClashManager
+        get() = clashManagerHolder.value
 
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+        if (clashManagerHolder.isInitialized()) {
+            clashManagerHolder.value.close()
+        }
     }
 
     override fun onStartListening() {

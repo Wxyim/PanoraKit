@@ -27,30 +27,50 @@ import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.RootTunOperationResult
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
+import java.io.Closeable
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 import timber.log.Timber
 
-object RootTunReloadScheduler {
-    enum class Reason {
-        PROFILE_CHANGED,
-        PROFILE_OVERRIDE_CHANGED,
-        SESSION_OVERRIDE_CHANGED,
-        ROOT_TUN_CONFIG_CHANGED,
-    }
+internal val ROOT_TUN_RELOAD_RETRY_DELAYS_MS: List<Long> = listOf(0L, 250L, 500L, 1000L)
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+internal fun shouldRunRootTunReloadAgain(
+    dirtyWhileRunning: Boolean,
+    pendingReasonCount: Int,
+): Boolean = dirtyWhileRunning || pendingReasonCount > 0
+
+internal fun normalizeRootTunReloadFailure(
+    result: RootTunOperationResult,
+): Pair<String, String> {
+    val errorCode = (result.errorCode ?: RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED).name
+    val error = result.error?.takeIf { it.isNotBlank() } ?: "root runtime reload failed"
+    return errorCode to error
+}
+
+enum class RootTunReloadReason {
+    PROFILE_CHANGED,
+    PROFILE_OVERRIDE_CHANGED,
+    SESSION_OVERRIDE_CHANGED,
+    ROOT_TUN_CONFIG_CHANGED,
+}
+
+interface RootTunReloadDispatcher {
+    fun schedule(reason: RootTunReloadReason)
+}
+
+class RootTunReloadScheduler(
+    context: Context,
+    appScope: CoroutineScope,
+) : RootTunReloadDispatcher, Closeable {
+    private val appContext = context.appContextOrSelf
+    private val scope = CoroutineScope(appScope.coroutineContext + SupervisorJob())
     private val lock = Any()
     private var debounceJob: Job? = null
     private var reloadJob: Job? = null
-    private val pendingReasons = linkedSetOf<Reason>()
+    private val pendingReasons = linkedSetOf<RootTunReloadReason>()
     private var dirtyWhileRunning = false
-    @Volatile private var suppressNestedSchedule = false
 
-    fun isInternalOverrideSyncInProgress(): Boolean = suppressNestedSchedule
-
-    fun schedule(context: Context, reason: Reason) {
-        val appContext = context.appContextOrSelf
+    override fun schedule(reason: RootTunReloadReason) {
         synchronized(lock) {
             pendingReasons += reason
             if (reloadJob?.isActive == true) {
@@ -61,12 +81,13 @@ object RootTunReloadScheduler {
             debounceJob =
                 scope.launch {
                     delay(DEBOUNCE_MS.milliseconds)
-                    runReload(appContext)
+                    runReload()
                 }
         }
     }
 
-    private suspend fun runReload(context: Context) {
+    private suspend fun runReload() {
+        val currentJob = currentCoroutineContext()[Job]
         val reasons =
             synchronized(lock) {
                 if (reloadJob?.isActive == true) {
@@ -75,55 +96,54 @@ object RootTunReloadScheduler {
                 }
                 val copied = pendingReasons.toSet()
                 pendingReasons.clear()
+                reloadJob = currentJob
                 copied
             }
         if (reasons.isEmpty()) {
+            clearReloadJob(currentJob)
             return
         }
 
-        val state = RootTunStateStore(context).snapshot()
+        val state = RootTunStateStore(appContext).snapshot()
         if (!state.state.isActive && !state.runtimeReady) {
+            clearReloadJob(currentJob)
             return
         }
 
-        synchronized(lock) {
-            reloadJob =
-                scope.launch {
-                    val result = syncAndReload(context, reasons)
-                    if (!result.success) {
-                        notifyFailure(context, result)
-                    }
+        val result = syncAndReload(reasons)
+        if (!result.success) {
+            notifyFailure(result)
+        }
 
-                    val shouldRunAgain =
-                        synchronized(lock) {
-                            val rerun = dirtyWhileRunning || pendingReasons.isNotEmpty()
-                            dirtyWhileRunning = false
-                            rerun
-                        }
-                    if (shouldRunAgain) {
-                        delay(DEBOUNCE_MS.milliseconds)
-                        runReload(context)
-                    }
+        val shouldRunAgain =
+            synchronized(lock) {
+                val rerun = shouldRunRootTunReloadAgain(dirtyWhileRunning, pendingReasons.size)
+                dirtyWhileRunning = false
+                if (reloadJob == currentJob) {
+                    reloadJob = null
                 }
+                rerun
+            }
+        if (shouldRunAgain) {
+            delay(DEBOUNCE_MS.milliseconds)
+            runReload()
         }
     }
 
     private suspend fun syncAndReload(
-        context: Context,
-        reasons: Set<Reason>,
+        reasons: Set<RootTunReloadReason>,
     ): RootTunOperationResult {
         Timber.i("RootTun reload: reasons=%s", reasons.joinToString(","))
-        return retryReload(context)
+        return retryReload()
     }
 
-    private suspend fun retryReload(context: Context): RootTunOperationResult {
-        val delays = longArrayOf(0L, 250L, 500L, 1000L)
+    private suspend fun retryReload(): RootTunOperationResult {
         var lastResult = RootTunOperationResult(success = true)
-        for (index in delays.indices) {
-            if (delays[index] > 0L) {
-                delay(delays[index].milliseconds)
+        for ((index, backoffMs) in ROOT_TUN_RELOAD_RETRY_DELAYS_MS.withIndex()) {
+            if (backoffMs > 0L) {
+                delay(backoffMs.milliseconds)
             }
-            lastResult = RootTunController.reload(context)
+            lastResult = RootTunController.reload(appContext)
             if (lastResult.success) {
                 return lastResult
             }
@@ -134,13 +154,12 @@ object RootTunReloadScheduler {
         return lastResult
     }
 
-    private fun notifyFailure(context: Context, result: RootTunOperationResult) {
-        val errorCode = (result.errorCode ?: RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED).name
-        val error = result.error?.takeIf { it.isNotBlank() } ?: "root runtime reload failed"
+    private fun notifyFailure(result: RootTunOperationResult) {
+        val (errorCode, error) = normalizeRootTunReloadFailure(result)
         runCatching {
-            context.sendBroadcast(
-                Intent(Intents.actionRootRuntimeFailed(context.packageName))
-                    .setPackage(context.packageName)
+            appContext.sendBroadcast(
+                Intent(Intents.actionRootRuntimeFailed(appContext.packageName))
+                    .setPackage(appContext.packageName)
                     .putExtra(Intents.EXTRA_ERROR_CODE, errorCode)
                     .putExtra(Intents.EXTRA_ERROR_MESSAGE, error)
                     .putExtra("error", "$errorCode: $error")
@@ -148,5 +167,25 @@ object RootTunReloadScheduler {
         }
     }
 
-    private const val DEBOUNCE_MS = 100L
+    override fun close() {
+        synchronized(lock) {
+            debounceJob?.cancel()
+            debounceJob = null
+            reloadJob?.cancel()
+            reloadJob = null
+            pendingReasons.clear()
+            dirtyWhileRunning = false
+        }
+        scope.cancel()
+    }
+
+    private fun clearReloadJob(currentJob: Job?) {
+        synchronized(lock) {
+            if (reloadJob == currentJob) {
+                reloadJob = null
+            }
+        }
+    }
+
+    private val DEBOUNCE_MS = 100L
 }

@@ -26,8 +26,14 @@ import com.github.yumelira.yumebox.service.common.util.initializeServiceGlobal
 import com.github.yumelira.yumebox.service.runtime.util.cancelAndJoinBlocking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlin.coroutines.CoroutineContext
 
-abstract class BaseService : Service(), CoroutineScope by CoroutineScope(Dispatchers.Default) {
+abstract class BaseService : Service(), CoroutineScope {
+    private val serviceJob = SupervisorJob()
+
+    final override val coroutineContext: CoroutineContext = Dispatchers.Default + serviceJob
+
     override fun onCreate() {
         super.onCreate()
 

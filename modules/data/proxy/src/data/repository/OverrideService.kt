@@ -20,15 +20,13 @@
 
 package com.github.yumelira.yumebox.data.repository
 
-import android.content.Context
-import android.content.Intent
-import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
-import com.github.yumelira.yumebox.service.common.constants.Intents
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
+import com.github.yumelira.yumebox.runtime.client.RuntimeMutationCoordinator
 import timber.log.Timber
 
-class OverrideService(context: Context, private val resolver: OverrideResolver) {
-    private val appContext = context.appContextOrSelf
+class OverrideService(
+    private val resolver: OverrideResolver,
+    private val mutationCoordinator: RuntimeMutationCoordinator,
+) {
 
     suspend fun applyOverride(profileId: String): Boolean {
         return try {
@@ -53,23 +51,12 @@ class OverrideService(context: Context, private val resolver: OverrideResolver) 
                 return false
             }
 
-            notifyRuntimeOverrideChanged()
+            mutationCoordinator.notifyOverrideBindingsChanged()
 
             true
         } catch (e: Exception) {
             Timber.e(e, "Failed to apply override for profile: %s", profileId)
             false
         }
-    }
-
-    private fun notifyRuntimeOverrideChanged() {
-        appContext.sendBroadcast(
-            Intent(Intents.actionOverrideChanged(appContext.packageName))
-                .setPackage(appContext.packageName)
-        )
-        RootTunReloadScheduler.schedule(
-            appContext,
-            RootTunReloadScheduler.Reason.PROFILE_OVERRIDE_CHANGED,
-        )
     }
 }
