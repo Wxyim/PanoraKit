@@ -293,8 +293,10 @@ class RootTunRootService : RootService() {
                             lastRuntimeSpec = spec
                             saveLastGoodRuntimeSpec(spec)
                             StatusProvider.markRuntimeStarted(ProxyMode.RootTun)
-                            sendClashStarted()
-                            startedBroadcastSent = true
+                            if (!startedBroadcastSent) {
+                                sendClashStarted()
+                                startedBroadcastSent = true
+                            }
                         }
 
                         override fun onStopped(reason: String?) {

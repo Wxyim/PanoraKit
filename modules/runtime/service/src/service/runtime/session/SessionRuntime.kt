@@ -20,6 +20,7 @@
 
 package com.github.yumelira.yumebox.service.runtime.session
 
+import android.os.SystemClock
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.controller.MihomoControllerEndpoint
 import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
@@ -366,17 +367,29 @@ class SessionRuntime(
         host.onStarting(spec)
 
         teardownCore()
-        compileAndLoad(spec)
-        transport.prepare(spec)
-        transport.start(spec)
+        measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
+        measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
+        measureStartupStep(spec, "transport start") { transport.start(spec) }
+        publishSnapshot(
+            currentSnapshot.copy(
+                phase = RuntimePhase.Running,
+                profileReady = true,
+                configReady = true,
+                transportReady = true,
+                startedAt = startedAt,
+                effectiveFingerprint = spec.effectiveFingerprint,
+            )
+        )
+        host.onStarted(spec)
+        startupLog(spec, "runtime ready: payload warm-up continue in background")
         startInstalledAppsPublisher()
         startObservers()
         notifyRuntimeSideEffects()
         startConnectionTracking()
-        awaitProxyGroupsReady(spec)
-        restoreSelections(spec)
-        startLogStream()
-        refreshRuntimeSnapshotWithLog(spec)
+        measureStartupStep(spec, "runtime groups ready") { awaitProxyGroupsReady(spec) }
+        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
+        measureStartupStep(spec, "runtime log stream") { startLogStream() }
+        measureStartupStep(spec, "runtime snapshot refresh") { refreshRuntimeSnapshotWithLog(spec) }
 
         publishSnapshot(
             currentSnapshot.copy(
@@ -392,8 +405,7 @@ class SessionRuntime(
             )
         )
         host.onProfileLoaded(spec.profileUuid)
-        host.onStarted(spec)
-        startupLog(spec, "started")
+        startupLog(spec, "payload ready")
     }
 
     private suspend fun reloadInternal(spec: RuntimeSpec) {
@@ -785,7 +797,7 @@ class SessionRuntime(
                 while (isActive) {
                     runCatching {
                         val snapshot = Clash.queryConnections()
-                        ConnectionHistoryManager.updateConnections(snapshot.connections)
+                        ConnectionHistoryManager.updateConnections(snapshot.connections ?: emptyList())
                     }
                     delay(CONNECTION_TRACKING_INTERVAL_MS)
                 }
@@ -814,6 +826,20 @@ class SessionRuntime(
             }
         RuntimeStartupLogStore(host.context.appContextOrSelf, scope)
             .append("${scope.tag} session: $message")
+    }
+
+    private suspend fun <T> measureStartupStep(
+        spec: RuntimeSpec,
+        label: String,
+        block: suspend () -> T,
+    ): T {
+        val startedAt = SystemClock.elapsedRealtime()
+        startupLog(spec, "$label: begin")
+        return try {
+            block()
+        } finally {
+            startupLog(spec, "$label: done cost=${SystemClock.elapsedRealtime() - startedAt}ms")
+        }
     }
 
     private fun describeFile(file: File): String {
