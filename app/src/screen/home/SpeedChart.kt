@@ -36,10 +36,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.presentation.theme.TrafficChartConfig
+import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val SPEED_CHART_SAMPLE_LIMIT = AppConstants.Limits.SPEED_HISTORY_SIZE
@@ -63,6 +67,7 @@ fun SpeedChart(
     modifier: Modifier = Modifier,
 ) {
     val chartColor = MiuixTheme.colorScheme.primary
+    val chartAccessibilityLabel = MLang.TrafficStatistics.Title
     val fractions =
         remember(speedHistory.version, speedHistory.size, speedHistory.head) {
             buildSpeedChartFractions(speedHistory = speedHistory)
@@ -109,7 +114,12 @@ fun SpeedChart(
                 .fillMaxWidth()
                 .height(chartHeight)
                 .clip(RoundedCornerShape(AppConstants.UI.CARD_CORNER_RADIUS))
-                .clickable(onClick = onClick)
+                .semantics { contentDescription = chartAccessibilityLabel }
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = chartAccessibilityLabel,
+                    onClick = onClick,
+                )
     ) {
         val barGapPx = SPEED_CHART_BAR_GAP.toPx()
         val chartBarCount = SPEED_CHART_SAMPLE_LIMIT

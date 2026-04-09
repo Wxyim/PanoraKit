@@ -43,7 +43,10 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val INFO_VALUE_CORNER_RADIUS = RoundedCornerShape(10.dp)
-private val INFO_VALUE_MAX_WIDTH = 220.dp
+private val IP_VALUE_MIN_HEIGHT = 48.dp
+private val IP_VALUE_HORIZONTAL_PADDING = 12.dp
+private val IP_VALUE_VERTICAL_PADDING = 8.dp
+private const val IP_VALUE_VISIBLE_MAX_LINES = 3
 internal val INFO_TEXT_HEIGHT = 24.dp
 
 @Composable
@@ -58,6 +61,7 @@ fun IpInfoDisplay(state: IpMonitoringState, modifier: Modifier = Modifier) {
                 value = buildDisplayIpValue(ipAddress = externalIp.ip, isIpVisible = isIpVisible),
                 valueColor = MiuixTheme.colorScheme.onSurface,
                 countryCode = externalIp.countryCode,
+                isIpVisible = isIpVisible,
                 isRevealable = true,
                 onToggleVisibility = { isIpVisible = !isIpVisible },
                 modifier = modifier,
@@ -70,6 +74,7 @@ fun IpInfoDisplay(state: IpMonitoringState, modifier: Modifier = Modifier) {
                 value = "--",
                 valueColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 countryCode = null,
+                isIpVisible = false,
                 isRevealable = false,
                 onToggleVisibility = {},
                 modifier = modifier,
@@ -84,6 +89,7 @@ private fun IpInfoRow(
     value: String,
     valueColor: Color,
     countryCode: String?,
+    isIpVisible: Boolean,
     isRevealable: Boolean,
     onToggleVisibility: () -> Unit,
     modifier: Modifier = Modifier,
@@ -103,23 +109,40 @@ private fun IpInfoRow(
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-                fontFamily = FontFamily.Monospace,
-                color = valueColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier =
-                    if (isRevealable) {
-                        Modifier.widthIn(max = INFO_VALUE_MAX_WIDTH)
-                            .height(INFO_TEXT_HEIGHT)
+            if (isRevealable) {
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(min = IP_VALUE_MIN_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
                             .clickable(role = Role.Button, onClick = onToggleVisibility)
-                    } else {
-                        Modifier.height(INFO_TEXT_HEIGHT)
-                    },
-            )
+                            .padding(
+                                horizontal = IP_VALUE_HORIZONTAL_PADDING,
+                                vertical = IP_VALUE_VERTICAL_PADDING,
+                            ),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        text = value,
+                        style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                        fontFamily = FontFamily.Monospace,
+                        color = valueColor,
+                        maxLines = if (isIpVisible) IP_VALUE_VISIBLE_MAX_LINES else 1,
+                        overflow = if (isIpVisible) TextOverflow.Clip else TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Text(
+                    text = value,
+                    style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+                    fontFamily = FontFamily.Monospace,
+                    color = valueColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.height(INFO_TEXT_HEIGHT),
+                )
+            }
         }
 
         CountryBadge(countryCode = countryCode)

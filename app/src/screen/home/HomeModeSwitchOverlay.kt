@@ -22,12 +22,15 @@ package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -39,17 +42,22 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,8 +138,8 @@ fun HomeModeSwitchOverlay(
             val anchorWidth = anchorBounds?.let { bounds -> with(density) { bounds.width.toDp() } }
             val anchorHeight =
                 anchorBounds?.let { bounds -> with(density) { bounds.height.toDp() } }
-            val panelWidth = ((anchorWidth ?: 96.dp) * 1.95f).coerceIn(168.dp, 188.dp)
-            val panelSpacing = ((anchorHeight ?: 28.dp) * 0.28f).coerceIn(6.dp, 10.dp)
+            val panelWidth = ((anchorWidth ?: 188.dp) * 1.06f).coerceIn(208.dp, 244.dp)
+            val panelSpacing = ((anchorHeight ?: 44.dp) * 0.24f).coerceIn(8.dp, 12.dp)
             val panelX =
                 anchorBounds?.let { bounds ->
                     with(density) {
@@ -162,10 +170,10 @@ fun HomeModeSwitchOverlay(
                             interactionSource = remember { MutableInteractionSource() },
                             onClick = {},
                         ),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(30.dp),
             ) {
                 androidx.compose.foundation.layout.Column(
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.selectableGroup().padding(vertical = 10.dp)
                 ) {
                     modeItems.forEach { (mode, label) ->
                         HomeModeMenuItem(
@@ -186,32 +194,63 @@ fun HomeModeSwitchOverlay(
 @Composable
 private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Unit) {
     val primary = MiuixTheme.colorScheme.primary
-
-    Row(
-        modifier =
-            Modifier.fillMaxWidth()
-                .heightIn(min = 52.dp)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 18.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = text,
-            style =
-                MiuixTheme.textStyles.body2.copy(
-                    fontSize = 16.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                ),
-            color = if (selected) primary else MiuixTheme.colorScheme.onSurface,
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val containerColor by
+        animateColorAsState(
+            targetValue =
+                when {
+                    selected && isPressed -> primary.copy(alpha = 0.14f)
+                    selected -> primary.copy(alpha = 0.10f)
+                    isPressed -> primary.copy(alpha = 0.05f)
+                    else -> Color.Transparent
+                },
+            animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
+            label = "ModeMenuItemContainerColor",
         )
-        if (selected) {
-            Icon(
-                imageVector = Yume.Check,
-                contentDescription = null,
-                tint = primary,
-                modifier = Modifier.size(20.dp),
+    val itemScale by
+        animateFloatAsState(
+            targetValue = if (isPressed) 0.985f else 1f,
+            animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
+            label = "ModeMenuItemScale",
+        )
+
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp).scale(itemScale),
+    ) {
+        Row(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .selectable(
+                        selected = selected,
+                        interactionSource = interactionSource,
+                        role = Role.RadioButton,
+                        onClick = onClick,
+                    )
+                    .padding(horizontal = 18.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                style =
+                    MiuixTheme.textStyles.body2.copy(
+                        fontSize = 16.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    ),
+                color = if (selected) primary else MiuixTheme.colorScheme.onSurface,
             )
+            if (selected) {
+                Icon(
+                    imageVector = Yume.Check,
+                    contentDescription = null,
+                    tint = primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }

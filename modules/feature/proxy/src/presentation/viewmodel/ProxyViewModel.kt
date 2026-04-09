@@ -271,7 +271,6 @@ class ProxyViewModel(
     fun testDelay(groupName: String? = null) {
         viewModelScope.launch {
             setLoading(true)
-            clearError()
             val currentGroups = proxyGroups.value
             val testingTargets: Set<String> =
                 if (groupName != null) {
@@ -285,11 +284,8 @@ class ProxyViewModel(
 
             val result = runCatching {
                 if (groupName != null) {
-                    showMessage(MLang.Proxy.Testing.Group.format(groupName))
                     proxyFacade.healthCheck(groupName, refreshAfter = false)
-                    showMessage(MLang.Proxy.Testing.RequestSent)
                 } else {
-                    showMessage(MLang.Proxy.Testing.All)
                     var firstError: Throwable? = null
                     currentGroups.forEach { group ->
                         runCatching { proxyFacade.healthCheck(group.name, refreshAfter = false) }
@@ -310,9 +306,7 @@ class ProxyViewModel(
                 _testingGroupNames.update { it - testingTargets }
             }
 
-            result.exceptionOrNull()?.let { error ->
-                showError(MLang.Proxy.Testing.Failed.format(error.message))
-            }
+            result.exceptionOrNull()
         }
     }
 
