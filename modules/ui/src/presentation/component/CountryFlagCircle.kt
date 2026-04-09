@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.common.util.LocaleUtil
-import dev.oom_wg.purejoy.mlang.MLang
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -45,7 +44,8 @@ fun CountryFlagCircle(countryCode: String, modifier: Modifier = Modifier, size: 
 
     Box(
         modifier =
-            modifier.size(displaySize)
+            modifier
+                .size(displaySize)
                 .clip(CircleShape)
                 .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
         contentAlignment = androidx.compose.ui.Alignment.Center,

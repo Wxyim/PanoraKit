@@ -24,19 +24,25 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.LogRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class LogViewModel(
     private val repository: LogRepository,
-    private val appSettingsRepository: AppSettingsRepository,
 ) : ViewModel() {
+
+    private val refreshMutex = Mutex()
+    private var autoRefreshJob: Job? = null
 
     private val _isRecording = MutableStateFlow(repository.isRecording())
     val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
@@ -63,70 +69,87 @@ class LogViewModel(
     val selectedStartupEntries: StateFlow<List<LogEntry>> = _selectedStartupEntries.asStateFlow()
 
     init {
-        if (appSettingsRepository.autoStartLogRecording.value && !repository.isRecording()) {
-            startRecording()
-        }
-        refreshHistoryFiles()
-        refreshStartupFiles()
+        requestBrowserStateRefresh()
     }
 
-    fun startRecording() {
-        repository.startRecording()
-        _isRecording.value = true
-        _tempLogEntries.value = emptyList()
-        refreshHistoryFiles()
-        refreshStartupFiles()
+    fun refreshRecordingState() {
+        _isRecording.value = repository.isRecording()
     }
 
-    fun stopRecording() {
-        repository.stopRecording()
-        _isRecording.value = false
-        refreshHistoryFiles()
-        refreshStartupFiles()
-    }
-
-    fun refreshTempLogEntries() {
-        if (!_isRecording.value) return
-        viewModelScope.launch(Dispatchers.IO) {
-            val entries = repository.readTempLogEntries()
-            _tempLogEntries.value =
-                entries.map { LogEntry(time = it.time, level = it.level, message = it.message) }
-        }
-    }
-
-    fun refreshHistoryFiles() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val files =
-                repository.listLogFiles().map {
-                    HistoryLogFile(
-                        name = it.name,
-                        createdAt = it.createdAt,
-                        size = it.size,
-                        isRecording = it.isRecording,
-                    )
+    fun startAutoRefresh(intervalMillis: Long = 500L) {
+        if (autoRefreshJob?.isActive == true) return
+        autoRefreshJob =
+            viewModelScope.launch {
+                while (isActive) {
+                    refreshBrowserState()
+                    delay(intervalMillis)
                 }
-            _historyFiles.value = files
-            val selected = _selectedHistoryFileName.value
-            if (!selected.isNullOrBlank() && files.none { it.name == selected }) {
+            }
+    }
+
+    fun stopAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
+    fun requestBrowserStateRefresh() {
+        viewModelScope.launch { refreshBrowserState() }
+    }
+
+    suspend fun refreshBrowserState() {
+        refreshMutex.withLock {
+            val browserState =
+                withContext(Dispatchers.IO) {
+                    val recording = repository.isRecording()
+                    val history =
+                        repository.listLogFiles().map {
+                            HistoryLogFile(
+                                name = it.name,
+                                createdAt = it.createdAt,
+                                size = it.size,
+                                isRecording = it.isRecording,
+                            )
+                        }
+                    val startup =
+                        repository.listStartupLogFiles().map {
+                            StartupLogFile(name = it.name, updatedAt = it.updatedAt, size = it.size)
+                        }
+                    val tempEntries =
+                        if (recording) {
+                            repository.readTempLogEntries().map {
+                                LogEntry(time = it.time, level = it.level, message = it.message)
+                            }
+                        } else {
+                            emptyList()
+                        }
+                    BrowserStateSnapshot(recording, history, startup, tempEntries)
+                }
+
+            _isRecording.value = browserState.isRecording
+            _historyFiles.value = browserState.historyFiles
+            _startupFiles.value = browserState.startupFiles
+            _tempLogEntries.value = browserState.tempEntries
+
+            val selectedHistory = _selectedHistoryFileName.value
+            if (!selectedHistory.isNullOrBlank() && browserState.historyFiles.none { it.name == selectedHistory }) {
                 _selectedHistoryFileName.value = null
                 _selectedHistoryEntries.value = emptyList()
             }
-        }
-    }
 
-    fun refreshStartupFiles() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val files =
-                repository.listStartupLogFiles().map {
-                    StartupLogFile(name = it.name, updatedAt = it.updatedAt, size = it.size)
-                }
-            _startupFiles.value = files
-            val selected = _selectedStartupFileName.value
-            if (!selected.isNullOrBlank() && files.none { it.name == selected }) {
+            val selectedStartup = _selectedStartupFileName.value
+            if (!selectedStartup.isNullOrBlank() && browserState.startupFiles.none { it.name == selectedStartup }) {
                 _selectedStartupFileName.value = null
                 _selectedStartupEntries.value = emptyList()
             }
         }
+    }
+
+    fun refreshHistoryFiles() {
+        requestBrowserStateRefresh()
+    }
+
+    fun refreshStartupFiles() {
+        requestBrowserStateRefresh()
     }
 
     fun openHistoryFile(fileName: String) {
@@ -201,6 +224,23 @@ class LogViewModel(
         _tempLogEntries.value = emptyList()
     }
 
+    suspend fun clearAllLogs(): Boolean =
+        withContext(Dispatchers.IO) {
+            return@withContext runCatching {
+                    repository.deleteAllLogs()
+                    true
+                }
+                .onSuccess {
+                    _tempLogEntries.value = emptyList()
+                    _selectedHistoryFileName.value = null
+                    _selectedStartupFileName.value = null
+                    _selectedHistoryEntries.value = emptyList()
+                    _selectedStartupEntries.value = emptyList()
+                    requestBrowserStateRefresh()
+                }
+                .getOrDefault(false)
+        }
+
     suspend fun saveTempLog(targetUri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             val entries = _tempLogEntries.value
@@ -231,6 +271,9 @@ class LogViewModel(
             if (!startupName.isNullOrBlank()) {
                 return@withContext repository.exportStartupLogFile(startupName, targetUri)
             }
+            if (_isRecording.value && repository.currentRecordingFileName() != null) {
+                return@withContext repository.exportCurrentRecording(targetUri)
+            }
             val entries = _tempLogEntries.value
             if (entries.isEmpty()) return@withContext false
             val repoEntries =
@@ -250,4 +293,11 @@ class LogViewModel(
     )
 
     data class StartupLogFile(val name: String, val updatedAt: Long, val size: Long)
+
+    private data class BrowserStateSnapshot(
+        val isRecording: Boolean,
+        val historyFiles: List<HistoryLogFile>,
+        val startupFiles: List<StartupLogFile>,
+        val tempEntries: List<LogEntry>,
+    )
 }

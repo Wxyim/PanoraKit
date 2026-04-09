@@ -21,10 +21,9 @@
 package com.github.yumelira.yumebox.screen.settings
 
 import android.app.Application
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
 import com.github.yumelira.yumebox.core.model.RootTunDnsMode
 import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -34,11 +33,9 @@ import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.root.RootPackageShell
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,13 +48,14 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 data class NetworkSettingsUiState(
     val serviceState: ServiceState = ServiceState.Stopped,
     val configuredMode: ProxyMode = ProxyMode.Tun,
     val effectiveMode: ProxyMode = ProxyMode.Tun,
     val needsRestart: Boolean = false,
+    val isApplying: Boolean = false,
+    val activeOperation: String? = null,
     val showServiceOptions: Boolean = true,
     val showTunOnlyOptions: Boolean = true,
     val showAccessControlMode: Boolean = true,
@@ -137,15 +135,8 @@ class NetworkSettingsViewModel(
     networkSettingsStorage: NetworkSettingsStorage,
     appSettingsRepository: AppSettingsRepository,
     private val proxyFacade: ProxyFacade,
+    private val runtimeControlCoordinator: RuntimeControlCoordinator,
 ) : AndroidViewModel(application) {
-    companion object {
-        private const val MIUI_GET_INSTALLED_APPS_PERMISSION =
-            "com.android.permission.GET_INSTALLED_APPS"
-        private const val RESTART_DEBOUNCE_DELAY_MS = 300L
-    }
-
-    private var restartJob: Job? = null
-
     val proxyMode: Preference<ProxyMode> = networkSettingsStorage.proxyMode
     val bypassPrivateNetwork: Preference<Boolean> = networkSettingsStorage.bypassPrivateNetwork
     val dnsHijack: Preference<Boolean> = networkSettingsStorage.dnsHijack
@@ -157,8 +148,6 @@ class NetworkSettingsViewModel(
     val rootTunStrictRoute: Preference<Boolean> = networkSettingsStorage.rootTunStrictRoute
     val rootTunAutoRedirect: Preference<Boolean> = networkSettingsStorage.rootTunAutoRedirect
     val rootTunDnsMode: Preference<RootTunDnsMode> = networkSettingsStorage.rootTunDnsMode
-    val allowNonLocalhostHttpRemote: Preference<Boolean> =
-        appSettingsRepository.allowNonLocalhostHttpRemote
     val accessControlMode: Preference<AccessControlMode> = networkSettingsStorage.accessControlMode
 
     private val rootTunIfName = networkSettingsStorage.rootTunIfName
@@ -207,17 +196,23 @@ class NetworkSettingsViewModel(
     val currentProxyMode: StateFlow<ProxyMode> = proxyMode.state
 
     val uiState: StateFlow<NetworkSettingsUiState> =
-        combine(serviceState, currentProxyMode, runtimeSnapshot, rootTunDnsMode.state) {
-                serviceState,
-                configuredMode,
-                snapshot,
-                dnsMode ->
-                NetworkSettingsUiStateFactory.create(
+        combine(
+                combine(serviceState, currentProxyMode, runtimeSnapshot, rootTunDnsMode.state) {
                     serviceState,
                     configuredMode,
                     snapshot,
-                    dnsMode,
-                )
+                    dnsMode ->
+                    NetworkSettingsUiStateFactory.create(
+                        serviceState,
+                        configuredMode,
+                        snapshot,
+                        dnsMode,
+                    )
+                },
+                runtimeControlCoordinator.isMutating,
+                runtimeControlCoordinator.activeOperation,
+            ) { baseState, isApplying, activeOperation ->
+                baseState.copy(isApplying = isApplying, activeOperation = activeOperation)
             }
             .distinctUntilChanged()
             .stateIn(
@@ -227,47 +222,61 @@ class NetworkSettingsViewModel(
             )
 
     fun onProxyModeChange(mode: ProxyMode) {
-        proxyMode.set(mode)
+        if (runtimeControlCoordinator.isMutating.value) return
+        if (proxyMode.value == mode) return
+        val previousMode = proxyMode.value
+        viewModelScope.launch {
+            runCatching {
+                    runtimeControlCoordinator.applyConfigChange(
+                        operation = "network:proxy-mode",
+                        persist = { proxyMode.set(mode) },
+                        rollback = { proxyMode.set(previousMode) },
+                    )
+                }
+                .onFailure { error ->
+                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to switch proxy mode"))
+                }
+        }
     }
 
     fun onBypassPrivateNetworkChange(enabled: Boolean) {
-        updatePreference(bypassPrivateNetwork, enabled)
+        updatePreference(bypassPrivateNetwork, enabled, "network:bypass-private")
     }
 
     fun onDnsHijackChange(enabled: Boolean) {
-        updatePreference(dnsHijack, enabled)
+        updatePreference(dnsHijack, enabled, "network:dns-hijack")
     }
 
     fun onAllowBypassChange(enabled: Boolean) {
-        updatePreference(allowBypass, enabled)
+        updatePreference(allowBypass, enabled, "network:allow-bypass")
     }
 
     fun onEnableIPv6Change(enabled: Boolean) {
-        updatePreference(enableIPv6, enabled)
+        updatePreference(enableIPv6, enabled, "network:ipv6")
     }
 
     fun onSystemProxyChange(enabled: Boolean) {
-        updatePreference(systemProxy, enabled)
+        updatePreference(systemProxy, enabled, "network:system-proxy")
     }
 
     fun onTunStackChange(stack: TunStack) {
-        updatePreference(tunStack, stack)
+        updatePreference(tunStack, stack, "network:tun-stack")
     }
 
     fun onRootTunAutoRouteChange(enabled: Boolean) {
-        updatePreference(rootTunAutoRoute, enabled)
+        updatePreference(rootTunAutoRoute, enabled, "network:root-auto-route")
     }
 
     fun onRootTunStrictRouteChange(enabled: Boolean) {
-        updatePreference(rootTunStrictRoute, enabled)
+        updatePreference(rootTunStrictRoute, enabled, "network:root-strict-route")
     }
 
     fun onRootTunAutoRedirectChange(enabled: Boolean) {
-        updatePreference(rootTunAutoRedirect, enabled)
+        updatePreference(rootTunAutoRedirect, enabled, "network:root-auto-redirect")
     }
 
     fun onRootTunDnsModeChange(mode: RootTunDnsMode) {
-        updatePreference(rootTunDnsMode, mode)
+        updatePreference(rootTunDnsMode, mode, "network:root-dns-mode")
     }
 
     fun onAccessControlModeChange(mode: AccessControlMode) {
@@ -275,11 +284,14 @@ class NetworkSettingsViewModel(
             _errors.tryEmit("Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。")
             return
         }
-        updatePreference(accessControlMode, mode)
-    }
-
-    fun onAllowNonLocalhostHttpRemoteChange(enabled: Boolean) {
-        updatePreference(allowNonLocalhostHttpRemote, enabled)
+        updatePreference(
+            preference = accessControlMode,
+            value = mode,
+            operation = "network:access-control-mode",
+            shouldRestart = { configuredMode ->
+                configuredMode != ProxyMode.Http && mode != AccessControlMode.ALLOW_ALL
+            },
+        )
     }
 
     private fun canUseAccessControlMode(mode: AccessControlMode): Boolean {
@@ -289,22 +301,8 @@ class NetworkSettingsViewModel(
     }
 
     private fun hasFullPackageAccess(): Boolean {
-        if (RootPackageShell.hasRootAccess()) return true
-
-        val context = getApplication<Application>()
-        val permissionExists =
-            runCatching {
-                    context.packageManager.getPermissionInfo(MIUI_GET_INSTALLED_APPS_PERMISSION, 0)
-                    true
-                }
-                .getOrDefault(false)
-
-        if (!permissionExists) {
-            return true
-        }
-
-        return ContextCompat.checkSelfPermission(context, MIUI_GET_INSTALLED_APPS_PERMISSION) ==
-            PackageManager.PERMISSION_GRANTED
+        return RootPackageShell.hasRootAccess() ||
+            InstalledAppsAccess.resolve(getApplication()).canEnumerateInstalledApps
     }
 
     fun onRootTunIfNameDraftChange(value: String) {
@@ -314,7 +312,7 @@ class NetworkSettingsViewModel(
     fun commitRootTunIfName() {
         val normalized = RootTunDraftFormatter.normalizeInterfaceName(_rootTunIfNameDraft.value)
         _rootTunIfNameDraft.value = normalized
-        updatePreference(rootTunIfName, normalized)
+        updatePreference(rootTunIfName, normalized, "network:root-if-name")
     }
 
     fun onRootTunMtuDraftChange(value: String) {
@@ -324,7 +322,7 @@ class NetworkSettingsViewModel(
     fun commitRootTunMtu() {
         val parsed = RootTunDraftFormatter.normalizeMtu(_rootTunMtuDraft.value) ?: return
         _rootTunMtuDraft.value = parsed.toString()
-        updatePreference(rootTunMtu, parsed)
+        updatePreference(rootTunMtu, parsed, "network:root-mtu")
     }
 
     fun onRootTunIncludeAndroidUserDraftChange(value: String) {
@@ -335,7 +333,7 @@ class NetworkSettingsViewModel(
         val normalized =
             RootTunDraftFormatter.normalizeAndroidUsers(_rootTunIncludeAndroidUserDraft.value)
         _rootTunIncludeAndroidUserDraft.value = normalized.joinToString(", ")
-        updatePreference(rootTunIncludeAndroidUser, normalized)
+        updatePreference(rootTunIncludeAndroidUser, normalized, "network:root-android-users")
     }
 
     fun onRootTunRouteExcludeAddressDraftChange(value: String) {
@@ -346,7 +344,7 @@ class NetworkSettingsViewModel(
         val normalized =
             RootTunDraftFormatter.normalizeRouteExcludes(_rootTunRouteExcludeAddressDraft.value)
         _rootTunRouteExcludeAddressDraft.value = normalized.joinToString("\n")
-        updatePreference(rootTunRouteExcludeAddress, normalized)
+        updatePreference(rootTunRouteExcludeAddress, normalized, "network:root-route-excludes")
     }
 
     fun onRootTunFakeIpRangeDraftChange(value: String) {
@@ -356,7 +354,7 @@ class NetworkSettingsViewModel(
     fun commitRootTunFakeIpRange() {
         val normalized = RootTunDraftFormatter.normalizeFakeIpRange(_rootTunFakeIpRangeDraft.value)
         _rootTunFakeIpRangeDraft.value = normalized
-        updatePreference(rootTunFakeIpRange, normalized)
+        updatePreference(rootTunFakeIpRange, normalized, "network:root-fake-ip4")
     }
 
     fun onRootTunFakeIpRange6DraftChange(value: String) {
@@ -367,45 +365,57 @@ class NetworkSettingsViewModel(
         val normalized =
             RootTunDraftFormatter.normalizeFakeIpRange6(_rootTunFakeIpRange6Draft.value)
         _rootTunFakeIpRange6Draft.value = normalized
-        updatePreference(rootTunFakeIpRange6, normalized)
+        updatePreference(rootTunFakeIpRange6, normalized, "network:root-fake-ip6")
     }
 
     fun startService(mode: ProxyMode) {
         viewModelScope.launch {
-            switchService(mode).onFailure { error ->
-                _errors.tryEmit(error.runtimeGatewayMessage("Failed to start proxy service"))
-            }
+            runCatching {
+                    runtimeControlCoordinator.startProxy("network:start-service", mode = mode)
+                }
+                .onFailure { error ->
+                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to start proxy service"))
+                }
         }
     }
 
     fun restartService() {
         viewModelScope.launch {
             if (!RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value)) return@launch
-            switchService(proxyMode.value).onFailure { error ->
-                _errors.tryEmit(error.runtimeGatewayMessage("Failed to restart proxy service"))
-            }
+            runCatching {
+                    runtimeControlCoordinator.applyConfigChange(
+                        operation = "network:restart-service",
+                        persist = {},
+                        shouldRestart = { true },
+                    )
+                }
+                .onFailure { error ->
+                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to restart proxy service"))
+                }
         }
     }
 
-    private suspend fun switchService(mode: ProxyMode): Result<Unit> = runCatching {
-        proxyMode.set(mode)
-        withContext(Dispatchers.IO) { proxyFacade.startProxy(mode) }
-    }
-
-    private fun updateServiceConfig() {
-        restartJob?.cancel()
-        restartJob =
-            viewModelScope.launch {
-                delay(RESTART_DEBOUNCE_DELAY_MS)
-                if (RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value)) {
-                    restartService()
-                }
-            }
-    }
-
-    private fun <T> updatePreference(preference: Preference<T>, value: T) {
+    private fun <T> updatePreference(
+        preference: Preference<T>,
+        value: T,
+        operation: String,
+        shouldRestart: (ProxyMode) -> Boolean = { true },
+    ) {
+        if (runtimeControlCoordinator.isMutating.value) return
         if (preference.value == value) return
-        preference.set(value)
-        updateServiceConfig()
+        val previousValue = preference.value
+        viewModelScope.launch {
+            runCatching {
+                    runtimeControlCoordinator.applyConfigChange(
+                        operation = operation,
+                        persist = { preference.set(value) },
+                        rollback = { preference.set(previousValue) },
+                        shouldRestart = shouldRestart,
+                    )
+                }
+                .onFailure { error ->
+                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to apply network settings"))
+                }
+        }
     }
 }

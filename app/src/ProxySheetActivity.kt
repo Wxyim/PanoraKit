@@ -23,9 +23,13 @@ package com.github.yumelira.yumebox
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
+import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -40,15 +44,25 @@ class ProxySheetActivity : ComponentActivity() {
             val themeMode = appSettingsViewModel.themeMode.state.collectAsStateWithLifecycle().value
             val themeSeedColorArgb =
                 appSettingsViewModel.themeSeedColorArgb.state.collectAsStateWithLifecycle().value
+            val pageScale = appSettingsViewModel.pageScale.state.collectAsStateWithLifecycle().value
 
             ProvideAndroidPlatformTheme {
-                YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
-                    ProxySheetContent(
-                        onDismiss = {
-                            finish()
-                            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
-                        }
+                val systemDensity = LocalDensity.current
+                val scaledDensity =
+                    Density(
+                        density = systemDensity.density,
+                        fontScale = systemDensity.fontScale * pageScale,
                     )
+                CompositionLocalProvider(LocalDensity provides scaledDensity) {
+                    val adaptiveSpacing = rememberAdaptiveSpacing(pageScale = pageScale)
+                    YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb, spacing = adaptiveSpacing) {
+                        ProxySheetContent(
+                            onDismiss = {
+                                finish()
+                                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                            }
+                        )
+                    }
                 }
             }
         }

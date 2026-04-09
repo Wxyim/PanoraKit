@@ -4,11 +4,22 @@ AccessControl = {
 
     Search = {
         Placeholder = "搜索应用..."
+        EmptyResults = "没有找到匹配的应用"
     }
 
     AppList = {
         Title = "应用列表 (%d 已选择)"
-        Loading = "loading..."
+        Loading = "加载中..."
+        BrowseUnavailablePermission = "在授予设备权限前，暂时无法浏览已安装应用。"
+        BrowseUnavailableManual = "当前设备构建不支持浏览已安装应用。您仍然可以通过导入或手动添加包名来管理访问控制。"
+        OpenPermissionSettings = "打开权限设置"
+        PermissionSettingsUnavailable = "无法打开权限设置页"
+        ManualAddTitle = "手动添加包名"
+        ManualAddPlaceholder = "com.example.app"
+        AddPackage = "添加包名"
+        InvalidPackage = "包名无效"
+        SelectedPackagesTitle = "已选包名 (%d)"
+        NoSelectedPackages = "当前还没有已选包名"
     }
 
     Settings = {
@@ -19,16 +30,26 @@ AccessControl = {
         SortMode = "排序方式"
         SortModeCurrent = "当前：%s"
         BatchOperation = "批量操作"
+        BatchOperationSummaryBrowse = "对当前筛选结果中的应用批量操作"
+        BatchOperationSummaryManual = "对当前已选包名列表执行批量操作"
         SelectAll = "全选"
         DeselectAll = "全不选"
         Invert = "反选"
+        CopySelected = "复制已选"
+        ClearSelected = "清空已选"
+        ClearSelectedResult = "已清空 %d 个包名"
         ImportExport = "导入/导出"
+        ImportExportSummaryBrowse = "导入时仅保留当前设备可识别的包名"
+        ImportExportSummaryManual = "导入时保留格式有效的包名，导出当前已选包名"
         Import = "从剪贴板导入"
         Export = "导出到剪贴板"
         ImportSuccess = "导入成功：%d 个包名"
+        ImportPartial = "导入 %d 行，新增 %d 个，忽略 %d 个"
         ExportSuccess = "已复制 %d 个包名到剪贴板"
         ImportFailed = "导入失败"
         RegionQuickSelect = "地区快捷选择"
+        RegionQuickSelectSummaryBrowse = "对当前筛选结果中的应用按地区快速选择"
+        RegionQuickSelectSummaryManual = "仅保留当前已选包名中的地区匹配项"
         ChinaApps = "中国应用"
         OverseasApps = "非中国应用"
         RegionSelectResult = "已按「%s」快捷选择，共 %d 个"

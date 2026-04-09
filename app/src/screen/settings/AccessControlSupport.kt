@@ -3,6 +3,7 @@ package com.github.yumelira.yumebox.screen.settings
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
 import com.github.yumelira.yumebox.service.root.RootPackageShell
 import dev.oom_wg.purejoy.mlang.MLang
 
@@ -41,6 +42,8 @@ data class AccessControlUiState(
     val sortMode: AccessControlSortMode = AccessControlSortMode.LABEL,
     val selectedFirst: Boolean = true,
     val needsMiuiPermission: Boolean = false,
+    val canBrowseApps: Boolean = true,
+    val manualPackageName: String = "",
 )
 
 internal object AccessControlAppLoader {
@@ -50,6 +53,9 @@ internal object AccessControlAppLoader {
     ): List<AccessControlAppInfo> {
         val pm = application.packageManager
         val selfPackageName = application.packageName
+        check(InstalledAppsAccess.resolve(application).canEnumerateInstalledApps) {
+            "Installed app enumeration is unavailable on this device"
+        }
         val packages =
             runCatching { pm.getInstalledApplications(PackageManager.GET_META_DATA) }
                 .getOrElse { error ->
@@ -148,6 +154,13 @@ internal object AccessControlSelection {
                 if (app.isSelected == selected) app else app.copy(isSelected = selected)
             }
         return state.copy(selectedPackages = packages, apps = newApps)
+    }
+
+    fun normalizeManualPackageName(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return ""
+        val packageRegex = Regex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$")
+        return trimmed.takeIf { packageRegex.matches(it) }.orEmpty()
     }
 }
 

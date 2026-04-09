@@ -49,7 +49,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,9 +62,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.ProxyGroupStyle
@@ -149,8 +150,10 @@ fun ProxyPager(
     isActive: Boolean,
 ) {
     val proxyViewModel = koinViewModel<ProxyViewModel>()
+    val context = LocalContext.current
 
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
+    val uiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
     val groupStyle by proxyViewModel.groupStyle.collectAsStateWithLifecycle()
     val testingGroupNames by proxyViewModel.testingGroupNames.collectAsStateWithLifecycle()
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsStateWithLifecycle()
@@ -203,6 +206,20 @@ fun ProxyPager(
     }
 
     LaunchedEffect(isActive) { proxyViewModel.ensureCoreLoaded(isActive) }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            context.toast(error)
+            proxyViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let { message ->
+            context.toast(message)
+            proxyViewModel.clearMessage()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(

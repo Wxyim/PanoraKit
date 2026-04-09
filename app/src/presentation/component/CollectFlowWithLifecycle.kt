@@ -21,9 +21,7 @@ fun <T> CollectFlowWithLifecycle(
 
     LaunchedEffect(flow, lifecycleOwner, minActiveState) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(minActiveState) {
-            flow.collect { value ->
-                currentCollector(value)
-            }
+            flow.collect { value -> currentCollector(value) }
         }
     }
 }

@@ -216,10 +216,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                             navigator.navigate(LogScreenDestination) { launchSingleTop = true }
                         },
                         startAction = {
-                            CircularIcon(
-                                imageVector = Yume.Activity,
-                                contentDescription = null,
-                            )
+                            CircularIcon(imageVector = Yume.Activity, contentDescription = null)
                         },
                     )
                     SuperArrow(

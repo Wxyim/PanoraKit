@@ -29,6 +29,7 @@ import com.github.yumelira.yumebox.data.repository.OverrideRepository
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
 import com.github.yumelira.yumebox.domain.model.*
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
@@ -42,6 +43,7 @@ class ProxyViewModel(
     private val proxyFacade: ProxyFacade,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val appSettingsRepository: AppSettingsRepository,
+    private val runtimeControlCoordinator: RuntimeControlCoordinator,
 ) : ViewModel() {
     private companion object {
         const val PROXY_REFRESH_IDLE_MS = 1500L
@@ -61,12 +63,15 @@ class ProxyViewModel(
 
     private val _groupOriginalOrder = MutableStateFlow<Map<String, List<String>>>(emptyMap())
 
-    val currentMode: StateFlow<TunnelState.Mode> =
+    private val configuredMode: StateFlow<TunnelState.Mode> =
         proxyDisplaySettingsStore.proxyMode.state.stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
             TunnelState.Mode.Rule,
         )
+
+    private val _currentMode = MutableStateFlow(proxyDisplaySettingsStore.proxyMode.value)
+    val currentMode: StateFlow<TunnelState.Mode> = _currentMode.asStateFlow()
 
     val displayMode: StateFlow<ProxyDisplayMode> =
         proxyDisplaySettingsStore.displayMode.state.stateIn(
@@ -136,9 +141,17 @@ class ProxyViewModel(
     private var screenActive = false
     private var externalSelectionSyncJob: Job? = null
     private var previewSyncJob: Job? = null
+    private var tunnelModeSyncJob: Job? = null
 
     init {
         proxyFacade.warmUpProxyGroups()
+        viewModelScope.launch {
+            configuredMode.collect { mode ->
+                if (!proxyFacade.isRunning.value) {
+                    _currentMode.value = mode
+                }
+            }
+        }
         viewModelScope.launch {
             allProxyGroups.collect { groups ->
                 _groupOriginalOrder.update { current -> updateGroupOrderCache(current, groups) }
@@ -185,9 +198,11 @@ class ProxyViewModel(
         if (isActive) {
             startExternalSelectionSync()
             startPreviewSync()
+            startTunnelModeSync()
         } else {
             stopExternalSelectionSync()
             stopPreviewSync()
+            stopTunnelModeSync()
         }
     }
 
@@ -211,26 +226,45 @@ class ProxyViewModel(
     }
 
     fun patchMode(mode: TunnelState.Mode) {
+        if (_uiState.value.isLoading) return
         val previousMode = proxyDisplaySettingsStore.proxyMode.value
         proxyDisplaySettingsStore.proxyMode.set(mode)
         viewModelScope.launch {
-            val persistError =
-                overrideRepository.updateProfile { it.copy(mode = mode) }.exceptionOrNull()
-            if (persistError != null) {
-                proxyDisplaySettingsStore.proxyMode.set(previousMode)
-                showError(MLang.Proxy.Mode.SwitchFailed.format(persistError.message))
-                return@launch
-            }
+            setLoading(true)
+            runCatching {
+                    runtimeControlCoordinator.runSerialized("proxy:tunnel-mode") {
+                        val previousOverride =
+                            overrideRepository
+                                .updateProfile { current -> current }
+                                .getOrElse { error ->
+                                    error(error.message ?: MLang.Proxy.Mode.SwitchFailed)
+                                }
+                        val persistError =
+                            overrideRepository
+                                .updateProfile { it.copy(mode = mode) }
+                                .exceptionOrNull()
+                        if (persistError != null) {
+                            error(persistError.message ?: MLang.Proxy.Mode.SwitchFailed)
+                        }
 
-            val reloadError = proxyFacade.reloadCurrentProfile().exceptionOrNull()
-            if (reloadError != null) {
-                proxyDisplaySettingsStore.proxyMode.set(previousMode)
-                showError(MLang.Proxy.Mode.SwitchFailed.format(reloadError.message))
-                return@launch
-            }
-
-            delay(500.milliseconds)
-            showMessage(MLang.Proxy.Mode.Switched.format(mode.toModeName()))
+                        val reloadError = proxyFacade.reloadCurrentProfile().exceptionOrNull()
+                        if (reloadError != null) {
+                            overrideRepository.updateProfile { previousOverride }.getOrThrow()
+                            error(reloadError.message ?: MLang.Proxy.Mode.SwitchFailed)
+                        }
+                    }
+                }
+                .onSuccess {
+                    refreshCurrentTunnelMode()
+                    delay(500.milliseconds)
+                    showMessage(MLang.Proxy.Mode.Switched.format(mode.toModeName()))
+                }
+                .onFailure { error ->
+                    proxyDisplaySettingsStore.proxyMode.set(previousMode)
+                    refreshCurrentTunnelMode()
+                    showError(MLang.Proxy.Mode.SwitchFailed.format(error.message))
+                }
+            setLoading(false)
         }
     }
 
@@ -306,9 +340,7 @@ class ProxyViewModel(
         viewModelScope.launch {
             runCatching {
                     val success = proxyFacade.selectProxy(groupName, proxyName)
-                    if (success) {
-                        showMessage(MLang.Proxy.Selection.Switched.format(proxyName))
-                    } else {
+                    if (!success) {
                         showError(MLang.Proxy.Selection.Failed)
                     }
                 }
@@ -474,9 +506,46 @@ class ProxyViewModel(
         externalSelectionSyncJob = null
     }
 
+    private fun startTunnelModeSync() {
+        if (tunnelModeSyncJob?.isActive == true) return
+        tunnelModeSyncJob =
+            viewModelScope.launch {
+                refreshCurrentTunnelMode()
+                while (true) {
+                    val delayMillis =
+                        if (proxyFacade.isRunning.value) {
+                            PROXY_REFRESH_IDLE_MS
+                        } else {
+                            PROXY_REFRESH_PREVIEW_MS
+                        }
+                    delay(delayMillis.milliseconds)
+                    refreshCurrentTunnelMode()
+                }
+            }
+    }
+
+    private fun stopTunnelModeSync() {
+        tunnelModeSyncJob?.cancel()
+        tunnelModeSyncJob = null
+    }
+
+    private suspend fun refreshCurrentTunnelMode() {
+        val nextMode =
+            if (!proxyFacade.isRunning.value) {
+                configuredMode.value
+            } else {
+                runCatching { proxyFacade.queryTunnelState().mode }
+                    .getOrElse { configuredMode.value }
+            }
+        if (_currentMode.value != nextMode) {
+            _currentMode.value = nextMode
+        }
+    }
+
     override fun onCleared() {
         stopExternalSelectionSync()
         stopPreviewSync()
+        stopTunnelModeSync()
         super.onCleared()
     }
 

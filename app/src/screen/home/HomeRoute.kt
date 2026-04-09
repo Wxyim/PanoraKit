@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,8 +39,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.domain.model.TrafficData
@@ -59,21 +58,8 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val homeViewModel = koinViewModel<HomeViewModel>()
     val proxyViewModel = koinViewModel<ProxyViewModel>()
 
-    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val screenState by homeViewModel.screenState.collectAsStateWithLifecycle()
     val proxyUiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
-    val trafficNow by homeViewModel.trafficNow.collectAsStateWithLifecycle()
-    val displayRunning by homeViewModel.displayRunning.collectAsStateWithLifecycle()
-    val isToggling by homeViewModel.isToggling.collectAsStateWithLifecycle()
-    val profilesLoaded by homeViewModel.profilesLoaded.collectAsStateWithLifecycle()
-    val profiles by homeViewModel.profiles.collectAsStateWithLifecycle()
-    val hasEnabledProfile by
-        homeViewModel.hasEnabledProfile.collectAsStateWithLifecycle(initialValue = false)
-    val recommendedProfile by homeViewModel.recommendedProfile.collectAsStateWithLifecycle()
-    val currentProfile by homeViewModel.currentProfile.collectAsStateWithLifecycle()
-    val selectedServer by homeViewModel.selectedServer.collectAsStateWithLifecycle()
-    val ipMonitoringState by homeViewModel.ipMonitoringState.collectAsStateWithLifecycle()
-    val speedHistory by homeViewModel.speedHistory.collectAsStateWithLifecycle()
-    val currentProxyMode by homeViewModel.proxyMode.collectAsStateWithLifecycle()
     val currentTunnelMode by proxyViewModel.currentMode.collectAsStateWithLifecycle()
 
     var pendingProfileId by remember { mutableStateOf<String?>(null) }
@@ -120,29 +106,24 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
             com.github.yumelira.yumebox.service.runtime.entity.Profile?,
             com.github.yumelira.yumebox.data.model.ProxyMode,
         ) -> Unit =
-        remember(
-            context,
-            coroutineScope,
-            displayRunning,
-            hasEnabledProfile,
-            isToggling,
-            profilesLoaded,
-            profiles,
-            recommendedProfile,
-        ) {
+        remember(context, coroutineScope, screenState) {
             proxyToggleRequest@{
                 isRunning: Boolean,
                 profile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
                 proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode ->
-                if (!profilesLoaded || isToggling) return@proxyToggleRequest
-                if (!hasEnabledProfile || profiles.isEmpty() || profile == null) {
+                if (!screenState.profilesLoaded || screenState.isToggling) return@proxyToggleRequest
+                if (
+                    !screenState.hasEnabledProfile ||
+                        screenState.profiles.isEmpty() ||
+                        profile == null
+                ) {
                     context.toast(MLang.ProfilesVM.Error.ProfileNotExist, Toast.LENGTH_LONG)
                     return@proxyToggleRequest
                 }
                 if (!isRunning) {
                     pendingProfileId = profile.uuid.toString()
                     pendingProxyMode = proxyMode
-                    homeViewModel.startProxy(profileId = profile.uuid.toString(), mode = null)
+                    homeViewModel.startProxy(profileId = profile.uuid.toString(), mode = proxyMode)
                 } else {
                     coroutineScope.launch { homeViewModel.stopProxy() }
                 }
@@ -152,21 +133,22 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     Box(modifier = Modifier.fillMaxSize()) {
         HomePager(
             mainInnerPadding = mainInnerPadding,
-            trafficNow = TrafficData.from(trafficNow),
-            displayRunning = displayRunning,
-            isToggling = isToggling,
-            profilesLoaded = profilesLoaded,
-            hasProfiles = profiles.isNotEmpty(),
-            hasEnabledProfile = hasEnabledProfile,
-            recommendedProfile = recommendedProfile,
-            currentProfileName = currentProfile?.name,
+            trafficNow = TrafficData.from(screenState.trafficNow),
+            runtimeVisualState = screenState.runtimeVisualState,
+            displayRunning = screenState.displayRunning,
+            isToggling = screenState.isToggling,
+            profilesLoaded = screenState.profilesLoaded,
+            hasProfiles = screenState.profiles.isNotEmpty(),
+            hasEnabledProfile = screenState.hasEnabledProfile,
+            recommendedProfile = screenState.recommendedProfile,
+            currentProfileName = screenState.currentProfile?.name,
             currentTunnelMode = currentTunnelMode,
-            selectedServer = selectedServer,
-            ipMonitoringState = ipMonitoringState,
-            speedHistory = speedHistory,
-            proxyMode = currentProxyMode,
-            uiError = uiState.error ?: proxyUiState.error,
-            uiMessage = uiState.message ?: proxyUiState.message,
+            selectedServer = screenState.selectedServer,
+            ipMonitoringState = screenState.ipMonitoringState,
+            speedHistory = screenState.speedHistory,
+            proxyMode = screenState.proxyMode,
+            uiError = screenState.ui.error ?: proxyUiState.error,
+            uiMessage = screenState.ui.message ?: proxyUiState.message,
             onConsumeError = {
                 homeViewModel.consumeError()
                 proxyViewModel.clearError()

@@ -20,15 +20,11 @@
 
 package com.github.yumelira.yumebox.data.store
 
-import com.github.yumelira.yumebox.data.model.AppTrafficDeltaRecord
-import com.github.yumelira.yumebox.data.model.AppTrafficUsage
-import com.github.yumelira.yumebox.data.model.DailyAppTrafficSummary
 import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
 import com.github.yumelira.yumebox.data.model.ProfileTrafficUsage
-import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
+import com.github.yumelira.yumebox.data.model.TargetSiteTrafficUsage
 import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.model.TrafficSlotData
-import com.github.yumelira.yumebox.data.model.TrafficStatisticsBuckets
 import com.tencent.mmkv.MMKV
 import java.util.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,15 +42,13 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     companion object {
         private const val KEY_DAILY_SUMMARIES = "daily_summaries"
         private const val KEY_PROFILE_USAGES = "profile_usages"
-        private const val KEY_DAILY_APP_SUMMARIES = "daily_app_summaries"
+        private const val KEY_TARGET_SITE_USAGES = "target_site_usages"
+        private const val KEY_TARGET_SITE_USAGES_OVERFLOW = "target_site_usages_overflow"
         private const val KEY_LAST_TRAFFIC_UPLOAD = "last_traffic_upload"
         private const val KEY_LAST_TRAFFIC_DOWNLOAD = "last_traffic_download"
         private const val KEY_LAST_PROFILE_ID = "last_profile_id"
-        private const val KEY_LAST_APP_TRAFFIC_UPLOAD = "last_app_traffic_upload"
-        private const val KEY_LAST_APP_TRAFFIC_DOWNLOAD = "last_app_traffic_download"
-        private const val KEY_LAST_APP_PROFILE_ID = "last_app_profile_id"
         private const val MAX_DAYS_TO_KEEP = 90
-        private const val NO_PERSISTED_TRAFFIC = -1L
+        private const val MAX_TARGET_SITE_IN_MEMORY = 256
     }
 
     private val _dailySummaries = MutableStateFlow<Map<Long, DailyTrafficSummary>>(emptyMap())
@@ -63,9 +57,13 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     private val _profileUsages = MutableStateFlow<Map<String, ProfileTrafficUsage>>(emptyMap())
     val profileUsages: StateFlow<Map<String, ProfileTrafficUsage>> = _profileUsages.asStateFlow()
 
-    private val _dailyAppSummaries = MutableStateFlow<Map<Long, DailyAppTrafficSummary>>(emptyMap())
-    val dailyAppSummaries: StateFlow<Map<Long, DailyAppTrafficSummary>> =
-        _dailyAppSummaries.asStateFlow()
+    private val _targetSiteUsages =
+        MutableStateFlow<Map<String, TargetSiteTrafficUsage>>(emptyMap())
+    val targetSiteUsages: StateFlow<Map<String, TargetSiteTrafficUsage>> =
+        _targetSiteUsages.asStateFlow()
+
+    private val _targetSiteOverflowRevision = MutableStateFlow(0L)
+    val targetSiteOverflowRevision: StateFlow<Long> = _targetSiteOverflowRevision.asStateFlow()
 
     init {
         loadData()
@@ -86,10 +84,10 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
             }
         }
 
-        mmkv.decodeString(KEY_DAILY_APP_SUMMARIES)?.let { jsonStr ->
+        mmkv.decodeString(KEY_TARGET_SITE_USAGES)?.let { jsonStr ->
             runCatching {
-                val summaries: Map<Long, DailyAppTrafficSummary> = json.decodeFromString(jsonStr)
-                _dailyAppSummaries.value = cleanOldAppData(summaries.toMutableMap())
+                val usages: Map<String, TargetSiteTrafficUsage> = json.decodeFromString(jsonStr)
+                _targetSiteUsages.value = usages
             }
         }
     }
@@ -108,11 +106,66 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         }
     }
 
-    private fun saveDailyAppSummaries() {
+    private fun saveTargetSiteUsages() {
         runCatching {
-            val jsonStr = json.encodeToString(_dailyAppSummaries.value)
-            mmkv.encode(KEY_DAILY_APP_SUMMARIES, jsonStr)
+            val jsonStr = json.encodeToString(_targetSiteUsages.value)
+            mmkv.encode(KEY_TARGET_SITE_USAGES, jsonStr)
         }
+    }
+
+    private fun loadTargetSiteOverflowUsages(): MutableMap<String, TargetSiteTrafficUsage> {
+        val raw = mmkv.decodeString(KEY_TARGET_SITE_USAGES_OVERFLOW).orEmpty()
+        if (raw.isBlank()) return mutableMapOf()
+        return runCatching {
+                val decoded: Map<String, TargetSiteTrafficUsage> = json.decodeFromString(raw)
+                decoded.toMutableMap()
+            }
+            .getOrDefault(mutableMapOf())
+    }
+
+    private fun saveTargetSiteOverflowUsages(usages: Map<String, TargetSiteTrafficUsage>) {
+        runCatching {
+                if (usages.isEmpty()) {
+                    mmkv.remove(KEY_TARGET_SITE_USAGES_OVERFLOW)
+                } else {
+                    mmkv.encode(KEY_TARGET_SITE_USAGES_OVERFLOW, json.encodeToString(usages))
+                }
+            }
+            .onSuccess { _targetSiteOverflowRevision.value = _targetSiteOverflowRevision.value + 1L }
+    }
+
+    private fun compactTargetSiteUsagesForMemory(): MutableMap<String, TargetSiteTrafficUsage> {
+        val current = _targetSiteUsages.value.toMutableMap()
+        if (current.size <= MAX_TARGET_SITE_IN_MEMORY) return current
+
+        val sorted =
+            current.values.sortedWith(
+                compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
+                    .thenByDescending { it.lastSeenAt }
+                    .thenBy { it.displayName.lowercase(Locale.ROOT) }
+            )
+        val keep = sorted.take(MAX_TARGET_SITE_IN_MEMORY)
+        val overflow = sorted.drop(MAX_TARGET_SITE_IN_MEMORY)
+        if (overflow.isNotEmpty()) {
+            val overflowMap = loadTargetSiteOverflowUsages()
+            overflow.forEach { usage ->
+                val existing = overflowMap[usage.siteKey]
+                overflowMap[usage.siteKey] =
+                    if (existing == null) {
+                        usage
+                    } else {
+                        existing.copy(
+                            displayName = usage.displayName,
+                            totalUpload = existing.totalUpload + usage.totalUpload,
+                            totalDownload = existing.totalDownload + usage.totalDownload,
+                            lastSeenAt = maxOf(existing.lastSeenAt, usage.lastSeenAt),
+                        )
+                    }
+                current.remove(usage.siteKey)
+            }
+            saveTargetSiteOverflowUsages(overflowMap)
+        }
+        return keep.associateBy { it.siteKey }.toMutableMap()
     }
 
     fun recordTraffic(
@@ -195,73 +248,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         saveProfileUsages()
     }
 
-    fun recordAppTrafficBatch(timestamp: Long, records: List<AppTrafficDeltaRecord>) {
-        if (records.isEmpty()) return
-
-        val dayKey = getDayKey(Calendar.getInstance().apply { timeInMillis = timestamp })
-        val currentDaily = _dailyAppSummaries.value.toMutableMap()
-        val daySummary = currentDaily[dayKey] ?: DailyAppTrafficSummary(dateMillis = dayKey)
-        val updatedUsages = daySummary.appUsages.toMutableMap()
-        var changed = false
-
-        records.forEach { record ->
-            if (record.uploadDelta <= 0L && record.downloadDelta <= 0L) return@forEach
-
-            val currentUsage =
-                updatedUsages[record.appKey]
-                    ?: AppTrafficUsage(
-                        appKey = record.appKey,
-                        packageName = record.packageName,
-                        appName = record.appName,
-                    )
-            updatedUsages[record.appKey] =
-                currentUsage.copy(
-                    packageName = record.packageName ?: currentUsage.packageName,
-                    appName = record.appName.ifBlank { currentUsage.appName },
-                    totalUpload = currentUsage.totalUpload + record.uploadDelta,
-                    totalDownload = currentUsage.totalDownload + record.downloadDelta,
-                    lastActiveAt = timestamp,
-                )
-            changed = true
-        }
-
-        if (!changed) return
-
-        currentDaily[dayKey] = daySummary.copy(appUsages = updatedUsages)
-        _dailyAppSummaries.value = cleanOldAppData(currentDaily)
-        saveDailyAppSummaries()
-    }
-
-    fun getAppUsagesSorted(range: StatisticsTimeRange): List<AppTrafficUsage> {
-        val aggregated = linkedMapOf<String, AppTrafficUsage>()
-        rangeDayKeys(range.days).forEach { dayKey ->
-            _dailyAppSummaries.value[dayKey]?.appUsages?.values?.forEach { usage ->
-                val existing = aggregated[usage.appKey]
-                aggregated[usage.appKey] =
-                    if (existing == null) {
-                        usage
-                    } else {
-                        existing.copy(
-                            packageName = existing.packageName ?: usage.packageName,
-                            appName =
-                                if (existing.appName.isNotBlank()) existing.appName
-                                else usage.appName,
-                            totalUpload = existing.totalUpload + usage.totalUpload,
-                            totalDownload = existing.totalDownload + usage.totalDownload,
-                            lastActiveAt = maxOf(existing.lastActiveAt, usage.lastActiveAt),
-                        )
-                    }
-            }
-        }
-
-        val unattributed = aggregated.remove(TrafficStatisticsBuckets.UNATTRIBUTED_APP_KEY)
-        val sortedApps = aggregated.values.sortedByDescending(AppTrafficUsage::totalBytes)
-        return buildList(sortedApps.size + if (unattributed != null) 1 else 0) {
-            addAll(sortedApps)
-            unattributed?.let(::add)
-        }
-    }
-
     fun getTodaySummary(): DailyTrafficSummary {
         val todayKey = getDayKey(Calendar.getInstance())
         return _dailySummaries.value[todayKey] ?: DailyTrafficSummary.EMPTY
@@ -303,16 +289,115 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         return _profileUsages.value.values.sortedByDescending { it.totalBytes }
     }
 
+    fun recordTargetSiteTraffic(
+        siteKey: String,
+        displayName: String,
+        uploadDelta: Long,
+        downloadDelta: Long,
+        seenAt: Long = System.currentTimeMillis(),
+    ) {
+        if (siteKey.isBlank() || displayName.isBlank()) return
+        if (uploadDelta <= 0 && downloadDelta <= 0) return
+
+        val currentUsages = _targetSiteUsages.value.toMutableMap()
+        val currentUsage =
+            currentUsages[siteKey]
+                ?: TargetSiteTrafficUsage(
+                    siteKey = siteKey,
+                    displayName = displayName,
+                    totalUpload = 0L,
+                    totalDownload = 0L,
+                    lastSeenAt = seenAt,
+                )
+
+        currentUsages[siteKey] =
+            currentUsage.copy(
+                displayName = displayName,
+                totalUpload = currentUsage.totalUpload + uploadDelta,
+                totalDownload = currentUsage.totalDownload + downloadDelta,
+                lastSeenAt = maxOf(currentUsage.lastSeenAt, seenAt),
+            )
+        _targetSiteUsages.value = currentUsages
+        saveTargetSiteUsages()
+    }
+
+    fun recordTargetSiteTrafficBatch(
+        usages: Collection<TargetSiteTrafficUsage>,
+        seenAt: Long = System.currentTimeMillis(),
+    ) {
+        if (usages.isEmpty()) return
+
+        val currentUsages = _targetSiteUsages.value.toMutableMap()
+        val overflowUsages = loadTargetSiteOverflowUsages()
+        var changed = false
+        usages.forEach { usage ->
+            if (usage.siteKey.isBlank() || usage.displayName.isBlank()) return@forEach
+            if (usage.totalUpload <= 0 && usage.totalDownload <= 0) return@forEach
+
+            val current =
+                currentUsages[usage.siteKey]
+                    ?: overflowUsages.remove(usage.siteKey)
+                    ?: TargetSiteTrafficUsage(
+                        siteKey = usage.siteKey,
+                        displayName = usage.displayName,
+                        totalUpload = 0L,
+                        totalDownload = 0L,
+                        lastSeenAt = seenAt,
+                    )
+            currentUsages[usage.siteKey] =
+                current.copy(
+                    displayName = usage.displayName,
+                    totalUpload = current.totalUpload + usage.totalUpload,
+                    totalDownload = current.totalDownload + usage.totalDownload,
+                    lastSeenAt = maxOf(current.lastSeenAt, usage.lastSeenAt, seenAt),
+                )
+            changed = true
+        }
+
+        if (!changed) return
+        _targetSiteUsages.value = currentUsages
+        _targetSiteUsages.value = compactTargetSiteUsagesForMemory()
+        saveTargetSiteUsages()
+        saveTargetSiteOverflowUsages(overflowUsages)
+    }
+
+    fun getTargetSiteUsagesSorted(limit: Int? = null): List<TargetSiteTrafficUsage> {
+        val merged = _targetSiteUsages.value.toMutableMap()
+        loadTargetSiteOverflowUsages().forEach { (siteKey, usage) ->
+            val current = merged[siteKey]
+            merged[siteKey] =
+                if (current == null) {
+                    usage
+                } else {
+                    current.copy(
+                        displayName = usage.displayName,
+                        totalUpload = current.totalUpload + usage.totalUpload,
+                        totalDownload = current.totalDownload + usage.totalDownload,
+                        lastSeenAt = maxOf(current.lastSeenAt, usage.lastSeenAt),
+                    )
+                }
+        }
+        val sorted =
+            merged.values.sortedWith(
+                compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
+                    .thenByDescending { it.lastSeenAt }
+                    .thenBy { it.displayName.lowercase(Locale.ROOT) }
+            )
+        return limit?.let(sorted::take) ?: sorted
+    }
+
+    fun clearTargetSiteUsages() {
+        _targetSiteUsages.value = emptyMap()
+        saveTargetSiteUsages()
+        saveTargetSiteOverflowUsages(emptyMap())
+    }
+
     fun clearAll() {
         _dailySummaries.value = emptyMap()
         _profileUsages.value = emptyMap()
-        _dailyAppSummaries.value = emptyMap()
+        clearTargetSiteUsages()
         mmkv.remove(KEY_DAILY_SUMMARIES)
         mmkv.remove(KEY_PROFILE_USAGES)
-        mmkv.remove(KEY_DAILY_APP_SUMMARIES)
-        mmkv.remove(KEY_LAST_APP_TRAFFIC_UPLOAD)
-        mmkv.remove(KEY_LAST_APP_TRAFFIC_DOWNLOAD)
-        mmkv.remove(KEY_LAST_APP_PROFILE_ID)
     }
 
     fun setLastTraffic(upload: Long, download: Long, profileId: String? = null) {
@@ -329,31 +414,8 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
 
     fun getLastProfileId(): String? = mmkv.decodeString(KEY_LAST_PROFILE_ID)
 
-    fun setAppLastTraffic(
-        upload: Long,
-        download: Long,
-        profileId: String? = null,
-        forcePersist: Boolean = false,
-    ) {
-        mmkv.encode(KEY_LAST_APP_TRAFFIC_UPLOAD, upload)
-        mmkv.encode(KEY_LAST_APP_TRAFFIC_DOWNLOAD, download)
-        if (profileId.isNullOrBlank()) {
-            mmkv.removeValueForKey(KEY_LAST_APP_PROFILE_ID)
-        } else {
-            mmkv.encode(KEY_LAST_APP_PROFILE_ID, profileId)
-        }
-    }
-
-    fun getAppLastTrafficUpload(): Long =
-        mmkv.decodeLong(KEY_LAST_APP_TRAFFIC_UPLOAD, NO_PERSISTED_TRAFFIC)
-
-    fun getAppLastTrafficDownload(): Long =
-        mmkv.decodeLong(KEY_LAST_APP_TRAFFIC_DOWNLOAD, NO_PERSISTED_TRAFFIC)
-
-    fun getAppLastProfileId(): String? = mmkv.decodeString(KEY_LAST_APP_PROFILE_ID)
-
     fun flushNow() {
-        // The current store writes eagerly; keep this no-op for collector compatibility.
+        // The current store writes eagerly; keep this no-op for API symmetry.
     }
 
     private fun getDayKey(calendar: Calendar): Long {
@@ -370,19 +432,5 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     ): Map<Long, DailyTrafficSummary> {
         val cutoffTime = System.currentTimeMillis() - (MAX_DAYS_TO_KEEP * 24 * 60 * 60 * 1000L)
         return data.filterKeys { it >= cutoffTime }
-    }
-
-    private fun cleanOldAppData(
-        data: MutableMap<Long, DailyAppTrafficSummary>
-    ): Map<Long, DailyAppTrafficSummary> {
-        val cutoffTime = System.currentTimeMillis() - (MAX_DAYS_TO_KEEP * 24 * 60 * 60 * 1000L)
-        return data.filterKeys { it >= cutoffTime }
-    }
-
-    private fun rangeDayKeys(days: Int): List<Long> {
-        return List(days) { offset ->
-            val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }
-            getDayKey(calendar)
-        }
     }
 }

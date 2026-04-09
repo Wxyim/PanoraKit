@@ -4,9 +4,10 @@ About = {
 
     App = {
         Description = "一个基于 mihomo 的定制化 Android 客户端"
-        VersionLoading = "Loading..."
-        VersionFailed = "Failed to load"
+        VersionLoading = "加载中..."
+        VersionFailed = "加载失败"
         VersionWithMihomo = "%s · mihomo %s"
+        Name = "MonadBox"
     }
 
     Section = {
@@ -17,6 +18,10 @@ About = {
     }
 
     Link = {
+        Repository = "MonadBox（GitHub）"
+        Releases = "MonadBox Releases（更新源）"
+        Mihomo = "mihomo"
+        Upstream = "YumeBox（上游）"
         TelegramGroup = "Telegram 群组"
         TelegramChannel = "Telegram 频道"
     }
@@ -25,9 +30,9 @@ About = {
         CheckUpdate = "检查更新"
         CheckUpdateSummary = "打开 GitHub Releases 页面查看新版本"
         Libraries = "引用库"
-        LibrariesSummary = "View all third-party libraries used in this app"
+        LibrariesSummary = "查看本应用使用的第三方库"
         AgplName = "GNU Affero General Public License v3.0"
-        AgplDescription = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License."
+        AgplDescription = "本程序是自由软件；您可以在 GNU Affero General Public License 的条款下重新分发和修改它。"
     }
 
     Copyright = "© 2025 YumeLira，2026 – 至今 MonadBox"

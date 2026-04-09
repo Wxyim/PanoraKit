@@ -34,8 +34,6 @@ import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang

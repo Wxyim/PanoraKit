@@ -28,10 +28,12 @@ import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.store.Preference
+import com.github.yumelira.yumebox.startup.StorageCleanupScheduler
 
 class AppSettingsViewModel(
     private val repository: AppSettingsRepository,
     private val cleanupManager: StorageCleanupManager,
+    private val cleanupScheduler: StorageCleanupScheduler,
 ) : ViewModel() {
 
     val initialSetupCompleted: Preference<Boolean> = repository.initialSetupCompleted
@@ -95,13 +97,25 @@ class AppSettingsViewModel(
 
     fun onSingleNodeTestChange(enabled: Boolean) = singleNodeTest.set(enabled)
 
-    fun onCleanupAutoEnabledChange(enabled: Boolean) = cleanupAutoEnabled.set(enabled)
+    fun onCleanupAutoEnabledChange(enabled: Boolean) {
+        cleanupAutoEnabled.set(enabled)
+        cleanupScheduler.sync(enabled)
+    }
 
-    fun onCleanupPolicyChange(policy: CleanupPolicy) = cleanupPolicy.set(policy)
+    fun onCleanupPolicyChange(policy: CleanupPolicy) {
+        cleanupPolicy.set(policy)
+        cleanupScheduler.sync(cleanupAutoEnabled.value)
+    }
 
-    fun onCleanupThresholdMbChange(value: Int) = cleanupThresholdMb.set(value.coerceIn(64, 4096))
+    fun onCleanupThresholdMbChange(value: Int) {
+        cleanupThresholdMb.set(value.coerceIn(64, 4096))
+        cleanupScheduler.sync(cleanupAutoEnabled.value)
+    }
 
-    fun onCleanupIntervalHoursChange(value: Int) = cleanupIntervalHours.set(value.coerceIn(1, 48))
+    fun onCleanupIntervalHoursChange(value: Int) {
+        cleanupIntervalHours.set(value.coerceIn(1, 48))
+        cleanupScheduler.sync(cleanupAutoEnabled.value)
+    }
 
     fun applyCustomUserAgent(userAgent: String) = repository.applyCustomUserAgent(userAgent)
 

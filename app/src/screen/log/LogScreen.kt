@@ -49,8 +49,6 @@ import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.Play
-import com.github.yumelira.yumebox.presentation.icon.yume.PowerOff
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.ramcosta.composedestinations.annotation.Destination
@@ -60,10 +58,7 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
@@ -142,20 +137,9 @@ fun LogScreen(navigator: DestinationsNavigator) {
             }
     }
 
-    LaunchedEffect(isRecording) {
-        if (isRecording) {
-            while (isActive) {
-                viewModel.refreshTempLogEntries()
-                viewModel.refreshHistoryFiles()
-                viewModel.refreshStartupFiles()
-                delay(500.milliseconds)
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.refreshHistoryFiles()
-        viewModel.refreshStartupFiles()
+    DisposableEffect(Unit) {
+        viewModel.startAutoRefresh()
+        onDispose { viewModel.stopAutoRefresh() }
     }
 
     Scaffold(
@@ -164,6 +148,23 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 title = MLang.Log.Title,
                 scrollBehavior = scrollBehavior,
                 actions = {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                val success = viewModel.clearAllLogs()
+                                if (success) {
+                                    context.toast(MLang.Log.Action.CleanupDone)
+                                } else {
+                                    context.toast(MLang.Util.Error.UnknownError)
+                                }
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Yume.Delete,
+                            contentDescription = MLang.Log.Action.Cleanup,
+                        )
+                    }
                     if (displayEntries.isNotEmpty()) {
                         IconButton(
                             onClick = {
@@ -189,68 +190,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 },
             )
         },
-        floatingActionButton = {
-            AnimatedVisibility(
-                visible = !fabHidden,
-                enter =
-                    scaleIn(
-                        animationSpec =
-                            tween(
-                                durationMillis = AnimationSpecs.Proxy.FabDuration,
-                                easing = AnimationSpecs.EmphasizedDecelerate,
-                            ),
-                        initialScale = AnimationSpecs.Proxy.VisibilityInitialScale,
-                    ) +
-                        fadeIn(
-                            animationSpec =
-                                tween(
-                                    durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
-                                    easing = AnimationSpecs.EmphasizedDecelerate,
-                                )
-                        ),
-                exit =
-                    scaleOut(
-                        animationSpec =
-                            tween(
-                                durationMillis = AnimationSpecs.Proxy.FabDuration,
-                                easing = AnimationSpecs.EmphasizedDecelerate,
-                            ),
-                        targetScale = AnimationSpecs.Proxy.VisibilityTargetScale,
-                    ) +
-                        fadeOut(
-                            animationSpec =
-                                tween(
-                                    durationMillis = AnimationSpecs.Proxy.FabFadeDuration,
-                                    easing = AnimationSpecs.EmphasizedDecelerate,
-                                )
-                        ),
-                label = "log_record_fab_visibility",
-            ) {
-                FloatingActionButton(
-                    modifier =
-                        Modifier.navigationBarsPadding()
-                            .padding(
-                                end = LogScreenMetrics.FabEndPadding,
-                                bottom = LogScreenMetrics.FabBottomPadding,
-                            ),
-                    onClick = {
-                        if (isRecording) {
-                            viewModel.stopRecording()
-                        } else {
-                            viewModel.startRecording()
-                        }
-                    },
-                ) {
-                    Icon(
-                        imageVector = if (isRecording) Yume.PowerOff else Yume.Play,
-                        contentDescription =
-                            if (isRecording) MLang.Log.Action.StopRecording
-                            else MLang.Log.Action.StartRecording,
-                        tint = MiuixTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
-        },
+        floatingActionButton = {},
     ) { innerPadding ->
         if (
             !viewingSavedFile &&
@@ -261,7 +201,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
         ) {
             CenteredText(
                 firstLine = MLang.Log.Empty.NoLogs,
-                secondLine = MLang.Log.Empty.StartRecordingHint,
+                secondLine = MLang.Log.Empty.AutoRecordHint,
             )
             return@Scaffold
         }
@@ -298,14 +238,15 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 }
             },
             label = "log_content_switch_animation",
-        ) {
+        ) { contentMode ->
+            val isDetailMode = contentMode == LogContentMode.Detail
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
                 topPadding = 20.dp,
                 lazyListState = listState,
             ) {
-                if (viewingSavedFile) {
+                if (isDetailMode) {
                     item(key = "history_header") {
                         Card(
                             modifier =
@@ -387,7 +328,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                     }
                 }
 
-                if (!viewingSavedFile && startupFiles.isNotEmpty()) {
+                if (!isDetailMode && startupFiles.isNotEmpty()) {
                     item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
                     itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file ->
                         Card(
@@ -408,7 +349,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 }
 
                 if (
-                    !viewingSavedFile &&
+                    !isDetailMode &&
                         (historyFiles.isNotEmpty() || startupFiles.isNotEmpty()) &&
                         displayEntries.isNotEmpty()
                 ) {

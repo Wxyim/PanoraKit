@@ -69,7 +69,6 @@ private val PagePadding = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING
 private val DetailWidth = 560.dp
 private val SectionShape = RoundedCornerShape(36.dp)
 private const val RevealDurationMs = 420
-private const val LinkTermsTag = "terms"
 private const val LinkPolicyTag = "policy"
 
 private object StartupHeroMetrics {
@@ -497,16 +496,6 @@ internal fun TermsContent(
                 append(MLang.Onboarding.Privacy.RichTextLead)
                 append(" ")
                 append(MLang.Onboarding.Privacy.RichTextPrefix)
-                withLink(
-                    LinkAnnotation.Clickable(
-                        tag = LinkTermsTag,
-                        styles = linkStyles,
-                        linkInteractionListener = { onPrivacySheetRequest() },
-                    )
-                ) {
-                    withStyle(linkStyle) { append(MLang.Onboarding.Privacy.TermsLink) }
-                }
-                append(MLang.Onboarding.Privacy.RichTextConnector)
                 withLink(
                     LinkAnnotation.Clickable(
                         tag = LinkPolicyTag,

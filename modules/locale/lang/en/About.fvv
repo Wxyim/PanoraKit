@@ -7,6 +7,7 @@ About = {
         VersionLoading = "Loading..."
         VersionFailed = "Failed to load"
         VersionWithMihomo = "%s · mihomo %s"
+        Name = "MonadBox"
     }
 
     Section = {
@@ -17,6 +18,10 @@ About = {
     }
 
     Link = {
+        Repository = "MonadBox (GitHub)"
+        Releases = "MonadBox Releases (Update Source)"
+        Mihomo = "mihomo"
+        Upstream = "YumeBox (Upstream)"
         TelegramGroup = "Telegram Group"
         TelegramChannel = "Telegram Channel"
     }

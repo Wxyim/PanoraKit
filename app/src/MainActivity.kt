@@ -25,17 +25,19 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.pager.HorizontalPager
@@ -44,7 +46,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -69,6 +71,7 @@ import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBe
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.LocalPagerState
+import com.github.yumelira.yumebox.presentation.component.SideRailContent
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumelira.yumebox.presentation.component.ToastDialogHost
@@ -77,6 +80,7 @@ import com.github.yumelira.yumebox.presentation.screen.ProxyPager
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
+import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
 import com.github.yumelira.yumebox.screen.home.HomeRoute
 import com.github.yumelira.yumebox.screen.onboarding.OnboardingLauncher
 import com.github.yumelira.yumebox.screen.profiles.ProfilesPager
@@ -111,7 +115,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 class MainActivity : ComponentActivity() {
 
     companion object {
-        private const val REQUEST_NOTIFICATION_PERMISSION = 1001
         private val _pendingImportUrl = MutableStateFlow<String?>(null)
         val pendingImportUrl: StateFlow<String?> = _pendingImportUrl.asStateFlow()
 
@@ -126,6 +129,9 @@ class MainActivity : ComponentActivity() {
         com.github.yumelira.yumebox.data.store.NetworkSettingsStorage by
         inject()
     private val profilesRepository: com.github.yumelira.yumebox.runtime.client.ProfilesRepository by
+        inject()
+    private val runtimeControlCoordinator:
+        com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator by
         inject()
     private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
     private val serviceCache: MMKV by inject(qualifier = named(StoreIds.SERVICE_CACHE))
@@ -153,18 +159,6 @@ class MainActivity : ComponentActivity() {
 
         (application as? App)?.ensureDeferredStartupInitialized()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (
-                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_NOTIFICATION_PERMISSION,
-                )
-            }
-        }
-
         setContent {
             val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
             val themeMode = appSettingsViewModel.themeMode.state.collectAsStateWithLifecycle().value
@@ -184,10 +178,14 @@ class MainActivity : ComponentActivity() {
                 val systemDensity = LocalDensity.current
                 val scaledDensity =
                     remember(systemDensity, pageScale) {
-                        Density(systemDensity.density * pageScale, systemDensity.fontScale)
+                        Density(
+                            density = systemDensity.density,
+                            fontScale = systemDensity.fontScale * pageScale,
+                        )
                     }
                 CompositionLocalProvider(LocalDensity provides scaledDensity) {
-                    YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
+                    val adaptiveSpacing = rememberAdaptiveSpacing(pageScale = pageScale)
+                    YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb, spacing = adaptiveSpacing) {
                         val topBarHazeState = remember { HazeState() }
                         val topBarBackground = MiuixTheme.colorScheme.surface
                         val topBarHazeStyle =
@@ -226,6 +224,7 @@ class MainActivity : ComponentActivity() {
                     context = applicationContext,
                     proxyFacade = proxyFacade,
                     profilesRepository = profilesRepository,
+                    runtimeControlCoordinator = runtimeControlCoordinator,
                     appSettingsStorage = appSettingsStorage,
                     networkSettingsStorage = networkSettingsStorage,
                     serviceCache = serviceCache,
@@ -299,11 +298,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 @Destination<RootGraph>
 fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
-    val activity = LocalActivity.current
+    val configuration = LocalConfiguration.current
+    val useRailNavigation = configuration.screenWidthDp >= 600
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, 3), pageCount = { 4 })
     val hazeState = remember { HazeState() }
-    val bottomBarLiquidState = rememberLiquidState()
+    val bottomBarLiquidState = if (useRailNavigation) null else rememberLiquidState()
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val bottomBarAutoHideEnabled by
@@ -312,7 +312,11 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         appSettingsViewModel.bottomBarLiquidGlassEnabled.state.collectAsStateWithLifecycle()
 
     val bottomBarScrollBehavior =
-        rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
+        if (useRailNavigation) {
+            null
+        } else {
+            rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
+        }
 
     var pageChangeJob by remember { mutableStateOf<Job?>(null) }
 
@@ -337,45 +341,46 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         LocalNavigator provides navigator,
         LocalBottomBarScrollBehavior provides bottomBarScrollBehavior,
         LocalBottomBarLiquidState provides
-            if (bottomBarLiquidGlassEnabled) bottomBarLiquidState else null,
+            if (!useRailNavigation && bottomBarLiquidGlassEnabled) bottomBarLiquidState else null,
     ) {
         Scaffold { innerPadding ->
-            Box(Modifier.fillMaxSize()) {
-                val density = LocalDensity.current
-                val layoutDirection = LocalLayoutDirection.current
-                val systemBottomInset =
-                    with(density) {
-                        val navBottom =
-                            androidx.compose.foundation.layout.WindowInsets.navigationBars
-                                .getBottom(this)
-                        val gestureBottom =
-                            androidx.compose.foundation.layout.WindowInsets.systemGestures
-                                .getBottom(this)
-                        max(navBottom, gestureBottom).toDp()
-                    }
-                val bottomBarReservedHeight = 74.dp
-                val safeMainPadding =
-                    PaddingValues(
-                        top = innerPadding.calculateTopPadding(),
-                        bottom =
-                            innerPadding.calculateBottomPadding() +
-                                bottomBarReservedHeight +
-                                systemBottomInset,
-                        start =
-                            WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateStartPadding(layoutDirection),
-                        end =
-                            WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateEndPadding(layoutDirection),
+            val density = LocalDensity.current
+            val layoutDirection = LocalLayoutDirection.current
+            val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
+            val systemTopInset = systemBarsPadding.calculateTopPadding()
+            val systemStartInset = systemBarsPadding.calculateStartPadding(layoutDirection)
+            val systemEndInset = systemBarsPadding.calculateEndPadding(layoutDirection)
+            val systemBottomInset =
+                with(density) {
+                    val navBottom = WindowInsets.navigationBars.getBottom(this)
+                    val gestureBottom = WindowInsets.systemGestures.getBottom(this)
+                    max(navBottom, gestureBottom).toDp()
+                }
+            val bottomBarReservedHeight = if (useRailNavigation) 0.dp else 74.dp
+            val safeMainPadding =
+                PaddingValues(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom =
+                        innerPadding.calculateBottomPadding() +
+                            bottomBarReservedHeight +
+                            systemBottomInset,
+                    start = if (useRailNavigation) 0.dp else systemStartInset,
+                    end = systemEndInset,
+                )
+            val pagerModifier =
+                Modifier.fillMaxSize()
+                    .hazeSource(state = hazeState)
+                    .then(
+                        if (bottomBarLiquidState != null && bottomBarLiquidGlassEnabled) {
+                            Modifier.liquefiable(bottomBarLiquidState)
+                        } else {
+                            Modifier
+                        }
                     )
 
+            val pagerContent: @Composable (Modifier) -> Unit = { modifier ->
                 HorizontalPager(
-                    modifier =
-                        Modifier.fillMaxSize()
-                            .hazeSource(state = hazeState)
-                            .liquefiable(bottomBarLiquidState),
+                    modifier = modifier,
                     state = pagerState,
                     beyondViewportPageCount = 0,
                     userScrollEnabled = true,
@@ -407,9 +412,37 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                         3 -> SettingPager(safeMainPadding)
                     }
                 }
+            }
 
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                    BottomBarContent()
+            if (useRailNavigation) {
+                Row(Modifier.fillMaxSize()) {
+                    Box(
+                        modifier =
+                            Modifier.padding(
+                                    start = systemStartInset + 12.dp,
+                                    top = systemTopInset + 12.dp,
+                                    end = 12.dp,
+                                    bottom = systemBottomInset + 12.dp,
+                                )
+                                .fillMaxHeight(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        SideRailContent()
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        pagerContent(pagerModifier)
+                    }
+                }
+            } else {
+                Box(Modifier.fillMaxSize()) {
+                    pagerContent(pagerModifier)
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        BottomBarContent()
+                    }
                 }
             }
         }

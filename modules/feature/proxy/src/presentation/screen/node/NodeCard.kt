@@ -48,7 +48,6 @@ import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowRight
 import com.github.yumelira.yumebox.presentation.icon.yume.BadgeDollarSign
@@ -325,7 +324,11 @@ internal fun NodeLargeIcon(
                 modifier = Modifier.size(NodeCardDefaults.LargeFlagSize),
             )
         } else if (countryCode != null) {
-            CountryFlagCircle(countryCode = countryCode, size = NodeCardDefaults.LargeFlagSize)
+            CountryFlagFilledIcon(
+                countryCode = countryCode,
+                size = NodeCardDefaults.LargeFlagSize,
+                cornerRadius = 8.dp,
+            )
         } else if (builtInVisual != null) {
             Icon(
                 imageVector = builtInVisual.icon,

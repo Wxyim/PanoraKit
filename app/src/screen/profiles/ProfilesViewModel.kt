@@ -25,6 +25,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.FetchStatus
+import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.Preference
@@ -32,6 +33,7 @@ import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.service.remote.IFetchObserver
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
@@ -51,6 +53,8 @@ class ProfilesViewModel(
     private val profilesRepository: ProfilesRepository,
     profileLinksStorage: ProfileLinksStorage,
     private val bindingProvider: ProfileBindingProvider,
+    private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
+    private val runtimeControlCoordinator: RuntimeControlCoordinator,
 ) : AndroidViewModel(application) {
     companion object {
         private const val BLANK_PROFILE_SOURCE = "blank://local-config"
@@ -110,12 +114,15 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.UpdateFailed.format(e.uiErrorMessage())
             },
         ) {
-            val allProfiles = profilesRepository.queryAllProfiles()
-            val active = profilesRepository.queryActiveProfile()
-
-            _profiles.value = allProfiles
-            _activeProfile.value = active
+            refreshProfilesNow()
         }
+    }
+
+    suspend fun refreshProfilesNow() {
+        val allProfiles = profilesRepository.queryAllProfiles()
+        val active = profilesRepository.queryActiveProfile(ensureDefault = true)
+        _profiles.value = allProfiles
+        _activeProfile.value = active
     }
 
     fun createProfile(
@@ -130,30 +137,40 @@ class ProfilesViewModel(
             failureMessage = { e -> MLang.ProfilesVM.Message.AddFailed.format(e.uiErrorMessage()) },
             onFailure = { _downloadProgress.value = null },
         ) {
-            val uuid = profilesRepository.createProfile(type, name, source)
+            var createdUuid: UUID? = null
 
-            _downloadProgress.value =
-                DownloadProgress(percent = 0, message = MLang.ProfilesVM.Progress.Preparing)
+            try {
+                val uuid = profilesRepository.createProfile(type, name, source)
+                createdUuid = uuid
 
-            val observer = IFetchObserver { status ->
-                _downloadProgress.value = status.toDownloadProgress()
+                _downloadProgress.value =
+                    DownloadProgress(percent = 0, message = MLang.ProfilesVM.Progress.Preparing)
+
+                val observer = IFetchObserver { status ->
+                    _downloadProgress.value = status.toDownloadProgress()
+                }
+
+                if (type == Profile.Type.File && fileUri != null) {
+                    copyFileToImportedDir(fileUri, uuid)
+                }
+
+                profilesRepository.updateProfile(uuid, observer)
+                _downloadProgress.value =
+                    DownloadProgress(
+                        percent = 100,
+                        message = MLang.ProfilesVM.Progress.ImportComplete,
+                        isCompleted = true,
+                    )
+
+                showMessage(MLang.ProfilesVM.Message.ProfileAdded.format(name))
+                refreshProfiles()
+                Timber.i("Profile created: $uuid")
+            } catch (error: Exception) {
+                if (createdUuid != null) {
+                    rollbackCreatedProfile(createdUuid)
+                }
+                throw error
             }
-
-            if (type == Profile.Type.File && fileUri != null) {
-                copyFileToImportedDir(fileUri, uuid)
-            }
-
-            profilesRepository.updateProfile(uuid, observer)
-            _downloadProgress.value =
-                DownloadProgress(
-                    percent = 100,
-                    message = MLang.ProfilesVM.Progress.ImportComplete,
-                    isCompleted = true,
-                )
-
-            showMessage(MLang.ProfilesVM.Message.ProfileAdded.format(name))
-            refreshProfiles()
-            Timber.i("Profile created: $uuid")
         }
     }
 
@@ -240,9 +257,16 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.DeleteFailed.format(e.uiErrorMessage())
             },
         ) {
-            profilesRepository.queryProfileByUUID(uuid)?.takeIf { it.active }?.let { activeProfile ->
-                profilesRepository.clearActiveProfile(activeProfile)
-            }
+            profilesRepository
+                .queryProfileByUUID(uuid)
+                ?.takeIf { it.active }
+                ?.let { activeProfile ->
+                    runtimeControlCoordinator.activateProfile(
+                        operation = "profiles:delete-active",
+                        profileId = activeProfile.uuid,
+                        enabled = false,
+                    )
+                }
             profilesRepository.deleteProfile(uuid)
             runCatching { bindingProvider.removeBinding(uuid.toString()) }
                 .onFailure { error ->
@@ -261,7 +285,11 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.ToggleFailed.format(e.uiErrorMessage())
             },
         ) {
-            profilesRepository.setActiveProfile(uuid)
+            runtimeControlCoordinator.activateProfile(
+                operation = "profiles:activate",
+                profileId = uuid,
+                enabled = true,
+            )
             showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format("Active"))
             refreshProfiles()
             Timber.i("Profile activated: $uuid")
@@ -283,7 +311,7 @@ class ProfilesViewModel(
                 _downloadProgress.value = status.toDownloadProgress()
             }
 
-            profilesRepository.updateProfile(uuid, observer)
+            updateProfileNow(uuid, observer)
 
             _downloadProgress.value =
                 DownloadProgress(
@@ -304,7 +332,7 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.UpdateFailed.format(e.uiErrorMessage())
             },
         ) {
-            profilesRepository.patchProfile(uuid, name, source, interval)
+            patchProfileNow(uuid, name, source, interval)
             showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(name))
             refreshProfiles()
             Timber.i("Profile patched: $uuid")
@@ -322,23 +350,104 @@ class ProfilesViewModel(
             _downloadProgress.value =
                 DownloadProgress(percent = 0, message = MLang.ProfilesVM.Progress.ImportPreparing)
 
-            val uuid = profilesRepository.createProfile(Profile.Type.File, name, uri.toString())
+            var createdUuid: UUID? = null
+            try {
+                val uuid = profilesRepository.createProfile(Profile.Type.File, name, uri.toString())
+                createdUuid = uuid
+                copyFileToImportedDir(uri, uuid)
 
-            _downloadProgress.value =
-                DownloadProgress(percent = 50, message = MLang.ProfilesVM.Progress.Verifying)
+                _downloadProgress.value =
+                    DownloadProgress(percent = 50, message = MLang.ProfilesVM.Progress.Verifying)
 
-            _downloadProgress.value =
-                DownloadProgress(
-                    percent = 100,
-                    message = MLang.ProfilesVM.Progress.ImportComplete,
-                    isCompleted = true,
-                )
-            showMessage(MLang.ProfilesVM.Message.ProfileImported.format(name))
-            refreshProfiles()
-            Timber.i("Profile imported from file: $uuid")
+                val observer = IFetchObserver { status ->
+                    _downloadProgress.value = status.toDownloadProgress()
+                }
+                profilesRepository.updateProfile(uuid, observer)
 
-            _downloadProgress.value = null
+                _downloadProgress.value =
+                    DownloadProgress(
+                        percent = 100,
+                        message = MLang.ProfilesVM.Progress.ImportComplete,
+                        isCompleted = true,
+                    )
+                showMessage(MLang.ProfilesVM.Message.ProfileImported.format(name))
+                refreshProfiles()
+                Timber.i("Profile imported from file: $uuid")
+
+                _downloadProgress.value = null
+            } catch (error: Exception) {
+                if (createdUuid != null) {
+                    rollbackCreatedProfile(createdUuid)
+                }
+                throw error
+            }
         }
+    }
+
+    suspend fun updateProfileNow(uuid: UUID, observer: IFetchObserver? = null): Profile {
+        profilesRepository.updateProfile(uuid, observer)
+        runtimeControlCoordinator.reloadIfActiveProfile("profiles:update-profile", uuid)
+        refreshProfilesNow()
+        return profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
+    }
+
+    suspend fun patchProfileNow(uuid: UUID, name: String, source: String, interval: Long): Profile {
+        val previousProfile =
+            profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
+        try {
+            profilesRepository.patchProfile(uuid, name, source, interval)
+            runtimeControlCoordinator.reloadIfActiveProfile("profiles:patch-profile", uuid)
+        } catch (error: Exception) {
+            runCatching {
+                profilesRepository.patchProfile(
+                    uuid,
+                    previousProfile.name,
+                    previousProfile.source,
+                    previousProfile.interval,
+                )
+            }
+            throw error
+        }
+        refreshProfilesNow()
+        return profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
+    }
+
+    suspend fun setProfileEnabledNow(uuid: UUID, enabled: Boolean): Profile {
+        runtimeControlCoordinator.activateProfile(
+            operation = "profiles:set-active",
+            profileId = uuid,
+            enabled = enabled,
+        )
+        refreshProfilesNow()
+        return profilesRepository.queryProfileByUUID(uuid)
+            ?: error("Profile not found after profile activation: $uuid")
+    }
+
+    suspend fun saveProfileConfigContent(uuid: UUID, content: String) {
+        val configFile = resolveProfileConfigFile(uuid)
+        val previousContent = configFile.takeIf(File::exists)?.readText()
+        runCatching {
+                configFile.parentFile?.mkdirs()
+                configFile.writeText(content)
+                profilesRepository.updateProfile(uuid)
+                check(activeProfileOverrideReloader.reapplyIfActiveProfile(uuid.toString())) {
+                    MLang.Override.Save.ApplyFailed
+                }
+                runtimeControlCoordinator.reloadIfActiveProfile(
+                    operation = "profiles:save-config",
+                    profileId = uuid,
+                )
+                refreshProfilesNow()
+            }
+            .onFailure { error ->
+                if (previousContent == null) {
+                    runCatching { configFile.delete() }
+                } else {
+                    runCatching { configFile.writeText(previousContent) }
+                }
+                throw error
+            }
+            .getOrThrow()
     }
 
     fun reorderProfiles(from: Int, to: Int) {
@@ -367,13 +476,12 @@ class ProfilesViewModel(
                 val profile =
                     profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
 
-                if (profile.active) {
-                    profilesRepository.clearActiveProfile(profile)
-                    showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
-                } else {
-                    profilesRepository.setActiveProfile(uuid)
-                    showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
-                }
+                runtimeControlCoordinator.activateProfile(
+                    operation = "profiles:toggle-active",
+                    profileId = uuid,
+                    enabled = !profile.active,
+                )
+                showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
                 refreshProfiles()
                 Timber.d("Profile toggled: $uuid, active=${!profile.active}")
             } catch (e: Exception) {
@@ -410,6 +518,31 @@ class ProfilesViewModel(
     private fun showMessage(message: String) {
         _uiState.update { current ->
             if (current.message == message) current else current.copy(message = message)
+        }
+    }
+
+    private suspend fun rollbackCreatedProfile(uuid: UUID) {
+        runCatching { profilesRepository.deleteProfile(uuid) }
+        runCatching {
+            getImportedProfileDirectory(uuid).deleteRecursively()
+            getClashProfileDirectory(uuid).deleteRecursively()
+        }
+    }
+
+    private fun getImportedProfileDirectory(uuid: UUID): File {
+        return File(getApplication<Application>().filesDir, "imported/$uuid")
+    }
+
+    private fun getClashProfileDirectory(uuid: UUID): File {
+        return File(getApplication<Application>().filesDir, "clash/profiles/$uuid")
+    }
+
+    private fun resolveProfileConfigFile(uuid: UUID): File {
+        val importedFile = getImportedProfileDirectory(uuid).resolve("config.yaml")
+        return if (importedFile.exists()) {
+            importedFile
+        } else {
+            getClashProfileDirectory(uuid).resolve("config.yaml")
         }
     }
 }

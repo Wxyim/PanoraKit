@@ -48,7 +48,6 @@ class AppSettingsRepository(private val storage: AppSettingsStorage) {
     val bottomBarLiquidGlassEnabled: Preference<Boolean> = storage.bottomBarLiquidGlassEnabled
     val pageScale: Preference<Float> = storage.pageScale
     val singleNodeTest: Preference<Boolean> = storage.singleNodeTest
-    val allowNonLocalhostHttpRemote: Preference<Boolean> = storage.allowNonLocalhostHttpRemote
     val cleanupAutoEnabled: Preference<Boolean> = storage.cleanupAutoEnabled
     val cleanupPolicy: Preference<CleanupPolicy> = storage.cleanupPolicy
     val cleanupThresholdMb: Preference<Int> = storage.cleanupThresholdMb

@@ -25,6 +25,7 @@ import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
+import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -37,6 +38,7 @@ val featureMetaViewModelModule = module {
             get<ConnectionActivityRepository>(),
             get<ProxyFacade>(),
             get<ProxyChainResolver>(),
+            get<AppIdentityResolver>(),
         )
     }
 }

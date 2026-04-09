@@ -35,7 +35,9 @@ Home = {
     }
 
     Status = {
+        Starting = "启动中"
         Running = "运行中"
+        Stopping = "停止中"
         TapToStart = "轻触启动"
     }
 }

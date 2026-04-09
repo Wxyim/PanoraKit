@@ -1,9 +1,23 @@
 <Traffic Statistics Page>
 TrafficStatistics = {
     Title = "Traffic Statistics & Recent Requests"
-    EntrySummary = "View app-level traffic usage and recent requests"
+    EntrySummary = "View traffic overview and recent requests"
 
     OverviewTitle = "Traffic Overview"
+
+    Detail = {
+        Title = "Requests & Site Traffic"
+        Summary = "Switch between recent requests and site-level traffic aggregation"
+    }
+
+    TargetSites = {
+        Title = "Site Traffic"
+        Summary = "Aggregate upload and download traffic by destination host or IP"
+        Empty = "No destination traffic yet"
+        Count = "%d"
+        Upload = "Up %s"
+        Download = "Down %s"
+    }
 
     RecentRequests = {
         Title = "Recent Requests"
@@ -11,14 +25,6 @@ TrafficStatistics = {
         Empty = "No recent requests"
         UnknownRequest = "Unknown Request"
         Count = "%d"
-    }
-
-    AppUsage = {
-        Title = "App Traffic Usage"
-        Summary = "Ranked app-level traffic from runtime collector"
-        Empty = "No app traffic data yet"
-        UnknownApp = "Unknown App"
-        Breakdown = "Up %s · Down %s"
     }
 
     Status = {

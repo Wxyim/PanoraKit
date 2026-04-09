@@ -69,6 +69,10 @@ class ConnectionActivityRepository(
                         return@collectLatest
                     }
 
+                    // Start a fresh recent-request session when runtime enters running state.
+                    ConnectionHistoryManager.clear()
+                    _closedConnections.value = emptyList()
+
                     while (proxyFacade.isRunning.value) {
                         runCatching {
                                 val snapshot = ServiceClient.clash().queryConnections()

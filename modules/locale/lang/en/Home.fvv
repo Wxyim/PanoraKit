@@ -35,7 +35,9 @@ Home = {
     }
 
     Status = {
+        Starting = "Starting"
         Running = "Running"
+        Stopping = "Stopping"
         TapToStart = "Tap to start"
     }
 }

@@ -6,11 +6,14 @@ Log = {
         StopRecording = "Stop Recording"
         StartRecording = "Start Recording"
         Save = "Save"
+        Cleanup = "Cleanup Logs"
+        CleanupDone = "Log cleanup completed"
     }
 
     Empty = {
         NoLogs = "No log records"
         StartRecordingHint = "Click the bottom-right button to start recording logs"
+        AutoRecordHint = "Recording starts automatically when the kernel is started from Home"
     }
 
     Detail = {
@@ -19,15 +22,15 @@ Log = {
     }
 
     History = {
-        Title = "History Files"
-        LiveSection = "Live Recording Stream"
+        Title = "Runtime Log Archives"
+        LiveSection = "Live Runtime Logs (Current Session)"
         Recording = "Recording"
         ItemSummary = "%s · %s"
     }
 
     Startup = {
-        Title = "Startup Logs"
-        LiveSection = "Startup Process Logs"
+        Title = "Startup Diagnostics"
+        LiveSection = "Startup Phase Diagnostics"
         ItemSummary = "%s · %s"
     }
 }

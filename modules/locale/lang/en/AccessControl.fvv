@@ -4,11 +4,22 @@ AccessControl = {
 
     Search = {
         Placeholder = "Search apps..."
+        EmptyResults = "No matching apps found"
     }
 
     AppList = {
         Title = "App List (%d selected)"
-        Loading = "loading..."
+        Loading = "Loading..."
+        BrowseUnavailablePermission = "Installed-app browsing is unavailable until the device permission is granted."
+        BrowseUnavailableManual = "Installed-app browsing is unavailable on this device build. You can still manage access control by importing or manually adding package names."
+        OpenPermissionSettings = "Open permission settings"
+        PermissionSettingsUnavailable = "Unable to open the permission settings page"
+        ManualAddTitle = "Add package name manually"
+        ManualAddPlaceholder = "com.example.app"
+        AddPackage = "Add package"
+        InvalidPackage = "Invalid package name"
+        SelectedPackagesTitle = "Selected packages (%d)"
+        NoSelectedPackages = "No package names selected yet"
     }
 
     Settings = {
@@ -19,16 +30,26 @@ AccessControl = {
         SortMode = "Sort Mode"
         SortModeCurrent = "Current: %s"
         BatchOperation = "Batch Operation"
+        BatchOperationSummaryBrowse = "Apply bulk actions to apps in the current filtered list"
+        BatchOperationSummaryManual = "Run batch actions against the selected package list"
         SelectAll = "Select All"
         DeselectAll = "Deselect All"
         Invert = "Invert"
+        CopySelected = "Copy Selected"
+        ClearSelected = "Clear Selected"
+        ClearSelectedResult = "Cleared %d packages"
         ImportExport = "Import/Export"
+        ImportExportSummaryBrowse = "Import keeps only package names recognized on this device"
+        ImportExportSummaryManual = "Import keeps package names with valid format and exports the current selected list"
         Import = "Import from Clipboard"
         Export = "Export to Clipboard"
         ImportSuccess = "Imported: %d package names"
+        ImportPartial = "Processed %d lines, added %d, ignored %d"
         ExportSuccess = "Copied %d package names to clipboard"
         ImportFailed = "Import failed"
         RegionQuickSelect = "Region Quick Select"
+        RegionQuickSelectSummaryBrowse = "Quick-select apps in the current filtered list by region"
+        RegionQuickSelectSummaryManual = "Keep only region-matched packages from the selected list"
         ChinaApps = "China Apps"
         OverseasApps = "Non-China Apps"
         RegionSelectResult = "Quick selected by \"%s\", total %d"

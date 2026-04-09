@@ -81,71 +81,16 @@ data class ProfileTrafficUsage(
 }
 
 @Serializable
-data class AppTrafficUsage(
-    val appKey: String,
-    val packageName: String? = null,
-    val appName: String,
-    val totalUpload: Long = 0L,
-    val totalDownload: Long = 0L,
-    val lastActiveAt: Long = 0L,
+data class TargetSiteTrafficUsage(
+    val siteKey: String,
+    val displayName: String,
+    val totalUpload: Long,
+    val totalDownload: Long,
+    val lastSeenAt: Long,
 ) {
     val totalBytes: Long
         get() = totalUpload + totalDownload
 }
-
-data class AppTrafficDeltaRecord(
-    val appKey: String,
-    val packageName: String? = null,
-    val appName: String,
-    val uploadDelta: Long,
-    val downloadDelta: Long,
-    val routeKey: String? = null,
-    val routeLabel: String? = null,
-)
-
-object TrafficStatisticsBuckets {
-    const val UNATTRIBUTED_APP_KEY = "system:unattributed"
-    const val UNATTRIBUTED_APP_NAME = "Unattributed"
-    const val UNATTRIBUTED_ROUTE_KEY = "route:unattributed"
-    const val UNATTRIBUTED_ROUTE_NAME = "Unattributed"
-
-    fun buildUnattributedRecord(uploadDelta: Long, downloadDelta: Long): AppTrafficDeltaRecord {
-        return AppTrafficDeltaRecord(
-            appKey = UNATTRIBUTED_APP_KEY,
-            packageName = null,
-            appName = UNATTRIBUTED_APP_NAME,
-            uploadDelta = uploadDelta,
-            downloadDelta = downloadDelta,
-            routeKey = UNATTRIBUTED_ROUTE_KEY,
-            routeLabel = UNATTRIBUTED_ROUTE_NAME,
-        )
-    }
-}
-
-@Serializable
-data class DailyAppTrafficSummary(
-    val dateMillis: Long,
-    val appUsages: Map<String, AppTrafficUsage> = emptyMap(),
-) {
-    val totalUpload: Long
-        get() = appUsages.values.sumOf(AppTrafficUsage::totalUpload)
-
-    val totalDownload: Long
-        get() = appUsages.values.sumOf(AppTrafficUsage::totalDownload)
-
-    val total: Long
-        get() = totalUpload + totalDownload
-}
-
-@Serializable
-data class ConnectionTrafficBaseline(
-    val id: String,
-    val upload: Long,
-    val download: Long,
-    val appKey: String,
-    val packageName: String? = null,
-    val appName: String,
-)
 
 enum class StatisticsTimeRange(val days: Int) {
     TODAY(1),

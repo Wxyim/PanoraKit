@@ -6,11 +6,14 @@ Log = {
         StopRecording = "停止记录"
         StartRecording = "开始记录"
         Save = "保存"
+        Cleanup = "清理日志"
+        CleanupDone = "日志清理完成"
     }
 
     Empty = {
         NoLogs = "暂无日志记录"
         StartRecordingHint = "点击右下角按钮开始记录日志"
+        AutoRecordHint = "从主页启动内核后将自动开始记录"
     }
 
     Detail = {
@@ -19,15 +22,15 @@ Log = {
     }
 
     History = {
-        Title = "历史文件"
-        LiveSection = "录制中的实时日志"
+        Title = "运行日志归档"
+        LiveSection = "实时运行日志（当前会话）"
         Recording = "记录中"
         ItemSummary = "%s · %s"
     }
 
     Startup = {
-        Title = "启动日志"
-        LiveSection = "启动过程日志"
+        Title = "启动诊断日志"
+        LiveSection = "启动阶段诊断"
         ItemSummary = "%s · %s"
     }
 }

@@ -37,11 +37,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccessMode
 import com.github.yumelira.yumebox.common.util.OemPermissionSettingsNavigator
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
-
-private const val MIUI_GET_INSTALLED_APPS_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
 
 internal data class PrivacyAcceptedState(
     val accepted: Boolean,
@@ -113,7 +113,7 @@ internal fun rememberPermissionState(
         },
         onRequestAppList = {
             if (miuiDynamicSupported) {
-                requestMiuiGetInstalledAppsPermission.launch(MIUI_GET_INSTALLED_APPS_PERMISSION)
+                requestMiuiGetInstalledAppsPermission.launch(InstalledAppsAccess.MiuiPermission)
             } else {
                 openAppDetailsSettings(context)
             }
@@ -173,24 +173,18 @@ internal fun openAppDetailsSettings(context: Context) {
 internal fun isMiuiGetInstalledAppsDynamicSupported(context: Context): Boolean {
     return runCatching {
             val permissionInfo =
-                context.packageManager.getPermissionInfo(MIUI_GET_INSTALLED_APPS_PERMISSION, 0)
+                context.packageManager.getPermissionInfo(InstalledAppsAccess.MiuiPermission, 0)
             permissionInfo.packageName == "com.lbe.security.miui"
         }
         .getOrDefault(false)
 }
 
 internal fun isAppListPermissionGranted(context: Context, miuiDynamicSupported: Boolean): Boolean {
-    if (miuiDynamicSupported) {
-        return context.checkSelfPermission(MIUI_GET_INSTALLED_APPS_PERMISSION) ==
-            PackageManager.PERMISSION_GRANTED
+    return when (InstalledAppsAccess.resolve(context).mode) {
+        InstalledAppsAccessMode.Full -> true
+        InstalledAppsAccessMode.PermissionRequired -> false
+        InstalledAppsAccessMode.ManualOnly -> !miuiDynamicSupported
     }
-
-    return runCatching {
-            context.packageManager.getInstalledApplications(0).any {
-                it.packageName != context.packageName
-            }
-        }
-        .getOrDefault(false)
 }
 
 internal fun isNotificationGranted(context: Context): Boolean {

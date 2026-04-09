@@ -26,9 +26,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetIconAction
@@ -57,7 +59,9 @@ private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
+    val uiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
     val displayMode by proxyViewModel.displayMode.collectAsStateWithLifecycle()
     val testingGroupNames by proxyViewModel.testingGroupNames.collectAsStateWithLifecycle()
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsStateWithLifecycle()
@@ -86,6 +90,20 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     DisposableEffect(Unit) {
         proxyViewModel.ensureCoreLoaded(true)
         onDispose { proxyViewModel.ensureCoreLoaded(false) }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            context.toast(error)
+            proxyViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let { message ->
+            context.toast(message)
+            proxyViewModel.clearMessage()
+        }
     }
 
     LaunchedEffect(proxyGroups, selectedGroupName) {

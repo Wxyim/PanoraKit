@@ -43,17 +43,8 @@ class RemoteFetchException(
 object RemoteContentFetcher {
     private const val MAX_REDIRECTS = 5
 
-    fun fetchText(
-        urlString: String,
-        maxBytes: Int,
-        allowInsecureHttpNonLocalhost: Boolean = false,
-        userAgent: String = "MonadBox",
-    ): String {
-        var targetUrl =
-            parseAndValidate(
-                urlString = urlString,
-                allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-            )
+    fun fetchText(urlString: String, maxBytes: Int, userAgent: String = "MonadBox"): String {
+        var targetUrl = parseAndValidate(urlString = urlString)
         val maxMegabytes = (maxBytes / (1024 * 1024)).coerceAtLeast(1)
 
         repeat(MAX_REDIRECTS + 1) { redirectCount ->
@@ -92,10 +83,7 @@ object RemoteContentFetcher {
                                     RemoteFetchFailureReason.RedirectMissingLocation
                                 )
                         targetUrl = URL(targetUrl, location)
-                        validateUrl(
-                            url = targetUrl,
-                            allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-                        )
+                        validateUrl(url = targetUrl)
                     }
 
                     else ->
@@ -128,22 +116,20 @@ object RemoteContentFetcher {
         return decoded.trim().takeIf(String::isNotBlank)
     }
 
-    private fun parseAndValidate(urlString: String, allowInsecureHttpNonLocalhost: Boolean): URL {
+    private fun parseAndValidate(urlString: String): URL {
         val normalized = urlString.trim()
         val parsed = URL(normalized)
-        validateUrl(url = parsed, allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost)
+        validateUrl(url = parsed)
         return parsed
     }
 
-    private fun validateUrl(url: URL, allowInsecureHttpNonLocalhost: Boolean) {
+    private fun validateUrl(url: URL) {
         val protocol = url.protocol.lowercase()
         if (protocol != "https" && protocol != "http") {
             throw RemoteFetchException(RemoteFetchFailureReason.InvalidScheme)
         }
 
-        if (
-            protocol == "http" && !allowInsecureHttpNonLocalhost && !isAllowedInsecureHost(url.host)
-        ) {
+        if (protocol == "http" && !isAllowedInsecureHost(url.host)) {
             throw RemoteFetchException(RemoteFetchFailureReason.HttpsRequired)
         }
     }

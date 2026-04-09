@@ -20,10 +20,12 @@
 
 package com.github.yumelira.yumebox.screen.settings
 
+import android.os.Build
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +45,8 @@ import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.screen.onboarding.isNotificationGranted
+import com.github.yumelira.yumebox.screen.onboarding.openAppNotificationSettings
 import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerItem
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -100,7 +104,8 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
     val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsStateWithLifecycle().value
     val cleanupPolicy = viewModel.cleanupPolicy.state.collectAsStateWithLifecycle().value
     val cleanupThresholdMb = viewModel.cleanupThresholdMb.state.collectAsStateWithLifecycle().value
-    val cleanupIntervalHours = viewModel.cleanupIntervalHours.state.collectAsStateWithLifecycle().value
+    val cleanupIntervalHours =
+        viewModel.cleanupIntervalHours.state.collectAsStateWithLifecycle().value
     val cleanupLastRunAt = viewModel.cleanupLastRunAt.state.collectAsStateWithLifecycle().value
 
     val showHideIconDialog = remember { mutableStateOf(false) }
@@ -115,6 +120,26 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
     var cleanupIntervalText by
         remember(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
     val dateTimeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val notificationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                viewModel.onShowTrafficNotificationChange(true)
+            } else {
+                viewModel.onShowTrafficNotificationChange(false)
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        activity?.shouldShowRequestPermissionRationale(
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) == false
+                ) {
+                    openAppNotificationSettings(context)
+                } else {
+                    context.toast(MLang.Onboarding.Permission.Notification.SummaryNeed)
+                }
+            }
+        }
 
     Scaffold(
         topBar = { TopBar(title = MLang.AppSettings.Title, scrollBehavior = scrollBehavior) }
@@ -243,7 +268,19 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                             title = MLang.AppSettings.ServiceSection.TrafficNotificationTitle,
                             summary = MLang.AppSettings.ServiceSection.TrafficNotificationSummary,
                             checked = showTrafficNotification,
-                            onCheckedChange = { viewModel.onShowTrafficNotificationChange(it) },
+                            onCheckedChange = { checked ->
+                                if (
+                                    checked &&
+                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        !isNotificationGranted(context)
+                                ) {
+                                    notificationPermissionLauncher.launch(
+                                        android.Manifest.permission.POST_NOTIFICATIONS
+                                    )
+                                } else {
+                                    viewModel.onShowTrafficNotificationChange(checked)
+                                }
+                            },
                         )
                         SuperSwitch(
                             title = MLang.AppSettings.ServiceSection.SingleNodeTestTitle,
@@ -254,8 +291,7 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                         )
                         SuperSwitch(
                             title = MLang.AppSettings.ServiceSection.AutoStartLogRecordingTitle,
-                            summary =
-                                MLang.AppSettings.ServiceSection.AutoStartLogRecordingSummary,
+                            summary = MLang.AppSettings.ServiceSection.AutoStartLogRecordingSummary,
                             checked = autoStartLogRecording,
                             onCheckedChange = { viewModel.onAutoStartLogRecordingChange(it) },
                         )

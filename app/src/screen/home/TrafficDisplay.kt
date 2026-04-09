@@ -23,6 +23,8 @@ package com.github.yumelira.yumebox.screen.home
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,8 +58,11 @@ fun TrafficDisplay(
     trafficNow: TrafficData,
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
+    runtimeVisualState: HomeRuntimeVisualState,
     isRunning: Boolean,
     proxyMode: ProxyMode,
+    onStatusCapsuleClick: (() -> Unit)? = null,
+    onModeBadgeClick: (() -> Unit)? = null,
     onModeBadgeBoundsChanged: (Rect) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -74,6 +80,7 @@ fun TrafficDisplay(
                 profileName = profileName,
                 tunnelMode = tunnelMode,
                 metrics = metrics,
+                onModeBadgeClick = onModeBadgeClick,
                 onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
             )
 
@@ -93,9 +100,13 @@ fun TrafficDisplay(
                     horizontalArrangement = Arrangement.spacedBy(metrics.capsuleSpacing),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ProxyStatusCapsule(isRunning = isRunning, metrics = metrics)
+                    ProxyStatusCapsule(
+                        runtimeVisualState = runtimeVisualState,
+                        metrics = metrics,
+                        onClick = onStatusCapsuleClick,
+                    )
                     AnimatedVisibility(
-                        visible = isRunning,
+                        visible = runtimeVisualState != HomeRuntimeVisualState.Idle,
                         enter =
                             slideInHorizontally(
                                 initialOffsetX = { it / 2 },
@@ -141,6 +152,7 @@ private fun DownloadSection(
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
     metrics: HomeTrafficMetrics,
+    onModeBadgeClick: (() -> Unit)?,
     onModeBadgeBoundsChanged: (Rect) -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.Start) {
@@ -159,6 +171,7 @@ private fun DownloadSection(
                 profileName = profileName,
                 tunnelMode = tunnelMode,
                 metrics = metrics,
+                onClick = onModeBadgeClick,
                 onBoundsChanged = onModeBadgeBoundsChanged,
             )
         }
@@ -172,46 +185,65 @@ private fun ProfileModeBadge(
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
     metrics: HomeTrafficMetrics,
+    onClick: (() -> Unit)?,
     onBoundsChanged: (Rect) -> Unit,
 ) {
-    Surface(
-        color = MiuixTheme.colorScheme.primary.copy(alpha = 0.08f),
-        shape = RoundedCornerShape(50),
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
         modifier =
-            Modifier.height(metrics.capsuleHeight).onGloballyPositioned { coordinates ->
-                onBoundsChanged(coordinates.boundsInRoot())
+            Modifier.heightIn(min = 48.dp).let { baseModifier ->
+                if (onClick != null) {
+                    baseModifier.clickable(
+                        role = Role.Button,
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    baseModifier
+                }
             },
+        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(metrics.capsuleInnerSpacing),
+        Surface(
+            color = MiuixTheme.colorScheme.primary.copy(alpha = 0.08f),
+            shape = RoundedCornerShape(50),
+            modifier =
+                Modifier.height(metrics.capsuleHeight).onGloballyPositioned { coordinates ->
+                    onBoundsChanged(coordinates.boundsInRoot())
+                },
         ) {
-            Text(
-                text = profileName ?: MLang.Home.Profile.NoProfile,
-                style =
-                    MiuixTheme.textStyles.footnote1.copy(
-                        fontSize = metrics.capsuleTextSize,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                color = MiuixTheme.colorScheme.primary,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
+                horizontalArrangement = Arrangement.spacedBy(metrics.capsuleInnerSpacing),
+            ) {
+                Text(
+                    text = profileName ?: MLang.Home.Profile.NoProfile,
+                    style =
+                        MiuixTheme.textStyles.footnote1.copy(
+                            fontSize = metrics.capsuleTextSize,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    color = MiuixTheme.colorScheme.primary,
+                )
 
-            Box(
-                modifier =
-                    Modifier.size(metrics.capsuleDotSize)
-                        .background(MiuixTheme.colorScheme.primary, CircleShape)
-            )
+                Box(
+                    modifier =
+                        Modifier.size(metrics.capsuleDotSize)
+                            .background(MiuixTheme.colorScheme.primary, CircleShape)
+                )
 
-            Text(
-                text = tunnelMode.toDisplayName(),
-                style =
-                    MiuixTheme.textStyles.footnote1.copy(
-                        fontSize = metrics.capsuleTextSize,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                color = MiuixTheme.colorScheme.primary,
-            )
+                Text(
+                    text = tunnelMode.toDisplayName(),
+                    style =
+                        MiuixTheme.textStyles.footnote1.copy(
+                            fontSize = metrics.capsuleTextSize,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    color = MiuixTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -311,73 +343,111 @@ private fun ProxyTypeCapsule(proxyMode: ProxyMode, metrics: HomeTrafficMetrics) 
 }
 
 @Composable
-private fun ProxyStatusCapsule(isRunning: Boolean, metrics: HomeTrafficMetrics) {
+private fun ProxyStatusCapsule(
+    runtimeVisualState: HomeRuntimeVisualState,
+    metrics: HomeTrafficMetrics,
+    onClick: (() -> Unit)?,
+) {
     val primary = MiuixTheme.colorScheme.primary
-    Surface(
-        color = primary.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(50),
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
         modifier =
-            Modifier.height(metrics.capsuleHeight)
-                .animateContentSize(
-                    tween(
-                        AnimationSpecs.DURATION_FAST,
-                        easing = AnimationSpecs.EmphasizedDecelerate,
+            Modifier.heightIn(min = 48.dp).let { baseModifier ->
+                if (onClick != null) {
+                    baseModifier.clickable(
+                        role = Role.Button,
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
                     )
-                ),
+                } else {
+                    baseModifier
+                }
+            },
+        contentAlignment = Alignment.Center,
     ) {
-        AnimatedContent(
-            targetState = isRunning,
-            transitionSpec = {
-                (slideInHorizontally(
-                        initialOffsetX = { it / 2 },
+        Surface(
+            color = primary.copy(alpha = 0.1f),
+            shape = RoundedCornerShape(50),
+            modifier =
+                Modifier.height(metrics.capsuleHeight)
+                    .animateContentSize(
                         animationSpec =
                             tween(
                                 AnimationSpecs.DURATION_FAST,
                                 easing = AnimationSpecs.EmphasizedDecelerate,
                             ),
-                    ) +
-                        fadeIn(
-                            tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)
-                        ))
-                    .togetherWith(
-                        slideOutHorizontally(
-                            targetOffsetX = { -it / 2 },
+                    ),
+        ) {
+            AnimatedContent(
+                targetState = runtimeVisualState,
+                transitionSpec = {
+                    (slideInHorizontally(
+                            initialOffsetX = { it / 2 },
                             animationSpec =
                                 tween(
-                                    AnimationSpecs.DURATION_INSTANT,
-                                    easing = AnimationSpecs.EmphasizedAccelerate,
+                                    AnimationSpecs.DURATION_FAST,
+                                    easing = AnimationSpecs.EmphasizedDecelerate,
                                 ),
                         ) +
-                            fadeOut(
+                            fadeIn(
                                 tween(
-                                    AnimationSpecs.DURATION_INSTANT,
-                                    easing = AnimationSpecs.ExitEasing,
+                                    AnimationSpecs.DURATION_FAST,
+                                    easing = AnimationSpecs.EnterEasing,
                                 )
-                            )
-                    )
-            },
-            label = "CapsuleStateTransition",
-        ) { running ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
-                horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing),
+                            ))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { -it / 2 },
+                                animationSpec =
+                                    tween(
+                                        AnimationSpecs.DURATION_INSTANT,
+                                        easing = AnimationSpecs.EmphasizedAccelerate,
+                                    ),
+                            ) +
+                                fadeOut(
+                                    tween(
+                                        AnimationSpecs.DURATION_INSTANT,
+                                        easing = AnimationSpecs.ExitEasing,
+                                    )
+                                )
+                        )
+                },
+                label = "CapsuleStateTransition",
             ) {
-                Icon(
-                    imageVector = if (running) Yume.Activity else Yume.Rocket,
-                    contentDescription = null,
-                    tint = primary,
-                    modifier = Modifier.size(metrics.capsuleIconSize),
-                )
-                Text(
-                    text = if (running) MLang.Home.Status.Running else MLang.Home.Status.TapToStart,
-                    style =
-                        MiuixTheme.textStyles.footnote1.copy(
-                            fontSize = metrics.capsuleTextSize,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    color = primary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = metrics.capsuleHorizontalPadding),
+                    horizontalArrangement = Arrangement.spacedBy(metrics.capsuleIconSpacing),
+                ) {
+                    Icon(
+                        imageVector =
+                            when (it) {
+                                HomeRuntimeVisualState.Starting -> Yume.Play
+                                HomeRuntimeVisualState.Running -> Yume.Activity
+                                HomeRuntimeVisualState.Stopping -> Yume.Square
+                                HomeRuntimeVisualState.Idle -> Yume.Rocket
+                            },
+                        contentDescription = null,
+                        tint = primary,
+                        modifier = Modifier.size(metrics.capsuleIconSize),
+                    )
+                    Text(
+                        text =
+                            when (it) {
+                                HomeRuntimeVisualState.Starting -> MLang.Home.Status.Starting
+                                HomeRuntimeVisualState.Running -> MLang.Home.Status.Running
+                                HomeRuntimeVisualState.Stopping -> MLang.Home.Status.Stopping
+                                HomeRuntimeVisualState.Idle -> MLang.Home.Status.TapToStart
+                            },
+                        style =
+                            MiuixTheme.textStyles.footnote1.copy(
+                                fontSize = metrics.capsuleTextSize,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        color = primary,
+                    )
+                }
             }
         }
     }

@@ -4,7 +4,7 @@ MetaFeature = {
 
     RecentRequests = {
         Title = "Recent Requests"
-        Summary = "View recent requests and traffic overview"
+        Summary = "View recent requests and traffic statistics"
     }
 
     RuntimeConfig = {

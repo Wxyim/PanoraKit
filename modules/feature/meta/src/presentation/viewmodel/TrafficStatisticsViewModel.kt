@@ -23,14 +23,15 @@ package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.data.model.AppTrafficUsage
 import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
+import com.github.yumelira.yumebox.data.model.TargetSiteTrafficUsage
 import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.presentation.component.BarChartItem
+import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
@@ -43,13 +44,27 @@ data class RecentRequestRecord(
     val isActive: Boolean,
     val topLevelGroupName: String?,
     val bottomNodeName: String?,
+    val sourceAppName: String,
+    val sourcePackageName: String?,
 )
+
+data class TargetSiteRecord(
+    val siteKey: String,
+    val displayName: String,
+    val totalUpload: Long,
+    val totalDownload: Long,
+    val lastSeenAt: Long,
+) {
+    val totalBytes: Long
+        get() = totalUpload + totalDownload
+}
 
 class TrafficStatisticsViewModel(
     private val trafficStatisticsStore: TrafficStatisticsStore,
     connectionActivityRepository: ConnectionActivityRepository,
     proxyFacade: ProxyFacade,
     private val proxyChainResolver: ProxyChainResolver,
+    private val appIdentityResolver: AppIdentityResolver,
 ) : ViewModel() {
     private val _selectedTimeRange = MutableStateFlow(StatisticsTimeRange.TODAY)
     val selectedTimeRange: StateFlow<StatisticsTimeRange> = _selectedTimeRange.asStateFlow()
@@ -69,21 +84,27 @@ class TrafficStatisticsViewModel(
                         .asSequence()
                         .filterNot { it.id in activeIds }
                         .map { connection ->
+                            val sourceApp = appIdentityResolver.resolve(connection.metadata)
                             RecentRequestRecord(
                                 connection = connection,
                                 isActive = false,
                                 topLevelGroupName =
                                     resolveTopLevelGroupName(connection, proxyGroups),
                                 bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                                sourceAppName = sourceApp.appName,
+                                sourcePackageName = sourceApp.packageName,
                             )
                         }
                 val activeRequests =
                     activeConnections.asSequence().map { connection ->
+                        val sourceApp = appIdentityResolver.resolve(connection.metadata)
                         RecentRequestRecord(
                             connection = connection,
                             isActive = true,
                             topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
                             bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                            sourceAppName = sourceApp.appName,
+                            sourcePackageName = sourceApp.packageName,
                         )
                     }
 
@@ -95,7 +116,8 @@ class TrafficStatisticsViewModel(
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val todaySummary: StateFlow<DailyTrafficSummary> =
-        flow { emit(trafficStatisticsStore.getTodaySummary()) }
+        trafficStatisticsStore.dailySummaries
+            .map { trafficStatisticsStore.getTodaySummary() }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -103,7 +125,8 @@ class TrafficStatisticsViewModel(
             )
 
     val yesterdaySummary: StateFlow<DailyTrafficSummary> =
-        flow { emit(trafficStatisticsStore.getYesterdaySummary()) }
+        trafficStatisticsStore.dailySummaries
+            .map { trafficStatisticsStore.getYesterdaySummary() }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -111,11 +134,36 @@ class TrafficStatisticsViewModel(
             )
 
     val weekSummary: StateFlow<Long> =
-        flow {
+        trafficStatisticsStore.dailySummaries
+            .map {
                 val summaries = trafficStatisticsStore.getDailySummaries(7)
-                emit(summaries.sumOf { it.total })
+                summaries.sumOf { it.total }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val targetSites: StateFlow<List<TargetSiteRecord>> =
+        combine(
+                trafficStatisticsStore.targetSiteUsages,
+                trafficStatisticsStore.targetSiteOverflowRevision,
+            ) { _, _ ->
+                trafficStatisticsStore
+                    .getTargetSiteUsagesSorted()
+                    .sortedWith(
+                        compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
+                            .thenByDescending { it.lastSeenAt }
+                    )
+                    .take(MAX_TARGET_SITES)
+                    .map { usage ->
+                        TargetSiteRecord(
+                            siteKey = usage.siteKey,
+                            displayName = usage.displayName,
+                            totalUpload = usage.totalUpload,
+                            totalDownload = usage.totalDownload,
+                            lastSeenAt = usage.lastSeenAt,
+                        )
+                    }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val trafficDifference: StateFlow<Long> =
         combine(todaySummary, yesterdaySummary) { today, yesterday ->
@@ -124,17 +172,12 @@ class TrafficStatisticsViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     val chartItems: StateFlow<List<BarChartItem>> =
-        combine(_selectedTimeRange, todaySummary) { timeRange, _ ->
+        combine(_selectedTimeRange, trafficStatisticsStore.dailySummaries) { timeRange, _ ->
                 when (timeRange) {
                     StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
                     StatisticsTimeRange.WEEK -> getDailyChartItems()
                 }
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val appUsages: StateFlow<List<AppTrafficUsage>> =
-        selectedTimeRange
-            .map { range -> trafficStatisticsStore.getAppUsagesSorted(range) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setTimeRange(range: StatisticsTimeRange) {
@@ -256,5 +299,6 @@ class TrafficStatisticsViewModel(
 
     companion object {
         private const val MAX_RECENT_REQUESTS = 30
+        private const val MAX_TARGET_SITES = 8
     }
 }

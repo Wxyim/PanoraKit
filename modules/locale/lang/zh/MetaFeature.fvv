@@ -4,7 +4,7 @@ MetaFeature = {
 
     RecentRequests = {
         Title = "最近请求"
-        Summary = "查看最近请求与流量概览"
+        Summary = "查看最近请求与流量统计"
     }
 
     RuntimeConfig = {

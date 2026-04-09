@@ -36,7 +36,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
@@ -69,7 +68,7 @@ fun ScreenLazyColumn(
     val latestScrollDirectionCallback by rememberUpdatedState(onScrollDirectionChanged)
     var lastHiddenState by remember(lazyListState) { mutableStateOf(false) }
     val resolvedContentPadding =
-        remember(contentPadding, innerPadding, topPadding, bottomPadding) {
+        remember(contentPadding, innerPadding, topPadding, bottomPadding, layoutDirection) {
             contentPadding
                 ?: PaddingValues(
                     top = innerPadding.calculateTopPadding() + topPadding,
@@ -141,13 +140,18 @@ fun ScreenLazyColumn(
 
 @Composable
 fun combinePaddingValues(localPadding: PaddingValues, mainPadding: PaddingValues): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
     return PaddingValues(
-        top = localPadding.calculateTopPadding(),
+        top = localPadding.calculateTopPadding() + mainPadding.calculateTopPadding(),
         bottom =
             localPadding.calculateBottomPadding() +
                 mainPadding.calculateBottomPadding() +
                 LocalSpacing.current.md,
-        start = localPadding.calculateStartPadding(LayoutDirection.Ltr),
-        end = localPadding.calculateEndPadding(LayoutDirection.Ltr),
+        start =
+            localPadding.calculateStartPadding(layoutDirection) +
+                mainPadding.calculateStartPadding(layoutDirection),
+        end =
+            localPadding.calculateEndPadding(layoutDirection) +
+                mainPadding.calculateEndPadding(layoutDirection),
     )
 }

@@ -29,7 +29,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -40,6 +39,7 @@ import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
+import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -138,11 +138,12 @@ private fun OnboardingActivityTheme(content: @Composable () -> Unit) {
         val systemDensity = LocalDensity.current
         val scaledDensity =
             Density(
-                density = systemDensity.density * pageScale,
-                fontScale = systemDensity.fontScale,
+                density = systemDensity.density,
+                fontScale = systemDensity.fontScale * pageScale,
             )
         CompositionLocalProvider(LocalDensity provides scaledDensity) {
-            YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb) {
+            val adaptiveSpacing = rememberAdaptiveSpacing(pageScale = pageScale)
+            YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb, spacing = adaptiveSpacing) {
                 Scaffold { _ ->
                     Surface(
                         modifier = Modifier.fillMaxSize(),

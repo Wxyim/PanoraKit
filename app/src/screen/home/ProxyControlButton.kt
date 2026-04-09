@@ -119,7 +119,7 @@ fun ProxyControlButton(
                     ),
             colors = ButtonDefaults.buttonColors(MiuixTheme.colorScheme.background),
             cornerRadius = cornerRadius,
-            minHeight = 36.dp,
+            minHeight = 48.dp,
         ) {
             AnimatedContent(
                 targetState = isRunning,

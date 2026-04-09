@@ -21,11 +21,8 @@
 package com.github.yumelira.yumebox.screen.home
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -51,6 +48,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 fun HomePager(
     mainInnerPadding: PaddingValues,
     trafficNow: TrafficData,
+    runtimeVisualState: HomeRuntimeVisualState,
     displayRunning: Boolean,
     isToggling: Boolean,
     profilesLoaded: Boolean,
@@ -94,15 +92,11 @@ fun HomePager(
     val scrollBehavior = MiuixScrollBehavior()
 
     val isProxyEnabled = profilesLoaded && hasProfiles && !isToggling
-    val toggleInteractionSource = remember { MutableInteractionSource() }
-    val modeInteractionSource = remember { MutableInteractionSource() }
-    val statsInteractionSource = remember { MutableInteractionSource() }
     val gestureSurfaceHeight =
         (configuration.screenHeightDp.dp -
                 mainInnerPadding.calculateTopPadding() -
                 mainInnerPadding.calculateBottomPadding())
             .coerceAtLeast(360.dp)
-    val upperHalfHeight = gestureSurfaceHeight * 0.5f
 
     val handleProxyToggle = {
         if (!hasEnabledProfile || recommendedProfile == null) {
@@ -138,88 +132,106 @@ fun HomePager(
                                 112.dp,
                                 AppConstants.UI.SPEED_CHART_HEIGHT,
                             )
+                        val useWideLayout = maxWidth >= 760.dp
 
-                        Column(
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
-                        ) {
-                            TrafficDisplay(
-                                trafficNow =
-                                    if (displayRunning) {
-                                        trafficNow
-                                    } else {
-                                        TrafficData.ZERO
-                                    },
-                                profileName = currentProfileName,
-                                tunnelMode = currentTunnelMode,
-                                isRunning = displayRunning,
-                                proxyMode = proxyMode,
-                                onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
-                            )
-
-                            Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
-                                Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
-                                    NodeInfoDisplay(
-                                        selectedServer = selectedServer,
+                        if (useWideLayout) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(sectionSpacing),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                                ) {
+                                    TrafficDisplay(
+                                        trafficNow =
+                                            if (displayRunning) {
+                                                trafficNow
+                                            } else {
+                                                TrafficData.ZERO
+                                            },
+                                        profileName = currentProfileName,
                                         tunnelMode = currentTunnelMode,
+                                        runtimeVisualState = runtimeVisualState,
+                                        isRunning = displayRunning,
+                                        proxyMode = proxyMode,
+                                        onStatusCapsuleClick =
+                                            handleProxyToggle.takeIf { isProxyEnabled },
+                                        onModeBadgeClick = onModeSwitchRequest,
+                                        onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                                     )
-                                    IpInfoDisplay(state = ipMonitoringState)
                                 }
 
-                                SpeedChart(
-                                    speedHistory = speedHistory,
-                                    isRunning = displayRunning,
-                                    chartHeight = chartHeight,
-                                    onClick = {
-                                        navigator.navigate(TrafficStatisticsScreenDestination) {
-                                            launchSingleTop = true
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-
-                    Box(modifier = Modifier.matchParentSize()) {
-                        Row(modifier = Modifier.fillMaxWidth().height(upperHalfHeight)) {
-                            Box(
-                                modifier =
-                                    Modifier.weight(1f)
-                                        .fillMaxHeight()
-                                        .clickable(
-                                            enabled = isProxyEnabled,
-                                            interactionSource = toggleInteractionSource,
-                                            indication = null,
-                                            onClick = handleProxyToggle,
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
+                                        NodeInfoDisplay(
+                                            selectedServer = selectedServer,
+                                            tunnelMode = currentTunnelMode,
                                         )
-                            )
-                            Box(
-                                modifier =
-                                    Modifier.weight(1f)
-                                        .fillMaxHeight()
-                                        .clickable(
-                                            interactionSource = modeInteractionSource,
-                                            indication = null,
-                                            onClick = onModeSwitchRequest,
-                                        )
-                            )
-                        }
+                                        IpInfoDisplay(state = ipMonitoringState)
+                                    }
 
-                        Box(
-                            modifier =
-                                Modifier.align(Alignment.BottomStart)
-                                    .fillMaxWidth()
-                                    .height(gestureSurfaceHeight - upperHalfHeight)
-                                    .clickable(
-                                        interactionSource = statsInteractionSource,
-                                        indication = null,
+                                    SpeedChart(
+                                        speedHistory = speedHistory,
+                                        isRunning = displayRunning,
+                                        chartHeight = chartHeight,
                                         onClick = {
                                             navigator.navigate(TrafficStatisticsScreenDestination) {
                                                 launchSingleTop = true
                                             }
                                         },
                                     )
-                        )
+                                }
+                            }
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.Start,
+                                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                            ) {
+                                TrafficDisplay(
+                                    trafficNow =
+                                        if (displayRunning) {
+                                            trafficNow
+                                        } else {
+                                            TrafficData.ZERO
+                                        },
+                                    profileName = currentProfileName,
+                                    tunnelMode = currentTunnelMode,
+                                    runtimeVisualState = runtimeVisualState,
+                                    isRunning = displayRunning,
+                                    proxyMode = proxyMode,
+                                    onStatusCapsuleClick =
+                                        handleProxyToggle.takeIf { isProxyEnabled },
+                                    onModeBadgeClick = onModeSwitchRequest,
+                                    onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
+                                )
+
+                                Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
+                                        NodeInfoDisplay(
+                                            selectedServer = selectedServer,
+                                            tunnelMode = currentTunnelMode,
+                                        )
+                                        IpInfoDisplay(state = ipMonitoringState)
+                                    }
+
+                                    SpeedChart(
+                                        speedHistory = speedHistory,
+                                        isRunning = displayRunning,
+                                        chartHeight = chartHeight,
+                                        onClick = {
+                                            navigator.navigate(TrafficStatisticsScreenDestination) {
+                                                launchSingleTop = true
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

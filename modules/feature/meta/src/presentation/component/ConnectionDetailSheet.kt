@@ -20,7 +20,6 @@
 
 package com.github.yumelira.yumebox.feature.meta.presentation.component
 
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,8 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.jsonPrimitive
+import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -50,11 +51,8 @@ fun ConnectionDetailSheet(
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit = {},
 ) {
+    val appIdentityResolver: AppIdentityResolver = koinInject()
 
-    val host =
-        remember(connectionInfo) {
-            connectionInfo?.metadata?.get("host")?.jsonPrimitive?.content ?: ""
-        }
     val network =
         remember(connectionInfo) {
             connectionInfo?.metadata?.get("network")?.jsonPrimitive?.content ?: "TCP"
@@ -63,44 +61,29 @@ fun ConnectionDetailSheet(
         remember(connectionInfo) {
             connectionInfo?.metadata?.get("process")?.jsonPrimitive?.content ?: ""
         }
-    val destinationPort =
-        remember(connectionInfo) {
-            connectionInfo?.metadata?.get("destinationPort")?.jsonPrimitive?.content ?: ""
-        }
-    val sourceIP =
-        remember(connectionInfo) {
-            connectionInfo?.metadata?.get("sourceIP")?.jsonPrimitive?.content ?: ""
-        }
-    val sourcePort =
-        remember(connectionInfo) {
-            connectionInfo?.metadata?.get("sourcePort")?.jsonPrimitive?.content ?: ""
-        }
-    val destinationIP =
-        remember(connectionInfo) {
-            connectionInfo?.metadata?.get("destinationIP")?.jsonPrimitive?.content ?: ""
-        }
+    val displayAddress = remember(connectionInfo) { connectionInfo?.toDisplayAddress() }
 
-    val displayHost =
-        remember(host, destinationPort) {
-            if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
-                "$host:$destinationPort"
-            } else if (host.isNotEmpty()) {
-                host
-            } else if (sourceIP.isNotEmpty()) {
-                "$sourceIP:$sourcePort"
-            } else {
-                ""
+    val durationText by
+        produceState(initialValue = "00:00:00", key1 = show, key2 = connectionInfo?.start) {
+            while (show && connectionInfo?.start != null) {
+                value = calculateDuration(connectionInfo.start)
+                kotlinx.coroutines.delay(1000L)
             }
         }
-
-    val durationText =
-        remember(connectionInfo?.start) {
-            connectionInfo?.start?.let { calculateDuration(it) } ?: "00:00:00"
+    val sourceApp =
+        remember(connectionInfo, appIdentityResolver) {
+            connectionInfo?.let { appIdentityResolver.resolve(it.metadata) }
         }
+    val sourceAppName =
+        remember(sourceApp, process) {
+            sourceApp?.appName?.takeIf { it.isNotBlank() } ?: process.ifBlank { "" }
+        }
+    val sourcePackageName =
+        remember(sourceApp) { sourceApp?.packageName?.takeIf { it.isNotBlank() } }
 
     AppActionBottomSheet(
         show = show,
-        title = displayHost,
+        title = displayAddress?.title.orEmpty(),
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
     ) {
@@ -112,11 +95,11 @@ fun ConnectionDetailSheet(
                 item {
                     ConnectionInfoSection(
                         network = network,
+                        sourceAppName = sourceAppName,
+                        sourcePackageName = sourcePackageName,
                         process = process,
-                        sourceIP = sourceIP,
-                        sourcePort = sourcePort,
-                        destinationIP = destinationIP,
-                        destinationPort = destinationPort,
+                        sourceAddress = displayAddress?.sourceAddress.orEmpty(),
+                        destinationAddress = displayAddress?.destinationAddress.orEmpty(),
                         duration = durationText,
                         upload = info.upload,
                         download = info.download,
@@ -137,45 +120,45 @@ fun ConnectionDetailSheet(
 @Composable
 private fun ConnectionInfoSection(
     network: String,
+    sourceAppName: String,
+    sourcePackageName: String?,
     process: String,
-    sourceIP: String,
-    sourcePort: String,
-    destinationIP: String,
-    destinationPort: String,
+    sourceAddress: String,
+    destinationAddress: String,
     duration: String,
     upload: Long,
     download: Long,
     chains: List<String>,
 ) {
-    val animatedUpload by
-        animateIntAsState(targetValue = upload.toInt(), label = "upload_animation")
-    val animatedDownload by
-        animateIntAsState(targetValue = download.toInt(), label = "download_animation")
-
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Info)
 
         InfoRow(label = MLang.Connection.Detail.Protocol, value = network.uppercase())
+        if (sourceAppName.isNotEmpty()) {
+            InfoRow(label = MLang.Connection.Detail.SourceApp, value = sourceAppName)
+        }
+        if (!sourcePackageName.isNullOrEmpty()) {
+            InfoRow(label = MLang.Connection.Detail.PackageName, value = sourcePackageName)
+        }
         if (process.isNotEmpty()) {
             InfoRow(label = MLang.Connection.Detail.Process, value = process)
         }
-        InfoRow(label = MLang.Connection.Detail.SourceAddress, value = "$sourceIP:$sourcePort")
-        if (destinationIP.isNotEmpty()) {
-            InfoRow(
-                label = MLang.Connection.Detail.DestinationAddress,
-                value = "$destinationIP:$destinationPort",
-            )
+        if (sourceAddress.isNotEmpty()) {
+            InfoRow(label = MLang.Connection.Detail.SourceAddress, value = sourceAddress)
+        }
+        if (destinationAddress.isNotEmpty()) {
+            InfoRow(label = MLang.Connection.Detail.DestinationAddress, value = destinationAddress)
         }
         InfoRow(label = MLang.Connection.Detail.Duration, value = duration)
 
         InfoRow(
             label = MLang.Connection.Detail.Upload,
-            value = formatBytes(animatedUpload.toLong()),
+            value = formatBytes(upload),
             valueColor = Color(0xFF2196F3),
         )
         InfoRow(
             label = MLang.Connection.Detail.Download,
-            value = formatBytes(animatedDownload.toLong()),
+            value = formatBytes(download),
             valueColor = Color(0xFF4CAF50),
         )
 

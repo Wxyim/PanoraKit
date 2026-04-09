@@ -22,8 +22,6 @@ package com.github.yumelira.yumebox.screen.profiles
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,12 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
+import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.presentation.component.*
@@ -81,13 +80,18 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
     val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
+    val activeProfile by profilesViewModel.activeProfile.collectAsStateWithLifecycle()
+    val profilesUiState by profilesViewModel.uiState.collectAsStateWithLifecycle()
     val isRunning by homeViewModel.isRunning.collectAsStateWithLifecycle()
 
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
     val activeProfileOverrideReloader: ActiveProfileOverrideReloader = koinInject()
     val bindingProvider: ProfileBindingProvider = koinInject()
+    val appSettingsStorage: AppSettingsStorage = koinInject()
     val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
     val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
+    val profileSwipeHintShown by
+        appSettingsStorage.profileSwipeHintShown.state.collectAsStateWithLifecycle()
 
     val showAddBottomSheet = remember { mutableStateOf(false) }
     var isDeleteDialogVisible by remember { mutableStateOf(false) }
@@ -97,10 +101,11 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     var isEditOptionsDialogVisible by remember { mutableStateOf(false) }
     var showEditOptionsDialog by remember { mutableStateOf<Profile?>(null) }
     var profileToShare by remember { mutableStateOf<Profile?>(null) }
-    var pendingProfileId by remember { mutableStateOf<String?>(null) }
     var profileToEdit by remember { mutableStateOf<Profile?>(null) }
     var profileBinding by remember { mutableStateOf<ProfileBinding?>(null) }
     var isDownloading by remember { mutableStateOf(false) }
+    var pendingRuntimeReloadProfileId by remember { mutableStateOf<UUID?>(null) }
+    var swipeHintTargetProfileId by remember { mutableStateOf<UUID?>(null) }
 
     var importUrlFromScheme by remember { mutableStateOf<String?>(null) }
     val pendingImportUrl by MainActivity.pendingImportUrl.collectAsStateWithLifecycle()
@@ -121,17 +126,22 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         }
     }
 
-    rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            pendingProfileId?.let { profileId -> homeViewModel.startProxy(profileId, mode = null) }
-        }
-        pendingProfileId = null
+    LaunchedEffect(profileSwipeHintShown, profiles) {
+        if (profileSwipeHintShown || profiles.isEmpty()) return@LaunchedEffect
+        val firstProfileId = profiles.first().uuid
+        swipeHintTargetProfileId = firstProfileId
+        appSettingsStorage.profileSwipeHintShown.set(true)
     }
 
     val scrollBehavior = MiuixScrollBehavior()
     val scope = rememberCoroutineScope()
+    LaunchedEffect(profilesUiState.message, pendingRuntimeReloadProfileId) {
+        pendingRuntimeReloadProfileId ?: return@LaunchedEffect
+        if (profilesUiState.message != null) {
+            pendingRuntimeReloadProfileId = null
+        }
+    }
+
     val openProfileEditor: (UUID, String) -> Unit = openProfileEditor@{ profileUuid, profileName ->
         val configFile = resolveProfileConfigFile(profileUuid)
         val configContent =
@@ -154,23 +164,20 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             content = configContent,
             language = LanguageScope.Yaml,
             callback = { updatedContent ->
-                runCatching {
-                        configFile.writeText(updatedContent)
-                        profilesViewModel.refreshProfiles()
-                        check(
-                            activeProfileOverrideReloader.reapplyIfActiveProfile(
-                                profileUuid.toString()
-                            )
-                        ) {
-                            MLang.Override.Save.ApplyFailed
+                if (updatedContent == configContent) {
+                    return@setupConfigPreview Result.success(Unit)
+                }
+                scope.launch {
+                    runCatching {
+                            profilesViewModel.saveProfileConfigContent(profileUuid, updatedContent)
                         }
-                    }
-                    .onFailure {
-                        throw IllegalStateException(
-                            it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed,
-                            it,
-                        )
-                    }
+                        .onFailure { error ->
+                            com.github.yumelira.yumebox.App.instance.toast(
+                                error.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
+                            )
+                        }
+                }
+                Result.success(Unit)
             },
         )
         navigator.navigate(OverrideConfigPreviewRouteDestination)
@@ -240,14 +247,47 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 items(items = profiles, key = { it.uuid.toString() }) { profile ->
                     ReorderableItem(reorderableLazyListState, key = profile.uuid.toString()) {
                         isDragging ->
+                        LaunchedEffect(isDragging, swipeHintTargetProfileId) {
+                            if (isDragging && swipeHintTargetProfileId != null) {
+                                swipeHintTargetProfileId = null
+                            }
+                        }
+
                         ProfileCard(
                             profile = profile,
                             workDir =
                                 File(com.github.yumelira.yumebox.App.instance.filesDir, "imported"),
+                            isSelected = activeProfile?.uuid == profile.uuid,
                             isDownloading = isDownloading,
+                            playSwipeHint =
+                                !isDragging && swipeHintTargetProfileId == profile.uuid,
+                            onSwipeHintConsumed = {
+                                if (swipeHintTargetProfileId == profile.uuid) {
+                                    swipeHintTargetProfileId = null
+                                }
+                            },
                             modifier =
                                 Modifier.longPressDraggableHandle()
                                     .alpha(if (isDragging) 0.9f else 1f),
+                            onSelect = { selectedProfile ->
+                                if (!isDownloading && activeProfile?.uuid != selectedProfile.uuid) {
+                                    scope.launch {
+                                        runCatching {
+                                                profilesViewModel.setProfileEnabledNow(
+                                                    uuid = selectedProfile.uuid,
+                                                    enabled = true,
+                                                )
+                                            }
+                                            .onFailure {
+                                                com.github.yumelira.yumebox.App.instance.toast(
+                                                    it.message
+                                                        ?: MLang.ProfilesVM.Message.ToggleFailed
+                                                            .format(MLang.ProfilesVM.Error.Unknown)
+                                                )
+                                            }
+                                    }
+                                }
+                            },
                             onExport = { profile ->
                                 if (!isDownloading) {
                                     profileToShare = profile
@@ -258,7 +298,16 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                 if (!isDownloading) {
                                     isDownloading = true
                                     scope.launch {
-                                        profilesViewModel.updateProfile(profile.uuid)
+                                        runCatching {
+                                                profilesViewModel.updateProfileNow(profile.uuid)
+                                            }
+                                            .onFailure {
+                                                com.github.yumelira.yumebox.App.instance.toast(
+                                                    it.message
+                                                        ?: MLang.ProfilesVM.Message.UpdateFailed
+                                                            .format(MLang.ProfilesVM.Error.Unknown)
+                                                )
+                                            }
                                         isDownloading = false
                                     }
                                 }
@@ -273,16 +322,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                 if (!isDownloading) {
                                     showEditOptionsDialog = profile
                                     isEditOptionsDialogVisible = true
-                                }
-                            },
-                            onToggleEnabled = { profile ->
-                                if (!isDownloading) {
-                                    scope.launch {
-                                        if (profile.active && isRunning) {
-                                            homeViewModel.stopProxy()
-                                        }
-                                        profilesViewModel.toggleProfileEnabled(profile.uuid)
-                                    }
                                 }
                             },
                         )
@@ -310,6 +349,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             }
         },
         onUpdateProfile = { uuid, name, source, interval ->
+            pendingRuntimeReloadProfileId = uuid
             profilesViewModel.patchProfile(uuid, name, source, interval)
         },
         onDownloadComplete = {
@@ -353,12 +393,21 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             },
             onSaveProfileMeta = { newName, newSource ->
                 if (newName.isNotBlank() && newSource.isNotBlank()) {
-                    profilesViewModel.patchProfile(
-                        currentProfileToEdit.uuid,
-                        newName,
-                        newSource,
-                        currentProfileToEdit.interval,
-                    )
+                    scope.launch {
+                        runCatching {
+                                profilesViewModel.patchProfileNow(
+                                    currentProfileToEdit.uuid,
+                                    newName,
+                                    newSource,
+                                    currentProfileToEdit.interval,
+                                )
+                            }
+                            .onFailure {
+                                com.github.yumelira.yumebox.App.instance.toast(
+                                    it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
+                                )
+                            }
+                    }
                 }
             },
             onSaveOverrideSettings = { systemPresetEnabled, selectedOverrideIds ->

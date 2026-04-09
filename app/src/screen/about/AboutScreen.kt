@@ -90,7 +90,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
                     Spacer(modifier = Modifier.height(AboutPageMetrics.HeroSectionSpacing))
 
-                    Text(text = "MonadBox", style = MiuixTheme.textStyles.title1)
+                    Text(text = MLang.About.App.Name, style = MiuixTheme.textStyles.title1)
 
                     Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
 
@@ -107,24 +107,29 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
                 }
 
-                Card { BasicComponent(title = "MonadBox", summary = MLang.About.App.Description) }
+                Card {
+                    BasicComponent(
+                        title = MLang.About.App.Name,
+                        summary = MLang.About.App.Description,
+                    )
+                }
 
                 SmallTitle(MLang.About.Section.ProjectLinks)
                 Card {
                     AboutLinkItem(
-                        title = "MonadBox (GitHub)",
+                        title = MLang.About.Link.Repository,
                         url = AboutProjectLinks.MonadBoxRepo,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
                     )
                     AboutLinkItem(
-                        title = "MonadBox Releases (Update Source)",
+                        title = MLang.About.Link.Releases,
                         url = AboutProjectLinks.MonadBoxLatestRelease,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
                     )
                     AboutLinkItem(
-                        title = "Mihomo",
+                        title = MLang.About.Link.Mihomo,
                         url = AboutProjectLinks.MihomoRepo,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
@@ -134,7 +139,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 SmallTitle(MLang.About.Section.Credits)
                 Card {
                     AboutLinkItem(
-                        title = "YumeBox (Upstream)",
+                        title = MLang.About.Link.Upstream,
                         url = AboutProjectLinks.YumeBoxUpstreamRepo,
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,

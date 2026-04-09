@@ -54,37 +54,11 @@ fun ConnectionCard(
     val backgroundColor = MiuixTheme.colorScheme.background
     val interactionSource = remember { MutableInteractionSource() }
 
-    val host =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["host"]?.jsonPrimitive?.content ?: ""
-        }
     val network =
         remember(connectionInfo.metadata) {
             connectionInfo.metadata["network"]?.jsonPrimitive?.content ?: "TCP"
         }
-    val destinationPort =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["destinationPort"]?.jsonPrimitive?.content ?: ""
-        }
-    val sourceIP =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["sourceIP"]?.jsonPrimitive?.content ?: ""
-        }
-    val sourcePort =
-        remember(connectionInfo.metadata) {
-            connectionInfo.metadata["sourcePort"]?.jsonPrimitive?.content ?: ""
-        }
-
-    val displayHost =
-        remember(host, destinationPort) {
-            if (host.isNotEmpty() && destinationPort.isNotEmpty()) {
-                "$host:$destinationPort"
-            } else if (host.isNotEmpty()) {
-                host
-            } else {
-                "$sourceIP:$sourcePort"
-            }
-        }
+    val displayAddress = remember(connectionInfo) { connectionInfo.toDisplayAddress() }
 
     val relativeTime = remember(connectionInfo.start) { formatRelativeTime(connectionInfo.start) }
 
@@ -115,7 +89,7 @@ fun ConnectionCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = displayHost,
+                    text = displayAddress.title,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 1,

@@ -21,9 +21,38 @@
 package com.github.yumelira.yumebox.presentation.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.max
+
+/**
+ * Returns an adaptive [Spacing] instance tuned for the current window width:
+ *
+ * - **Compact  (< 600 dp)**: phones in portrait or 16:9–21:9 tall phones → `screenH = 12 dp`
+ * - **Medium   (600–840 dp)**: large-phone landscape / small tablet portrait → `screenH = 24 dp`
+ * - **Expanded (> 840 dp)**: tablets / foldables → `screenH` computed as
+ *   `max(32, (screenWidth − 680) / 2)` so content stays within a ~680 dp column.
+ */
+@Composable
+fun rememberAdaptiveSpacing(pageScale: Float = 1f): Spacing {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val normalizedScale = pageScale.coerceIn(0.8f, 1.2f)
+    return remember(screenWidthDp, normalizedScale) {
+        val baseSpacing =
+            when {
+                screenWidthDp >= 840 -> {
+                    val inset = max(32, (screenWidthDp - 680) / 2)
+                    Spacing(screenH = inset.dp, gutter = 24.dp)
+                }
+                screenWidthDp >= 600 -> Spacing(screenH = 24.dp, gutter = 20.dp)
+                else -> Spacing()
+            }
+        baseSpacing.scaleBy(normalizedScale)
+    }
+}
 
 data class Spacing(
     val none: Dp = 0.dp,
@@ -57,4 +86,21 @@ object AppTheme {
 
     val radii: Radii
         @Composable get() = LocalRadii.current
+}
+
+private fun Spacing.scaleBy(scale: Float): Spacing {
+    if (scale == 1f) return this
+    return copy(
+        xxs = xxs * scale,
+        xs = xs * scale,
+        sm = sm * scale,
+        md = md * scale,
+        lg = lg * scale,
+        xl = xl * scale,
+        xxl = xxl * scale,
+        xxxl = xxxl * scale,
+        gutter = gutter * scale,
+        screenH = screenH * scale,
+        screenV = screenV * scale,
+    )
 }

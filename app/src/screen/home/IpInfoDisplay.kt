@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -114,7 +115,7 @@ private fun IpInfoRow(
                         Modifier.widthIn(max = INFO_VALUE_MAX_WIDTH)
                             .height(INFO_TEXT_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
-                            .clickable(onClick = onToggleVisibility)
+                            .clickable(role = Role.Button, onClick = onToggleVisibility)
                     } else {
                         Modifier.height(INFO_TEXT_HEIGHT)
                     },
@@ -186,12 +187,7 @@ private fun formatIpv6Address(ipAddress: String, isIpVisible: Boolean): String {
         }
     }
 
-    val visiblePrefix = visibleSegments.take(4)
-    return if (visibleSegments.size > 4) {
-        "${visiblePrefix.joinToString(":")}..."
-    } else {
-        visiblePrefix.joinToString(":")
-    }
+    return visibleSegments.joinToString(":")
 }
 
 internal fun maskIpAddress(ipAddress: String): String {

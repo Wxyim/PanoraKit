@@ -1,9 +1,23 @@
 <Traffic Statistics Page>
 TrafficStatistics = {
     Title = "流量统计与最近请求"
-    EntrySummary = "查看按应用统计的流量数据与最近请求"
+    EntrySummary = "查看流量概览与最近请求"
 
     OverviewTitle = "流量概览"
+
+    Detail = {
+        Title = "请求与站点流量"
+        Summary = "在“最近请求”和“站点流量”之间切换查看"
+    }
+
+    TargetSites = {
+        Title = "站点流量"
+        Summary = "按目标域名或目标 IP 聚合上下行流量"
+        Empty = "暂无目标网站流量记录"
+        Count = "%d 项"
+        Upload = "上行 %s"
+        Download = "下行 %s"
+    }
 
     RecentRequests = {
         Title = "最近请求"
@@ -11,14 +25,6 @@ TrafficStatistics = {
         Empty = "暂无最近请求记录"
         UnknownRequest = "未知请求"
         Count = "%d 条"
-    }
-
-    AppUsage = {
-        Title = "按应用流量"
-        Summary = "来自运行时采集的应用级流量排行"
-        Empty = "暂无应用流量数据"
-        UnknownApp = "未知应用"
-        Breakdown = "上行 %s · 下行 %s"
     }
 
     Status = {

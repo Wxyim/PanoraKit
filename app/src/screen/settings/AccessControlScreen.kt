@@ -51,10 +51,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.yumelira.yumebox.common.util.OemPermissionSettingsNavigator
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.Card
@@ -80,6 +82,7 @@ private object AccessControlMetrics {
     val SearchTopPadding = 12.dp
     val SearchResultCornerRadius = 16.dp
     val ListCardVerticalPadding = 4.dp
+    val SearchEntryVerticalPadding = 6.dp
     val SearchResultAppIconSize = 40.dp
     val AppCardIconSize = 45.dp
     val AppIconBitmapBaseSize = 80
@@ -94,6 +97,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
     val viewModel = koinViewModel<AccessControlViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val filteredApps by viewModel.filteredApps.collectAsStateWithLifecycle()
+    val isApplying by viewModel.isApplying.collectAsStateWithLifecycle()
 
     val showSettingsSheet = rememberSaveable { mutableStateOf(false) }
     val searchExpanded = rememberSaveable { mutableStateOf(false) }
@@ -171,6 +175,21 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             color = MiuixTheme.colorScheme.onPrimary,
                                         )
                                     }
+                                    Button(
+                                        onClick = {
+                                            val opened =
+                                                OemPermissionSettingsNavigator
+                                                    .openBackgroundPermissionSettings(context)
+                                            if (!opened) {
+                                                context.toast(
+                                                    MLang.AccessControl.AppList
+                                                        .PermissionSettingsUnavailable
+                                                )
+                                            }
+                                        }
+                                    ) {
+                                        Text(MLang.AccessControl.AppList.OpenPermissionSettings)
+                                    }
                                 }
                             }
 
@@ -178,26 +197,46 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                         }
                     }
 
-                    item {
-                        var searchText by remember { mutableStateOf("") }
-                        var expanded by remember { mutableStateOf(false) }
-                        SearchBar(
-                            inputField = {
-                                InputField(
-                                    query = searchText,
-                                    onQueryChange = {
-                                        searchText = it
-                                        viewModel.onSearchQueryChange(it)
-                                    },
-                                    onSearch = { expanded = false },
-                                    expanded = expanded,
-                                    onExpandedChange = { expanded = it },
-                                    label = MLang.AccessControl.Search.Placeholder,
+                    if (!uiState.canBrowseApps) {
+                        item {
+                            Card {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        if (uiState.needsMiuiPermission) {
+                                            MLang.AccessControl.AppList.BrowseUnavailablePermission
+                                        } else {
+                                            MLang.AccessControl.AppList.BrowseUnavailableManual
+                                        }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    if (uiState.canBrowseApps) {
+                        item {
+                            Card(
+                                modifier =
+                                    Modifier.padding(
+                                        vertical = AccessControlMetrics.SearchEntryVerticalPadding
+                                    )
+                            ) {
+                                BasicComponent(
+                                    title =
+                                        uiState.searchQuery.ifBlank {
+                                            MLang.AccessControl.Search.Placeholder
+                                        },
+                                    summary =
+                                        MLang.AccessControl.AppList.Title.format(filteredApps.size),
+                                    onClick = { searchExpanded.value = true },
                                 )
-                            },
-                            expanded = expanded,
-                            onExpandedChange = { expanded = it },
-                        ) {}
+                            }
+                        }
                     }
 
                     item {
@@ -206,16 +245,124 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                         )
                     }
 
-                    items(items = filteredApps, key = { it.packageName }) { app ->
-                        AppCard(
-                            app = app,
-                            onSelectionChange = { checked ->
-                                viewModel.onAppSelectionChange(app.packageName, checked)
-                            },
-                            onClick = {
-                                viewModel.onAppSelectionChange(app.packageName, !app.isSelected)
-                            },
-                        )
+                    if (!uiState.canBrowseApps) {
+                        item {
+                            Card {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(MLang.AccessControl.AppList.ManualAddTitle)
+                                    TextField(
+                                        value = uiState.manualPackageName,
+                                        onValueChange = viewModel::onManualPackageNameChange,
+                                        label = MLang.AccessControl.AppList.ManualAddPlaceholder,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardOptions =
+                                            androidx.compose.foundation.text.KeyboardOptions(
+                                                imeAction = ImeAction.Done
+                                            ),
+                                        keyboardActions =
+                                            androidx.compose.foundation.text.KeyboardActions(
+                                                onDone = {
+                                                    if (!viewModel.addManualPackage()) {
+                                                        context.toast(
+                                                            MLang.AccessControl.AppList
+                                                                .InvalidPackage
+                                                        )
+                                                    }
+                                                }
+                                            ),
+                                    )
+                                    Button(
+                                        onClick = {
+                                            if (!viewModel.addManualPackage()) {
+                                                context.toast(
+                                                    MLang.AccessControl.AppList.InvalidPackage
+                                                )
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColorsPrimary(),
+                                    ) {
+                                        Text(
+                                            MLang.AccessControl.AppList.AddPackage,
+                                            color = MiuixTheme.colorScheme.onPrimary,
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        item {
+                            SmallTitle(
+                                MLang.AccessControl.AppList.SelectedPackagesTitle.format(
+                                    uiState.selectedPackages.size
+                                )
+                            )
+                        }
+
+                        if (uiState.selectedPackages.isEmpty()) {
+                            item {
+                                Card {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        Text(
+                                            MLang.AccessControl.AppList.NoSelectedPackages,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            items(
+                                items = uiState.selectedPackages.toList().sorted(),
+                                key = { it },
+                            ) { packageName ->
+                                Card(
+                                    modifier =
+                                        Modifier.padding(
+                                            vertical = AccessControlMetrics.ListCardVerticalPadding
+                                        )
+                                ) {
+                                    BasicComponent(
+                                        title = packageName,
+                                        summary = MLang.Connection.Detail.PackageName,
+                                        endActions = {
+                                            Checkbox(
+                                                state = ToggleableState(true),
+                                                onClick = {
+                                                    viewModel.onAppSelectionChange(
+                                                        packageName,
+                                                        false,
+                                                    )
+                                                },
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.onAppSelectionChange(packageName, false)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.canBrowseApps) {
+                        items(items = filteredApps, key = { it.packageName }) { app ->
+                            AppCard(
+                                app = app,
+                                onSelectionChange = { checked ->
+                                    viewModel.onAppSelectionChange(app.packageName, checked)
+                                },
+                                onClick = {
+                                    viewModel.onAppSelectionChange(app.packageName, !app.isSelected)
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -262,23 +409,65 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.BatchOperation,
+                                summary =
+                                    if (uiState.canBrowseApps) {
+                                        MLang.AccessControl.Settings.BatchOperationSummaryBrowse
+                                    } else {
+                                        MLang.AccessControl.Settings.BatchOperationSummaryManual
+                                    },
                                 items =
-                                    listOf(
-                                        MLang.AccessControl.Settings.SelectAll,
-                                        MLang.AccessControl.Settings.DeselectAll,
-                                        MLang.AccessControl.Settings.Invert,
-                                    ),
+                                    if (uiState.canBrowseApps) {
+                                        listOf(
+                                            MLang.AccessControl.Settings.SelectAll,
+                                            MLang.AccessControl.Settings.DeselectAll,
+                                            MLang.AccessControl.Settings.Invert,
+                                        )
+                                    } else {
+                                        listOf(
+                                            MLang.AccessControl.Settings.CopySelected,
+                                            MLang.AccessControl.Settings.ClearSelected,
+                                        )
+                                    },
                                 selectedIndex = 0,
                                 onSelectedIndexChange = { index ->
-                                    when (index) {
-                                        0 -> viewModel.selectAll()
-                                        1 -> viewModel.deselectAll()
-                                        2 -> viewModel.invertSelection()
+                                    if (uiState.canBrowseApps) {
+                                        when (index) {
+                                            0 -> viewModel.selectAll()
+                                            1 -> viewModel.deselectAll()
+                                            2 -> viewModel.invertSelection()
+                                        }
+                                    } else {
+                                        when (index) {
+                                            0 -> {
+                                                val exportText = viewModel.exportPackages()
+                                                val clip =
+                                                    ClipData.newPlainText("packages", exportText)
+                                                clipboardManager.setPrimaryClip(clip)
+                                                context.toast(
+                                                    MLang.AccessControl.Settings.ExportSuccess
+                                                        .format(uiState.selectedPackages.size)
+                                                )
+                                            }
+
+                                            1 -> {
+                                                val cleared = viewModel.clearSelectedPackages()
+                                                context.toast(
+                                                    MLang.AccessControl.Settings.ClearSelectedResult
+                                                        .format(cleared)
+                                                )
+                                            }
+                                        }
                                     }
                                 },
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.RegionQuickSelect,
+                                summary =
+                                    if (uiState.canBrowseApps) {
+                                        MLang.AccessControl.Settings.RegionQuickSelectSummaryBrowse
+                                    } else {
+                                        MLang.AccessControl.Settings.RegionQuickSelectSummaryManual
+                                    },
                                 items =
                                     listOf(
                                         MLang.AccessControl.Settings.ChinaApps,
@@ -308,6 +497,12 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             )
                             WindowDropdown(
                                 title = MLang.AccessControl.Settings.ImportExport,
+                                summary =
+                                    if (uiState.canBrowseApps) {
+                                        MLang.AccessControl.Settings.ImportExportSummaryBrowse
+                                    } else {
+                                        MLang.AccessControl.Settings.ImportExportSummaryManual
+                                    },
                                 items =
                                     listOf(
                                         MLang.AccessControl.Settings.Import,
@@ -325,11 +520,20 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                                     ""
                                                 }
                                             if (text.isNotEmpty()) {
-                                                val count = viewModel.importPackages(text)
-                                                context.toast(
-                                                    MLang.AccessControl.Settings.ImportSuccess
-                                                        .format(count)
-                                                )
+                                                val result = viewModel.importPackages(text)
+                                                val message =
+                                                    if (result.ignoredCount > 0) {
+                                                        MLang.AccessControl.Settings.ImportPartial
+                                                            .format(
+                                                                result.totalCount,
+                                                                result.addedCount,
+                                                                result.ignoredCount,
+                                                            )
+                                                    } else {
+                                                        MLang.AccessControl.Settings.ImportSuccess
+                                                            .format(result.addedCount)
+                                                    }
+                                                context.toast(message)
                                             } else {
                                                 context.toast(
                                                     MLang.AccessControl.Settings.ImportFailed
@@ -375,6 +579,27 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     }
                 },
             )
+
+            AnimatedVisibility(
+                visible = isApplying,
+                enter = fadeIn(tween(120)),
+                exit = fadeOut(tween(120)),
+                modifier = Modifier.fillMaxSize().zIndex(50f),
+            ) {
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.05f))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {},
+                            ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 
@@ -427,6 +652,7 @@ private fun ExpandedSearchOverlay(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 label = MLang.AccessControl.Search.Placeholder,
+                singleLine = true,
                 modifier =
                     Modifier.fillMaxWidth()
                         .padding(
@@ -447,6 +673,14 @@ private fun ExpandedSearchOverlay(
                         )
                         .background(MiuixTheme.colorScheme.surface)
             ) {
+                if (filteredApps.isEmpty()) {
+                    item {
+                        BasicComponent(
+                            title = MLang.AccessControl.Search.EmptyResults,
+                            summary = searchQuery,
+                        )
+                    }
+                }
                 items(items = filteredApps, key = { it.packageName }) { app ->
                     BasicComponent(
                         title = app.label,

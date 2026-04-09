@@ -244,8 +244,8 @@ private fun RemoteOverrideCard(
 
             IconButton(
                 backgroundColor = updateBg,
-                minHeight = 35.dp,
-                minWidth = 35.dp,
+                minHeight = 48.dp,
+                minWidth = 48.dp,
                 enabled = !isUpdating,
                 onClick = onUpdate,
             ) {
@@ -334,8 +334,8 @@ private fun ProviderCard(
                 Box {
                     IconButton(
                         backgroundColor = updateBg,
-                        minHeight = 35.dp,
-                        minWidth = 35.dp,
+                        minHeight = 48.dp,
+                        minWidth = 48.dp,
                         enabled = !isUpdating,
                         onClick = { showPopup.value = true },
                     ) {

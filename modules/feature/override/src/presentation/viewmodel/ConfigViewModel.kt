@@ -24,7 +24,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.OverrideResolver
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
@@ -95,7 +94,6 @@ class OverrideConfigViewModel(
     private val resolver: OverrideResolver,
     private val bindingProvider: ProfileBindingProvider,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
-    private val appSettingsRepository: AppSettingsRepository,
 ) : ViewModel() {
 
     companion object {
@@ -209,6 +207,10 @@ class OverrideConfigViewModel(
             return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
         }
         return try {
+            val previousConfig =
+                configRepo.getById(configId)
+                    ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
+            val previousMetadata = configRepo.getMetadata(configId)
             val updatedConfig =
                 configRepo.saveConfigJsonContent(configId, content)
                     ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
@@ -222,7 +224,11 @@ class OverrideConfigViewModel(
                 }
             }
 
-            syncActiveOverrideAfterMutation(configId)
+            val syncResult = syncActiveOverrideAfterMutation(configId)
+            if (syncResult.isFailure) {
+                rollbackPersistedConfigMutation(previousConfig, previousMetadata)
+            }
+            syncResult
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to save config JSON content: %s", configId)
             Result.failure(e)
@@ -351,11 +357,43 @@ class OverrideConfigViewModel(
     }
 
     private suspend fun syncActiveOverrideAfterMutation(configId: String): Result<Unit> {
-        val runtimeSynced = activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
+        val runtimeSynced =
+            activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
         return if (runtimeSynced) {
             Result.success(Unit)
         } else {
             Result.failure(IllegalStateException(MLang.Override.Save.ApplyFailed))
+        }
+    }
+
+    private suspend fun rollbackPersistedConfigMutation(
+        previousConfig: OverrideConfig,
+        previousMetadata: OverrideMetadata?,
+    ) {
+        configRepo.restoreConfigState(previousConfig, previousMetadata)
+        updateLocalCacheAfterSave(previousConfig)
+        previousMetadata?.let { metadata ->
+            _metadataMap.update { current ->
+                current.toMutableMap().apply { put(previousConfig.id, metadata) }
+            }
+        }
+        _selectedConfig.value = previousConfig
+        val restoredSnapshot = encodeOverrideConfigForDiff(previousConfig.config)
+        _editSession.update { session ->
+            if (session == null || session.targetConfigId != previousConfig.id)
+                return@update session
+            session.copy(
+                name = previousConfig.name,
+                description = previousConfig.description.orEmpty(),
+                config = previousConfig.config,
+                draftSnapshot = restoredSnapshot,
+                persistedName = previousConfig.name,
+                persistedDescription = previousConfig.description.orEmpty(),
+                persistedSnapshot = restoredSnapshot,
+                remoteSourceUrl = previousMetadata?.remoteSourceUrl,
+                remoteUpdateIntervalSeconds = previousMetadata?.remoteUpdateIntervalSeconds,
+                remoteLastUpdatedAt = previousMetadata?.remoteLastUpdatedAt,
+            )
         }
     }
 
@@ -943,13 +981,18 @@ class OverrideConfigViewModel(
 
     suspend fun refreshRemoteOverride(configId: String): Result<Unit> {
         return try {
-            configRepo.refreshRemoteResource(
-                id = configId,
-                allowInsecureHttpNonLocalhost =
-                    appSettingsRepository.allowNonLocalhostHttpRemote.value,
-            )
+            val previousConfig =
+                configRepo.getById(configId)
+                    ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
+            val previousMetadata = configRepo.getMetadata(configId)
+            configRepo.refreshRemoteResource(id = configId)
             loadConfigs()
-            syncActiveOverrideAfterMutation(configId)
+            val syncResult = syncActiveOverrideAfterMutation(configId)
+            if (syncResult.isFailure) {
+                rollbackPersistedConfigMutation(previousConfig, previousMetadata)
+                loadConfigs()
+            }
+            syncResult
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to refresh remote override: $configId")
             Result.failure(e)
@@ -962,8 +1005,6 @@ class OverrideConfigViewModel(
                 RemoteContentFetcher.fetchText(
                     urlString = urlString,
                     maxBytes = MAX_REMOTE_CONTENT_BYTES,
-                    allowInsecureHttpNonLocalhost =
-                        appSettingsRepository.allowNonLocalhostHttpRemote.value,
                     userAgent = "MonadBox",
                 )
             } catch (e: RemoteFetchException) {

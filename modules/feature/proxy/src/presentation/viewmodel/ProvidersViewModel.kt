@@ -26,11 +26,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.Provider
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.ProvidersRepository
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,8 +42,8 @@ class ProvidersViewModel(
     private val proxyFacade: ProxyFacade,
     private val providersRepository: ProvidersRepository,
     private val overrideConfigRepository: OverrideConfigRepository,
-    private val appSettingsRepository: AppSettingsRepository,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
+    private val runtimeControlCoordinator: RuntimeControlCoordinator,
 ) : ViewModel() {
 
     private val _providers = MutableStateFlow<List<Provider>>(emptyList())
@@ -99,9 +99,12 @@ class ProvidersViewModel(
 
                     if (staleResources.isNotEmpty()) {
                         val failedResources = mutableListOf<String>()
-                        staleResources.forEach { stale ->
-                            refreshRemoteOverrideInternal(stale.id)
-                                .onFailure { failedResources += stale.name }
+                        runtimeControlCoordinator.runSerialized("providers:refresh-stale-overrides") {
+                            staleResources.forEach { stale ->
+                                refreshRemoteOverrideInternal(stale.id).onFailure {
+                                    failedResources += stale.name
+                                }
+                            }
                         }
                         _remoteOverrides.value = overrideConfigRepository.listRemoteResources()
 
@@ -134,7 +137,9 @@ class ProvidersViewModel(
         val key = remoteOverrideKey(resource.id)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
-            refreshRemoteOverrideInternal(resource.id)
+            runtimeControlCoordinator.runSerialized("providers:update-remote-override:${resource.id}") {
+                refreshRemoteOverrideInternal(resource.id)
+            }
                 .onSuccess {
                     refreshRemoteOverrides()
                     _uiState.update {
@@ -161,7 +166,12 @@ class ProvidersViewModel(
         val providerKey = "${provider.type}_${provider.name}"
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
-            val result = providersRepository.updateProvider(provider)
+            val result =
+                runtimeControlCoordinator.runSerialized(
+                    "providers:update-provider:${provider.type}:${provider.name}"
+                ) {
+                    providersRepository.updateProvider(provider)
+                }
             result
                 .onSuccess {
                     refreshProviders()
@@ -200,17 +210,21 @@ class ProvidersViewModel(
 
             val failedItems = mutableListOf<String>()
 
-            if (httpProviders.isNotEmpty()) {
-                val providerResult = providersRepository.updateAllProviders(httpProviders)
-                providerResult
-                    .onSuccess { updateResult -> failedItems += updateResult.failedProviders }
-                    .onFailure { e ->
-                        failedItems += e.message ?: MLang.Providers.Message.UnknownError
-                    }
-            }
+            runtimeControlCoordinator.runSerialized("providers:update-all") {
+                if (httpProviders.isNotEmpty()) {
+                    val providerResult = providersRepository.updateAllProviders(httpProviders)
+                    providerResult
+                        .onSuccess { updateResult -> failedItems += updateResult.failedProviders }
+                        .onFailure { e ->
+                            failedItems += e.message ?: MLang.Providers.Message.UnknownError
+                        }
+                }
 
-            remoteOverrides.forEach { resource ->
-                refreshRemoteOverrideInternal(resource.id).onFailure { failedItems += resource.name }
+                remoteOverrides.forEach { resource ->
+                    refreshRemoteOverrideInternal(resource.id).onFailure {
+                        failedItems += resource.name
+                    }
+                }
             }
 
             refreshProviders()
@@ -236,14 +250,15 @@ class ProvidersViewModel(
 
     private suspend fun refreshRemoteOverrideInternal(id: String): Result<Unit> {
         return try {
-            overrideConfigRepository.refreshRemoteResource(
-                id = id,
-                allowInsecureHttpNonLocalhost =
-                    appSettingsRepository.allowNonLocalhostHttpRemote.value,
-            )
+            val previousConfig =
+                overrideConfigRepository.getById(id)
+                    ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
+            val previousMetadata = overrideConfigRepository.getMetadata(id)
+            overrideConfigRepository.refreshRemoteResource(id = id)
             if (activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(id)) {
                 Result.success(Unit)
             } else {
+                overrideConfigRepository.restoreConfigState(previousConfig, previousMetadata)
                 Result.failure(IllegalStateException(MLang.Override.Save.ApplyFailed))
             }
         } catch (e: Exception) {
@@ -269,7 +284,11 @@ class ProvidersViewModel(
                 .onSuccess {
                     val applyResult =
                         if (proxyFacade.isRunning.value) {
-                            providersRepository.updateProvider(provider)
+                            runtimeControlCoordinator.runSerialized(
+                                "providers:upload-apply:${provider.type}:${provider.name}"
+                            ) {
+                                providersRepository.updateProvider(provider)
+                            }
                         } else {
                             Result.success(Unit)
                         }
@@ -279,7 +298,8 @@ class ProvidersViewModel(
                             refreshProviders()
                             _uiState.update {
                                 it.copy(
-                                    message = MLang.Providers.Message.UploadSuccess.format(provider.name)
+                                    message =
+                                        MLang.Providers.Message.UploadSuccess.format(provider.name)
                                 )
                             }
                         }

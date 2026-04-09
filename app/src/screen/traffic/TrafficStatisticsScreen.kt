@@ -43,10 +43,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.data.model.AppTrafficUsage
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
+import com.github.yumelira.yumebox.feature.meta.presentation.component.toDisplayAddress
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.RecentRequestRecord
+import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TargetSiteRecord
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
@@ -58,7 +59,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlinx.serialization.json.jsonPrimitive
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -82,8 +82,11 @@ private object TrafficStatisticsMetrics {
     val RecentRequestItemPadding = 12.dp
     val RecentRequestItemSpacing = 10.dp
     val RecentRequestChipCorner = 100.dp
-    val AppUsageItemPadding = 12.dp
-    val AppUsageItemSpacing = 8.dp
+}
+
+private enum class TrafficDetailSection {
+    RecentRequests,
+    TargetSites,
 }
 
 @Destination<RootGraph>
@@ -98,8 +101,9 @@ fun TrafficStatisticsScreen() {
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsStateWithLifecycle()
     val chartItems by viewModel.chartItems.collectAsStateWithLifecycle()
     val selectedBarIndex by viewModel.selectedBarIndex.collectAsStateWithLifecycle()
-    val appUsages by viewModel.appUsages.collectAsStateWithLifecycle()
     val recentRequests by viewModel.recentRequests.collectAsStateWithLifecycle()
+    val targetSites by viewModel.targetSites.collectAsStateWithLifecycle()
+    var selectedDetailSection by remember { mutableStateOf(TrafficDetailSection.RecentRequests) }
     var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
     var showConnectionDetail by remember { mutableStateOf(false) }
 
@@ -211,103 +215,93 @@ fun TrafficStatisticsScreen() {
                         verticalArrangement =
                             Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = MLang.TrafficStatistics.AppUsage.Title,
-                                style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = MLang.TrafficStatistics.AppUsage.Summary,
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-
-                        if (appUsages.isEmpty()) {
-                            Text(
-                                text = MLang.TrafficStatistics.AppUsage.Empty,
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        } else {
-                            Column(
-                                verticalArrangement =
-                                    Arrangement.spacedBy(
-                                        TrafficStatisticsMetrics.AppUsageItemSpacing
-                                    )
-                            ) {
-                                appUsages.take(15).forEach { usage ->
-                                    AppUsageItem(usage = usage)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.CardSpacing)) }
-
-            item {
-                top.yukonga.miuix.kmp.basic.Card(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
-                ) {
-                    Column(
-                        modifier =
-                            Modifier.padding(TrafficStatisticsMetrics.RecentRequestCardPadding),
-                        verticalArrangement =
-                            Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
-                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column {
                                 Text(
-                                    text = MLang.TrafficStatistics.RecentRequests.Title,
+                                    text = MLang.TrafficStatistics.Detail.Title,
                                     style = MiuixTheme.textStyles.body1,
                                     color = MiuixTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = MLang.TrafficStatistics.RecentRequests.Summary,
-                                    style = MiuixTheme.textStyles.footnote1,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             }
                             Text(
                                 text =
-                                    MLang.TrafficStatistics.RecentRequests.Count.format(
-                                        recentRequests.size
-                                    ),
+                                    when (selectedDetailSection) {
+                                        TrafficDetailSection.RecentRequests ->
+                                            MLang.TrafficStatistics.RecentRequests.Count.format(
+                                                recentRequests.size
+                                            )
+                                        TrafficDetailSection.TargetSites ->
+                                            MLang.TrafficStatistics.TargetSites.Count.format(
+                                                targetSites.size
+                                            )
+                                    },
                                 style = MiuixTheme.textStyles.footnote1,
                                 color = MiuixTheme.colorScheme.primary,
                             )
                         }
 
-                        if (recentRequests.isEmpty()) {
-                            Text(
-                                text = MLang.TrafficStatistics.RecentRequests.Empty,
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        } else {
-                            Column(
-                                verticalArrangement =
-                                    Arrangement.spacedBy(
-                                        TrafficStatisticsMetrics.RecentRequestItemSpacing
-                                    )
-                            ) {
-                                recentRequests.forEach { request ->
-                                    RecentRequestItem(
-                                        record = request,
-                                        onClick = {
-                                            selectedConnection = request.connection
-                                            showConnectionDetail = true
-                                        },
-                                    )
+                        DetailSectionSelector(
+                            selectedSection = selectedDetailSection,
+                            onSectionSelected = { selectedDetailSection = it },
+                            modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+                        )
+
+                        AnimatedContent(
+                            targetState = selectedDetailSection,
+                            transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
+                            label = "traffic_detail_section",
+                        ) { detailSection ->
+                            when (detailSection) {
+                                TrafficDetailSection.RecentRequests -> {
+                                    if (recentRequests.isEmpty()) {
+                                        Text(
+                                            text = MLang.TrafficStatistics.RecentRequests.Empty,
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    } else {
+                                        Column(
+                                            verticalArrangement =
+                                                Arrangement.spacedBy(
+                                                    TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                                )
+                                        ) {
+                                            recentRequests.forEach { request ->
+                                                RecentRequestItem(
+                                                    record = request,
+                                                    onClick = {
+                                                        selectedConnection = request.connection
+                                                        showConnectionDetail = true
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                TrafficDetailSection.TargetSites -> {
+                                    if (targetSites.isEmpty()) {
+                                        Text(
+                                            text = MLang.TrafficStatistics.TargetSites.Empty,
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    } else {
+                                        Column(
+                                            verticalArrangement =
+                                                Arrangement.spacedBy(
+                                                    TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                                )
+                                        ) {
+                                            targetSites.forEach { site ->
+                                                TargetSiteItem(record = site)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -326,48 +320,113 @@ fun TrafficStatisticsScreen() {
 }
 
 @Composable
-private fun AppUsageItem(usage: AppTrafficUsage) {
-    val appDisplayName = usage.appName.ifBlank { MLang.TrafficStatistics.AppUsage.UnknownApp }
-    val packageName = usage.packageName.orEmpty()
+private fun DetailSectionSelector(
+    selectedSection: TrafficDetailSection,
+    onSectionSelected: (TrafficDetailSection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TrafficDetailSection.entries.forEach { section ->
+            val isSelected = section == selectedSection
+            val label =
+                when (section) {
+                    TrafficDetailSection.RecentRequests -> MLang.TrafficStatistics.RecentRequests.Title
+                    TrafficDetailSection.TargetSites -> MLang.TrafficStatistics.TargetSites.Title
+                }
+            Surface(
+                modifier =
+                    Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable {
+                        onSectionSelected(section)
+                    },
+                color =
+                    if (isSelected) {
+                        MiuixTheme.colorScheme.primary
+                    } else {
+                        MiuixTheme.colorScheme.surfaceVariant
+                    },
+            ) {
+                Box(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color =
+                            if (isSelected) {
+                                MiuixTheme.colorScheme.onPrimary
+                            } else {
+                                MiuixTheme.colorScheme.onSurface
+                            },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
 
+@Composable
+private fun TargetSiteItem(record: TargetSiteRecord) {
     Surface(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
         color = MiuixTheme.colorScheme.background,
     ) {
         Column(
-            modifier = Modifier.padding(TrafficStatisticsMetrics.AppUsageItemPadding),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(TrafficStatisticsMetrics.RecentRequestItemPadding),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = appDisplayName,
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (packageName.isNotBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = record.displayName,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text =
+                            formatConnectionTime(
+                                Instant.ofEpochMilli(record.lastSeenAt).toString()
+                            ),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
                 Text(
-                    text = packageName,
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    text = formatBytes(record.totalBytes),
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.primary,
                 )
             }
-            Text(
-                text = formatBytes(usage.totalBytes),
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.primary,
-            )
-            Text(
-                text =
-                    MLang.TrafficStatistics.AppUsage.Breakdown.format(
-                        formatBytes(usage.totalUpload),
-                        formatBytes(usage.totalDownload),
-                    ),
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                RequestChip(
+                    text =
+                        MLang.TrafficStatistics.TargetSites.Upload.format(
+                            formatBytes(record.totalUpload)
+                        ),
+                    color = MiuixTheme.colorScheme.primary,
+                )
+                RequestChip(
+                    text =
+                        MLang.TrafficStatistics.TargetSites.Download.format(
+                            formatBytes(record.totalDownload)
+                        ),
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
     }
 }
@@ -476,35 +535,7 @@ private fun CompactTrafficSummary(
 @Composable
 private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) {
     val connection = record.connection
-    val host =
-        remember(connection.metadata) {
-            connection.metadata["host"]?.jsonPrimitive?.content.orEmpty()
-        }
-    val process =
-        remember(connection.metadata) {
-            connection.metadata["process"]?.jsonPrimitive?.content.orEmpty()
-        }
-    val destinationPort =
-        remember(connection.metadata) {
-            connection.metadata["destinationPort"]?.jsonPrimitive?.content.orEmpty()
-        }
-    val sourceIp =
-        remember(connection.metadata) {
-            connection.metadata["sourceIP"]?.jsonPrimitive?.content.orEmpty()
-        }
-    val sourcePort =
-        remember(connection.metadata) {
-            connection.metadata["sourcePort"]?.jsonPrimitive?.content.orEmpty()
-        }
-    val displayHost =
-        remember(host, destinationPort, sourceIp, sourcePort) {
-            when {
-                host.isNotEmpty() && destinationPort.isNotEmpty() -> "$host:$destinationPort"
-                host.isNotEmpty() -> host
-                sourceIp.isNotEmpty() && sourcePort.isNotEmpty() -> "$sourceIp:$sourcePort"
-                else -> MLang.TrafficStatistics.RecentRequests.UnknownRequest
-            }
-        }
+    val displayAddress = remember(connection) { connection.toDisplayAddress() }
     val totalTraffic = connection.upload + connection.download
 
     Surface(
@@ -526,15 +557,22 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = displayHost,
+                        text =
+                            displayAddress.title.ifBlank {
+                                MLang.TrafficStatistics.RecentRequests.UnknownRequest
+                            },
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (process.isNotBlank()) {
+                    if (record.sourceAppName.isNotBlank()) {
                         Text(
-                            text = process,
+                            text =
+                                record.sourcePackageName
+                                    ?.takeIf { it.isNotBlank() && it != record.sourceAppName }
+                                    ?.let { "${record.sourceAppName} · $it" }
+                                    ?: record.sourceAppName,
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             maxLines = 1,

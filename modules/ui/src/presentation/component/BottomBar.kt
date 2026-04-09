@@ -43,11 +43,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -75,15 +73,9 @@ val LocalBottomBarLiquidState = compositionLocalOf<LiquidState?> { null }
 
 @Composable
 fun BottomBarContent(isVisible: Boolean = true) {
+    val navigationState = rememberPrimaryNavigationState()
     val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     val liquidState = LocalBottomBarLiquidState.current
-    val pagerState = LocalPagerState.current
-    val page by
-        remember(pagerState) {
-            derivedStateOf {
-                if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage
-            }
-        }
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
     val animatedScale by
         animateFloatAsState(
@@ -105,18 +97,6 @@ fun BottomBarContent(isVisible: Boolean = true) {
                 ),
             label = "bottom_bar_alpha",
         )
-    val handlePageChange = LocalHandlePageChange.current
-    var lastPageClickAt by remember { mutableLongStateOf(0L) }
-    val onItemClick: (Int) -> Unit = onItemClick@{ index ->
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastPageClickAt < 180L) return@onItemClick
-        lastPageClickAt = now
-
-        if (pagerState.isScrollInProgress) return@onItemClick
-        if (index == pagerState.currentPage && !pagerState.isScrollInProgress) return@onItemClick
-        handlePageChange(index)
-    }
-
     val density = LocalDensity.current
     val bottomSafeInset =
         with(density) {
@@ -134,7 +114,7 @@ fun BottomBarContent(isVisible: Boolean = true) {
         val horizontalInset = (maxWidth * 0.11f).coerceIn(20.dp, 48.dp)
 
         BottomNavigationBar(
-            selectedIndex = page,
+            selectedIndex = navigationState.page,
             tabsCount = BottomBarDestination.entries.size,
             liquidState = liquidState,
             containerColor = containerColor,
@@ -155,10 +135,11 @@ fun BottomBarContent(isVisible: Boolean = true) {
                     },
         ) {
             BottomBarDestination.entries.forEachIndexed { index, destination ->
-                val itemColor: Color = if (page == index) selectedColor else unselectedColor
+                val itemColor: Color =
+                    if (navigationState.page == index) selectedColor else unselectedColor
                 BottomNavigationTabItem(
                     enabled = bottomBarVisible,
-                    onClick = { onItemClick(index) },
+                    onClick = { navigationState.onItemClick(index) },
                 ) {
                     Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
                         Icon(
@@ -174,7 +155,8 @@ fun BottomBarContent(isVisible: Boolean = true) {
                                 color = itemColor,
                                 fontSize = 11.sp,
                                 fontWeight =
-                                    if (page == index) FontWeight.SemiBold else FontWeight.Medium,
+                                    if (navigationState.page == index) FontWeight.SemiBold
+                                    else FontWeight.Medium,
                             ),
                     )
                 }
@@ -200,6 +182,67 @@ enum class BottomBarDestination(val icon: ImageVector) {
 }
 
 @Composable
+fun SideRailContent(modifier: Modifier = Modifier) {
+    val navigationState = rememberPrimaryNavigationState()
+    val selectedColor = MiuixTheme.colorScheme.primary
+    val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.62f)
+    val containerColor = MiuixTheme.colorScheme.background
+    val indicatorContainerColor = selectedColor.copy(alpha = 0.1f)
+
+    Column(
+        modifier =
+            modifier
+                .width(88.dp)
+                .clip(Capsule())
+                .background(containerColor, Capsule())
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        BottomBarDestination.entries.forEachIndexed { index, destination ->
+            val selected = navigationState.page == index
+            val itemColor = if (selected) selectedColor else unselectedColor
+
+            Column(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clip(Capsule())
+                        .background(
+                            color = if (selected) indicatorContainerColor else Color.Transparent,
+                            shape = Capsule(),
+                        )
+                        .clickable(
+                            role = Role.Tab,
+                            interactionSource = null,
+                            indication = null,
+                            onClick = { navigationState.onItemClick(index) },
+                        )
+                        .padding(vertical = 10.dp, horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    imageVector = destination.icon,
+                    contentDescription = destination.label(),
+                    tint = itemColor,
+                    modifier = Modifier.size(22.dp),
+                )
+                BasicText(
+                    destination.label(),
+                    style =
+                        TextStyle(
+                            color = itemColor,
+                            fontSize = 11.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        ),
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun BottomNavigationBar(
     selectedIndex: Int,
     tabsCount: Int,
@@ -210,7 +253,6 @@ private fun BottomNavigationBar(
     content: @Composable RowScope.() -> Unit,
 ) {
     val isLightTheme = !isSystemInDarkTheme()
-    val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val density = LocalDensity.current
     val safeSelectedIndex = selectedIndex.coerceIn(0, tabsCount - 1)
 
@@ -271,9 +313,7 @@ private fun BottomNavigationBar(
         ) {
             Box(
                 Modifier.graphicsLayer {
-                        translationX =
-                            if (isLtr) indicatorPosition.value * tabWidth
-                            else size.width - (indicatorPosition.value + 1f) * tabWidth
+                        translationX = indicatorPosition.value * tabWidth
                         scaleX = indicatorScale.value
                         scaleY = indicatorScale.value
                     }
@@ -343,4 +383,31 @@ private fun RowScope.BottomNavigationTabItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         content = content,
     )
+}
+
+private data class PrimaryNavigationState(val page: Int, val onItemClick: (Int) -> Unit)
+
+@Composable
+private fun rememberPrimaryNavigationState(): PrimaryNavigationState {
+    val pagerState = LocalPagerState.current
+    val handlePageChange = LocalHandlePageChange.current
+    val page by
+        remember(pagerState) {
+            derivedStateOf {
+                if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage
+            }
+        }
+    var lastPageClickAt by remember { mutableLongStateOf(0L) }
+
+    val onItemClick: (Int) -> Unit = onItemClick@{ index ->
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastPageClickAt < 180L) return@onItemClick
+        lastPageClickAt = now
+
+        if (pagerState.isScrollInProgress) return@onItemClick
+        if (index == pagerState.currentPage && !pagerState.isScrollInProgress) return@onItemClick
+        handlePageChange(index)
+    }
+
+    return PrimaryNavigationState(page = page, onItemClick = onItemClick)
 }

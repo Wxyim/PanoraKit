@@ -288,10 +288,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                 }
         }
 
-    suspend fun refreshRemoteResource(
-        id: String,
-        allowInsecureHttpNonLocalhost: Boolean = false,
-    ): RemoteOverrideResource =
+    suspend fun refreshRemoteResource(id: String): RemoteOverrideResource =
         withContext(Dispatchers.IO) {
             val metadata =
                 loadMetadataIndex().getById(id) ?: error("override metadata not found: $id")
@@ -300,11 +297,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                     ?: error("remote source url is empty: $id")
             val existingConfig = getById(id) ?: error("override config not found: $id")
 
-            val content =
-                fetchUrlText(
-                    urlString = sourceUrl,
-                    allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
-                )
+            val content = fetchUrlText(urlString = sourceUrl)
             val parsed = RemoteOverrideParser.parse(json, content)
             val now = System.currentTimeMillis()
 
@@ -326,6 +319,31 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                 updatedAt = now,
                 ruleCount = countOverrideRules(parsed.config),
             )
+        }
+
+    suspend fun restoreConfigState(
+        config: OverrideConfig,
+        metadata: OverrideMetadata? = null,
+    ): OverrideConfig =
+        withContext(Dispatchers.IO) {
+            save(config)
+            metadata?.let { restoreMetadata ->
+                val metadataIndex = loadMetadataIndex()
+                if (metadataIndex.getById(restoreMetadata.id) != null) {
+                    saveMetadataIndex(metadataIndex.upsert(restoreMetadata))
+                    val userConfigsById =
+                        _configsFlow.value
+                            .filterNot(OverrideConfig::isSystem)
+                            .associateBy(OverrideConfig::id)
+                            .toMutableMap()
+                            .apply { put(config.id, config) }
+                    updateConfigsFlowSnapshot(
+                        metadataIndex = loadMetadataIndex(),
+                        userConfigsById = userConfigsById,
+                    )
+                }
+            }
+            config
         }
 
     override fun isSystemPreset(id: String): Boolean {
@@ -541,11 +559,10 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         metadataFile.writeText(json.encodeToString(MetadataIndex.serializer(), index))
     }
 
-    private fun fetchUrlText(urlString: String, allowInsecureHttpNonLocalhost: Boolean): String {
+    private fun fetchUrlText(urlString: String): String {
         return RemoteContentFetcher.fetchText(
             urlString = urlString,
             maxBytes = MAX_REMOTE_CONTENT_BYTES,
-            allowInsecureHttpNonLocalhost = allowInsecureHttpNonLocalhost,
             userAgent = "MonadBox",
         )
     }
