@@ -76,8 +76,9 @@ class ConnectionActivityRepository(
                     while (proxyFacade.isRunning.value) {
                         runCatching {
                                 val snapshot = ServiceClient.clash().queryConnections()
-                                ConnectionHistoryManager.updateConnections(snapshot.connections)
-                                _activeConnections.value = snapshot.connections
+                                val connections = snapshot.connections ?: emptyList()
+                                ConnectionHistoryManager.updateConnections(connections)
+                                _activeConnections.value = connections
                                 _closedConnections.value =
                                     ConnectionHistoryManager.getClosedConnections()
                             }

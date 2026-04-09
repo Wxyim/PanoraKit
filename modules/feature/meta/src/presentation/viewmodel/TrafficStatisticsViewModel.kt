@@ -22,6 +22,8 @@ package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
+import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
 import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
@@ -59,6 +61,13 @@ data class TargetSiteRecord(
         get() = totalUpload + totalDownload
 }
 
+private data class StatisticsClockSnapshot(
+    val dayKey: Long,
+    val hourOfDay: Int,
+    val minute: Int,
+    val timeZoneId: String,
+)
+
 class TrafficStatisticsViewModel(
     private val trafficStatisticsStore: TrafficStatisticsStore,
     connectionActivityRepository: ConnectionActivityRepository,
@@ -71,6 +80,30 @@ class TrafficStatisticsViewModel(
 
     private val _selectedBarIndex = MutableStateFlow(-1)
     val selectedBarIndex: StateFlow<Int> = _selectedBarIndex.asStateFlow()
+
+    private val statisticsClock: Flow<StatisticsClockSnapshot> =
+        PollingTimers
+            .ticks(PollingTimerSpecs.dynamic("traffic_statistics_clock", 60_000L, 0L))
+            .onStart { emit(0L) }
+            .map {
+                val calendar = Calendar.getInstance()
+                StatisticsClockSnapshot(
+                    dayKey = getDayKey(calendar),
+                    hourOfDay = calendar.get(Calendar.HOUR_OF_DAY),
+                    minute = calendar.get(Calendar.MINUTE),
+                    timeZoneId = calendar.timeZone.id,
+                )
+            }
+            .distinctUntilChanged()
+
+    val todayTimeContext: StateFlow<String> =
+        statisticsClock
+            .map { clock ->
+                val timeLabel =
+                    String.format(Locale.ROOT, "%02d:%02d", clock.hourOfDay, clock.minute)
+                "$timeLabel ${clock.timeZoneId} · ${TimeSlot.fromHour(clock.hourOfDay).label}"
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     val recentRequests: StateFlow<List<RecentRequestRecord>> =
         combine(
@@ -116,8 +149,9 @@ class TrafficStatisticsViewModel(
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val todaySummary: StateFlow<DailyTrafficSummary> =
-        trafficStatisticsStore.dailySummaries
-            .map { trafficStatisticsStore.getTodaySummary() }
+        combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->
+            trafficStatisticsStore.getTodaySummary()
+        }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -125,8 +159,9 @@ class TrafficStatisticsViewModel(
             )
 
     val yesterdaySummary: StateFlow<DailyTrafficSummary> =
-        trafficStatisticsStore.dailySummaries
-            .map { trafficStatisticsStore.getYesterdaySummary() }
+        combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->
+            trafficStatisticsStore.getYesterdaySummary()
+        }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -134,8 +169,7 @@ class TrafficStatisticsViewModel(
             )
 
     val weekSummary: StateFlow<Long> =
-        trafficStatisticsStore.dailySummaries
-            .map {
+        combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->
                 val summaries = trafficStatisticsStore.getDailySummaries(7)
                 summaries.sumOf { it.total }
             }
@@ -172,7 +206,10 @@ class TrafficStatisticsViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     val chartItems: StateFlow<List<BarChartItem>> =
-        combine(_selectedTimeRange, trafficStatisticsStore.dailySummaries) { timeRange, _ ->
+        combine(_selectedTimeRange, trafficStatisticsStore.dailySummaries, statisticsClock) {
+            timeRange,
+            _,
+            _ ->
                 when (timeRange) {
                     StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
                     StatisticsTimeRange.WEEK -> getDailyChartItems()
@@ -193,13 +230,14 @@ class TrafficStatisticsViewModel(
         val hourlyData = trafficStatisticsStore.getTodayHourlyData()
         val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val currentSlot = TimeSlot.fromHour(currentHour)
+        val visibleSlotCount = currentSlot.ordinal + 1
 
-        return hourlyData.mapIndexed { index, slotData ->
+        return hourlyData.take(visibleSlotCount).mapIndexed { index, slotData ->
             val slot = TimeSlot.entries[index]
             BarChartItem(
                 label = slot.label,
                 value = slotData.total,
-                isHighlighted = slot == currentSlot,
+                isCurrent = slot == currentSlot,
             )
         }
     }
@@ -221,7 +259,7 @@ class TrafficStatisticsViewModel(
             BarChartItem(
                 label = label,
                 value = summary.total,
-                isHighlighted = summary.dateMillis == todayKey,
+                isCurrent = summary.dateMillis == todayKey,
             )
         }
     }

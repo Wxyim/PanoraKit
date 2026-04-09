@@ -28,7 +28,7 @@ import kotlinx.serialization.json.JsonObject
 data class ConnectionSnapshot(
     val downloadTotal: Long = 0L,
     val uploadTotal: Long = 0L,
-    val connections: List<ConnectionInfo> = emptyList(),
+    val connections: List<ConnectionInfo>? = null,
     val memory: Long = 0L,
 )
 

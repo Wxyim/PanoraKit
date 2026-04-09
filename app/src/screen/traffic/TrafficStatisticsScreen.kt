@@ -27,16 +27,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,11 +55,13 @@ import com.github.yumelira.yumebox.feature.meta.presentation.component.toDisplay
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.RecentRequestRecord
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TargetSiteRecord
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.TrafficBarChart
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -73,6 +81,7 @@ private object TrafficStatisticsMetrics {
     val CardSpacing = 14.dp
     val CardInnerPadding = 16.dp
     val SummarySpacing = 14.dp
+    val ChartInfoSpacing = 10.dp
     val SummaryBlockHeight = 66.dp
     val SummaryValueFontSize = 26.sp
     val ChartHeight = 132.dp
@@ -82,6 +91,7 @@ private object TrafficStatisticsMetrics {
     val RecentRequestItemPadding = 12.dp
     val RecentRequestItemSpacing = 10.dp
     val RecentRequestChipCorner = 100.dp
+    val WideLayoutBreakpoint = 840.dp
 }
 
 private enum class TrafficDetailSection {
@@ -91,7 +101,7 @@ private enum class TrafficDetailSection {
 
 @Destination<RootGraph>
 @Composable
-fun TrafficStatisticsScreen() {
+fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
     val viewModel = koinViewModel<TrafficStatisticsViewModel>()
     val scrollBehavior = MiuixScrollBehavior()
 
@@ -100,15 +110,44 @@ fun TrafficStatisticsScreen() {
     val trafficDifference by viewModel.trafficDifference.collectAsStateWithLifecycle()
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsStateWithLifecycle()
     val chartItems by viewModel.chartItems.collectAsStateWithLifecycle()
+    val todayTimeContext by viewModel.todayTimeContext.collectAsStateWithLifecycle()
     val selectedBarIndex by viewModel.selectedBarIndex.collectAsStateWithLifecycle()
     val recentRequests by viewModel.recentRequests.collectAsStateWithLifecycle()
     val targetSites by viewModel.targetSites.collectAsStateWithLifecycle()
-    var selectedDetailSection by remember { mutableStateOf(TrafficDetailSection.RecentRequests) }
-    var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
-    var showConnectionDetail by remember { mutableStateOf(false) }
+    var selectedDetailSectionName by
+        rememberSaveable { mutableStateOf(TrafficDetailSection.RecentRequests.name) }
+    var selectedConnectionId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showConnectionDetail by rememberSaveable { mutableStateOf(false) }
+    val selectedDetailSection =
+        remember(selectedDetailSectionName) {
+            runCatching { TrafficDetailSection.valueOf(selectedDetailSectionName) }
+                .getOrDefault(TrafficDetailSection.RecentRequests)
+        }
+    val selectedConnection =
+        remember(selectedConnectionId, recentRequests) {
+            recentRequests.firstOrNull { it.connection.id == selectedConnectionId }?.connection
+        }
+
+    LaunchedEffect(showConnectionDetail, selectedConnectionId, selectedConnection) {
+        if (showConnectionDetail && selectedConnectionId != null && selectedConnection == null) {
+            showConnectionDetail = false
+            selectedConnectionId = null
+        }
+    }
 
     Scaffold(
-        topBar = { TopBar(title = MLang.TrafficStatistics.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = MLang.TrafficStatistics.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -118,192 +157,84 @@ fun TrafficStatisticsScreen() {
             modifier = Modifier.fillMaxSize(),
         ) {
             item {
-                top.yukonga.miuix.kmp.basic.Card(
+                BoxWithConstraints(
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
                 ) {
-                    Column(modifier = Modifier.padding(TrafficStatisticsMetrics.CardInnerPadding)) {
+                    val useWideLayout = maxWidth >= TrafficStatisticsMetrics.WideLayoutBreakpoint
+                    if (useWideLayout) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            Text(
-                                text = MLang.TrafficStatistics.OverviewTitle,
-                                style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurface,
-                            )
-                            TimeRangeSelector(
-                                selectedRange = selectedTimeRange,
-                                onRangeSelected = { viewModel.setTimeRange(it) },
-                                modifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.SummarySpacing))
-
-                        CompactTrafficSummary(
-                            selectedTimeRange = selectedTimeRange,
-                            todaySummary = todaySummary.total,
-                            weekSummary = weekSummary,
-                            trafficDifference = trafficDifference,
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Box(
-                            modifier =
-                                Modifier.fillMaxWidth().height(TrafficStatisticsMetrics.ChartHeight)
-                        ) {
-                            TrafficBarChart(
-                                items = chartItems,
-                                selectedIndex = selectedBarIndex,
-                                onItemClick = { index ->
+                            OverviewCard(
+                                selectedTimeRange = selectedTimeRange,
+                                todaySummary = todaySummary.total,
+                                weekSummary = weekSummary,
+                                trafficDifference = trafficDifference,
+                                chartItems = chartItems,
+                                todayTimeContext = todayTimeContext,
+                                selectedBarIndex = selectedBarIndex,
+                                onRangeSelected = viewModel::setTimeRange,
+                                onBarSelected = { index ->
                                     viewModel.setSelectedBarIndex(
                                         if (selectedBarIndex == index) -1 else index
                                     )
                                 },
+                                modifier = Modifier.weight(1f),
+                                selectorModifier = Modifier.widthIn(min = 200.dp, max = 248.dp),
                             )
-                        }
-
-                        val selectedLabelText =
-                            if (selectedBarIndex >= 0 && chartItems.isNotEmpty()) {
-                                chartItems
-                                    .getOrNull(selectedBarIndex)
-                                    ?.takeIf { it.label.isNotEmpty() }
-                                    ?.let { "${it.label}: ${formatBytes(it.value)}" }
-                            } else null
-
-                        Box(
-                            modifier =
-                                Modifier.fillMaxWidth()
-                                    .height(TrafficStatisticsMetrics.SelectedLabelHeight),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            AnimatedContent(
-                                targetState = selectedLabelText,
-                                transitionSpec = {
-                                    fadeIn(tween(250)) togetherWith fadeOut(tween(150))
+                            DetailsCard(
+                                selectedDetailSection = selectedDetailSection,
+                                recentRequests = recentRequests,
+                                targetSites = targetSites,
+                                onSectionSelected = { selectedDetailSectionName = it.name },
+                                onRecentRequestClick = { request ->
+                                    selectedConnectionId = request.connection.id
+                                    showConnectionDetail = true
                                 },
-                                label = "selected_bar_label",
-                            ) { labelText ->
-                                if (labelText != null) {
-                                    Text(
-                                        text = labelText,
-                                        style = MiuixTheme.textStyles.footnote1,
-                                        color = MiuixTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.CardSpacing)) }
-
-            item {
-                top.yukonga.miuix.kmp.basic.Card(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
-                ) {
-                    Column(
-                        modifier =
-                            Modifier.padding(TrafficStatisticsMetrics.RecentRequestCardPadding),
-                        verticalArrangement =
-                            Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column {
-                                Text(
-                                    text = MLang.TrafficStatistics.Detail.Title,
-                                    style = MiuixTheme.textStyles.body1,
-                                    color = MiuixTheme.colorScheme.onSurface,
-                                )
-                            }
-                            Text(
-                                text =
-                                    when (selectedDetailSection) {
-                                        TrafficDetailSection.RecentRequests ->
-                                            MLang.TrafficStatistics.RecentRequests.Count.format(
-                                                recentRequests.size
-                                            )
-                                        TrafficDetailSection.TargetSites ->
-                                            MLang.TrafficStatistics.TargetSites.Count.format(
-                                                targetSites.size
-                                            )
-                                    },
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = MiuixTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                                selectorModifier = Modifier.widthIn(min = 240.dp, max = 320.dp),
                             )
                         }
-
-                        DetailSectionSelector(
-                            selectedSection = selectedDetailSection,
-                            onSectionSelected = { selectedDetailSection = it },
-                            modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
-                        )
-
-                        AnimatedContent(
-                            targetState = selectedDetailSection,
-                            transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
-                            label = "traffic_detail_section",
-                        ) { detailSection ->
-                            when (detailSection) {
-                                TrafficDetailSection.RecentRequests -> {
-                                    if (recentRequests.isEmpty()) {
-                                        Text(
-                                            text = MLang.TrafficStatistics.RecentRequests.Empty,
-                                            style = MiuixTheme.textStyles.body2,
-                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                        )
-                                    } else {
-                                        Column(
-                                            verticalArrangement =
-                                                Arrangement.spacedBy(
-                                                    TrafficStatisticsMetrics.RecentRequestItemSpacing
-                                                )
-                                        ) {
-                                            recentRequests.forEach { request ->
-                                                RecentRequestItem(
-                                                    record = request,
-                                                    onClick = {
-                                                        selectedConnection = request.connection
-                                                        showConnectionDetail = true
-                                                    },
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                TrafficDetailSection.TargetSites -> {
-                                    if (targetSites.isEmpty()) {
-                                        Text(
-                                            text = MLang.TrafficStatistics.TargetSites.Empty,
-                                            style = MiuixTheme.textStyles.body2,
-                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                        )
-                                    } else {
-                                        Column(
-                                            verticalArrangement =
-                                                Arrangement.spacedBy(
-                                                    TrafficStatisticsMetrics.RecentRequestItemSpacing
-                                                )
-                                        ) {
-                                            targetSites.forEach { site ->
-                                                TargetSiteItem(record = site)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement =
+                                Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                        ) {
+                            OverviewCard(
+                                selectedTimeRange = selectedTimeRange,
+                                todaySummary = todaySummary.total,
+                                weekSummary = weekSummary,
+                                trafficDifference = trafficDifference,
+                                chartItems = chartItems,
+                                todayTimeContext = todayTimeContext,
+                                selectedBarIndex = selectedBarIndex,
+                                onRangeSelected = viewModel::setTimeRange,
+                                onBarSelected = { index ->
+                                    viewModel.setSelectedBarIndex(
+                                        if (selectedBarIndex == index) -1 else index
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                selectorModifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
+                            )
+                            DetailsCard(
+                                selectedDetailSection = selectedDetailSection,
+                                recentRequests = recentRequests,
+                                targetSites = targetSites,
+                                onSectionSelected = { selectedDetailSectionName = it.name },
+                                onRecentRequestClick = { request ->
+                                    selectedConnectionId = request.connection.id
+                                    showConnectionDetail = true
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                selectorModifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+                            )
                         }
                     }
                 }
@@ -311,11 +242,213 @@ fun TrafficStatisticsScreen() {
         }
 
         ConnectionDetailSheet(
-            show = showConnectionDetail,
+            show = showConnectionDetail && selectedConnection != null,
             connectionInfo = selectedConnection,
             onDismiss = { showConnectionDetail = false },
-            onDismissFinished = { selectedConnection = null },
+            onDismissFinished = { selectedConnectionId = null },
         )
+    }
+}
+
+@Composable
+private fun OverviewCard(
+    selectedTimeRange: StatisticsTimeRange,
+    todaySummary: Long,
+    weekSummary: Long,
+    trafficDifference: Long,
+    chartItems: List<com.github.yumelira.yumebox.presentation.component.BarChartItem>,
+    todayTimeContext: String,
+    selectedBarIndex: Int,
+    onRangeSelected: (StatisticsTimeRange) -> Unit,
+    onBarSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    selectorModifier: Modifier = Modifier,
+) {
+    top.yukonga.miuix.kmp.basic.Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(TrafficStatisticsMetrics.CardInnerPadding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = MLang.TrafficStatistics.OverviewTitle,
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
+                TimeRangeSelector(
+                    selectedRange = selectedTimeRange,
+                    onRangeSelected = onRangeSelected,
+                    modifier = selectorModifier,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.SummarySpacing))
+
+            CompactTrafficSummary(
+                selectedTimeRange = selectedTimeRange,
+                todaySummary = todaySummary,
+                weekSummary = weekSummary,
+                trafficDifference = trafficDifference,
+            )
+
+            val selectedLabelText =
+                if (selectedBarIndex >= 0 && chartItems.isNotEmpty()) {
+                    chartItems
+                        .getOrNull(selectedBarIndex)
+                        ?.takeIf { it.label.isNotEmpty() }
+                        ?.let { "${it.label}: ${formatBytes(it.value)}" }
+                } else null
+            val timeContextText =
+                todayTimeContext.takeIf {
+                    selectedTimeRange == StatisticsTimeRange.TODAY && it.isNotBlank()
+                }
+
+            Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.ChartInfoSpacing))
+
+            Column(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .heightIn(min = TrafficStatisticsMetrics.SelectedLabelHeight),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (timeContextText != null) {
+                    Text(
+                        text = timeContextText,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    AnimatedContent(
+                        targetState = selectedLabelText,
+                        transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
+                        label = "selected_bar_label",
+                    ) { labelText ->
+                        if (labelText != null) {
+                            Text(
+                                text = labelText,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Box(modifier = Modifier.fillMaxWidth().height(TrafficStatisticsMetrics.ChartHeight)) {
+                TrafficBarChart(
+                    items = chartItems,
+                    selectedIndex = selectedBarIndex,
+                    onItemClick = { index -> onBarSelected(index) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsCard(
+    selectedDetailSection: TrafficDetailSection,
+    recentRequests: List<RecentRequestRecord>,
+    targetSites: List<TargetSiteRecord>,
+    onSectionSelected: (TrafficDetailSection) -> Unit,
+    onRecentRequestClick: (RecentRequestRecord) -> Unit,
+    modifier: Modifier = Modifier,
+    selectorModifier: Modifier = Modifier,
+) {
+    top.yukonga.miuix.kmp.basic.Card(modifier = modifier) {
+        Column(
+            modifier = Modifier.padding(TrafficStatisticsMetrics.RecentRequestCardPadding),
+            verticalArrangement = Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = MLang.TrafficStatistics.Detail.Title,
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text =
+                        when (selectedDetailSection) {
+                            TrafficDetailSection.RecentRequests ->
+                                MLang.TrafficStatistics.RecentRequests.Count.format(
+                                    recentRequests.size
+                                )
+                            TrafficDetailSection.TargetSites ->
+                                MLang.TrafficStatistics.TargetSites.Count.format(targetSites.size)
+                        },
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.primary,
+                )
+            }
+
+            DetailSectionSelector(
+                selectedSection = selectedDetailSection,
+                onSectionSelected = onSectionSelected,
+                modifier = selectorModifier,
+            )
+
+            AnimatedContent(
+                targetState = selectedDetailSection,
+                transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
+                label = "traffic_detail_section",
+            ) { detailSection ->
+                when (detailSection) {
+                    TrafficDetailSection.RecentRequests -> {
+                        if (recentRequests.isEmpty()) {
+                            Text(
+                                text = MLang.TrafficStatistics.RecentRequests.Empty,
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement =
+                                    Arrangement.spacedBy(
+                                        TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                    )
+                            ) {
+                                recentRequests.forEach { request ->
+                                    RecentRequestItem(
+                                        record = request,
+                                        onClick = { onRecentRequestClick(request) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    TrafficDetailSection.TargetSites -> {
+                        if (targetSites.isEmpty()) {
+                            Text(
+                                text = MLang.TrafficStatistics.TargetSites.Empty,
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement =
+                                    Arrangement.spacedBy(
+                                        TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                    )
+                            ) {
+                                targetSites.forEach { site -> TargetSiteItem(record = site) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -325,7 +458,10 @@ private fun DetailSectionSelector(
     onSectionSelected: (TrafficDetailSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         TrafficDetailSection.entries.forEach { section ->
             val isSelected = section == selectedSection
             val label =
@@ -335,9 +471,13 @@ private fun DetailSectionSelector(
                 }
             Surface(
                 modifier =
-                    Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable {
-                        onSectionSelected(section)
-                    },
+                    Modifier.weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onSectionSelected(section) },
+                        ),
                 color =
                     if (isSelected) {
                         MiuixTheme.colorScheme.primary
@@ -437,14 +577,21 @@ private fun TimeRangeSelector(
     onRangeSelected: (StatisticsTimeRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         StatisticsTimeRange.entries.forEach { range ->
             val isSelected = range == selectedRange
             Surface(
                 modifier =
-                    Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable {
-                        onRangeSelected(range)
-                    },
+                    Modifier.weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onRangeSelected(range) },
+                        ),
                 color =
                     if (isSelected) {
                         MiuixTheme.colorScheme.primary

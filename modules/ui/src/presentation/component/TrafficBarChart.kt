@@ -33,6 +33,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +44,11 @@ import com.github.yumelira.yumebox.common.util.formatBytes
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-data class BarChartItem(val label: String, val value: Long, val isHighlighted: Boolean = false)
+data class BarChartItem(
+    val label: String,
+    val value: Long,
+    val isCurrent: Boolean = false,
+)
 
 @Composable
 fun TrafficBarChart(
@@ -51,6 +59,7 @@ fun TrafficBarChart(
     selectedIndex: Int = -1,
     barColor: Color = MiuixTheme.colorScheme.primary.copy(alpha = 0.5f),
     highlightColor: Color = MiuixTheme.colorScheme.primary,
+    currentBarColor: Color = MiuixTheme.colorScheme.primary.copy(alpha = 0.26f),
     chartHeight: Dp = 140.dp,
     barWidth: Dp = 20.dp,
 ) {
@@ -94,7 +103,8 @@ fun TrafficBarChart(
             verticalAlignment = Alignment.Bottom,
         ) {
             displayItems.forEachIndexed { index, item ->
-                val isSelected = index == selectedIndex || item.isHighlighted
+                val isSelected = index == selectedIndex
+                val isCurrent = item.isCurrent
                 val isValidItem = item.label.isNotEmpty()
 
                 val targetHeight =
@@ -117,20 +127,41 @@ fun TrafficBarChart(
                     verticalArrangement = Arrangement.Bottom,
                 ) {
                     if (isValidItem && animatedHeight > 0f) {
+                        val barLabel = "${item.label}: ${formatBytes(item.value)}"
                         Box(
                             modifier =
-                                Modifier.width(barWidth)
-                                    .fillMaxHeight(animatedHeight)
-                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                    .background(if (isSelected) highlightColor else barColor)
+                                Modifier.fillMaxWidth()
+                                    .fillMaxHeight()
+                                    .semantics(mergeDescendants = true) {
+                                        contentDescription = barLabel
+                                        selected = isSelected
+                                    }
                                     .then(
                                         if (onItemClick != null) {
-                                            Modifier.clickable { onItemClick(index) }
+                                            Modifier.clickable(
+                                                role = Role.Button,
+                                                onClickLabel = barLabel,
+                                            ) { onItemClick(index) }
                                         } else {
                                             Modifier
                                         }
-                                    )
-                        )
+                                    ),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier.width(barWidth)
+                                        .fillMaxHeight(animatedHeight)
+                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        .background(
+                                            when {
+                                                isSelected -> highlightColor
+                                                isCurrent -> currentBarColor
+                                                else -> barColor
+                                            }
+                                        )
+                            )
+                        }
                     }
                 }
             }
@@ -144,16 +175,18 @@ fun TrafficBarChart(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             displayItems.forEachIndexed { index, item ->
-                val isSelected = index == selectedIndex || item.isHighlighted
+                val isSelected = index == selectedIndex
+                val isCurrent = item.isCurrent
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = item.label,
                         style = MiuixTheme.textStyles.footnote1.copy(fontSize = 9.sp),
                         color =
-                            if (isSelected) {
-                                MiuixTheme.colorScheme.primary
-                            } else {
-                                MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            when {
+                                isSelected -> MiuixTheme.colorScheme.primary
+                                isCurrent ->
+                                    MiuixTheme.colorScheme.primary.copy(alpha = 0.72f)
+                                else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
                             },
                         maxLines = 1,
                     )

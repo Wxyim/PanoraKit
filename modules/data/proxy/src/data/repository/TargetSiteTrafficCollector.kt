@@ -79,24 +79,25 @@ class TargetSiteTrafficCollector(
             val currentDownload = connection.download.coerceAtLeast(0L)
             val previous = baselines[connection.id]
 
-            if (
-                previous == null ||
-                    previous.siteKey != site.key ||
-                    currentUpload < previous.upload ||
-                    currentDownload < previous.download
-            ) {
-                baselines[connection.id] =
-                    ConnectionBaseline(
-                        siteKey = site.key,
-                        displayName = site.displayName,
-                        upload = currentUpload,
-                        download = currentDownload,
-                    )
-                return@forEach
-            }
+            val (uploadDelta, downloadDelta) =
+                when {
+                    previous == null -> currentUpload to currentDownload
+                    previous.siteKey != site.key -> {
+                        baselines[connection.id] =
+                            ConnectionBaseline(
+                                siteKey = site.key,
+                                displayName = site.displayName,
+                                upload = currentUpload,
+                                download = currentDownload,
+                            )
+                        return@forEach
+                    }
+                    currentUpload < previous.upload || currentDownload < previous.download ->
+                        currentUpload to currentDownload
+                    else ->
+                        (currentUpload - previous.upload) to (currentDownload - previous.download)
+                }
 
-            val uploadDelta = currentUpload - previous.upload
-            val downloadDelta = currentDownload - previous.download
             if (uploadDelta > 0 || downloadDelta > 0) {
                 val currentDelta =
                     deltas[site.key]
@@ -117,7 +118,8 @@ class TargetSiteTrafficCollector(
             }
 
             baselines[connection.id] =
-                previous.copy(
+                ConnectionBaseline(
+                    siteKey = site.key,
                     displayName = site.displayName,
                     upload = currentUpload,
                     download = currentDownload,
@@ -130,13 +132,20 @@ class TargetSiteTrafficCollector(
 
     private fun resolveSite(connection: ConnectionInfo): SiteIdentity? {
         val metadata = connection.metadata
-        val host = metadata["host"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        val host =
+            normalizeEndpoint(metadata["host"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty())
         if (host.isNotBlank()) {
-            return SiteIdentity(key = "host:${host.lowercase()}", displayName = host)
+            return if (host.isIpLiteral()) {
+                SiteIdentity(key = "ip:${host.lowercase()}", displayName = host)
+            } else {
+                SiteIdentity(key = "host:${host.lowercase()}", displayName = host)
+            }
         }
 
         val destinationIp =
-            metadata["destinationIP"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            normalizeEndpoint(
+                metadata["destinationIP"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            )
         if (destinationIp.isNotBlank()) {
             return SiteIdentity(
                 key = "ip:${destinationIp.lowercase()}",
@@ -145,6 +154,51 @@ class TargetSiteTrafficCollector(
         }
 
         return null
+    }
+
+    private fun normalizeEndpoint(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return ""
+
+        if (trimmed.startsWith('[')) {
+            val bracketEnd = trimmed.indexOf(']')
+            if (bracketEnd > 1) {
+                return trimmed.substring(1, bracketEnd).trim().trimEnd('.')
+            }
+        }
+
+        if (trimmed.count { it == ':' } == 1) {
+            val hostPart = trimmed.substringBeforeLast(':').trim()
+            val portPart = trimmed.substringAfterLast(':').trim()
+            if (hostPart.isNotBlank() && portPart.all(Char::isDigit)) {
+                return hostPart.trimEnd('.')
+            }
+        }
+
+        return trimmed.trimEnd('.')
+    }
+
+    private fun String.isIpLiteral(): Boolean = isIpv4Literal() || isIpv6Literal()
+
+    private fun String.isIpv4Literal(): Boolean {
+        val parts = split('.')
+        if (parts.size != 4) return false
+        return parts.all { part ->
+            part.isNotBlank() &&
+                part.all(Char::isDigit) &&
+                part.toIntOrNull()?.let { value -> value in 0..255 } == true
+        }
+    }
+
+    private fun String.isIpv6Literal(): Boolean {
+        val candidate = substringBefore('%')
+        if (candidate.count { it == ':' } < 2) return false
+        return candidate.all { character ->
+            character.isDigit() ||
+                character.lowercaseChar() in 'a'..'f' ||
+                character == ':' ||
+                character == '.'
+        }
     }
 
     fun stop() {

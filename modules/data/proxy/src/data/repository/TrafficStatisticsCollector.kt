@@ -40,6 +40,7 @@ class TrafficStatisticsCollector(
     private var lastTotalUpload: Long = 0L
     private var lastTotalDownload: Long = 0L
     private var lastProfileId: String? = null
+    private var lastSampleAt: Long = 0L
 
     init {
         startCollection()
@@ -67,6 +68,7 @@ class TrafficStatisticsCollector(
             lastTotalUpload = trafficStatisticsStore.getLastTrafficUpload()
             lastTotalDownload = trafficStatisticsStore.getLastTrafficDownload()
             lastProfileId = trafficStatisticsStore.getLastProfileId()
+            lastSampleAt = trafficStatisticsStore.getLastTrafficTimestamp()
 
             while (isActive && proxyFacade.isRunning.value) {
                 runCatching {
@@ -83,6 +85,7 @@ class TrafficStatisticsCollector(
     }
 
     private fun collectTrafficData() {
+        val collectedAt = System.currentTimeMillis()
         val trafficValue = proxyFacade.trafficTotal.value
         val trafficData = com.github.yumelira.yumebox.domain.model.TrafficData.from(trafficValue)
         val currentUpload = trafficData.upload
@@ -92,25 +95,22 @@ class TrafficStatisticsCollector(
         val currentProfileName = currentProfile?.name
 
         if (lastTotalUpload == 0L && lastTotalDownload == 0L) {
-            lastTotalUpload = currentUpload
-            lastTotalDownload = currentDownload
-            lastProfileId = currentProfileId
-            trafficStatisticsStore.setLastTraffic(currentUpload, currentDownload, currentProfileId)
+            resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
 
         if (currentProfileId != lastProfileId) {
-            lastTotalUpload = currentUpload
-            lastTotalDownload = currentDownload
-            lastProfileId = currentProfileId
-            trafficStatisticsStore.setLastTraffic(currentUpload, currentDownload, currentProfileId)
+            resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
 
         if (currentUpload < lastTotalUpload || currentDownload < lastTotalDownload) {
-            lastTotalUpload = currentUpload
-            lastTotalDownload = currentDownload
-            trafficStatisticsStore.setLastTraffic(currentUpload, currentDownload, currentProfileId)
+            resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
+            return
+        }
+
+        if (lastSampleAt <= 0L || collectedAt <= lastSampleAt) {
+            resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
 
@@ -123,18 +123,45 @@ class TrafficStatisticsCollector(
                 downloadDelta,
                 currentProfileId,
                 currentProfileName,
+                windowStartMillis = lastSampleAt,
+                windowEndMillis = collectedAt,
             )
         }
 
         lastTotalUpload = currentUpload
         lastTotalDownload = currentDownload
-        trafficStatisticsStore.setLastTraffic(currentUpload, currentDownload, currentProfileId)
+        lastSampleAt = collectedAt
+        trafficStatisticsStore.setLastTraffic(
+            currentUpload,
+            currentDownload,
+            currentProfileId,
+            timestamp = collectedAt,
+        )
     }
 
     private fun resetLastValues() {
         lastTotalUpload = 0L
         lastTotalDownload = 0L
         lastProfileId = null
+        lastSampleAt = 0L
+    }
+
+    private fun resetBaseline(
+        currentUpload: Long,
+        currentDownload: Long,
+        currentProfileId: String?,
+        collectedAt: Long,
+    ) {
+        lastTotalUpload = currentUpload
+        lastTotalDownload = currentDownload
+        lastProfileId = currentProfileId
+        lastSampleAt = collectedAt
+        trafficStatisticsStore.setLastTraffic(
+            currentUpload,
+            currentDownload,
+            currentProfileId,
+            timestamp = collectedAt,
+        )
     }
 
     fun stop() {

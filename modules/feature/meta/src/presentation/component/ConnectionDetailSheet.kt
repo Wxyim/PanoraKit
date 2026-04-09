@@ -80,6 +80,12 @@ fun ConnectionDetailSheet(
         }
     val sourcePackageName =
         remember(sourceApp) { sourceApp?.packageName?.takeIf { it.isNotBlank() } }
+    val distinctProcessName =
+        remember(sourcePackageName, process) {
+            process.takeIf {
+                it.isNotBlank() && !it.equals(sourcePackageName.orEmpty(), ignoreCase = true)
+            }
+        }
 
     AppActionBottomSheet(
         show = show,
@@ -97,7 +103,7 @@ fun ConnectionDetailSheet(
                         network = network,
                         sourceAppName = sourceAppName,
                         sourcePackageName = sourcePackageName,
-                        process = process,
+                        process = distinctProcessName.orEmpty(),
                         sourceAddress = displayAddress?.sourceAddress.orEmpty(),
                         destinationAddress = displayAddress?.destinationAddress.orEmpty(),
                         duration = durationText,
