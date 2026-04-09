@@ -1,6 +1,8 @@
-# 参与贡献 YumeBox/NomadBox
+# 参与贡献 MonadBox
 
 [简体中文](CONTRIBUTING_ZH_HANS.md) | [English](CONTRIBUTING.md)
+
+文档中心：[README_ZH_HANS.md](../docs/README_ZH_HANS.md)
 
 本文档定义参与贡献约束。环境初始化、native 构建链与 release 打包流程见 [DEVELOP_ZH_HANS.md](DEVELOP_ZH_HANS.md)。
 
@@ -138,4 +140,10 @@ App.onCreate()
 
 ## 8. 许可证
 
-NomadBox 采用 [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html) 许可。请保留现有许可证头部。
+MonadBox 采用 [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html) 许可。请保留现有许可证头部。
+
+## 9. 相关文档
+
+- 开发指南：[DEVELOP_ZH_HANS.md](../docs/DEVELOP_ZH_HANS.md)
+- 性能文档：[PERFORMANCE_ZH_HANS.md](../docs/PERFORMANCE_ZH_HANS.md)
+- English 文档中心：[README.md](../docs/README.md)

@@ -21,8 +21,7 @@ abstract class UiContractValidationTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sourceRoots: ConfigurableFileCollection
 
-    @get:Internal
-    abstract val repoRootDir: DirectoryProperty
+    @get:Internal abstract val repoRootDir: DirectoryProperty
 
     @get:OutputFile abstract val reportFile: RegularFileProperty
 
@@ -63,13 +62,20 @@ abstract class UiContractValidationTask : DefaultTask() {
         val issues = mutableListOf<String>()
 
         val duplicateDestinations =
-            registryEntries.groupBy(UiCapabilityEntry::destination).filterValues { it.size > 1 }.keys
+            registryEntries
+                .groupBy(UiCapabilityEntry::destination)
+                .filterValues { it.size > 1 }
+                .keys
         if (duplicateDestinations.isNotEmpty()) {
-            issues += "Duplicate registry destinations: ${duplicateDestinations.sorted().joinToString()}"
+            issues +=
+                "Duplicate registry destinations: ${duplicateDestinations.sorted().joinToString()}"
         }
 
         val duplicateCapabilityIds =
-            registryEntries.groupBy(UiCapabilityEntry::capabilityId).filterValues { it.size > 1 }.keys
+            registryEntries
+                .groupBy(UiCapabilityEntry::capabilityId)
+                .filterValues { it.size > 1 }
+                .keys
         if (duplicateCapabilityIds.isNotEmpty()) {
             issues += "Duplicate capability ids: ${duplicateCapabilityIds.sorted().joinToString()}"
         }
@@ -98,7 +104,8 @@ abstract class UiContractValidationTask : DefaultTask() {
                         "${entry.destination}: registry screen '${entry.screenFile}' does not match declaration '${declared.screenFile}'"
                 }
                 if (entry.entryMode == "start" && !declared.isStartDestination) {
-                    issues += "${entry.destination}: entryMode=start but destination is not marked start=true"
+                    issues +=
+                        "${entry.destination}: entryMode=start but destination is not marked start=true"
                 }
                 if (entry.entryMode != "start" && declared.isStartDestination) {
                     issues += "${entry.destination}: start destination must use entryMode=start"
@@ -144,27 +151,31 @@ abstract class UiContractValidationTask : DefaultTask() {
                 .map(UiCapabilityEntry::destination)
                 .toSet()
 
-        val missingFromSettings = registeredSettingsDestinations - sourceAnalysis.settingsEntryDestinations
+        val missingFromSettings =
+            registeredSettingsDestinations - sourceAnalysis.settingsEntryDestinations
         if (missingFromSettings.isNotEmpty()) {
             issues +=
                 "Registry top-level settings pages missing from SettingPager: ${missingFromSettings.sorted().joinToString()}"
         }
 
-        val missingFromRegistry = sourceAnalysis.settingsEntryDestinations - registeredSettingsDestinations
+        val missingFromRegistry =
+            sourceAnalysis.settingsEntryDestinations - registeredSettingsDestinations
         if (missingFromRegistry.isNotEmpty()) {
             issues +=
                 "SettingPager destinations missing from registry settingsSection mapping: ${missingFromRegistry.sorted().joinToString()}"
         }
 
         val orphanedDestinations =
-            sourceAnalysis.rootGraphDestinations - registryEntries.map(UiCapabilityEntry::destination).toSet()
+            sourceAnalysis.rootGraphDestinations -
+                registryEntries.map(UiCapabilityEntry::destination).toSet()
         if (orphanedDestinations.isNotEmpty()) {
             issues +=
                 "Unregistered RootGraph destinations under app/src or modules/feature: ${orphanedDestinations.sorted().joinToString()}"
         }
 
         val registeredDestinations = registryEntries.map(UiCapabilityEntry::destination).toSet()
-        val unregisteredNestedDestinations = sourceAnalysis.nestedGraphDestinations - registeredDestinations
+        val unregisteredNestedDestinations =
+            sourceAnalysis.nestedGraphDestinations - registeredDestinations
         if (unregisteredNestedDestinations.isNotEmpty()) {
             issues +=
                 "Unregistered nested graph destinations under app/src or modules/feature: ${unregisteredNestedDestinations.sorted().joinToString()}"
@@ -209,7 +220,9 @@ abstract class UiContractValidationTask : DefaultTask() {
                     appendLine("Registry entries: ${registryEntries.size}")
                     appendLine("Declared @Destination routes: ${declaredDestinations.size}")
                     appendLine("Declared RootGraph destinations: ${rootGraphDestinations.size}")
-                    appendLine("Declared nested-graph destinations: ${nestedGraphDestinations.size}")
+                    appendLine(
+                        "Declared nested-graph destinations: ${nestedGraphDestinations.size}"
+                    )
                     appendLine("Navigation references found: ${destinationRefs.size}")
                     appendLine()
                     appendLine("Reachability Checklist")

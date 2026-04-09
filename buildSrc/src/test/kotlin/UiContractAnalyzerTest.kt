@@ -17,7 +17,8 @@ class UiContractAnalyzerTest {
 
                             @Destination<RootGraph>(start = true)
                             fun HomeScreen() {}
-                            """.trimIndent(),
+                            """
+                                .trimIndent(),
                     ),
                     KotlinSourceFile(
                         relativePath = "modules/feature/override/src/Edit.kt",
@@ -27,7 +28,8 @@ class UiContractAnalyzerTest {
 
                             @Destination<OverrideEditorNavGraph>
                             fun OverrideEditRoute() {}
-                            """.trimIndent(),
+                            """
+                                .trimIndent(),
                     ),
                     KotlinSourceFile(
                         relativePath = "app/src/screen/settings/SettingPager.kt",
@@ -36,7 +38,8 @@ class UiContractAnalyzerTest {
                             fun SettingPager(navigator: Any) {
                                 navigator.navigate(HomeScreenDestination)
                             }
-                            """.trimIndent(),
+                            """
+                                .trimIndent(),
                     ),
                 )
             )
@@ -52,7 +55,8 @@ class UiContractAnalyzerTest {
     fun parsesRegistryRows() {
         val entries =
             UiContractAnalyzer.parseRegistry(
-                lines = listOf("Foo|app/src/Foo.kt|foo|app|top-level|navigation|more|app/src/Foo.kt"),
+                lines =
+                    listOf("Foo|app/src/Foo.kt|foo|app|top-level|navigation|more|app/src/Foo.kt"),
                 fileLabel = "config/ui-capability-registry.txt",
             )
 

@@ -1,8 +1,8 @@
-# Third-Party Libraries
+# 第三方依赖
 
-[English](ThirdParty.md) | [简体中文](ThirdParty_ZH_HANS.md)
+[简体中文](ThirdParty_ZH_HANS.md) | [English](ThirdParty.md)
 
-MonadBox is built on top of several open-source projects. This page is a lightweight acknowledgment list for the major upstream libraries and toolchains currently used by the project.
+MonadBox 构建在多个优秀的开源项目之上。这里整理当前项目主要使用到的上游库与工具链，向这些项目及其维护者表示感谢。
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo)
 - [libsu](https://github.com/topjohnwu/libsu)

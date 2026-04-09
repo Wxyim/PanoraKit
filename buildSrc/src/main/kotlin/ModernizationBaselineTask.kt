@@ -3,8 +3,8 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
@@ -22,8 +22,7 @@ abstract class ModernizationBaselineTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val moduleBuildFiles: ConfigurableFileCollection
 
-    @get:Input
-    abstract val requiredDependencyTokens: MapProperty<String, String>
+    @get:Input abstract val requiredDependencyTokens: MapProperty<String, String>
 
     @get:Internal abstract val repoRootDir: DirectoryProperty
 
@@ -33,7 +32,9 @@ abstract class ModernizationBaselineTask : DefaultTask() {
         group = "verification"
         description =
             "Validates modernization baseline guards for Compose lifecycle collection and startup architecture."
-        doNotTrackState("Scans workspace sources directly; avoid lock-file hashing issues under repo root on Windows.")
+        doNotTrackState(
+            "Scans workspace sources directly; avoid lock-file hashing issues under repo root on Windows."
+        )
     }
 
     @TaskAction
@@ -47,7 +48,10 @@ abstract class ModernizationBaselineTask : DefaultTask() {
                 .flatMap { rootFile ->
                     when {
                         rootFile.isDirectory ->
-                            rootFile.walkTopDown().filter { it.isFile && it.extension == "kt" }.asSequence()
+                            rootFile
+                                .walkTopDown()
+                                .filter { it.isFile && it.extension == "kt" }
+                                .asSequence()
                         rootFile.isFile && rootFile.extension == "kt" -> sequenceOf(rootFile)
                         else -> emptySequence()
                     }
@@ -82,8 +86,7 @@ abstract class ModernizationBaselineTask : DefaultTask() {
 
         val coordinatorFile = root.resolve("app/src/startup/AppStartupCoordinator.kt")
         if (!coordinatorFile.isFile) {
-            issues +=
-                "Missing startup coordinator: app/src/startup/AppStartupCoordinator.kt"
+            issues += "Missing startup coordinator: app/src/startup/AppStartupCoordinator.kt"
         }
 
         val appFile = root.resolve("app/src/App.kt")
@@ -106,7 +109,9 @@ abstract class ModernizationBaselineTask : DefaultTask() {
         }
 
         val moduleBuildFilesByPath =
-            moduleBuildFiles.files.associateBy { file -> file.relativeTo(root).invariantSeparatorsPath }
+            moduleBuildFiles.files.associateBy { file ->
+                file.relativeTo(root).invariantSeparatorsPath
+            }
         requiredDependencyTokens.get().toSortedMap().forEach { (filePath, token) ->
             val buildFile = moduleBuildFilesByPath[filePath]
             if (buildFile == null || !buildFile.isFile) {

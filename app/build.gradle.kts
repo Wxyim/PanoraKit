@@ -387,6 +387,8 @@ dependencies {
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
     implementation(libs.fytxt.common.android)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.profileinstaller)
 
     testImplementation("junit:junit:4.13.2")
 

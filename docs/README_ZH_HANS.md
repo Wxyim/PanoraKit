@@ -1,146 +1,30 @@
-# 项目概览
+# 文档中心
 
-<div align="center">
+[简体中文](README_ZH_HANS.md) | [English](README.md)
 
-**简体中文** | [English](../README.md)
+这里是 MonadBox 的正式文档入口。根目录 [`README.md`](../README.md) 保持简洁，详细说明统一收口到这里。
 
-<img src="logo.webp" width="96" alt="MonadBox logo">
+## 从这里开始
 
-# MonadBox
+- 项目概览：[../README.md](../README.md)
+- 隐私说明：[../PRIVACY_POLICY.md](../PRIVACY_POLICY.md)
+- 隐私说明（简体中文）：[PRIVACY_ZH_HANS.md](../docs/PRIVACY_ZH_HANS.md)
 
-YumeBox 的定制化版本
+## 工程文档
 
-[![Latest release](https://img.shields.io/github/v/release/NomadBoxLab/NomadBox?label=Release&logo=github)](https://github.com/NomadBoxLab/NomadBox/releases/latest)
-[![GitHub License](https://img.shields.io/github/license/NomadBoxLab/NomadBox?logo=gnu)](../LICENSE)
-[![Upstream](https://img.shields.io/badge/Upstream-YumeBox-informational)](https://github.com/YumeLira/YumeBox)
+- 开发环境与构建流程：[DEVELOP_ZH_HANS.md](../docs/DEVELOP_ZH_HANS.md)
+- 贡献规范与架构约束：[CONTRIBUTING_ZH_HANS.md](../docs/CONTRIBUTING_ZH_HANS.md)
+- 性能与 benchmark 工作流：[PERFORMANCE_ZH_HANS.md](../docs/PERFORMANCE_ZH_HANS.md)
 
-**一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 内核的开源 Android 客户端，从 [YumeBox](https://github.com/YumeLira/YumeBox) 定制而来**
+## 参考资料
 
-</div>
+- 第三方依赖清单：[ThirdParty_ZH_HANS.md](../docs/ThirdParty_ZH_HANS.md)
+- UI 能力注册表：[../config/ui-capability-registry.txt](../config/ui-capability-registry.txt)
 
-## 1. 使用
+## 双语对应
 
-MonadBox（基于 YumeBox 定制）目前仅支持 **Android 8.0（API 26）及以上系统**。
-
-- Release 安装包：[NomadBoxLab/NomadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
-- 问题反馈：[Issues](https://github.com/NomadBoxLab/NomadBox/issues)
-- 隐私政策：[PRIVACY_POLICY](../PRIVACY_POLICY.md)
-- 参与贡献：[CONTRIBUTING_ZH_HANS](CONTRIBUTING_ZH_HANS.md)
-- 开发指南（中文）：[DEVELOP_ZH_HANS](DEVELOP_ZH_HANS.md)
-- 开发指南（English）：[DEVELOP](DEVELOP.md)
-- 第三方依赖清单请参考：[ThirdParty](ThirdParty.md)
-
-## 2. 关于定制版
-
-MonadBox 是 YumeBox 的定制化版本，主要聚焦于：
-
-- 增强隐私保护
-- 改善本地化体验
-- 引入更多功能与改进
-
-当前项目已迁移到独立仓库 `NomadBoxLab/NomadBox` 维护。
-
-原始 YumeBox 项目请访问：[YumeBox](https://github.com/YumeLira/YumeBox)
-
-## 3. 上游版本时间线
-
-参考：[YumeBox 更新日志](https://yumebox.oom-wg.dev/update/history)
-
-- `v0.5.0`（2026-03-29）：引入全新覆写系统与模板、Root Tun 支持、初始化引导与交互优化、配置编辑/预览增强、GeoX 下载、日志页面重构。
-- `v0.4.0`（2026-02-27）：全局取色与页面重构、打包体积优化、稳定性修复。
-- `v0.3.x`（2025-12 至 2026-02）：持续增强代理控制体验、启动与运行时稳定性、配置管理与 UI 细节。
-- `v0.2.0`（2025-11-30）：多语言支持、流量页面、Scheme/剪贴板/扫码导入、访问控制能力增强。
-- `v0.1.0`（2025-11-27）：首个公开里程碑版本。
-
-## 4. 开发快速开始
-
-本地开发环境（Windows/macOS/Linux）请参考：
-
-- [开发指南（中文）](DEVELOP_ZH_HANS.md)
-- [Development guide](DEVELOP.md)
-
-与当前构建/签名流程相关的模板文件：
-
-- [local.properties.example](../local.properties.example)
-- [startup-gate.local.properties.example](../startup-gate.local.properties.example)
-- [signing.properties.example](../signing.properties.example)
-
-常用构建命令（在仓库根目录执行）：
-
-```bash
-./gradlew build
-./gradlew assembleDebug
-./gradlew :app:assembleRelease
-```
-
-辅助脚本：
-
-- `scripts/sync-kernel.sh` / `scripts/sync-kernel.ps1`
-- `scripts/repo-health.sh` / `scripts/repo-health.ps1`
-- `scripts/llm-runtime-fuzz.sh` / `scripts/llm-runtime-fuzz.ps1`
-- `scripts/setup-release-signing.ps1` / `scripts/setup-release-signing.sh`（Release 签名初始化）
-
-## 5. Fork 变更日志
-
-Fork 起点：`68ff390`。
-
-### 5.1 架构与构建
-
-- 迁移为 `modules/*` 多模块目录结构，并在 Gradle 中显式映射模块边界。
-- 将构建产物策略统一到根目录 `build` 下，补充 native 产物路径协同。
-- 新增本地签名模板与 startup-gate 本地配置模板，完善本地/发布工作流。
-
-### 5.2 运行时与启动稳定性
-
-- 启动校验改为 BuildConfig 驱动与可配置化期望值。
-- 完善 Tun/RootTun 启动恢复路径，降低“启动中状态残留”导致的异常。
-- 强化运行时启动日志的持久化与保留策略。
-
-### 5.3 覆写系统与远程资源
-
-- 移除 Rust 覆写处理依赖，转为 Go 原生处理链路。
-- 增加远程覆写拉取/解析流程（JSON + 插件规则导入路径）。
-- 增加远程覆写元数据、周期更新能力，并接入 Providers 页面手动/自动更新。
-- 增加远程资源 HTTP 安全开关（默认安全，仅显式开启后允许非 localhost HTTP）。
-
-### 5.4 存储、日志与维护能力
-
-- 新增 `StorageCleanupManager`，支持自动清理策略、阈值/间隔配置与手动触发。
-- 日志页新增历史日志/启动日志浏览、导出与删除能力。
-- 清理流程增加可读日志归档，日志保留与裁剪策略更完善。
-
-### 5.5 OEM 适配与设备兼容性
-
-- 新增 OEM 权限页导航器与厂商页面跳转回退策略。
-- 增加 OEM 跳转统计日志（尝试/成功/失败）用于诊断。
-- 完善主页面与引导页异形屏/刘海屏布局行为。
-
-### 5.6 交互、无障碍与本地化
-
-- 扩充多语言词条覆盖，减少设置/关于/导航/编辑场景中的硬编码文案。
-- 提升无障碍描述（如旗帜图标语义）。
-- 调整引导、关于、设置等流程文案以匹配 MonadBox 定位。
-
-### 5.7 文档与样式基线
-
-- 优化应用内关键文案与元数据表达，统一分支叙事语气。
-- 更新根 README 与中文文档结构，并清理仓库内遗留的网站文档包。
-- 新增 `.editorconfig` 与 `.clang-format` 样式基线，并执行 native/Go/Kotlin 风格对齐。
-
-### 5.8 反馈与建议
-
-如果遇到 Bug，请在 Issues 页面提交：
-[Issues](https://github.com/NomadBoxLab/NomadBox/issues)
-
-有想法或改进建议也欢迎直接在仓库中提出。
-
-### 5.9 参与贡献
-
-如果您希望改进 MonadBox，请参阅 [CONTRIBUTING](CONTRIBUTING.md)。
-如果希望改进多语言翻译，请在 `locale/lang` 目录下创建或更新对应的翻译文件。
-
-### 5.10 特别
-
-~~作者对这个项目中的代码一无所知。代码处于可用或不可用状态，没有第三种情况。~~
-
-以及该项目中使用的 [第三方](ThirdParty.md) 库。
+- English 文档中心：[README.md](../docs/README.md)
+- English 开发指南：[DEVELOP.md](../docs/DEVELOP.md)
+- English 贡献指南：[CONTRIBUTING.md](../docs/CONTRIBUTING.md)
+- English 性能文档：[PERFORMANCE.md](../docs/PERFORMANCE.md)
+- English 第三方清单：[ThirdParty.md](../docs/ThirdParty.md)

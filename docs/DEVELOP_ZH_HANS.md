@@ -2,6 +2,8 @@
 
 [简体中文](DEVELOP_ZH_HANS.md) | [English](DEVELOP.md)
 
+文档中心：[README_ZH_HANS.md](../docs/README_ZH_HANS.md)
+
 本文档定义环境与构建流程。代码规范与架构约束见 [CONTRIBUTING_ZH_HANS.md](CONTRIBUTING_ZH_HANS.md)。
 
 ## 1. 平台与工具链
@@ -207,3 +209,9 @@ CI 变量：
 | Release 构建在打包前失败 | 检查 native 输出并重跑 native 构建脚本 |
 | Gradle daemon 不稳定 | 检查 `gradle.properties` JVM 参数；排查时使用 `--no-configuration-cache` |
 | UI 契约校验失败 | 更新 `config/ui-capability-registry.txt` 并与实现对齐 |
+
+## 11. 相关文档
+
+- 贡献规范：[CONTRIBUTING_ZH_HANS.md](../docs/CONTRIBUTING_ZH_HANS.md)
+- 性能文档：[PERFORMANCE_ZH_HANS.md](../docs/PERFORMANCE_ZH_HANS.md)
+- English 文档中心：[README.md](../docs/README.md)

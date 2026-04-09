@@ -2,6 +2,8 @@
 
 [English](DEVELOP.md) | [简体中文](DEVELOP_ZH_HANS.md)
 
+Documentation hub: [README.md](../docs/README.md)
+
 This document defines environment and build procedures. Style and architectural constraints are specified in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 1. Platform and Toolchain
@@ -207,3 +209,9 @@ Validation command:
 | Release build fails before packaging | verify native outputs, then rerun native build script |
 | Gradle daemon instability | inspect JVM settings in `gradle.properties`, retry with `--no-configuration-cache` for diagnosis |
 | UI contract failure | update `config/ui-capability-registry.txt` and align with code |
+
+## 11. Related Docs
+
+- Contribution rules: [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
+- Performance workflow: [PERFORMANCE.md](../docs/PERFORMANCE.md)
+- Chinese documentation hub: [README_ZH_HANS.md](../docs/README_ZH_HANS.md)

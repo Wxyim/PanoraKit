@@ -1,6 +1,4 @@
-plugins {
-    `kotlin-dsl`
-}
+plugins { `kotlin-dsl` }
 
 repositories {
     gradlePluginPortal()
@@ -8,10 +6,6 @@ repositories {
     google()
 }
 
-dependencies {
-    testImplementation(kotlin("test-junit5"))
-}
+dependencies { testImplementation(kotlin("test-junit5")) }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.test { useJUnitPlatform() }

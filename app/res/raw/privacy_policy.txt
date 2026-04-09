@@ -1,6 +1,6 @@
-Privacy Policy
+Privacy Notice
 
-YumeBox is an open-source Android client. This app is provided as-is and does not intentionally collect personally identifiable information.
+MonadBox is an open-source Android client. This app is provided as-is and does not intentionally collect personally identifiable information.
 
 Data Collection
 
@@ -14,15 +14,17 @@ Permission Usage
 - INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE:
 	Used for proxy runtime networking, profile download, and network checks.
 - POST_NOTIFICATIONS:
-	Used for runtime/service status notifications.
+	Used for runtime and service status notifications.
 - CAMERA:
 	Optional, only for QR code import.
-- GET_INSTALLED_APPS, QUERY_ALL_PACKAGES:
-	Used for access-control and RootTun app filtering. Package lists are processed locally.
+- GET_INSTALLED_APPS:
+	Used on supported devices for access-control and RootTun app filtering. Package lists are processed locally.
+- QUERY_ALL_PACKAGES:
+	Used to map VPN connections back to their source apps and to support app-based routing features. Package visibility is processed locally and not uploaded.
 - Foreground service permissions:
-	Required by Android for VPN/proxy background services.
+	Required by Android for VPN and proxy background services.
 
-YumeBox does not upload your installed app list, profile files, or runtime logs to an app-owned cloud backend.
+MonadBox does not upload your installed app list, profile files, or runtime logs to an app-owned cloud backend.
 
 File Access And Sharing
 
@@ -31,7 +33,7 @@ File Access And Sharing
 
 Cookies
 
-YumeBox itself does not use web cookies. Third-party websites opened from app links may use their own cookie/privacy policies.
+MonadBox itself does not use web cookies. Third-party websites opened from app links may use their own cookie and privacy policies.
 
 Security
 
@@ -39,12 +41,12 @@ We use reasonable measures to protect local data, but no method can guarantee ab
 
 Children's Privacy
 
-YumeBox is not specifically directed to children under 13, and we do not knowingly collect personal data from children.
+MonadBox is not specifically directed to children under 13, and we do not knowingly collect personal data from children.
 
-Changes To This Policy
+Changes To This Notice
 
-This policy may be updated over time. Updates are effective after publication in repository and app resources.
+This notice may be updated over time. Updates are effective after publication in repository and app resources.
 
 Contact
 
-If you have questions or suggestions about this Privacy Policy, contact project maintainers via repository issues.
+If you have questions or suggestions about this privacy notice, contact project maintainers via repository issues.

@@ -1,6 +1,8 @@
-# Contributing to YumeBox/NomadBox
+# Contributing to MonadBox
 
 [English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING_ZH_HANS.md)
+
+Documentation hub: [README.md](../docs/README.md)
 
 This document defines contribution constraints. Environment bootstrap, native build pipeline, and release packaging procedures are documented in [DEVELOP.md](DEVELOP.md).
 
@@ -138,4 +140,10 @@ This task is normative. Inline suppressions intended to bypass the rule set are 
 
 ## 8. License
 
-NomadBox is licensed under [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html). Preserve existing license headers.
+MonadBox is licensed under [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html). Preserve existing license headers.
+
+## 9. Related Docs
+
+- Development guide: [DEVELOP.md](../docs/DEVELOP.md)
+- Performance workflow: [PERFORMANCE.md](../docs/PERFORMANCE.md)
+- Chinese documentation hub: [README_ZH_HANS.md](../docs/README_ZH_HANS.md)

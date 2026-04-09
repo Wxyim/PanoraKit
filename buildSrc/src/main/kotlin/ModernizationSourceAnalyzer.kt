@@ -13,7 +13,9 @@ data class ModernizationSourceAnalysis(
 internal object ModernizationSourceAnalyzer {
     private val collectAsStateRegex = Regex("""(?<![A-Za-z0-9_])collectAsState\s*\(""")
     private val launchedCollectFallbackRegex =
-        Regex("""LaunchedEffect\(\s*Unit\s*\)\s*\{[\s\S]{0,4000}?\.(collect|collectLatest)\s*(\(|\{)""")
+        Regex(
+            """LaunchedEffect\(\s*Unit\s*\)\s*\{[\s\S]{0,4000}?\.(collect|collectLatest)\s*(\(|\{)"""
+        )
     private val forbiddenAppCalls =
         setOf(
             "warmUpProxyGroups",
@@ -33,7 +35,8 @@ internal object ModernizationSourceAnalyzer {
                     SourceIssue(
                         relativePath = source.relativePath,
                         lineNumber = lineNumberForOffset(source.content, match.range.first),
-                        message = "collectAsState() should be replaced with collectAsStateWithLifecycle()",
+                        message =
+                            "collectAsState() should be replaced with collectAsStateWithLifecycle()",
                     )
             }
 
@@ -61,16 +64,15 @@ internal object ModernizationSourceAnalyzer {
             source.content.contains("startupCoordinator.ensureDeferredStartupInitialized(")
 
         forbiddenAppCalls.forEach { callName ->
-            Regex("""\b${Regex.escape(callName)}\s*\(""")
-                .findAll(source.content)
-                .forEach { match ->
+            Regex("""\b${Regex.escape(callName)}\s*\(""").findAll(source.content).forEach { match ->
                 forbiddenCalls +=
                     SourceIssue(
                         relativePath = source.relativePath,
                         lineNumber = lineNumberForOffset(source.content, match.range.first),
-                        message = "App.kt should not contain deferred startup implementation detail '$callName()'",
+                        message =
+                            "App.kt should not contain deferred startup implementation detail '$callName()'",
                     )
-                }
+            }
         }
 
         return AppStartupAnalysis(

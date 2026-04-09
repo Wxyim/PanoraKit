@@ -79,6 +79,7 @@ include(
     ":runtime:api",
     ":runtime:client",
     ":runtime:service",
+    ":performance:baselineprofile",
 )
 
 project(":core").projectDir = file("modules/core")
@@ -114,3 +115,7 @@ project(":runtime:api").projectDir = file("modules/runtime/api")
 project(":runtime:client").projectDir = file("modules/runtime/client")
 
 project(":runtime:service").projectDir = file("modules/runtime/service")
+
+project(":performance").projectDir = file("modules/performance")
+
+project(":performance:baselineprofile").projectDir = file("modules/performance/baselineprofile")

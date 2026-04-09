@@ -28,6 +28,8 @@ plugins {
     base
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.androidx.baselineprofile) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.jetbrains.compose) apply false
@@ -38,6 +40,7 @@ plugins {
 }
 
 apply(from = "gradle/ui-contract-validation.gradle.kts")
+
 apply(from = "gradle/modernization-baseline.gradle.kts")
 
 extensions.configure(SpotlessExtension::class.java) {

@@ -23,7 +23,8 @@ class ModernizationSourceAnalyzerTest {
                                     flow.collect { println(it) }
                                 }
                             }
-                            """.trimIndent(),
+                            """
+                                .trimIndent(),
                     )
                 )
             )
@@ -49,7 +50,8 @@ class ModernizationSourceAnalyzerTest {
                                 val value = state.collectAsStateWithLifecycle().value
                                 CollectFlowWithLifecycle(flow = state) { println(it) }
                             }
-                            """.trimIndent(),
+                            """
+                                .trimIndent(),
                     )
                 )
             )
@@ -71,7 +73,8 @@ class ModernizationSourceAnalyzerTest {
                                 startupCoordinator.ensureDeferredStartupInitialized()
                             }
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                 )
             )
 

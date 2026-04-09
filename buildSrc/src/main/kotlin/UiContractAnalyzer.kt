@@ -27,8 +27,7 @@ data class UiSourceAnalysis(
 
 internal object UiContractAnalyzer {
     private const val SETTINGS_PAGER_PATH = "app/src/screen/settings/SettingPager.kt"
-    private val destinationAnnotationRegex =
-        Regex("""@Destination<([^>]+)>(?:\(([^)]*)\))?""")
+    private val destinationAnnotationRegex = Regex("""@Destination<([^>]+)>(?:\(([^)]*)\))?""")
     private val functionRegex = Regex("""fun\s+([A-Za-z0-9_]+)\s*\(""")
     private val destinationReferenceRegex = Regex("""\b([A-Za-z0-9_]+Destination)\b""")
     private val navigateRegex = Regex("""navigate\(\s*([A-Za-z0-9_]+Destination)\b""")
@@ -69,7 +68,8 @@ internal object UiContractAnalyzer {
             lines.forEachIndexed { index, line ->
                 val annotationMatch = destinationAnnotationRegex.find(line) ?: return@forEachIndexed
                 val functionMatch =
-                    ((index + 1)..minOf(index + 4, lines.lastIndex)).firstNotNullOfOrNull { candidateIndex ->
+                    ((index + 1)..minOf(index + 4, lines.lastIndex)).firstNotNullOfOrNull {
+                        candidateIndex ->
                         functionRegex.find(lines[candidateIndex])
                     } ?: return@forEachIndexed
 
@@ -104,7 +104,10 @@ internal object UiContractAnalyzer {
         return UiSourceAnalysis(
             declaredDestinations = declaredDestinations,
             rootGraphDestinations =
-                declaredDestinations.values.filter { it.graphName == "RootGraph" }.map { it.destination }.toSet(),
+                declaredDestinations.values
+                    .filter { it.graphName == "RootGraph" }
+                    .map { it.destination }
+                    .toSet(),
             nestedGraphDestinations =
                 declaredDestinations.values
                     .filter { !it.graphName.isNullOrBlank() && it.graphName != "RootGraph" }
