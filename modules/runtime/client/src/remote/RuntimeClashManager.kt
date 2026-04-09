@@ -38,8 +38,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
 class RuntimeClashManager(context: Context, private val local: IClashManager) :
-    IClashManager,
-    Closeable {
+    IClashManager, Closeable {
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

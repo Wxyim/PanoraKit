@@ -150,17 +150,6 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override fun requestStop() {
         runCatching { context.sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
-
-        runCatching {
-            context.stopService(Intent(context, TunService::class.java))
-            context.stopService(Intent(context, ClashService::class.java))
-        }
-
-        runCatching {
-            Clash.stopLocalProxyHttpListener()
-            Clash.stopTun()
-            Clash.reset()
-        }
     }
 
     override suspend fun healthCheck(group: String) {
@@ -253,9 +242,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
             val channel =
                 runCatching { Clash.subscribeLogcat() }
-                    .onFailure { error ->
-                        Log.w("Subscribe runtime log stream failed", error)
-                    }
+                    .onFailure { error -> Log.w("Subscribe runtime log stream failed", error) }
                     .getOrNull() ?: return
 
             logReceiver = channel

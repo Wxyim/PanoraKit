@@ -67,11 +67,7 @@ class RuntimeTransitionPolicyTest {
     @Test
     fun shouldRefreshPayloadReflectsSnapshotReadiness() {
         val runningReady =
-            RuntimeSnapshot(
-                phase = RuntimePhase.Running,
-                profileReady = true,
-                groupsReady = true,
-            )
+            RuntimeSnapshot(phase = RuntimePhase.Running, profileReady = true, groupsReady = true)
         assertFalse(
             RuntimeTransitionPolicy.shouldRefreshPayload(
                 snapshot = runningReady,

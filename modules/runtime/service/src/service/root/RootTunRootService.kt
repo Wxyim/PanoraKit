@@ -357,7 +357,7 @@ class RootTunRootService : RootService() {
     }
 
     override fun onDestroy() {
-        if (this::runtime.isInitialized && runtime.snapshot().phase.running) {
+        if (this::runtime.isInitialized) {
             runtime.destroy()
         }
         super.onDestroy()

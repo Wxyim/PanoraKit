@@ -1,8 +1,6 @@
 package com.github.yumelira.yumebox.runtime.client
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -19,16 +17,9 @@ class AppIdentityResolver(context: Context) {
     private val labelCache = ConcurrentHashMap<String, String>()
     private val uidCache = ConcurrentHashMap<Int, String?>()
 
-    @Volatile private var installedAppsCache: List<InstalledAppIdentity>? = null
-
     fun resolve(metadata: JsonObject): AppIdentity {
         val explicitPackageName =
-            metadata.firstNonBlankValue(
-                "packageName",
-                "package",
-                "package-name",
-                "package_name",
-            )
+            metadata.firstNonBlankValue("packageName", "package", "package-name", "package_name")
         val processName =
             metadata.firstNonBlankValue(
                 "process",
@@ -69,6 +60,12 @@ class AppIdentityResolver(context: Context) {
                         appKey = "package:$packageName",
                         packageName = packageName,
                         appName = resolveLabel(packageName).ifBlank { packageName },
+                    )
+                explicitPackageName.isNotBlank() ->
+                    AppIdentity(
+                        appKey = "package-hint:$explicitPackageName",
+                        packageName = explicitPackageName,
+                        appName = explicitPackageName,
                     )
                 uid != null && uid > 0 ->
                     AppIdentity(
@@ -129,37 +126,7 @@ class AppIdentityResolver(context: Context) {
             return it
         }
 
-        return installedApps()
-            .firstOrNull { app ->
-                candidates.any { candidate ->
-                    candidate.equals(app.packageName, ignoreCase = true) ||
-                        candidate.equals(app.processName, ignoreCase = true) ||
-                        candidate.equals(app.label, ignoreCase = true) ||
-                        candidate.startsWith("${app.packageName}:", ignoreCase = true) ||
-                        candidate.startsWith("${app.processName}:", ignoreCase = true)
-                }
-            }
-            ?.packageName
-    }
-
-    private fun installedApps(): List<InstalledAppIdentity> {
-        installedAppsCache?.let {
-            return it
-        }
-        val apps =
-            runCatching { packageManager.getInstalledApplications(PackageManager.GET_META_DATA) }
-                .getOrDefault(emptyList<ApplicationInfo>())
-                .map { app ->
-                    InstalledAppIdentity(
-                        packageName = app.packageName,
-                        processName = app.processName?.trim().orEmpty(),
-                        label =
-                            runCatching { app.loadLabel(packageManager).toString().trim() }
-                                .getOrDefault(""),
-                    )
-                }
-        installedAppsCache = apps
-        return apps
+        return null
     }
 
     private fun findInstalledPackage(packageName: String): String? {
@@ -185,12 +152,6 @@ class AppIdentityResolver(context: Context) {
         return label
     }
 
-    private data class InstalledAppIdentity(
-        val packageName: String,
-        val processName: String,
-        val label: String,
-    )
-
     companion object {
         const val UNKNOWN_APP_KEY = "unknown"
         const val UNKNOWN_APP_NAME = "Unknown App"
@@ -208,15 +169,9 @@ private fun JsonObject.firstNonBlankValue(vararg keys: String): String {
 private fun JsonObject.firstUidValue(vararg keys: String): Int? {
     keys.forEach { key ->
         val primitive = this[key]?.jsonPrimitive ?: return@forEach
-        primitive.intOrNull?.let {
-            if (it > 0) return it
-        }
-        primitive.longOrNull?.let {
-            if (it in 1..Int.MAX_VALUE.toLong()) return it.toInt()
-        }
-        primitive.contentOrNull?.trim()?.toIntOrNull()?.let {
-            if (it > 0) return it
-        }
+        primitive.intOrNull?.let { if (it > 0) return it }
+        primitive.longOrNull?.let { if (it in 1..Int.MAX_VALUE.toLong()) return it.toInt() }
+        primitive.contentOrNull?.trim()?.toIntOrNull()?.let { if (it > 0) return it }
     }
     return null
 }

@@ -5,9 +5,6 @@ internal fun shouldInitializeDeferredStartup(
     alreadyInitialized: Boolean,
 ): Boolean = initialSetupCompleted && !alreadyInitialized
 
-internal fun shouldInitializeAppTrafficCollector(alreadyInitialized: Boolean): Boolean =
-    !alreadyInitialized
-
 internal fun isStaleTempDownloadCandidate(
     fileName: String,
     isRegularFile: Boolean,

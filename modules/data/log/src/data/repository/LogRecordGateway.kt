@@ -34,4 +34,6 @@ interface LogRecordGateway {
     fun stop(application: Application)
 
     fun getLogDir(application: Application): File
+
+    fun snapshotLiveLogLines(maxLines: Int): List<String>
 }

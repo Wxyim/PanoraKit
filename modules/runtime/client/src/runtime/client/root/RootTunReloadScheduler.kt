@@ -39,9 +39,7 @@ internal fun shouldRunRootTunReloadAgain(
     pendingReasonCount: Int,
 ): Boolean = dirtyWhileRunning || pendingReasonCount > 0
 
-internal fun normalizeRootTunReloadFailure(
-    result: RootTunOperationResult,
-): Pair<String, String> {
+internal fun normalizeRootTunReloadFailure(result: RootTunOperationResult): Pair<String, String> {
     val errorCode = (result.errorCode ?: RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED).name
     val error = result.error?.takeIf { it.isNotBlank() } ?: "root runtime reload failed"
     return errorCode to error
@@ -58,10 +56,8 @@ interface RootTunReloadDispatcher {
     fun schedule(reason: RootTunReloadReason)
 }
 
-class RootTunReloadScheduler(
-    context: Context,
-    appScope: CoroutineScope,
-) : RootTunReloadDispatcher, Closeable {
+class RootTunReloadScheduler(context: Context, appScope: CoroutineScope) :
+    RootTunReloadDispatcher, Closeable {
     private val appContext = context.appContextOrSelf
     private val scope = CoroutineScope(appScope.coroutineContext + SupervisorJob())
     private val lock = Any()
@@ -130,9 +126,7 @@ class RootTunReloadScheduler(
         }
     }
 
-    private suspend fun syncAndReload(
-        reasons: Set<RootTunReloadReason>,
-    ): RootTunOperationResult {
+    private suspend fun syncAndReload(reasons: Set<RootTunReloadReason>): RootTunOperationResult {
         Timber.i("RootTun reload: reasons=%s", reasons.joinToString(","))
         return retryReload()
     }

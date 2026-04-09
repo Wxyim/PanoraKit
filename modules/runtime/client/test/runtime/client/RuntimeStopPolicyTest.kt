@@ -1,7 +1,6 @@
 package com.github.yumelira.yumebox.runtime.client
 
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

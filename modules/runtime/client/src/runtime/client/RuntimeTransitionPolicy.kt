@@ -12,9 +12,7 @@ internal object RuntimeTransitionPolicy {
         currentOwner: RuntimeOwner,
         detectedOwner: RuntimeOwner,
     ): RuntimeOwner {
-        return forceOwner
-            ?: currentOwner.takeIf { it != RuntimeOwner.None }
-            ?: detectedOwner
+        return forceOwner ?: currentOwner.takeIf { it != RuntimeOwner.None } ?: detectedOwner
     }
 
     fun startedSnapshot(

@@ -20,10 +20,7 @@ class AppStartupPoliciesTest {
             )
         )
         assertFalse(
-            shouldInitializeDeferredStartup(
-                initialSetupCompleted = true,
-                alreadyInitialized = true,
-            )
+            shouldInitializeDeferredStartup(initialSetupCompleted = true, alreadyInitialized = true)
         )
     }
 

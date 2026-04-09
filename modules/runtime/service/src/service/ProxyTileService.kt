@@ -53,8 +53,10 @@ class ProxyTileService : TileService() {
         private const val TAG = "ProxyTileService"
     }
 
-    private val profileManagerHolder = lazy(LazyThreadSafetyMode.NONE) { ProfileManager(applicationContext) }
-    private val clashManagerHolder = lazy(LazyThreadSafetyMode.NONE) { ClashManager(applicationContext) }
+    private val profileManagerHolder =
+        lazy(LazyThreadSafetyMode.NONE) { ProfileManager(applicationContext) }
+    private val clashManagerHolder =
+        lazy(LazyThreadSafetyMode.NONE) { ClashManager(applicationContext) }
     private val networkSettingsStorage by lazy {
         NetworkSettingsStorage(MMKVProvider().getMMKV(StoreIds.NETWORK_SETTINGS))
     }

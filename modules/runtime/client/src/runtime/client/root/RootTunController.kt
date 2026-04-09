@@ -21,116 +21,22 @@
 package com.github.yumelira.yumebox.runtime.client.root
 
 import android.content.Context
-import android.content.Intent
 import com.github.yumelira.yumebox.core.model.*
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.service.RootTunService
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.*
-import com.topjohnwu.superuser.ipc.RootService
-import kotlinx.coroutines.*
 
 object RootTunController {
     suspend fun start(context: Context): RootTunOperationResult {
-        val appContext = context.appContextOrSelf
-        val startupLogStore = RootTunStartupLogStore(appContext)
-        val stateStore = RootTunStateStore(appContext)
-        val startAt = System.currentTimeMillis()
-
-        val request = RootTunStartRequest(source = "controller.start")
-        startupLogStore.append(
-            "ROOT_TUN controller: prepare=${System.currentTimeMillis() - startAt}ms"
+        return RootTunStartCoordinator.start(
+            context = context.appContextOrSelf,
+            request = RootTunStartRequest(source = "controller.start"),
+            callerTag = "controller",
+            fallbackCode =
+                com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+            fallbackMessage = "RootTun start failed",
         )
-        val foregroundStartAt = System.currentTimeMillis()
-        val current = stateStore.snapshot()
-        stateStore.updateStatus(
-            current.copy(
-                state = RootTunState.Starting,
-                running = true,
-                runtimeReady = false,
-                controllerReady = true,
-                startedAt = startAt,
-                lastError = null,
-            )
-        )
-        RootTunService.start(appContext)
-        startupLogStore.append(
-            "ROOT_TUN controller: fgService=${System.currentTimeMillis() - foregroundStartAt}ms"
-        )
-        return start(appContext, request, stateStore, startupLogStore, startAt)
-    }
-
-    private suspend fun start(
-        context: Context,
-        request: RootTunStartRequest,
-        stateStore: RootTunStateStore,
-        startupLogStore: RootTunStartupLogStore,
-        startedAt: Long,
-    ): RootTunOperationResult {
-        val remoteStartAt = System.currentTimeMillis()
-        val result =
-            runCatching {
-                    RootTunRemoteClient.remoteCall(context) { service ->
-                        val resultJson = service.startRootTun(RootTunJson.encode(request))
-                        RootTunJson.decode<RootTunOperationResult>(resultJson)
-                    }
-                }
-                .getOrElse { error ->
-                    startupLogStore.append(
-                        "ROOT_TUN controller: total=${System.currentTimeMillis() - startedAt}ms failed=${error.message}"
-                    )
-                    return error.toRootTunOperationResult(
-                        fallbackCode = RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
-                        fallbackMessage = "RootTun start failed",
-                    )
-                }
-        startupLogStore.append(
-            "ROOT_TUN controller: remoteStart=${System.currentTimeMillis() - remoteStartAt}ms"
-        )
-        if (!result.success) {
-            startupLogStore.append(
-                "ROOT_TUN controller: total=${System.currentTimeMillis() - startedAt}ms"
-            )
-            return result
-        }
-
-        return try {
-            runCatching { stateStore.updateStatus(queryStatus(context)) }
-            startupLogStore.append(
-                "ROOT_TUN controller: total=${System.currentTimeMillis() - startedAt}ms"
-            )
-            result
-        } catch (error: Throwable) {
-            val rollbackResult =
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                            val resultJson = RootTunRemoteClient.bind(context).stopRootTun()
-                            RootTunJson.decode<RootTunOperationResult>(resultJson)
-                        }
-                        .getOrNull()
-                }
-            val appContext = context.appContextOrSelf
-            runCatching { RootTunService.stop(appContext) }
-            runCatching { RootService.stop(createIntent(appContext)) }
-            RootTunRemoteClient.disconnect()
-
-            val message = buildString {
-                append(error.message ?: "failed to start RootTun foreground service")
-                rollbackResult
-                    ?.error
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { append(" | rollback: ").append(it) }
-            }
-            startupLogStore.append(
-                "ROOT_TUN controller: total=${System.currentTimeMillis() - startedAt}ms failed=$message"
-            )
-            RootTunOperationResult(
-                success = false,
-                errorCode = RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
-                error = message,
-            )
-        }
     }
 
     suspend fun reload(context: Context): RootTunOperationResult {
@@ -301,10 +207,6 @@ object RootTunController {
         return RootTunRemoteClient.remoteCall(context) { service ->
             RootTunJson.decode<RootTunLogChunk>(service.queryRecentLogsJson(sinceSeq))
         }
-    }
-
-    private fun createIntent(context: Context): Intent {
-        return Intent(context, RootTunRootService::class.java)
     }
 
     private fun Throwable.toRootTunOperationResult(

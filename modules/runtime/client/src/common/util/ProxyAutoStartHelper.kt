@@ -25,6 +25,7 @@ import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.service.StatusProvider
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.tencent.mmkv.MMKV
@@ -38,13 +39,14 @@ object ProxyAutoStartHelper {
         context: Context,
         proxyFacade: ProxyFacade,
         profilesRepository: ProfilesRepository,
+        runtimeControlCoordinator: RuntimeControlCoordinator,
         appSettingsStorage: AppSettingsStorage,
         networkSettingsStorage: NetworkSettingsStorage,
         serviceCache: MMKV,
     ) {
         val activeProfile =
             try {
-                profilesRepository.queryActiveProfile()
+                profilesRepository.queryActiveProfile(ensureDefault = true)
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to load active profile")
                 return
@@ -73,8 +75,11 @@ object ProxyAutoStartHelper {
         val mode = networkSettingsStorage.proxyMode.value
 
         try {
-            profilesRepository.setActiveProfile(activeProfile.uuid)
-            proxyFacade.startProxy(mode)
+            runtimeControlCoordinator.startProxy(
+                operation = "autostart:startup",
+                profileId = activeProfile.uuid,
+                mode = mode,
+            )
             Timber.tag(TAG).i("Auto start ok: profile=${activeProfile.uuid}, mode=$mode")
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Auto start failed: ${e.message}")

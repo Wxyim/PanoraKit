@@ -20,24 +20,34 @@
 
 package com.github.yumelira.yumebox.service
 
+import android.annotation.SuppressLint
 import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
+import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.remote.ILogObserver
+import com.github.yumelira.yumebox.service.root.RootTunJson
+import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
+import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.*
+import kotlinx.serialization.serializer
 import timber.log.Timber
 
 class LogRecordService : Service() {
@@ -54,7 +64,10 @@ class LogRecordService : Service() {
         const val LOG_PREFIX = ""
         const val LOG_SUFFIX = ".log"
         private const val MAX_LOG_FILES = 20
+        private const val MAX_LOG_FILE_BYTES = 512L * 1024L
         private const val MAX_TOTAL_BYTES = 8L * 1024L * 1024L
+        private const val MAX_IN_MEMORY_LOG_BYTES = 256L * 1024L
+        private const val ROOT_LOG_POLL_INTERVAL_MS = 300L
 
         @Volatile
         var isRecording: Boolean = false
@@ -63,6 +76,10 @@ class LogRecordService : Service() {
         @Volatile
         var currentLogFileName: String? = null
             private set
+
+        private val liveLogLock = Any()
+        private val liveLogLines = ArrayDeque<String>()
+        @Volatile private var liveLogBytes: Long = 0L
 
         fun start(context: Context) {
             val intent =
@@ -83,6 +100,40 @@ class LogRecordService : Service() {
         fun getLogDir(context: Context): File {
             return File(context.filesDir, LOG_DIR).apply { mkdirs() }
         }
+
+        fun snapshotLiveLogLines(maxLines: Int): List<String> {
+            synchronized(liveLogLock) {
+                if (maxLines <= 0 || liveLogLines.isEmpty()) return emptyList()
+                return liveLogLines.toList().takeLast(maxLines)
+            }
+        }
+
+        private fun clearLiveLogBuffer() {
+            synchronized(liveLogLock) {
+                liveLogLines.clear()
+                liveLogBytes = 0L
+            }
+        }
+
+        private fun appendLiveLogLine(line: String): Boolean {
+            synchronized(liveLogLock) {
+                liveLogLines.addLast(line)
+                liveLogBytes += line.toByteArray(StandardCharsets.UTF_8).size.toLong()
+                return liveLogBytes >= MAX_IN_MEMORY_LOG_BYTES
+            }
+        }
+
+        private fun drainLiveLogChunk(): String {
+            synchronized(liveLogLock) {
+                if (liveLogLines.isEmpty()) return ""
+                val chunk = buildString {
+                    liveLogLines.forEach { append(it) }
+                }
+                liveLogLines.clear()
+                liveLogBytes = 0L
+                return chunk
+            }
+        }
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -92,10 +143,32 @@ class LogRecordService : Service() {
     private var logWriter: BufferedWriter? = null
     private var logCollectJob: Job? = null
     private var logFile: File? = null
+    @Volatile private var runtimeReceiverRegistered = false
+    private var localClashManager: ClashManager? = null
+    private var rootLogSeq: Long = 0L
+    private val rootTunStateStore by lazy { RootTunStateStore(applicationContext) }
     private val fileNameFormatter =
         DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault())
     private val dateFormatter =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
+    private val runtimeLogObserver =
+        object : ILogObserver {
+            override fun newItem(log: LogMessage) {
+                if (!isRecording) return
+                val line =
+                    "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
+                writeLogLine(line)
+            }
+        }
+    private val runtimeEventsReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action ?: return) {
+                    Intents.ACTION_CLASH_STARTED -> scheduleObserverAttach()
+                    Intents.ACTION_CLASH_STOPPED -> scheduleObserverDetach()
+                }
+            }
+        }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -125,43 +198,17 @@ class LogRecordService : Service() {
             if (isRecording) return
 
             runCatching {
-                    val logDir = getLogDir(applicationContext)
-                    pruneLogFiles(logDir)
-                    val timestamp = fileNameFormatter.format(Instant.now())
-                    val fileName = "$LOG_PREFIX$timestamp$LOG_SUFFIX"
-                    logFile = File(logDir, fileName)
-                    logWriter = BufferedWriter(FileWriter(logFile, true))
+                    clearLiveLogBuffer()
+                    val file = createLogFile()
+                    logFile = file
+                    logWriter = BufferedWriter(FileWriter(file, true))
 
-                    currentLogFileName = fileName
+                    currentLogFileName = file.name
                     isRecording = true
 
                     startForeground(NOTIFICATION_ID, createNotification())
-
-                    logCollectJob =
-                        serviceScope.launch {
-                            val clash = ClashManager(applicationContext)
-                            try {
-                                val observer =
-                                    object : ILogObserver {
-                                        override fun newItem(log: LogMessage) {
-                                            if (!isRecording) return
-                                            val line =
-                                                "[${dateFormatter.format(log.time.toInstant())}] [${log.level.name}] ${log.message}\n"
-                                            writeLogLine(line)
-                                        }
-                                    }
-                                clash.setLogObserver(observer)
-                                awaitCancellation()
-                            } catch (cancelled: CancellationException) {
-                                throw cancelled
-                            } catch (t: Throwable) {
-                                Timber.tag(TAG).e(t, "Log observer failed")
-                                stopRecordingInternal(stopService = true)
-                            } finally {
-                                runCatching { clash.setLogObserver(null) }
-                                runCatching { clash.close() }
-                            }
-                        }
+                    registerRuntimeReceiver()
+                    scheduleObserverAttach()
                 }
                 .onFailure { e ->
                     Timber.tag(TAG).e(e, "Log recording start failed")
@@ -176,9 +223,13 @@ class LogRecordService : Service() {
 
     private fun stopRecordingInternal(stopService: Boolean) {
         synchronized(stateLock) {
+            unregisterRuntimeReceiver()
             logCollectJob?.cancel()
             logCollectJob = null
+            detachObserver()
+            flushLiveLogsToDisk()
             closeLogWriter()
+            clearLiveLogBuffer()
 
             isRecording = false
             currentLogFileName = null
@@ -193,12 +244,37 @@ class LogRecordService : Service() {
     private fun writeLogLine(line: String) {
         synchronized(writerLock) {
             runCatching {
-                    val writer = logWriter ?: return
-                    writer.write(line)
-                    writer.flush()
+                    if (appendLiveLogLine(line)) {
+                        flushLiveLogsToDisk()
+                    }
                 }
                 .onFailure { e -> Timber.tag(TAG).e(e, "Log write failed") }
         }
+    }
+
+    private fun flushLiveLogsToDisk() {
+        val chunk = drainLiveLogChunk()
+        if (chunk.isBlank()) return
+        rotateLogFileIfNeeded(chunk)
+        val writer = logWriter ?: return
+        writer.write(chunk)
+        writer.flush()
+    }
+
+    private fun rotateLogFileIfNeeded(nextLine: String) {
+        val file = logFile ?: return
+        val nextBytes = nextLine.toByteArray(StandardCharsets.UTF_8).size.toLong()
+        if (file.length() + nextBytes <= MAX_LOG_FILE_BYTES) return
+
+        logWriter?.flush()
+        logWriter?.close()
+
+        val nextFile = createLogFile()
+        logFile = nextFile
+        logWriter = BufferedWriter(FileWriter(nextFile, true))
+        currentLogFileName = nextFile.name
+        pruneLogFiles(getLogDir(applicationContext))
+        updateNotification()
     }
 
     private fun closeLogWriter() {
@@ -231,6 +307,19 @@ class LogRecordService : Service() {
             runCatching { oldest.delete() }
             totalBytes -= size
         }
+    }
+
+    private fun createLogFile(): File {
+        val logDir = getLogDir(applicationContext)
+        pruneLogFiles(logDir)
+        val timestamp = fileNameFormatter.format(Instant.now())
+        var file = File(logDir, "$LOG_PREFIX$timestamp$LOG_SUFFIX")
+        var suffix = 1
+        while (file.exists()) {
+            file = File(logDir, "$LOG_PREFIX${timestamp}_$suffix$LOG_SUFFIX")
+            suffix += 1
+        }
+        return file
     }
 
     private fun createNotificationChannel() {
@@ -283,5 +372,96 @@ class LogRecordService : Service() {
                 stopPendingIntent,
             )
             .build()
+    }
+
+    private fun updateNotification() {
+        if (!isRecording) return
+        runCatching {
+                NotificationManagerCompat.from(this).notify(NOTIFICATION_ID, createNotification())
+            }
+            .onFailure { error -> Timber.tag(TAG).d(error, "Update log notification skipped") }
+    }
+
+    private fun scheduleObserverAttach() {
+        logCollectJob?.cancel()
+        logCollectJob =
+            serviceScope.launch {
+                try {
+                    attachObserver()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (t: Throwable) {
+                    Timber.tag(TAG).e(t, "Attach runtime log observer failed")
+                }
+            }
+    }
+
+    private fun scheduleObserverDetach() {
+        logCollectJob?.cancel()
+        logCollectJob = serviceScope.launch { detachObserver() }
+    }
+
+    private suspend fun attachObserver() {
+        detachObserver()
+        if (isRootRuntimeActive()) {
+            while (currentCoroutineContext().isActive && isRecording && isRootRuntimeActive()) {
+                runCatching {
+                        val chunk =
+                            RootTunServiceBridge.queryRecentLogs(applicationContext, rootLogSeq)
+                        if (chunk.items.isNotEmpty()) {
+                            chunk.items.forEach { raw: String ->
+                                runtimeLogObserver.newItem(
+                                    RootTunJson.Default.decodeFromString(
+                                        serializer<LogMessage>(),
+                                        raw,
+                                    )
+                                )
+                            }
+                        }
+                        rootLogSeq = chunk.nextSeq
+                    }
+                    .onFailure { error -> Timber.tag(TAG).d(error, "Root log polling skipped") }
+                delay(ROOT_LOG_POLL_INTERVAL_MS)
+            }
+            return
+        }
+
+        val clash = ClashManager(applicationContext)
+        localClashManager = clash
+        clash.setLogObserver(runtimeLogObserver)
+    }
+
+    private fun detachObserver() {
+        rootLogSeq = 0L
+        runCatching { localClashManager?.setLogObserver(null) }
+        runCatching { localClashManager?.close() }
+        localClashManager = null
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun registerRuntimeReceiver() {
+        if (runtimeReceiverRegistered) return
+        val filter =
+            IntentFilter().apply {
+                addAction(Intents.ACTION_CLASH_STARTED)
+                addAction(Intents.ACTION_CLASH_STOPPED)
+            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(runtimeEventsReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(runtimeEventsReceiver, filter)
+        }
+        runtimeReceiverRegistered = true
+    }
+
+    private fun unregisterRuntimeReceiver() {
+        if (!runtimeReceiverRegistered) return
+        runCatching { unregisterReceiver(runtimeEventsReceiver) }
+        runtimeReceiverRegistered = false
+    }
+
+    private fun isRootRuntimeActive(): Boolean {
+        val status = rootTunStateStore.snapshot()
+        return status.state.isActive || status.runtimeReady
     }
 }

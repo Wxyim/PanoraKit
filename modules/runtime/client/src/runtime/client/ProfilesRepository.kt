@@ -55,39 +55,46 @@ class ProfilesRepository(
         Timber.d("Deleting profile: uuid=$uuid")
         runGatewayCall("Failed to delete profile") {
             ServiceClient.connect(context)
-            ServiceClient.profile().queryByUUID(uuid)?.takeIf { it.active }?.let { activeProfile ->
-                ServiceClient.profile().clearActive(activeProfile)
-                mutationCoordinator.notifyActiveProfileChanged()
-            }
+            ServiceClient.profile()
+                .queryByUUID(uuid)
+                ?.takeIf { it.active }
+                ?.let { activeProfile ->
+                    ServiceClient.profile().clearActive(activeProfile)
+                    mutationCoordinator.notifyActiveProfileChanged()
+                }
             ServiceClient.profile().delete(uuid)
         }
     }
 
     suspend fun queryAllProfiles(): List<Profile> {
-        return withContext(Dispatchers.IO) {
-            runGatewayCall("Failed to query all profiles") {
-                ServiceClient.connect(context)
-                ServiceClient.profile().queryAll()
-            }
-        }
+        return withContext(Dispatchers.IO) { queryAllProfilesInternal() }
     }
 
-    suspend fun queryActiveProfile(): Profile? {
+    suspend fun queryActiveProfile(ensureDefault: Boolean = false): Profile? {
         return withContext(Dispatchers.IO) {
-            runGatewayCall("Failed to query active profile") {
-                ServiceClient.connect(context)
-                ServiceClient.profile().queryActive()
+            val activeProfile = queryActiveProfileInternal()
+            if (activeProfile != null || !ensureDefault) {
+                return@withContext activeProfile
             }
+
+            val fallbackProfile = queryAllProfilesInternal().firstOrNull() ?: return@withContext null
+            Timber.i(
+                "Recovered missing active profile by selecting first profile: uuid=%s",
+                fallbackProfile.uuid,
+            )
+
+            runGatewayCall("Failed to set default active profile") {
+                ServiceClient.connect(context)
+                ServiceClient.profile().setActive(fallbackProfile)
+            }
+            mutationCoordinator.notifyActiveProfileChanged()
+
+            queryProfileByUUIDInternal(fallbackProfile.uuid) ?: fallbackProfile.copy(active = true)
         }
     }
 
     suspend fun queryProfileByUUID(uuid: UUID): Profile? {
-        return withContext(Dispatchers.IO) {
-            runGatewayCall("Failed to query profile by uuid") {
-                ServiceClient.connect(context)
-                ServiceClient.profile().queryByUUID(uuid)
-            }
-        }
+        return withContext(Dispatchers.IO) { queryProfileByUUIDInternal(uuid) }
     }
 
     suspend fun setActiveProfile(uuid: UUID) {
@@ -155,6 +162,27 @@ class ProfilesRepository(
 
     suspend fun queryActive(): Profile? {
         return queryActiveProfile()
+    }
+
+    private suspend fun queryAllProfilesInternal(): List<Profile> {
+        return runGatewayCall("Failed to query all profiles") {
+            ServiceClient.connect(context)
+            ServiceClient.profile().queryAll()
+        }
+    }
+
+    private suspend fun queryActiveProfileInternal(): Profile? {
+        return runGatewayCall("Failed to query active profile") {
+            ServiceClient.connect(context)
+            ServiceClient.profile().queryActive()
+        }
+    }
+
+    private suspend fun queryProfileByUUIDInternal(uuid: UUID): Profile? {
+        return runGatewayCall("Failed to query profile by uuid") {
+            ServiceClient.connect(context)
+            ServiceClient.profile().queryByUUID(uuid)
+        }
     }
 
     private suspend inline fun <T> runGatewayCall(defaultMessage: String, block: () -> T): T {

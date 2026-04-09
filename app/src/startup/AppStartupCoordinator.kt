@@ -3,8 +3,8 @@ package com.github.yumelira.yumebox.startup
 import android.app.Application
 import com.github.yumelira.yumebox.common.util.PlatformIdentifier
 import com.github.yumelira.yumebox.common.util.StorageCleanupManager
-import com.github.yumelira.yumebox.data.repository.AppTrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
+import com.github.yumelira.yumebox.data.repository.TargetSiteTrafficCollector
 import com.github.yumelira.yumebox.data.repository.TrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
@@ -12,8 +12,6 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.Koin
 import org.tukaani.xz.XZInputStream
@@ -29,12 +27,9 @@ class AppStartupCoordinator(
         private const val TEMP_FILE_PREFIX = "temp_"
         private const val TEMP_FILE_SUFFIX = ".yaml"
         private const val TEMP_FILE_STALE_MS = 24L * 60L * 60L * 1000L
-        private const val CLEANUP_POLL_INTERVAL_MS = 15L * 60L * 1000L
     }
 
     @Volatile private var deferredStartupInitialized = false
-    @Volatile private var cleanupSchedulerStarted = false
-    @Volatile private var appTrafficCollectorInitialized = false
 
     fun ensureDeferredStartupInitialized() {
         if (
@@ -57,31 +52,18 @@ class AppStartupCoordinator(
             cleanupLegacyData()
             runColdStartStorageCleanup()
             extractGeoFiles()
-            ensureCleanupSchedulerStarted()
+            koin
+                .get<StorageCleanupScheduler>()
+                .sync(enabled = appSettingsStorage.cleanupAutoEnabled.value)
         }
         appScope.launch {
             val proxyFacade = koin.get<ProxyFacade>()
             proxyFacade.warmUpProxyGroups()
+            koin.get<RuntimeLogRecordingCoordinator>().start()
             koin.get<TrafficStatisticsCollector>()
             koin.get<ConnectionActivityRepository>()
+            koin.get<TargetSiteTrafficCollector>()
             PlatformIdentifier.getPlatformIdentifier()
-
-            runCatching {
-                    proxyFacade.isRunning.first { it }
-                    ensureAppTrafficCollectorInitialized()
-                }
-                .onFailure { error ->
-                    Timber.w(error, "Deferred AppTrafficStatisticsCollector init failed")
-                }
-        }
-    }
-
-    private fun ensureAppTrafficCollectorInitialized() {
-        if (!shouldInitializeAppTrafficCollector(appTrafficCollectorInitialized)) return
-        synchronized(this) {
-            if (!shouldInitializeAppTrafficCollector(appTrafficCollectorInitialized)) return
-            koin.get<AppTrafficStatisticsCollector>()
-            appTrafficCollectorInitialized = true
         }
     }
 
@@ -148,22 +130,6 @@ class AppStartupCoordinator(
             true
         } catch (_: IOException) {
             false
-        }
-    }
-
-    private fun ensureCleanupSchedulerStarted() {
-        if (cleanupSchedulerStarted) return
-        synchronized(this) {
-            if (cleanupSchedulerStarted) return
-            cleanupSchedulerStarted = true
-        }
-
-        appScope.launch(Dispatchers.IO) {
-            val manager = koin.get<StorageCleanupManager>()
-            while (true) {
-                runCatching { manager.runAutoCleanupIfNeeded() }
-                delay(CLEANUP_POLL_INTERVAL_MS)
-            }
         }
     }
 

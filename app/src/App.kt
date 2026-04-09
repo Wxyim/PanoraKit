@@ -30,7 +30,6 @@ import com.github.yumelira.yumebox.di.APPLICATION_SCOPE_NAME
 import com.github.yumelira.yumebox.di.appModule
 import com.github.yumelira.yumebox.startup.AppStartupCoordinator
 import com.tencent.mmkv.MMKV
-import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.Koin
 import org.koin.core.context.startKoin

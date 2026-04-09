@@ -21,9 +21,10 @@
 package com.github.yumelira.yumebox.common.util
 
 import android.app.Application
+import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
-import com.github.yumelira.yumebox.data.repository.LogRepository
+import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
 import java.io.File
 import java.util.UUID
@@ -34,7 +35,7 @@ import timber.log.Timber
 class StorageCleanupManager(
     private val application: Application,
     private val appSettingsRepository: AppSettingsRepository,
-    private val logRepository: LogRepository,
+    private val trafficStatisticsStore: TrafficStatisticsStore,
 ) {
 
     suspend fun runColdStartCleanup(): ColdStartCleanupResult =
@@ -65,9 +66,15 @@ class StorageCleanupManager(
         }
 
     suspend fun runCleanupNow(now: Long = System.currentTimeMillis()): CleanupResult =
-        withContext(Dispatchers.IO) { runCleanupInternal(force = false, now = now) }
+        withContext(Dispatchers.IO) {
+            runCleanupInternal(force = false, now = now, clearRuntimeRecords = true)
+        }
 
-    private suspend fun runCleanupInternal(force: Boolean, now: Long): CleanupResult {
+    private suspend fun runCleanupInternal(
+        force: Boolean,
+        now: Long,
+        clearRuntimeRecords: Boolean = false,
+    ): CleanupResult {
         val thresholdMb =
             appSettingsRepository.cleanupThresholdMb.value.coerceIn(
                 MIN_THRESHOLD_MB,
@@ -78,8 +85,12 @@ class StorageCleanupManager(
         val beforeBytes = calculateStorageBytes()
 
         if (!force && beforeBytes < thresholdBytes) {
+            if (clearRuntimeRecords) {
+                clearRuntimeTrafficRecords()
+                appSettingsRepository.cleanupLastRunAt.set(now)
+            }
             return CleanupResult(
-                executed = false,
+                executed = clearRuntimeRecords,
                 beforeBytes = beforeBytes,
                 afterBytes = beforeBytes,
                 freedBytes = 0L,
@@ -89,11 +100,6 @@ class StorageCleanupManager(
             )
         }
 
-        val archiveFileName =
-            runCatching { logRepository.persistReadableLogsForCleanup() }
-                .onFailure { Timber.w(it, "cleanup: failed to persist readable logs") }
-                .getOrNull()
-
         val orphanRemovedCount =
             runCatching { reclaimOrphanImportedProfileDirs() }
                 .onFailure { Timber.w(it, "cleanup: failed to reclaim orphan imported dirs") }
@@ -101,6 +107,11 @@ class StorageCleanupManager(
 
         runCatching { reduceCacheFootprint(thresholdBytes, policyConfig) }
             .onFailure { Timber.w(it, "cleanup: failed to trim cacheDir") }
+
+        if (clearRuntimeRecords) {
+            runCatching { clearRuntimeTrafficRecords() }
+                .onFailure { Timber.w(it, "cleanup: failed to clear runtime traffic records") }
+        }
 
         val afterBytes = calculateStorageBytes()
         appSettingsRepository.cleanupLastRunAt.set(now)
@@ -110,9 +121,14 @@ class StorageCleanupManager(
             afterBytes = afterBytes,
             freedBytes = (beforeBytes - afterBytes).coerceAtLeast(0L),
             thresholdBytes = thresholdBytes,
-            archiveFileName = archiveFileName,
+                archiveFileName = null,
             orphanImportedDirsRemoved = orphanRemovedCount,
         )
+    }
+
+    private fun clearRuntimeTrafficRecords() {
+        trafficStatisticsStore.clearTargetSiteUsages()
+        ConnectionHistoryManager.clear()
     }
 
     private fun reclaimOrphanImportedProfileDirs(): Int {

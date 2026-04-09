@@ -27,9 +27,12 @@ import com.github.yumelira.yumebox.data.store.*
 import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.runtime.client.RuntimeMutationCoordinator
 import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadDispatcher
 import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
+import com.github.yumelira.yumebox.startup.RuntimeLogRecordingCoordinator
+import com.github.yumelira.yumebox.startup.StorageCleanupScheduler
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +87,7 @@ val appDataRuntimeModule = module {
     single { AppSettingsRepository(get()) }
     single { LogRepository(androidApplication(), get()) }
     single { StorageCleanupManager(androidApplication(), get(), get()) }
+    single { StorageCleanupScheduler(androidContext()) }
     single { NetworkInfoService() }
     single { ProxyChainResolver() }
     single { OverrideRepository(androidContext(), get()) }
@@ -105,19 +109,13 @@ val appDataRuntimeModule = module {
     single { com.github.yumelira.yumebox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single { ProfilesRepository(androidContext(), get()) }
+    single { RuntimeControlCoordinator(get(), get(), get()) }
     single { AppIdentityResolver(androidContext()) }
 
     single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
-    single {
-        AppTrafficStatisticsCollector(
-            androidContext(),
-            get(),
-            get(),
-            get(),
-            get(named(APPLICATION_IO_SCOPE_NAME)),
-        )
-    }
     single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
+    single { TargetSiteTrafficCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
+    single { RuntimeLogRecordingCoordinator(androidApplication(), get()) }
 }
 
 val coreDiModules: List<Module> = listOf(appFoundationModule, appDataRuntimeModule)

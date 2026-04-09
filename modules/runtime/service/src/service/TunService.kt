@@ -41,12 +41,12 @@ import com.github.yumelira.yumebox.service.runtime.util.sendClashStarted
 import com.github.yumelira.yumebox.service.runtime.util.sendClashStopped
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
 import java.util.*
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
 
 class TunService : VpnService(), CoroutineScope {
     private val serviceJob = SupervisorJob()
@@ -72,7 +72,32 @@ class TunService : VpnService(), CoroutineScope {
                     Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
                     Intents.ACTION_CLASH_REQUEST_STOP -> {
                         reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
-                        stopSelf()
+                        startupLogStore.append(
+                            "LOCAL_TUN stop request received reason=${reason ?: "manual"}"
+                        )
+                        launch {
+                            val stopResult =
+                                if (this@TunService::runtime.isInitialized) {
+                                    runtime.stop(reason)
+                                } else {
+                                    RuntimeOperationResult.ok()
+                                }
+                            if (!stopResult.success) {
+                                val failure =
+                                    stopResult.toException(
+                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                                        defaultMessage = "tun runtime stop failed",
+                                    )
+                                reason =
+                                    failure.runtimeGatewayMessage("tun runtime stop failed")
+                                startupLogStore.append(
+                                    "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
+                                )
+                            } else {
+                                startupLogStore.append("LOCAL_TUN stop request handled")
+                            }
+                            stopSelf()
+                        }
                     }
                 }
             }

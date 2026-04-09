@@ -133,17 +133,36 @@ class LogRepository(
     suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             val source = resolveLogFile(fileName) ?: return@withContext false
-            try {
-                application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                    source.inputStream().use { input -> input.copyTo(output) }
-                } ?: return@withContext false
-                true
-            } catch (_: IOException) {
-                false
-            } catch (_: SecurityException) {
-                false
-            }
+            copyFileToUri(source, targetUri)
         }
+
+    suspend fun exportCurrentRecording(targetUri: Uri): Boolean =
+        withContext(Dispatchers.IO) {
+            val current =
+                logRecordGateway.currentLogFileName?.let(::resolveLogFile)?.takeIf {
+                    it.exists() && it.isFile
+                } ?: return@withContext false
+            copyFileToUri(current, targetUri)
+        }
+
+    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
+        withContext(Dispatchers.IO) {
+            val source = resolveStartupLogFile(fileName) ?: return@withContext false
+            copyFileToUri(source, targetUri)
+        }
+
+    private fun copyFileToUri(source: File, targetUri: Uri): Boolean {
+        return try {
+            application.contentResolver.openOutputStream(targetUri)?.use { output ->
+                source.inputStream().use { input -> input.copyTo(output) }
+            } ?: return false
+            true
+        } catch (_: IOException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
+    }
 
     suspend fun readStartupLogEntries(
         fileName: String,
@@ -171,21 +190,6 @@ class LogRepository(
                 emptyList()
             } catch (_: SecurityException) {
                 emptyList()
-            }
-        }
-
-    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val source = resolveStartupLogFile(fileName) ?: return@withContext false
-            try {
-                application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                    source.inputStream().use { input -> input.copyTo(output) }
-                } ?: return@withContext false
-                true
-            } catch (_: IOException) {
-                false
-            } catch (_: SecurityException) {
-                false
             }
         }
 
@@ -240,13 +244,13 @@ class LogRepository(
     suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val currentlyRecording = isRecording()
-            val currentFileName = logRecordGateway.currentLogFileName
-            if (!currentlyRecording || currentFileName == null) {
+            if (!currentlyRecording) {
                 return@withContext emptyList()
             }
-            val file = resolveLogFile(currentFileName) ?: return@withContext emptyList()
-            readLogFileEntries(file, maxEntries)
+            logRecordGateway.snapshotLiveLogLines(maxEntries).mapNotNull(::parseLogLine)
         }
+
+    fun currentRecordingFileName(): String? = logRecordGateway.currentLogFileName
 
     private fun readLogFileEntries(file: File, maxEntries: Int): List<LogEntry> {
         return try {
@@ -290,11 +294,16 @@ class LogRepository(
     suspend fun deleteLogFile(fileName: String): Boolean =
         withContext(Dispatchers.IO) {
             val file = resolveLogFile(fileName) ?: return@withContext false
-            if (isCurrentRecordingFile(file.name)) {
+            val deletingCurrentRecording = isCurrentRecordingFile(file.name)
+            if (deletingCurrentRecording) {
                 stopRecording()
                 delay(STOP_WAIT_MS)
             }
-            file.delete()
+            val deleted = file.delete()
+            if (deletingCurrentRecording) {
+                runCatching { startRecording() }
+            }
+            deleted
         }
 
     suspend fun deleteStartupLogFile(fileName: String): Boolean =
@@ -305,13 +314,17 @@ class LogRepository(
 
     suspend fun deleteAllLogs() =
         withContext(Dispatchers.IO) {
-            if (isRecording()) {
+            val wasRecording = isRecording()
+            if (wasRecording) {
                 stopRecording()
                 delay(STOP_WAIT_MS)
             }
-            val files = logDir.listFiles(::isManagedLogFile) ?: return@withContext
+            val files = logDir.listFiles(::isManagedLogFile) ?: emptyArray()
             files.forEach { it.delete() }
             STARTUP_LOG_FILES.forEach { name -> runCatching { File(filesDir, name).delete() } }
+            if (wasRecording) {
+                runCatching { startRecording() }
+            }
         }
 
     private fun parseLogLine(line: String): LogEntry? {

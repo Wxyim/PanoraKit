@@ -23,7 +23,9 @@ package com.github.yumelira.yumebox.service.clash.module
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageInfo
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
 import com.github.yumelira.yumebox.core.Clash
+import com.github.yumelira.yumebox.service.root.RootPackageShell
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -33,6 +35,13 @@ class AppListCacheModule(service: Service) : Module<Unit>(service) {
         if (sharedUserId?.isNotBlank() == true) sharedUserId ?: packageName else packageName
 
     private fun reload() {
+        if (
+            !RootPackageShell.hasRootAccess() &&
+                !InstalledAppsAccess.resolve(service).canEnumerateInstalledApps
+        ) {
+            Clash.notifyInstalledAppsChanged(emptyList())
+            return
+        }
         val packages =
             service.packageManager
                 .getInstalledPackages(0)

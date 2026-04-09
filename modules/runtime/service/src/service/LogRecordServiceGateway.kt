@@ -48,4 +48,8 @@ class LogRecordServiceGateway : LogRecordGateway {
     override fun getLogDir(application: Application): File {
         return LogRecordService.getLogDir(application)
     }
+
+    override fun snapshotLiveLogLines(maxLines: Int): List<String> {
+        return LogRecordService.snapshotLiveLogLines(maxLines)
+    }
 }

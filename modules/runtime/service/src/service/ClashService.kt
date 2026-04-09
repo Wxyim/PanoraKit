@@ -37,6 +37,7 @@ import com.github.yumelira.yumebox.service.notification.ServiceNotificationManag
 import com.github.yumelira.yumebox.service.runtime.session.LocalHttpTransport
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeFailure
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeHost
+import com.github.yumelira.yumebox.service.runtime.session.RuntimeOperationResult
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeSpec
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeStartupLogStore
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntime
@@ -70,7 +71,32 @@ class ClashService : BaseService() {
 
                     Intents.ACTION_CLASH_REQUEST_STOP -> {
                         reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
-                        stopSelf()
+                        startupLogStore.append(
+                            "LOCAL_HTTP stop request received reason=${reason ?: "manual"}"
+                        )
+                        launch {
+                            val stopResult =
+                                if (this@ClashService::runtime.isInitialized) {
+                                    runtime.stop(reason)
+                                } else {
+                                    RuntimeOperationResult.ok()
+                                }
+                            if (!stopResult.success) {
+                                val failure =
+                                    stopResult.toException(
+                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                                        defaultMessage = "http runtime stop failed",
+                                    )
+                                reason =
+                                    failure.runtimeGatewayMessage("http runtime stop failed")
+                                startupLogStore.append(
+                                    "LOCAL_HTTP failed=${failure.code.name}:${failure.message}"
+                                )
+                            } else {
+                                startupLogStore.append("LOCAL_HTTP stop request handled")
+                            }
+                            stopSelf()
+                        }
                     }
                 }
             }

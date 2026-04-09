@@ -24,33 +24,16 @@ import android.content.Context
 import com.github.yumelira.yumebox.core.model.ConnectionSnapshot
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.service.RootTunService
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 internal object RootTunServiceBridge {
     suspend fun start(context: Context): RootTunOperationResult {
-        val appContext = context.appContextOrSelf
-        val request = RootTunStartRequest(source = "service.bridge.start")
-        val result =
-            runCatching {
-                    withContext(Dispatchers.IO) {
-                        val service = RootTunRemoteClient.bind(appContext)
-                        val resultJson = service.startRootTun(RootTunJson.encode(request))
-                        RootTunJson.decode<RootTunOperationResult>(resultJson)
-                    }
-                }
-                .getOrElse { error ->
-                    return error.toRootTunOperationResult(
-                        fallbackCode = RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
-                        fallbackMessage = "RootTun service bridge start failed",
-                    )
-                }
-        if (result.success) {
-            RootTunService.start(appContext)
-        }
-        return result
+        return RootTunStartCoordinator.start(
+            context = context,
+            request = RootTunStartRequest(source = "service.bridge.start"),
+            callerTag = "service-bridge",
+            fallbackCode = RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+            fallbackMessage = "RootTun service bridge start failed",
+        )
     }
 
     suspend fun stop(context: Context): RootTunOperationResult {
@@ -92,6 +75,12 @@ internal object RootTunServiceBridge {
 
     suspend fun closeAllConnections(context: Context) {
         RootTunRemoteClient.remoteCall(context) { service -> service.closeAllConnections() }
+    }
+
+    suspend fun queryRecentLogs(context: Context, sinceSeq: Long): RootTunLogChunk {
+        return RootTunRemoteClient.remoteCall(context) { service ->
+            RootTunJson.decode<RootTunLogChunk>(service.queryRecentLogsJson(sinceSeq))
+        }
     }
 
     private fun Throwable.toRootTunOperationResult(

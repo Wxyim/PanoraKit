@@ -24,7 +24,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.core.content.ContextCompat
+import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
 import com.github.yumelira.yumebox.service.runtime.config.AccessControlMode
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 
@@ -190,20 +190,8 @@ internal class RootTunPackageResolver(
     }
 
     private fun hasInstalledAppsPermission(): Boolean {
-        val permission = MIUI_GET_INSTALLED_APPS_PERMISSION
-        val permissionExists =
-            runCatching {
-                    context.packageManager.getPermissionInfo(permission, 0)
-                    true
-                }
-                .getOrDefault(false)
-
-        if (!permissionExists) {
-            return true
-        }
-
-        return ContextCompat.checkSelfPermission(context, permission) ==
-            PackageManager.PERMISSION_GRANTED
+        return RootPackageShell.hasRootAccess() ||
+            InstalledAppsAccess.resolve(context).canEnumerateInstalledApps
     }
 
     private fun installedPackages(): List<PackageInfo> {
@@ -216,6 +204,5 @@ internal class RootTunPackageResolver(
 
     private companion object {
         const val APP_UID_MIN = 10_000
-        const val MIUI_GET_INSTALLED_APPS_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
     }
 }

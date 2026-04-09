@@ -58,6 +58,7 @@ class SessionRuntime(
     private var currentSpec: RuntimeSpec? = null
     private var currentSnapshot: RuntimeSnapshot = RuntimeSnapshot(targetMode = host.mode)
     private var networkObserver: ServiceNetworkObserver? = null
+    private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
     private var connectionTrackingJob: Job? = null
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
@@ -366,13 +367,14 @@ class SessionRuntime(
 
         teardownCore()
         compileAndLoad(spec)
-        startObservers()
-        notifyCurrentTimeZone()
-        startConnectionTracking()
-
         transport.prepare(spec)
         transport.start(spec)
-        loadRuntimeDataAndRestore(spec)
+        startInstalledAppsPublisher()
+        startObservers()
+        notifyRuntimeSideEffects()
+        startConnectionTracking()
+        awaitProxyGroupsReady(spec)
+        restoreSelections(spec)
         startLogStream()
         refreshRuntimeSnapshotWithLog(spec)
 
@@ -407,7 +409,10 @@ class SessionRuntime(
             )
         )
 
-        loadRuntimeDataAndRestore(spec)
+        compileAndLoad(spec)
+        notifyRuntimeSideEffects()
+        awaitProxyGroupsReady(spec)
+        restoreSelections(spec)
         currentSpec = spec
         refreshRuntimeSnapshotWithLog(spec)
         publishSnapshot(
@@ -425,12 +430,6 @@ class SessionRuntime(
         )
         host.onProfileLoaded(spec.profileUuid)
         startupLog(spec, "reload done")
-    }
-
-    private suspend fun loadRuntimeDataAndRestore(spec: RuntimeSpec) {
-        compileAndLoad(spec)
-        awaitProxyGroupsReady(spec)
-        restoreSelections(spec)
     }
 
     private fun refreshRuntimeSnapshotWithLog(spec: RuntimeSpec) {
@@ -459,6 +458,7 @@ class SessionRuntime(
         )
         stopLogStream()
         stopConnectionTracking()
+        stopInstalledAppsPublisher()
         stopObservers()
         runCatching { transport.stop() }
         teardownCore()
@@ -479,6 +479,7 @@ class SessionRuntime(
 
     private fun rollback(spec: RuntimeSpec, failure: RuntimeFailure) {
         stopLogStream()
+        stopInstalledAppsPublisher()
         stopObservers()
         runCatching { transport.stop() }
         teardownCore()
@@ -559,8 +560,7 @@ class SessionRuntime(
             if (!parent.exists() && !parent.mkdirs()) {
                 throw RuntimeGatewayException(
                     code = RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
-                    message =
-                        "Runtime config directory cannot be created: ${parent.absolutePath}",
+                    message = "Runtime config directory cannot be created: ${parent.absolutePath}",
                 )
             }
         }
@@ -670,6 +670,24 @@ class SessionRuntime(
     private fun stopObservers() {
         runCatching { networkObserver?.stop() }
         networkObserver = null
+    }
+
+    private fun startInstalledAppsPublisher() {
+        val publisher =
+            installedAppsPublisher
+                ?: RuntimeInstalledAppsPublisher(host.context, scope).also {
+                    installedAppsPublisher = it
+                }
+        publisher.start()
+    }
+
+    private fun stopInstalledAppsPublisher() {
+        installedAppsPublisher?.stop()
+        installedAppsPublisher = null
+    }
+
+    private fun notifyRuntimeSideEffects() {
+        notifyCurrentTimeZone()
     }
 
     private fun notifyCurrentTimeZone() {
