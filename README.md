@@ -10,16 +10,12 @@ MonadBox is a customized Android client based on [mihomo](https://github.com/Met
 - Upstream project: [YumeBox](https://github.com/YumeLira/YumeBox)
 - Releases: [MonadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
 - Issues: [MonadBox Issues](https://github.com/NomadBoxLab/NomadBox/issues)
-- Privacy notice: [PRIVACY_POLICY.md](/D:/Projects/Playground/MonadBox/PRIVACY_POLICY.md)
-- 隐私说明（简体中文）: [docs/PRIVACY_ZH_HANS.md](/D:/Projects/Playground/MonadBox/docs/PRIVACY_ZH_HANS.md)
 
-## Documentation
+### Documentation
 
-- Documentation hub: [docs/README.md](/D:/Projects/Playground/MonadBox/docs/README.md)
 - Development guide: [docs/DEVELOP.md](/D:/Projects/Playground/MonadBox/docs/DEVELOP.md)
-- Contributing guide: [docs/CONTRIBUTING.md](/D:/Projects/Playground/MonadBox/docs/CONTRIBUTING.md)
-- Performance guide: [docs/PERFORMANCE.md](/D:/Projects/Playground/MonadBox/docs/PERFORMANCE.md)
-- Third-party libraries: [docs/ThirdParty.md](/D:/Projects/Playground/MonadBox/docs/ThirdParty.md)
+- Licensing policy: [docs/LICENSING.md](/D:/Projects/Playground/MonadBox/docs/LICENSING.md)
+- Privacy notice (EN): [docs/PRIVACY_POLICY.md](/D:/Projects/Playground/MonadBox/docs/PRIVACY_POLICY.md)
 
 ## Quick Start
 
@@ -45,9 +41,13 @@ For the complete environment and native build sequence, see [docs/DEVELOP.md](/D
 This fork currently emphasizes:
 
 - privacy and safer defaults
-- runtime stability and startup recovery
 - localization and UI polish
-- modularized Android project structure
+
+## License Status
+
+- Repository-owned and fork-derived MonadBox source files are licensed under AGPL-3.0-only.
+- Third-party dependencies, synced upstream source, and remote assets keep their own upstream licenses.
+- Public GitHub release binaries must pass the policy defined in [docs/LICENSING.md](/D:/Projects/Playground/MonadBox/docs/LICENSING.md).
 
 ## Notes
 

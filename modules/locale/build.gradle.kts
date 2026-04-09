@@ -22,16 +22,6 @@ plugins {
     id("com.android.library")
     kotlin("plugin.compose")
     id("org.jetbrains.compose")
-    id("dev.oom-wg.purejoy.fyl.fytxt")
-}
-
-fytxt {
-    langSrcs = mapOf("lang" to layout.projectDirectory.dir("lang"))
-    packageName = "dev.oom_wg.purejoy.mlang"
-    objectName = "MLang"
-    defaultLang = "ZH"
-    composeGen = true
-    internalClass = false
 }
 
 android {
@@ -79,18 +69,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = false
-    }
-}
-
-androidComponents {
-    onVariants { variant ->
-        variant.sources.kotlin?.addStaticSourceDirectory(
-            layout.buildDirectory
-                .dir("generated/fytxt/kotlin/commonMain/kotlin")
-                .get()
-                .asFile
-                .absolutePath
-        )
     }
 }
 

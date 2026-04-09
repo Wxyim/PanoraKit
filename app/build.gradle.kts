@@ -370,7 +370,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.xz)
 
-    implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.zxing.core)
 
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
@@ -386,7 +386,6 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
-    implementation(libs.fytxt.common.android)
     implementation(libs.work.runtime.ktx)
     implementation(libs.profileinstaller)
 

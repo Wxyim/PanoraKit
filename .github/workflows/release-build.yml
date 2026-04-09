@@ -127,6 +127,13 @@ jobs:
           test -f jniLibs/arm64-v8a/liboverride.so
           test -f jniLibs/arm64-v8a/libbridge.so
 
+      - name: Check GitHub OSS release policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew checkGithubOssLicensePolicy --no-daemon
+
       - name: Restore signing files
         shell: bash
         env:

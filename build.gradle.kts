@@ -21,8 +21,18 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.diffplug.gradle.spotless.SpotlessExtension
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 plugins {
     base
@@ -35,7 +45,6 @@ plugins {
     alias(libs.plugins.jetbrains.compose) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.aboutlibraries.android) apply false
-    alias(libs.plugins.purejoy.fytxt) apply false
     alias(libs.plugins.spotless)
 }
 
@@ -55,6 +64,117 @@ extensions.configure(SpotlessExtension::class.java) {
         targetExclude("**/build/**")
         ktfmt("0.52").kotlinlangStyle()
     }
+}
+
+data class GithubOssDependencyRule(
+    val reason: String,
+    val markers: List<String>,
+)
+
+data class GithubOssDependencyFinding(
+    val file: File,
+    val lineNumber: Int,
+    val lineText: String,
+    val reason: String,
+)
+
+@DisableCachingByDefault(because = "Scans repository build metadata for GitHub OSS policy violations.")
+abstract class CheckGithubOssLicensePolicyTask : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val repositoryRoot: DirectoryProperty
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val policyInputs: ConfigurableFileCollection
+
+    @TaskAction
+    fun runCheck() {
+        val rules =
+            listOf(
+                GithubOssDependencyRule(
+                    reason =
+                        "F2DLPRL-covered FYTxt/FVV components must not be shipped in GitHub OSS release binaries.",
+                    markers =
+                        listOf(
+                            "dev.oom-wg.purejoy.fyl.fytxt",
+                            "libs.fytxt.common.android",
+                        ),
+                ),
+                GithubOssDependencyRule(
+                    reason =
+                        "Google ML Kit / Play Services terms are blocked for the GitHub OSS release profile.",
+                    markers =
+                        listOf(
+                            "libs.mlkit.barcode.scanning",
+                            "com.google.mlkit:",
+                            "play-services-mlkit-barcode-scanning",
+                        ),
+                ),
+            )
+
+        val repoRootDir = repositoryRoot.asFile.get()
+        val findings = mutableListOf<GithubOssDependencyFinding>()
+
+        policyInputs.files
+            .sortedBy { it.relativeTo(repoRootDir).invariantSeparatorsPath }
+            .forEach { file ->
+                file.readLines().forEachIndexed { index, rawLine ->
+                    val line = rawLine.trim()
+                    if (line.isEmpty() || line.startsWith("//") || line.startsWith("#")) {
+                        return@forEachIndexed
+                    }
+
+                    rules.forEach { rule ->
+                        if (rule.markers.any(line::contains)) {
+                            findings +=
+                                GithubOssDependencyFinding(
+                                    file = file,
+                                    lineNumber = index + 1,
+                                    lineText = line,
+                                    reason = rule.reason,
+                                )
+                        }
+                    }
+                }
+            }
+
+        if (findings.isNotEmpty()) {
+            val formattedFindings =
+                findings.joinToString("\n") { finding ->
+                    val relativePath = finding.file.relativeTo(repoRootDir).invariantSeparatorsPath
+                    "- $relativePath:${finding.lineNumber}: ${finding.lineText}\n  ${finding.reason}"
+                }
+
+            throw GradleException(
+                buildString {
+                    appendLine("GitHub OSS release policy check failed.")
+                    appendLine("Blocked dependencies are still wired into the public release path:")
+                    appendLine(formattedFindings)
+                    appendLine()
+                    appendLine(
+                        "Remove or isolate these dependencies before publishing GitHub release binaries."
+                    )
+                    appendLine("Policy reference: docs/LICENSING.md")
+                }
+            )
+        }
+    }
+}
+
+tasks.register<CheckGithubOssLicensePolicyTask>("checkGithubOssLicensePolicy") {
+    group = "verification"
+    description =
+        "Fails when the public GitHub OSS release path still references blocked dependencies."
+
+    repositoryRoot.set(layout.projectDirectory)
+    policyInputs.from(
+        layout.projectDirectory.file("gradle/libs.versions.toml"),
+        fileTree(layout.projectDirectory.asFile) {
+            include("**/build.gradle.kts")
+            exclude("build.gradle.kts", "**/build/**")
+        },
+    )
 }
 
 subprojects {

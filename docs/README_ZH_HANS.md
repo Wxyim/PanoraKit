@@ -1,30 +1,55 @@
-# 文档中心
+# MonadBox
 
-[简体中文](README_ZH_HANS.md) | [English](README.md)
+[简体中文](README_ZH_HANS.md) | [English](../README.md)
 
-这里是 MonadBox 的正式文档入口。根目录 [`README.md`](../README.md) 保持简洁，详细说明统一收口到这里。
+MonadBox 是一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的定制化 Android 客户端，维护自 [YumeBox](https://github.com/YumeLira/YumeBox) fork。
 
-## 从这里开始
+## 概览
 
-- 项目概览：[../README.md](../README.md)
-- 隐私说明：[../PRIVACY_POLICY.md](../PRIVACY_POLICY.md)
-- 隐私说明（简体中文）：[PRIVACY_ZH_HANS.md](../docs/PRIVACY_ZH_HANS.md)
+- 最低 Android 版本：`Android 8.0 / API 26`
+- 上游项目：[YumeBox](https://github.com/YumeLira/YumeBox)
+- 发行页：[MonadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
+- 问题反馈：[MonadBox Issues](https://github.com/NomadBoxLab/NomadBox/issues)
 
-## 工程文档
+### 文档
 
-- 开发环境与构建流程：[DEVELOP_ZH_HANS.md](../docs/DEVELOP_ZH_HANS.md)
-- 贡献规范与架构约束：[CONTRIBUTING_ZH_HANS.md](../docs/CONTRIBUTING_ZH_HANS.md)
-- 性能与 benchmark 工作流：[PERFORMANCE_ZH_HANS.md](../docs/PERFORMANCE_ZH_HANS.md)
+- 开发指南：[DEVELOP_ZH_HANS.md](DEVELOP_ZH_HANS.md)
+- 许可策略：[LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md)
+- 隐私说明：[PRIVACY_ZH_HANS.md](PRIVACY_ZH_HANS.md)
 
-## 参考资料
+## 快速开始
 
-- 第三方依赖清单：[ThirdParty_ZH_HANS.md](../docs/ThirdParty_ZH_HANS.md)
-- UI 能力注册表：[../config/ui-capability-registry.txt](../config/ui-capability-registry.txt)
+1. 复制本地配置模板：
+   - [local.properties.example](../local.properties.example)
+   - [startup-gate.local.properties.example](../startup-gate.local.properties.example)
+   - [signing.properties.example](../signing.properties.example)
+2. 构建 native 产物。
+3. 运行 Gradle 校验。
 
-## 双语对应
+常用命令：
 
-- English 文档中心：[README.md](../docs/README.md)
-- English 开发指南：[DEVELOP.md](../docs/DEVELOP.md)
-- English 贡献指南：[CONTRIBUTING.md](../docs/CONTRIBUTING.md)
-- English 性能文档：[PERFORMANCE.md](../docs/PERFORMANCE.md)
-- English 第三方清单：[ThirdParty.md](../docs/ThirdParty.md)
+```bash
+./gradlew spotlessApply
+./gradlew test
+./gradlew assembleDebug
+```
+
+完整环境准备与 native 构建顺序请查看 [DEVELOP_ZH_HANS.md](DEVELOP_ZH_HANS.md)。
+
+## Fork 重点
+
+当前 fork 重点包括：
+
+- 隐私与更安全的默认行为
+- 本地化与 UI 体验优化
+
+## 许可状态
+
+- MonadBox 自有代码与 fork 衍生代码采用 AGPL-3.0-only。
+- 第三方依赖、同步上游源码和外部资源继续遵循各自上游许可。
+- GitHub 公开二进制发布必须通过 [LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md) 中定义的策略校验。
+
+## 备注
+
+- 构建与工具链权威配置以 [gradle.properties](../gradle.properties) 为准。
+- UI 能力注册表见 [config/ui-capability-registry.txt](../config/ui-capability-registry.txt)。

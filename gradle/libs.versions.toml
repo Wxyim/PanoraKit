@@ -4,7 +4,6 @@ kotlin = "2.2.10"
 composePlugin = "1.10.3"
 ksp = "2.2.10-2.0.2"
 aboutLibrariesPlugin = "14.0.0-b03"
-fytxtPlugin = "2.2"
 spotless = "6.25.0"
 composeBom = "2025.02.00"
 desugarJdkLibs = "2.1.5"
@@ -25,7 +24,7 @@ miuix = "0.8.8"
 haze = "1.7.2"
 liquid = "1.1.1"
 sketch4 = "4.3.1"
-mlkitBarcodeScanning = "17.3.0"
+zxing = "3.5.3"
 reorderable = "3.0.0"
 aboutLibraries = "13.2.1"
 soraEditor = "0.24.5"
@@ -50,7 +49,6 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "composePlugin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 aboutlibraries-android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibrariesPlugin" }
-purejoy-fytxt = { id = "dev.oom-wg.purejoy.fyl.fytxt", version.ref = "fytxtPlugin" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineProfile" }
 
@@ -90,13 +88,12 @@ liquid = { module = "io.github.fletchmckee.liquid:liquid", version.ref = "liquid
 sketch4-compose = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch4" }
 sketch4-http = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch4" }
 sketch4-animated-webp = { module = "io.github.panpf.sketch4:sketch-animated-webp", version.ref = "sketch4" }
-mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkitBarcodeScanning" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
 aboutlibraries-compose = { module = "com.mikepenz:aboutlibraries-compose", version.ref = "aboutLibraries" }
 editor-bom = { module = "io.github.rosemoe:editor-bom", version.ref = "soraEditor" }
 navigationevent-compose = { module = "androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
-fytxt-common-android = { module = "dev.oom-wg.purejoy.fyl.fytxt:common-android", version.ref = "fytxtPlugin" }
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }

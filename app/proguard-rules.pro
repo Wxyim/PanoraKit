@@ -110,16 +110,6 @@
 }
 
 # ========================================
-# ML Kit (Google) - Reflection for Component Registration
-# ========================================
--keep class com.google.mlkit.** { *; }
--keep class com.google.android.gms.internal.mlkit** { *; }
-
-# Keep ComponentRegistrar implementations for ML Kit
--keep class * implements com.google.firebase.components.ComponentRegistrar { *; }
--keep @com.google.firebase.components.ComponentRegistrar class * { *; }
-
-# ========================================
 # Koin Dependency Injection
 # ========================================
 -keep class org.koin.** { *; }

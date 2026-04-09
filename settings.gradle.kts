@@ -31,14 +31,6 @@ pluginManagement {
         google()
         mavenCentral()
         maven("https://jitpack.io")
-
-        maven("https://oom-maven.sawahara.host") {
-            content {
-                includeGroupAndSubgroups("ren.shiror")
-                includeGroupAndSubgroups("work.niggergo")
-                includeGroupAndSubgroups("dev.oom-wg")
-            }
-        }
         gradlePluginPortal()
     }
 }
@@ -50,14 +42,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://jitpack.io")
-
-        maven("https://oom-maven.sawahara.host") {
-            content {
-                includeGroupAndSubgroups("ren.shiror")
-                includeGroupAndSubgroups("work.niggergo")
-                includeGroupAndSubgroups("dev.oom-wg")
-            }
-        }
     }
 }
 
