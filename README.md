@@ -13,16 +13,16 @@ MonadBox is a customized Android client based on [mihomo](https://github.com/Met
 
 ### Documentation
 
-- Development guide: [docs/DEVELOP.md](/D:/Projects/Playground/MonadBox/docs/DEVELOP.md)
-- Licensing policy: [docs/LICENSING.md](/D:/Projects/Playground/MonadBox/docs/LICENSING.md)
-- Privacy notice (EN): [docs/PRIVACY_POLICY.md](/D:/Projects/Playground/MonadBox/docs/PRIVACY_POLICY.md)
+- Development guide: [docs/DEVELOP.md](docs/DEVELOP.md)
+- Licensing policy: [docs/LICENSING.md](docs/LICENSING.md)
+- Privacy notice (EN): [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md)
 
 ## Quick Start
 
 1. Copy local templates:
-   - [`local.properties.example`](/D:/Projects/Playground/MonadBox/local.properties.example)
-   - [`startup-gate.local.properties.example`](/D:/Projects/Playground/MonadBox/startup-gate.local.properties.example)
-   - [`signing.properties.example`](/D:/Projects/Playground/MonadBox/signing.properties.example)
+   - [local.properties.example](local.properties.example)
+   - [startup-gate.local.properties.example](startup-gate.local.properties.example)
+   - [signing.properties.example](signing.properties.example)
 2. Build native artifacts.
 3. Run Gradle checks.
 
@@ -34,7 +34,7 @@ Common commands:
 ./gradlew assembleDebug
 ```
 
-For the complete environment and native build sequence, see [docs/DEVELOP.md](/D:/Projects/Playground/MonadBox/docs/DEVELOP.md).
+For the complete environment and native build sequence, see [docs/DEVELOP.md](docs/DEVELOP.md).
 
 ## Fork Focus
 
@@ -47,9 +47,9 @@ This fork currently emphasizes:
 
 - Repository-owned and fork-derived MonadBox source files are licensed under AGPL-3.0-only.
 - Third-party dependencies, synced upstream source, and remote assets keep their own upstream licenses.
-- Public GitHub release binaries must pass the policy defined in [docs/LICENSING.md](/D:/Projects/Playground/MonadBox/docs/LICENSING.md).
+- Public GitHub release binaries must pass the policy defined in [docs/LICENSING.md](docs/LICENSING.md).
 
 ## Notes
 
-- Authoritative build/toolchain values live in [`gradle.properties`](/D:/Projects/Playground/MonadBox/gradle.properties).
-- UI capability registration is tracked in [`config/ui-capability-registry.txt`](/D:/Projects/Playground/MonadBox/config/ui-capability-registry.txt).
+- Authoritative build/toolchain values live in [gradle.properties](gradle.properties).
+- UI capability registration is tracked in [config/ui-capability-registry.txt](config/ui-capability-registry.txt).
