@@ -149,6 +149,7 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
             proxyMode = screenState.proxyMode,
             uiError = screenState.ui.error ?: proxyUiState.error,
             uiMessage = screenState.ui.message ?: proxyUiState.message,
+            startFailureDialog = screenState.ui.startFailureDialog,
             onConsumeError = {
                 homeViewModel.consumeError()
                 proxyViewModel.clearError()
@@ -157,6 +158,7 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
                 homeViewModel.consumeMessage()
                 proxyViewModel.clearMessage()
             },
+            onConsumeStartFailureDialog = { homeViewModel.consumeStartFailureDialog() },
             onProxyToggleRequest = requestProxyToggle,
             onModeSwitchRequest = { showQuickModePanel = true },
             onModeBadgeBoundsChanged = { bounds -> modeBadgeBounds = bounds },

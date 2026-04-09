@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveCallback
 import kotlinx.serialization.json.JsonElement
 
 object OverrideStructuredEditorStore {
@@ -33,7 +34,8 @@ object OverrideStructuredEditorStore {
     var configPreviewTitle: String by mutableStateOf("")
     var configPreviewContent: String by mutableStateOf("")
     var configPreviewLanguage: LanguageScope by mutableStateOf(LanguageScope.Json)
-    var configPreviewCallback: (suspend (String) -> Result<Unit>)? = null
+    var configPreviewRuntimeRunning: Boolean by mutableStateOf(false)
+    var configPreviewCallback: ConfigPreviewSaveCallback? = null
 
     var stringListEditorTitle: String by mutableStateOf("")
     var stringListEditorPlaceholder: String by mutableStateOf("")
@@ -889,11 +891,13 @@ object OverrideStructuredEditorStore {
         title: String,
         content: String,
         language: LanguageScope = LanguageScope.Json,
-        callback: (suspend (String) -> Result<Unit>)? = null,
+        runtimeRunning: Boolean = false,
+        callback: ConfigPreviewSaveCallback? = null,
     ) {
         configPreviewTitle = title
         configPreviewContent = content
         configPreviewLanguage = language
+        configPreviewRuntimeRunning = runtimeRunning
         configPreviewCallback = callback
     }
 
@@ -901,6 +905,7 @@ object OverrideStructuredEditorStore {
         configPreviewTitle = ""
         configPreviewContent = ""
         configPreviewLanguage = LanguageScope.Json
+        configPreviewRuntimeRunning = false
         configPreviewCallback = null
     }
 }

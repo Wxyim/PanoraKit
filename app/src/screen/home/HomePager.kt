@@ -35,6 +35,8 @@ import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.repository.IpMonitoringState
 import com.github.yumelira.yumebox.domain.model.TrafficData
+import com.github.yumelira.yumebox.presentation.component.AppDialog
+import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
@@ -63,8 +65,10 @@ fun HomePager(
     proxyMode: ProxyMode,
     uiError: String?,
     uiMessage: String?,
+    startFailureDialog: HomeStartFailureDialog?,
     onConsumeError: () -> Unit = {},
     onConsumeMessage: () -> Unit = {},
+    onConsumeStartFailureDialog: () -> Unit = {},
     onProxyToggleRequest:
         (
             isRunning: Boolean,
@@ -237,6 +241,20 @@ fun HomePager(
             }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+
+        AppDialog(
+            show = startFailureDialog != null,
+            title = startFailureDialog?.title.orEmpty(),
+            summary = startFailureDialog?.detail,
+            onDismissRequest = onConsumeStartFailureDialog,
+        ) {
+            DialogButtonRow(
+                onCancel = onConsumeStartFailureDialog,
+                onConfirm = onConsumeStartFailureDialog,
+                cancelText = MLang.Component.Button.Cancel,
+                confirmText = MLang.Component.Button.Confirm,
+            )
         }
     }
 }

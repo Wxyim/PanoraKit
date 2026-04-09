@@ -32,6 +32,7 @@ import com.github.yumelira.yumebox.data.repository.NetworkInfoService
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
+import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.VpnPermissionRequired
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
@@ -41,6 +42,7 @@ import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import dev.oom_wg.purejoy.mlang.MLang
+import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,6 +96,12 @@ data class HomeUiState(
     val loadingProgress: String? = null,
     val message: String? = null,
     val error: String? = null,
+    val startFailureDialog: HomeStartFailureDialog? = null,
+)
+
+data class HomeStartFailureDialog(
+    val title: String,
+    val detail: String,
 )
 
 enum class HomeRuntimeVisualState {
@@ -179,11 +187,25 @@ private object HomeSpeedSampler {
     }
 }
 
+private const val LOCAL_UNVALIDATED_MARKER_FILE = ".local-unvalidated-profile"
+
 private data class HomeTrafficSample(
     val phase: RuntimePhase,
     val trafficReady: Boolean,
     val latestTraffic: Long,
 )
+
+private enum class HomeStartFailureCategory {
+    Syntax,
+    Remote,
+    Network,
+    Permission,
+    Profile,
+    RuntimeService,
+    RuntimeControl,
+    Environment,
+    Unknown,
+}
 
 private object HomeProxySelectionResolver {
     fun resolveGlobalDisplayGroup(
@@ -662,6 +684,13 @@ class HomeViewModel(
             val startedAt = System.currentTimeMillis()
             updateChromeForStartRequest()
 
+            val requestedProfileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString)
+            val requestedProfile = requestedProfileId?.let { profilesRepository.queryProfileByUUID(it) }
+            val shouldShowDetailedFailureDialog =
+                requestedProfile?.let { profile ->
+                    profile.type == Profile.Type.File && hasUnvalidatedLocalMarker(profile.uuid)
+                } == true
+
             try {
                 val proxyMode = mode ?: networkSettingsStorage.proxyMode.value
                 setDisplayProxyMode(proxyMode)
@@ -703,11 +732,12 @@ class HomeViewModel(
                     )
                 }
                 Timber.e(e, "Failed to start proxy")
-                showError(
-                    MLang.Home.Message.StartFailed.format(
-                        e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
-                    )
-                )
+                val failureReason = e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+                if (shouldShowDetailedFailureDialog) {
+                    showStartFailureDialog(buildStartFailureDialog(failureReason))
+                } else {
+                    showError(MLang.Home.Message.StartFailed.format(failureReason))
+                }
             }
         }
     }
@@ -823,6 +853,154 @@ class HomeViewModel(
         }
     }
 
+    private fun showStartFailureDialog(dialog: HomeStartFailureDialog) {
+        chromeStateMutable.update { current -> current.copy(ui = current.ui.copy(startFailureDialog = dialog)) }
+    }
+
+    private fun buildStartFailureDialog(reason: String): HomeStartFailureDialog {
+        val category = classifyStartFailure(reason)
+        val detail =
+            when (category) {
+                HomeStartFailureCategory.Syntax ->
+                    MLang.Home.Message.StartFailedSyntaxReason.format(reason)
+
+                HomeStartFailureCategory.Remote ->
+                    MLang.Home.Message.StartFailedRemoteReason.format(reason)
+
+                HomeStartFailureCategory.Network ->
+                    MLang.Home.Message.StartFailedNetworkReason.format(reason)
+
+                HomeStartFailureCategory.Permission ->
+                    MLang.Home.Message.StartFailedPermissionReason.format(reason)
+
+                HomeStartFailureCategory.Profile ->
+                    MLang.Home.Message.StartFailedProfileReason.format(reason)
+
+                HomeStartFailureCategory.RuntimeService ->
+                    MLang.Home.Message.StartFailedRuntimeServiceReason.format(reason)
+
+                HomeStartFailureCategory.RuntimeControl ->
+                    MLang.Home.Message.StartFailedRuntimeControlReason.format(reason)
+
+                HomeStartFailureCategory.Environment ->
+                    MLang.Home.Message.StartFailedEnvironmentReason.format(reason)
+
+                HomeStartFailureCategory.Unknown ->
+                    MLang.Home.Message.StartFailedUnknownReason.format(reason)
+            }
+        return HomeStartFailureDialog(title = MLang.Home.Message.StartFailedDialogTitle, detail = detail)
+    }
+
+    private fun classifyStartFailure(reason: String): HomeStartFailureCategory {
+        val normalized = reason.lowercase()
+
+        fun containsAny(vararg tokens: String): Boolean {
+            return tokens.any { token -> normalized.contains(token) }
+        }
+
+        val code =
+            RuntimeGatewayErrorCode.entries.firstOrNull { gatewayCode ->
+                normalized.startsWith(gatewayCode.name.lowercase())
+            }
+
+        if (
+            containsAny(
+                "provider fetch failed",
+                "subscription",
+                "fetch configuration",
+                "fetch providers",
+                "remote resource",
+                "download",
+            )
+        ) {
+            return HomeStartFailureCategory.Remote
+        }
+
+        if (containsAny("yaml", "syntax", "parse", "decode", "line", "column")) {
+            return HomeStartFailureCategory.Syntax
+        }
+
+        if (containsAny("unauthorized", "permission", "denied", "forbidden", "access")) {
+            return HomeStartFailureCategory.Permission
+        }
+
+        if (
+            containsAny(
+                "timeout",
+                "timed out",
+                "connection reset",
+                "refused",
+                "unreachable",
+                "network",
+                "dns",
+                "tls",
+                "ssl",
+                "certificate",
+                "host",
+            )
+        ) {
+            return HomeStartFailureCategory.Network
+        }
+
+        if (containsAny("profile", "not found", "no profile", "active profile")) {
+            return HomeStartFailureCategory.Profile
+        }
+
+        if (
+            containsAny(
+                "port",
+                "address already in use",
+                "bind",
+                "device",
+                "tun",
+                "vpn",
+                "resource busy",
+                "not supported",
+            )
+        ) {
+            return HomeStartFailureCategory.Environment
+        }
+
+        return when (code) {
+            RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
+            RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED,
+            -> HomeStartFailureCategory.Syntax
+
+            RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+            RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
+            RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
+            RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED,
+            -> HomeStartFailureCategory.RuntimeService
+
+            RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+            RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+            RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
+            RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+            RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+            RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
+            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
+            -> HomeStartFailureCategory.RuntimeControl
+
+            RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED -> HomeStartFailureCategory.Profile
+            RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED -> HomeStartFailureCategory.Unknown
+            null -> HomeStartFailureCategory.Unknown
+        }
+    }
+
+    private fun hasUnvalidatedLocalMarker(uuid: UUID): Boolean {
+        return resolveProfileMarkerFile(uuid).exists()
+    }
+
+    private fun resolveProfileMarkerFile(uuid: UUID): File {
+        val filesDir = application.filesDir
+        val importedMarker = filesDir.resolve("imported/$uuid/$LOCAL_UNVALIDATED_MARKER_FILE")
+        if (importedMarker.exists()) {
+            return importedMarker
+        }
+        return filesDir.resolve("clash/profiles/$uuid/$LOCAL_UNVALIDATED_MARKER_FILE")
+    }
+
     fun consumeMessage() {
         chromeStateMutable.update { current ->
             if (current.ui.message == null) {
@@ -839,6 +1017,16 @@ class HomeViewModel(
                 current
             } else {
                 current.copy(ui = current.ui.copy(error = null))
+            }
+        }
+    }
+
+    fun consumeStartFailureDialog() {
+        chromeStateMutable.update { current ->
+            if (current.ui.startFailureDialog == null) {
+                current
+            } else {
+                current.copy(ui = current.ui.copy(startFailureDialog = null))
             }
         }
     }

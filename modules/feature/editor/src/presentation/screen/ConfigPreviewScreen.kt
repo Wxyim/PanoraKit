@@ -44,6 +44,7 @@ import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
@@ -55,11 +56,14 @@ fun ConfigPreviewScreen(
     title: String = MLang.Component.Editor.Dialog.ConfigPreviewTitle,
     initialContent: String = "",
     language: LanguageScope = LanguageScope.Yaml,
-    onSave: (suspend (String) -> Result<Unit>)? = null,
+    isRuntimeRunning: Boolean = false,
+    onSave: ConfigPreviewSaveCallback? = null,
 ) {
     val context = LocalContext.current
     val isReadOnly = onSave == null
     var isSaving by remember { mutableStateOf(false) }
+    var savePhase by remember { mutableStateOf<ConfigPreviewSavePhase?>(null) }
+    var saveDecision by remember { mutableStateOf(ConfigPreviewSaveDecision.Continue) }
     var showExitDialog by remember { mutableStateOf(false) }
 
     val formattedContent =
@@ -94,12 +98,26 @@ fun ConfigPreviewScreen(
         if (isSaving || onSave == null) return
         editorState.syncContentFromEditor()
         isSaving = true
+        savePhase = ConfigPreviewSavePhase.LocalSaving
+        saveDecision = ConfigPreviewSaveDecision.Continue
         coroutineScope.launch {
             try {
-                onSave(editorState.content)
-                    .onSuccess {
-                        editorState.resetModified()
-                        navigator.navigateUp()
+                onSave(
+                    editorState.content,
+                    { phase -> savePhase = phase },
+                    { saveDecision },
+                )
+                    .onSuccess { outcome ->
+                        when (outcome) {
+                            ConfigPreviewSaveOutcome.Saved,
+                            ConfigPreviewSaveOutcome.SavedLocally,
+                            -> {
+                                editorState.resetModified()
+                                navigator.navigateUp()
+                            }
+
+                            ConfigPreviewSaveOutcome.ResumeEditing -> Unit
+                        }
                     }
                     .onFailure {
                         context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed)
@@ -108,11 +126,16 @@ fun ConfigPreviewScreen(
                 context.toast(e.message ?: MLang.Component.Editor.Error.SaveFailed)
             } finally {
                 isSaving = false
+                savePhase = null
+                saveDecision = ConfigPreviewSaveDecision.Continue
             }
         }
     }
 
     fun requestExit() {
+        if (isSaving) {
+            return
+        }
         if (isReadOnly) {
             navigator.navigateUp()
             return
@@ -125,7 +148,7 @@ fun ConfigPreviewScreen(
         }
     }
 
-    BackHandler { requestExit() }
+    BackHandler(enabled = !isSaving) { requestExit() }
 
     Scaffold(
         topBar = {
@@ -135,6 +158,7 @@ fun ConfigPreviewScreen(
                 navigationIcon = {
                     IconButton(
                         modifier = Modifier.padding(start = 24.dp),
+                        enabled = !isSaving,
                         onClick = { requestExit() },
                     ) {
                         Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
@@ -183,6 +207,50 @@ fun ConfigPreviewScreen(
                 cancelText = MLang.Component.Button.Cancel,
                 confirmText = MLang.Component.Editor.Action.Discard,
             )
+        }
+
+        AppDialog(
+            show = isSaving,
+            title = MLang.Component.Editor.Action.Save,
+            summary =
+                when (savePhase) {
+                    ConfigPreviewSavePhase.LocalSaving -> MLang.Component.Editor.Dialog.LocalSaving
+                    ConfigPreviewSavePhase.Validating -> MLang.Component.Editor.Dialog.ValidatingConfig
+                    ConfigPreviewSavePhase.FetchingRemoteResources ->
+                        MLang.Component.Editor.Dialog.FetchingRemoteResources
+                    null -> MLang.Component.Loading.Starting
+                },
+            onDismissRequest = {},
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.lg),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+
+                if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
+                    DialogButtonRow(
+                        onCancel = {
+                            saveDecision = ConfigPreviewSaveDecision.ContinueEditing
+                        },
+                        onConfirm = {
+                            saveDecision = ConfigPreviewSaveDecision.SaveLocally
+                        },
+                        cancelText = MLang.Component.Editor.Action.ContinueEditing,
+                        confirmText =
+                            if (isRuntimeRunning) {
+                                MLang.Component.Editor.Action.SaveAndStop
+                            } else {
+                                MLang.Component.Editor.Action.SaveLocally
+                            },
+                    )
+                }
+            }
         }
     }
 }

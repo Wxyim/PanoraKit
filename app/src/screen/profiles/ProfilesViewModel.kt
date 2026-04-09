@@ -24,6 +24,8 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumelira.yumebox.core.Clash
+import com.github.yumelira.yumebox.core.model.CompileRequest
 import com.github.yumelira.yumebox.core.model.FetchStatus
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
@@ -31,15 +33,22 @@ import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.service.remote.IFetchObserver
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
+import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import java.util.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,6 +68,8 @@ class ProfilesViewModel(
     companion object {
         private const val BLANK_PROFILE_SOURCE = "blank://local-config"
         private const val MAX_LOCAL_FILE_BYTES = 50L * 1024 * 1024 // 50 MiB
+        private const val REMOTE_FETCH_POLL_INTERVAL_MS = 120L
+        private const val LOCAL_UNVALIDATED_MARKER_FILE = ".local-unvalidated-profile"
     }
 
     val linkOpenMode: Preference<LinkOpenMode> = profileLinksStorage.linkOpenMode
@@ -423,31 +434,166 @@ class ProfilesViewModel(
             ?: error("Profile not found after profile activation: $uuid")
     }
 
-    suspend fun saveProfileConfigContent(uuid: UUID, content: String) {
-        val configFile = resolveProfileConfigFile(uuid)
-        val previousContent = configFile.takeIf(File::exists)?.readText()
-        runCatching {
-                configFile.parentFile?.mkdirs()
-                configFile.writeText(content)
-                profilesRepository.updateProfile(uuid)
-                check(activeProfileOverrideReloader.reapplyIfActiveProfile(uuid.toString())) {
-                    MLang.Override.Save.ApplyFailed
-                }
-                runtimeControlCoordinator.reloadIfActiveProfile(
-                    operation = "profiles:save-config",
-                    profileId = uuid,
-                )
-                refreshProfilesNow()
-            }
-            .onFailure { error ->
-                if (previousContent == null) {
-                    runCatching { configFile.delete() }
+    suspend fun saveProfileConfigContent(
+        uuid: UUID,
+        content: String,
+        onPhaseChanged: (ConfigPreviewSavePhase) -> Unit = {},
+        decisionProvider: () -> ConfigPreviewSaveDecision = { ConfigPreviewSaveDecision.Continue },
+        stopRuntime: suspend () -> Unit = {},
+    ): ConfigPreviewSaveOutcome {
+        val profile = profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
+        val liveConfigFile = resolveProfileConfigFile(uuid)
+        val liveProfileDir = liveConfigFile.parentFile ?: error("Profile directory not found: $uuid")
+        val stagingDir = createProfileSaveStagingDirectory(uuid)
+        var remoteFetchStarted = false
+        var shouldDeleteStagingDir = true
+
+        try {
+            cleanupOldProfileSaveStagingDirectories(uuid, keep = stagingDir)
+
+            withContext(Dispatchers.IO) {
+                if (liveProfileDir.exists()) {
+                    liveProfileDir.copyRecursively(stagingDir, overwrite = true)
                 } else {
-                    runCatching { configFile.writeText(previousContent) }
+                    stagingDir.mkdirs()
                 }
-                throw error
             }
-            .getOrThrow()
+
+            val stagedConfigFile = stagingDir.resolve(liveConfigFile.name)
+
+            onPhaseChanged(ConfigPreviewSavePhase.LocalSaving)
+            withContext(Dispatchers.IO) {
+                stagedConfigFile.parentFile?.mkdirs()
+                stagedConfigFile.writeText(content)
+            }
+
+            onPhaseChanged(ConfigPreviewSavePhase.Validating)
+            validateStagedProfileConfig(uuid, stagingDir, stagedConfigFile)
+
+            onPhaseChanged(ConfigPreviewSavePhase.FetchingRemoteResources)
+            when (decisionProvider()) {
+                ConfigPreviewSaveDecision.ContinueEditing -> {
+                    return ConfigPreviewSaveOutcome.ResumeEditing
+                }
+
+                ConfigPreviewSaveDecision.SaveLocally -> {
+                    commitLocalConfigContent(liveConfigFile, content)
+                    setLocalUnvalidatedMarker(uuid, true)
+                    stopRuntime()
+                    getApplication<Application>().sendProfileChanged(uuid)
+                    refreshProfilesNow()
+                    return ConfigPreviewSaveOutcome.SavedLocally
+                }
+
+                ConfigPreviewSaveDecision.Continue -> Unit
+            }
+
+            val interruptedOutcome: ConfigPreviewSaveOutcome? = coroutineScope {
+                val remoteFetch = async(Dispatchers.IO) {
+                    remoteFetchStarted = true
+                    Clash.fetchAndValid(stagingDir, profile.source, false) { }.await()
+                }
+
+                while (!remoteFetch.isCompleted) {
+                    when (decisionProvider()) {
+                        ConfigPreviewSaveDecision.ContinueEditing -> {
+                            shouldDeleteStagingDir = false
+                            remoteFetch.cancel()
+                            return@coroutineScope ConfigPreviewSaveOutcome.ResumeEditing
+                        }
+
+                        ConfigPreviewSaveDecision.SaveLocally -> {
+                            shouldDeleteStagingDir = false
+                            remoteFetch.cancel()
+                            commitLocalConfigContent(liveConfigFile, content)
+                            setLocalUnvalidatedMarker(uuid, true)
+                            stopRuntime()
+                            getApplication<Application>().sendProfileChanged(uuid)
+                            refreshProfilesNow()
+                            return@coroutineScope ConfigPreviewSaveOutcome.SavedLocally
+                        }
+
+                        ConfigPreviewSaveDecision.Continue -> delay(REMOTE_FETCH_POLL_INTERVAL_MS)
+                    }
+                }
+
+                remoteFetch.await()
+                null
+            }
+            if (interruptedOutcome != null) {
+                return interruptedOutcome
+            }
+
+            commitStagedProfileDirectory(stagingDir, liveProfileDir)
+            getApplication<Application>().sendProfileChanged(uuid)
+
+            if (!activeProfileOverrideReloader.reapplyIfActiveProfile(uuid.toString())) {
+                Timber.w("Override reapply skipped for profile (missing configs?): %s", uuid)
+            }
+
+            runtimeControlCoordinator.reloadIfActiveProfile(
+                operation = "profiles:save-config",
+                profileId = uuid,
+            )
+            setLocalUnvalidatedMarker(uuid, false)
+            refreshProfilesNow()
+            return ConfigPreviewSaveOutcome.Saved
+        } finally {
+            if (shouldDeleteStagingDir && stagingDir.exists()) {
+                stagingDir.deleteRecursively()
+            }
+        }
+    }
+
+    private suspend fun validateStagedProfileConfig(
+        uuid: UUID,
+        profileDir: File,
+        configFile: File,
+    ) {
+        val result =
+            withContext(Dispatchers.Default) {
+                Clash.compilePreview(
+                    CompileRequest(
+                        profileUuid = uuid.toString(),
+                        profileDir = profileDir.absolutePath,
+                        profilePath = configFile.absolutePath,
+                        outputPath = profileDir.resolve("runtime.yaml").absolutePath,
+                    )
+                )
+            }
+        if (!result.success) {
+            error(result.error?.takeIf { it.isNotBlank() } ?: MLang.Component.Editor.Error.SaveFailed)
+        }
+    }
+
+    private suspend fun commitLocalConfigContent(configFile: File, content: String) {
+        withContext(Dispatchers.IO) {
+            configFile.parentFile?.mkdirs()
+            configFile.writeText(content)
+        }
+    }
+
+    private suspend fun commitStagedProfileDirectory(stagingDir: File, liveProfileDir: File) {
+        withContext(Dispatchers.IO) {
+            if (liveProfileDir.exists()) {
+                liveProfileDir.deleteRecursively()
+            }
+            stagingDir.copyRecursively(liveProfileDir, overwrite = true)
+        }
+    }
+
+    private fun createProfileSaveStagingDirectory(uuid: UUID): File {
+        val root = getApplication<Application>().cacheDir.resolve("profile-save-staging")
+        val dir = root.resolve("${uuid}-${System.currentTimeMillis()}")
+        dir.mkdirs()
+        return dir
+    }
+
+    private fun cleanupOldProfileSaveStagingDirectories(uuid: UUID, keep: File) {
+        val root = getApplication<Application>().cacheDir.resolve("profile-save-staging")
+        root.listFiles()
+            ?.filter { it != keep && it.name.startsWith("$uuid-") }
+            ?.forEach { runCatching { it.deleteRecursively() } }
     }
 
     fun reorderProfiles(from: Int, to: Int) {
@@ -543,6 +689,26 @@ class ProfilesViewModel(
             importedFile
         } else {
             getClashProfileDirectory(uuid).resolve("config.yaml")
+        }
+    }
+
+    private fun resolveLocalUnvalidatedMarkerFile(uuid: UUID): File {
+        val configFile = resolveProfileConfigFile(uuid)
+        val profileDir = configFile.parentFile ?: getImportedProfileDirectory(uuid)
+        return profileDir.resolve(LOCAL_UNVALIDATED_MARKER_FILE)
+    }
+
+    private suspend fun setLocalUnvalidatedMarker(uuid: UUID, needed: Boolean) {
+        withContext(Dispatchers.IO) {
+            val markerFile = resolveLocalUnvalidatedMarkerFile(uuid)
+            if (needed) {
+                markerFile.parentFile?.mkdirs()
+                if (!markerFile.exists()) {
+                    markerFile.writeText("pending-remote-validation")
+                }
+            } else if (markerFile.exists()) {
+                markerFile.delete()
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ package com.github.yumelira.yumebox.screen.navigation
 import androidx.compose.runtime.Composable
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewScreen
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.presentation.screen.*
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
@@ -64,8 +65,10 @@ fun OverrideScreen(navigator: DestinationsNavigator) {
                     if (isReadOnly) {
                         null
                     } else {
-                        { content ->
-                            overrideConfigViewModel.saveConfigJsonContent(configId, content)
+                        { content, _, _ ->
+                            overrideConfigViewModel.saveConfigJsonContent(configId, content).map {
+                                ConfigPreviewSaveOutcome.Saved
+                            }
                         }
                     },
             )
@@ -321,6 +324,7 @@ fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
         title = OverrideStructuredEditorStore.configPreviewTitle,
         initialContent = OverrideStructuredEditorStore.configPreviewContent,
         language = OverrideStructuredEditorStore.configPreviewLanguage,
+        isRuntimeRunning = OverrideStructuredEditorStore.configPreviewRuntimeRunning,
         onSave = OverrideStructuredEditorStore.configPreviewCallback,
     )
 }

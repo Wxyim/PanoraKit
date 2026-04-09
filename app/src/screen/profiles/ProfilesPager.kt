@@ -39,6 +39,8 @@ import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -143,6 +145,8 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     }
 
     val openProfileEditor: (UUID, String) -> Unit = openProfileEditor@{ profileUuid, profileName ->
+        val isEditingRuntimeProfile = homeViewModel.isCurrentProfile(profileUuid)
+        val shouldOfferStopRuntime = isRunning && isEditingRuntimeProfile
         val configFile = resolveProfileConfigFile(profileUuid)
         val configContent =
             runCatching {
@@ -163,21 +167,29 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             title = profileName,
             content = configContent,
             language = LanguageScope.Yaml,
-            callback = { updatedContent ->
+            runtimeRunning = shouldOfferStopRuntime,
+            callback = { updatedContent, onPhaseChanged, decisionProvider ->
                 if (updatedContent == configContent) {
-                    return@setupConfigPreview Result.success(Unit)
+                    return@setupConfigPreview Result.success(ConfigPreviewSaveOutcome.Saved)
                 }
-                scope.launch {
-                    runCatching {
-                            profilesViewModel.saveProfileConfigContent(profileUuid, updatedContent)
-                        }
-                        .onFailure { error ->
-                            com.github.yumelira.yumebox.App.instance.toast(
-                                error.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
-                            )
-                        }
-                }
-                Result.success(Unit)
+                runCatching {
+                    profilesViewModel.saveProfileConfigContent(
+                        uuid = profileUuid,
+                        content = updatedContent,
+                        onPhaseChanged = onPhaseChanged,
+                        decisionProvider = decisionProvider,
+                        stopRuntime = {
+                            val isSavingRuntimeProfile =
+                                isRunning && homeViewModel.isCurrentProfile(profileUuid)
+                            if (isSavingRuntimeProfile) {
+                                homeViewModel.stopProxy()
+                            }
+                        },
+                    )
+                }.fold(
+                    onSuccess = { outcome -> Result.success(outcome) },
+                    onFailure = { error -> Result.failure(error) },
+                )
             },
         )
         navigator.navigate(OverrideConfigPreviewRouteDestination)
