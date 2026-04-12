@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.core.model.TunnelState
+import com.github.yumelira.yumebox.presentation.component.NullableBooleanSelector as BaseNullableBooleanSelector
+import com.github.yumelira.yumebox.presentation.component.NullableEnumSelector as BaseNullableEnumSelector
+import com.github.yumelira.yumebox.presentation.component.StringListWithModifiersInput as BaseStringListWithModifiersInput
+import com.github.yumelira.yumebox.presentation.component.StringMapWithModifiersInput as BaseStringMapWithModifiersInput
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.Atom
@@ -55,8 +59,8 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.ShieldCheck
 import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
-import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.icon.yume.Sparkles
+import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
 import com.github.yumelira.yumebox.presentation.icon.yume.Tun
 import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
@@ -65,11 +69,6 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
 import com.github.yumelira.yumebox.presentation.icon.yume.Zap
 import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
 import dev.oom_wg.purejoy.mlang.MLang
-import com.github.yumelira.yumebox.presentation.component.NullableBooleanSelector as BaseNullableBooleanSelector
-import com.github.yumelira.yumebox.presentation.component.NullableEnumSelector as BaseNullableEnumSelector
-import com.github.yumelira.yumebox.presentation.component.StringListWithModifiersInput as BaseStringListWithModifiersInput
-import com.github.yumelira.yumebox.presentation.component.StringMapWithModifiersInput as BaseStringMapWithModifiersInput
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 
 typealias OpenStringListEditor =
@@ -504,15 +503,7 @@ fun GeneralEditor(
             OverrideEnumSelector(
                 title = MLang.Override.General.LogLevel,
                 value = config.logLevel,
-                items =
-                    listOf(
-                        unsetLabel,
-                        "Info",
-                        "Warning",
-                        "Error",
-                        "Debug",
-                        "Silent",
-                    ),
+                items = listOf(unsetLabel, "Info", "Warning", "Error", "Debug", "Silent"),
                 values =
                     listOf(
                         null,

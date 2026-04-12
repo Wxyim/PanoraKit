@@ -24,12 +24,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -57,24 +57,28 @@ private enum class OverrideSectionHierarchyEmphasis {
     Nested,
 }
 
-private data class OverrideSectionVisualSpec(
-    val icon: ImageVector,
-    val tone: SemanticTone,
-)
+private data class OverrideSectionVisualSpec(val icon: ImageVector, val tone: SemanticTone)
 
 private fun OverrideEditorSection.visualSpec(): OverrideSectionVisualSpec {
     return when (this) {
         OverrideEditorSection.General -> OverrideSectionVisualSpec(Yume.Bolt, SemanticTone.Brand)
         OverrideEditorSection.Dns -> OverrideSectionVisualSpec(Yume.Cloud, SemanticTone.Info)
-        OverrideEditorSection.Sniffer -> OverrideSectionVisualSpec(Yume.`Scan-eye`, SemanticTone.Info)
-        OverrideEditorSection.Inbound -> OverrideSectionVisualSpec(Yume.`Wifi-cog`, SemanticTone.Info)
+        OverrideEditorSection.Sniffer ->
+            OverrideSectionVisualSpec(Yume.`Scan-eye`, SemanticTone.Info)
+        OverrideEditorSection.Inbound ->
+            OverrideSectionVisualSpec(Yume.`Wifi-cog`, SemanticTone.Info)
         OverrideEditorSection.Tun -> OverrideSectionVisualSpec(Yume.Tun, SemanticTone.Success)
-        OverrideEditorSection.Rules -> OverrideSectionVisualSpec(Yume.`Scroll-text`, SemanticTone.Warning)
+        OverrideEditorSection.Rules ->
+            OverrideSectionVisualSpec(Yume.`Scroll-text`, SemanticTone.Warning)
         OverrideEditorSection.Proxies -> OverrideSectionVisualSpec(Yume.Rocket, SemanticTone.Info)
-        OverrideEditorSection.ProxyProviders -> OverrideSectionVisualSpec(Yume.Link, SemanticTone.Info)
-        OverrideEditorSection.ProxyGroups -> OverrideSectionVisualSpec(Yume.LayoutPanelLeft, SemanticTone.Brand)
-        OverrideEditorSection.RuleProviders -> OverrideSectionVisualSpec(Yume.`Git-merge`, SemanticTone.Warning)
-        OverrideEditorSection.SubRules -> OverrideSectionVisualSpec(Yume.Folders, SemanticTone.Warning)
+        OverrideEditorSection.ProxyProviders ->
+            OverrideSectionVisualSpec(Yume.Link, SemanticTone.Info)
+        OverrideEditorSection.ProxyGroups ->
+            OverrideSectionVisualSpec(Yume.LayoutPanelLeft, SemanticTone.Brand)
+        OverrideEditorSection.RuleProviders ->
+            OverrideSectionVisualSpec(Yume.`Git-merge`, SemanticTone.Warning)
+        OverrideEditorSection.SubRules ->
+            OverrideSectionVisualSpec(Yume.Folders, SemanticTone.Warning)
     }
 }
 
@@ -231,16 +235,13 @@ private fun LazyListScope.OverrideSectionListContent(
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             val contentModifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .let { modifier ->
-                        if (sectionListContentMaxWidth != Dp.Unspecified) {
-                            modifier.widthIn(max = sectionListContentMaxWidth)
-                        } else {
-                            modifier
-                        }
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp).let { modifier ->
+                    if (sectionListContentMaxWidth != Dp.Unspecified) {
+                        modifier.widthIn(max = sectionListContentMaxWidth)
+                    } else {
+                        modifier
                     }
+                }
 
             val content: @Composable () -> Unit = {
                 Column(
@@ -311,7 +312,9 @@ private fun LazyListScope.OverrideSectionListContent(
                             }
                             if (!directEntry) {
                                 OverrideSectionVisibility(visible = section in expandedSections) {
-                                    if (hierarchyEmphasis == OverrideSectionHierarchyEmphasis.Nested) {
+                                    if (
+                                        hierarchyEmphasis == OverrideSectionHierarchyEmphasis.Nested
+                                    ) {
                                         OverrideNestedSectionContainer(tone = sectionStyle.tone) {
                                             OverrideSectionContent(
                                                 section = section,
@@ -364,7 +367,10 @@ private fun LazyListScope.OverrideSectionListContent(
 
 private fun buildSectionDescriptionSummary(description: String, configuredCount: Int): String {
     val configuredSummary = MLang.Override.Form.ItemsConfigured.format(configuredCount)
-    return listOf(description, configuredSummary).filterNotNull().filter { it.isNotBlank() }.joinToString(" · ")
+    return listOf(description, configuredSummary)
+        .filterNotNull()
+        .filter { it.isNotBlank() }
+        .joinToString(" · ")
 }
 
 private fun resolveDisplayedConfiguredCount(
@@ -379,7 +385,8 @@ private fun resolveDisplayedConfiguredCount(
 
     return when (section) {
         OverrideEditorSection.Rules ->
-            localConfigListValues(config.rules, config.rulesStart, config.rulesEnd).replaceValue
+            localConfigListValues(config.rules, config.rulesStart, config.rulesEnd)
+                .replaceValue
                 ?.size ?: 0
 
         OverrideEditorSection.Proxies ->
@@ -389,18 +396,21 @@ private fun resolveDisplayedConfiguredCount(
 
         OverrideEditorSection.ProxyGroups ->
             localConfigListValues(
-                config.proxyGroups,
-                config.proxyGroupsStart,
-                config.proxyGroupsEnd,
-            ).replaceValue?.size ?: 0
+                    config.proxyGroups,
+                    config.proxyGroupsStart,
+                    config.proxyGroupsEnd,
+                )
+                .replaceValue
+                ?.size ?: 0
 
         OverrideEditorSection.ProxyProviders ->
-            localConfigMapValues(config.proxyProviders, config.proxyProvidersMerge).replaceValue
+            localConfigMapValues(config.proxyProviders, config.proxyProvidersMerge)
+                .replaceValue
                 ?.size ?: 0
 
         OverrideEditorSection.RuleProviders ->
-            localConfigMapValues(config.ruleProviders, config.ruleProvidersMerge).replaceValue
-                ?.size ?: 0
+            localConfigMapValues(config.ruleProviders, config.ruleProvidersMerge).replaceValue?.size
+                ?: 0
 
         OverrideEditorSection.SubRules ->
             localConfigMapValues(config.subRules, config.subRulesMerge).replaceValue?.size ?: 0
@@ -417,7 +427,8 @@ private fun resolveDisplayedConfiguredCount(
 private fun OverrideNestedSectionContainer(tone: SemanticTone, content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = false)
-    val containerColor = lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.22f)
+    val containerColor =
+        lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.22f)
     val borderColor =
         lerp(
             MiuixTheme.colorScheme.outline.copy(alpha = 0.12f),
@@ -426,20 +437,12 @@ private fun OverrideNestedSectionContainer(tone: SemanticTone, content: @Composa
         )
     Box(
         modifier =
-            Modifier
-                .fillMaxWidth()
+            Modifier.fillMaxWidth()
                 .padding(start = 14.dp, end = 4.dp, top = 4.dp)
                 .clip(shape)
-                .background(
-                    color = containerColor,
-                    shape = shape,
-                )
-                .border(
-                    width = 0.8.dp,
-                    color = borderColor,
-                    shape = shape,
-                )
-                .padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 12.dp),
+                .background(color = containerColor, shape = shape)
+                .border(width = 0.8.dp, color = borderColor, shape = shape)
+                .padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 12.dp)
     ) {
         content()
     }
@@ -809,9 +812,7 @@ private fun <T> localConfigMapValues(
     mergeValue: Map<String, T>?,
 ): OverrideListModeValues<Map<String, T>> {
     val combined = linkedMapOf<String, T>()
-    mergeValue.orEmpty().forEach { (key, value) ->
-        combined[key] = value
-    }
+    mergeValue.orEmpty().forEach { (key, value) -> combined[key] = value }
     replaceValue.orEmpty().forEach { (key, value) ->
         if (key !in combined) {
             combined[key] = value

@@ -20,8 +20,8 @@
 
 package com.github.yumelira.yumebox.data.util
 
-import com.github.yumelira.yumebox.core.model.ConfigurationOverrideRuleSanitizer
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
+import com.github.yumelira.yumebox.core.model.ConfigurationOverrideRuleSanitizer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

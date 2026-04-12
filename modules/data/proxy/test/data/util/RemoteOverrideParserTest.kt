@@ -19,7 +19,8 @@ class RemoteOverrideParserTest {
             [Rule]
             AND,((URL-REGEX,"^http:\/\/.+\/amdc\/mobileDispatch"),(USER-AGENT,"Alibaba*")),REJECT
             DOMAIN,example.com,REJECT
-            """.trimIndent()
+            """
+                .trimIndent()
 
         val result = RemoteOverrideParser.parse(json, text)
 
@@ -38,7 +39,8 @@ class RemoteOverrideParserTest {
                 "DOMAIN,example.com,REJECT"
               ]
             }
-            """.trimIndent()
+            """
+                .trimIndent()
 
         val result = RemoteOverrideParser.parse(json, text)
 
@@ -52,7 +54,8 @@ class RemoteOverrideParserTest {
             """
             [Rule]
             AND,((URL-REGEX,"^http:\/\/.+\/amdc\/mobileDispatch"),(USER-AGENT,"Alibaba*")),REJECT
-            """.trimIndent()
+            """
+                .trimIndent()
 
         val error = runCatching { RemoteOverrideParser.parse(json, text) }.exceptionOrNull()
 
@@ -65,7 +68,8 @@ class RemoteOverrideParserTest {
             """
             [Rule]
             AND,((DOMAIN,example.com),(DEST-PORT,8008)),REJECT
-            """.trimIndent()
+            """
+                .trimIndent()
 
         val result = RemoteOverrideParser.parse(json, text)
 

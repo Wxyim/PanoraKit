@@ -28,18 +28,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.util.decodeObjectFields
-import com.github.yumelira.yumebox.presentation.util.encodeObjectFields
-import com.github.yumelira.yumebox.presentation.util.jsonElementToEditorValue
-import com.github.yumelira.yumebox.presentation.util.toOrderedJsonElementMap
-import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.serialization.json.JsonElement
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Copy
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.util.decodeObjectFields
+import com.github.yumelira.yumebox.presentation.util.encodeObjectFields
+import com.github.yumelira.yumebox.presentation.util.jsonElementToEditorValue
+import com.github.yumelira.yumebox.presentation.util.toOrderedJsonElementMap
+import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.serialization.json.JsonElement
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -53,8 +53,7 @@ enum class StringMapValidationMode {
 fun resolveStringMapValidationMode(title: String): StringMapValidationMode {
     return when (title) {
         MLang.Override.Dns.NameserverPolicy,
-        MLang.Override.Dns.ProxyServerNameserverPolicy,
-        -> StringMapValidationMode.DnsPolicy
+        MLang.Override.Dns.ProxyServerNameserverPolicy -> StringMapValidationMode.DnsPolicy
 
         MLang.Override.Dns.Hosts -> StringMapValidationMode.Hosts
         else -> StringMapValidationMode.None
@@ -188,7 +187,7 @@ fun StringMapEditorDialog(
                 tone = SemanticTone.Danger,
                 onClick = {
                     if (entries.size > 1) {
-                        entries.removeLast()
+                        entries.removeAt(entries.lastIndex)
                     } else {
                         entries[0] = "" to ""
                     }
@@ -260,13 +259,17 @@ private fun validateStringMapEntries(
             StringMapValidationMode.None -> Unit
             StringMapValidationMode.DnsPolicy -> {
                 if (key.any(Char::isWhitespace) || value.any(Char::isWhitespace)) {
-                    return MLang.Component.Editor.Error.Expected.format("$keyPlaceholder / $valuePlaceholder")
+                    return MLang.Component.Editor.Error.Expected.format(
+                        "$keyPlaceholder / $valuePlaceholder"
+                    )
                 }
             }
 
             StringMapValidationMode.Hosts -> {
                 if (!isLikelyDomainLikeKey(key) || !isLikelyIpOrHostTarget(value)) {
-                    return MLang.Component.Editor.Error.Expected.format("$keyPlaceholder / $valuePlaceholder")
+                    return MLang.Component.Editor.Error.Expected.format(
+                        "$keyPlaceholder / $valuePlaceholder"
+                    )
                 }
             }
         }
@@ -278,7 +281,9 @@ private val HostKeyRegex = Regex("^[A-Za-z0-9*._:-]+$")
 private val Ipv4Regex =
     Regex("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)$")
 private val HostTargetRegex =
-    Regex("^(?=.{1,253}$)([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$")
+    Regex(
+        "^(?=.{1,253}$)([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$"
+    )
 
 private fun isLikelyDomainLikeKey(value: String): Boolean {
     return value.isNotBlank() && !value.contains(' ') && HostKeyRegex.matches(value)

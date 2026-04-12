@@ -29,10 +29,7 @@ object ConfigurationOverrideRuleSanitizer {
         setOf("REJECT-TINYGIF", "REJECT-200", "REJECT-IMG", "REJECT-DICT", "REJECT-ARRAY")
 
     private val nestedUnsupportedRuleTypePattern =
-        Regex(
-            """[(,]\s*(USER-AGENT|URL-REGEX|HEADER|HTTP-METHOD)\s*,""",
-            RegexOption.IGNORE_CASE,
-        )
+        Regex("""[(,]\s*(USER-AGENT|URL-REGEX|HEADER|HTTP-METHOD)\s*,""", RegexOption.IGNORE_CASE)
 
     private val aliasPatterns =
         ruleTypeAliases.mapValues { (rawType, _) ->
@@ -93,9 +90,8 @@ object ConfigurationOverrideRuleSanitizer {
         var normalized = ruleLine
         ruleTypeAliases.forEach { (rawType, normalizedType) ->
             val regex = aliasPatterns.getValue(rawType)
-            normalized = regex.replace(normalized) { match ->
-                "${match.groupValues[1]}$normalizedType"
-            }
+            normalized =
+                regex.replace(normalized) { match -> "${match.groupValues[1]}$normalizedType" }
         }
         return normalized
     }

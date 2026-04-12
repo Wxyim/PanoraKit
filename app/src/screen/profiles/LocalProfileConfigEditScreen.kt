@@ -79,8 +79,8 @@ import com.github.yumelira.yumebox.presentation.component.OpenSubRulesEditor
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.StringMapValidationMode
 import com.github.yumelira.yumebox.presentation.component.StringMapEditorDialog
+import com.github.yumelira.yumebox.presentation.component.StringMapValidationMode
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.resolveStringMapValidationMode
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -160,8 +160,7 @@ fun LocalProfileConfigEditScreen(
     var currentMapEditorKeyPlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValuePlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValue by remember { mutableStateOf<Map<String, String>?>(null) }
-    var currentMapEditorValidationMode by
-        remember { mutableStateOf(StringMapValidationMode.None) }
+    var currentMapEditorValidationMode by remember { mutableStateOf(StringMapValidationMode.None) }
     var currentJsonEditorTitle by remember { mutableStateOf("") }
     var currentJsonEditorPlaceholder by remember { mutableStateOf("") }
     var currentJsonEditorValue by remember { mutableStateOf<String?>(null) }
@@ -202,10 +201,7 @@ fun LocalProfileConfigEditScreen(
             val normalizedIds = newSelectedIds.distinct()
             val currentBinding = bindingProvider.getBinding(profileUuid)
             val updatedBinding =
-                currentBinding?.copy(
-                    overrideIds = normalizedIds,
-                    enabled = newSystemPresetEnabled,
-                )
+                currentBinding?.copy(overrideIds = normalizedIds, enabled = newSystemPresetEnabled)
                     ?: ProfileBinding(
                         profileId = profileUuid,
                         overrideIds = normalizedIds,
@@ -242,7 +238,8 @@ fun LocalProfileConfigEditScreen(
         scope.launch {
             var lastPhase: ConfigPreviewSavePhase? = ConfigPreviewSavePhase.LocalSaving
             var stoppedRunningProfile = false
-            val isActiveRunningProfile = isRuntimeRunning && homeViewModel.isCurrentProfile(profileId)
+            val isActiveRunningProfile =
+                isRuntimeRunning && homeViewModel.isCurrentProfile(profileId)
 
             suspend fun saveWithDecision(fixedDecision: ConfigPreviewSaveDecision? = null) =
                 profilesViewModel.saveProfileConfigGuiContent(
@@ -342,14 +339,11 @@ fun LocalProfileConfigEditScreen(
                         )
                     )
                     .padding(paddingValues)
-                    .imePadding(),
+                    .imePadding()
         ) {
             when {
                 isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
@@ -378,7 +372,8 @@ fun LocalProfileConfigEditScreen(
                                     LocalProfileConfigEditMetrics.MediumMaxWidth
                                 else -> Dp.Unspecified
                             }
-                        val useWideLayout = adaptiveInfo.isMediumWidth || adaptiveInfo.isExpandedWidth
+                        val useWideLayout =
+                            adaptiveInfo.isMediumWidth || adaptiveInfo.isExpandedWidth
 
                         CompositionLocalProvider(
                             LocalOverrideCardHorizontalPadding provides !useWideLayout
@@ -397,10 +392,7 @@ fun LocalProfileConfigEditScreen(
                                         contentMaxWidth = contentMaxWidth,
                                         onSystemPresetToggle = { enabled ->
                                             bindingSystemPresetEnabled = enabled
-                                            applyBindingChange(
-                                                bindingSelectedOverrideIds,
-                                                enabled,
-                                            )
+                                            applyBindingChange(bindingSelectedOverrideIds, enabled)
                                         },
                                         onOverrideAdded = { id ->
                                             val newIds =
@@ -409,18 +401,12 @@ fun LocalProfileConfigEditScreen(
                                                         it == id
                                                     }
                                             bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(
-                                                newIds,
-                                                bindingSystemPresetEnabled,
-                                            )
+                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
                                         },
                                         onOverrideRemoved = { id ->
                                             val newIds = bindingSelectedOverrideIds - id
                                             bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(
-                                                newIds,
-                                                bindingSystemPresetEnabled,
-                                            )
+                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
                                         },
                                         onOverrideMoved = { fromIndex, toIndex ->
                                             val newIds =
@@ -428,10 +414,7 @@ fun LocalProfileConfigEditScreen(
                                                     add(toIndex, removeAt(fromIndex))
                                                 }
                                             bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(
-                                                newIds,
-                                                bindingSystemPresetEnabled,
-                                            )
+                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
                                         },
                                     )
                                 }
@@ -490,8 +473,10 @@ fun LocalProfileConfigEditScreen(
                 title = MLang.Component.Editor.Action.Save,
                 summary =
                     when (savePhase) {
-                        ConfigPreviewSavePhase.LocalSaving -> MLang.Component.Editor.Dialog.LocalSaving
-                        ConfigPreviewSavePhase.Validating -> MLang.Component.Editor.Dialog.ValidatingConfig
+                        ConfigPreviewSavePhase.LocalSaving ->
+                            MLang.Component.Editor.Dialog.LocalSaving
+                        ConfigPreviewSavePhase.Validating ->
+                            MLang.Component.Editor.Dialog.ValidatingConfig
                         ConfigPreviewSavePhase.FetchingRemoteResources ->
                             MLang.Component.Editor.Dialog.FetchingRemoteResources
                         null -> MLang.Component.Loading.Starting
@@ -582,12 +567,10 @@ private fun LocalProfileOverrideBindingSection(
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier =
-                Modifier.fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .let { mod ->
-                        if (contentMaxWidth != Dp.Unspecified) mod.widthIn(max = contentMaxWidth)
-                        else mod
-                    },
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp).let { mod ->
+                    if (contentMaxWidth != Dp.Unspecified) mod.widthIn(max = contentMaxWidth)
+                    else mod
+                },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Spacer(Modifier.height(8.dp))
@@ -615,29 +598,31 @@ private fun LocalProfileOverrideBindingSection(
                     selectedOverrideIds.mapNotNull { id -> userConfigs.firstOrNull { it.id == id } }
                 val unselectedConfigs = userConfigs.filter { it.id !in selectedOverrideIds }
                 val overridesListState = rememberLazyListState()
-                val reorderState = rememberReorderableLazyListState(overridesListState) { from, to ->
-                    val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
-                    val toKey = to.key as? String ?: return@rememberReorderableLazyListState
-                    if (fromKey.startsWith("sel-") && toKey.startsWith("sel-")) {
-                        val fromId = fromKey.removePrefix("sel-")
-                        val toId = toKey.removePrefix("sel-")
-                        val fromIndex = selectedConfigs.indexOfFirst { it.id == fromId }
-                        val toIndex = selectedConfigs.indexOfFirst { it.id == toId }
-                        if (fromIndex >= 0 && toIndex >= 0 && fromIndex != toIndex) {
-                            onOverrideMoved(fromIndex, toIndex)
+                val reorderState =
+                    rememberReorderableLazyListState(overridesListState) { from, to ->
+                        val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+                        val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+                        if (fromKey.startsWith("sel-") && toKey.startsWith("sel-")) {
+                            val fromId = fromKey.removePrefix("sel-")
+                            val toId = toKey.removePrefix("sel-")
+                            val fromIndex = selectedConfigs.indexOfFirst { it.id == fromId }
+                            val toIndex = selectedConfigs.indexOfFirst { it.id == toId }
+                            if (fromIndex >= 0 && toIndex >= 0 && fromIndex != toIndex) {
+                                onOverrideMoved(fromIndex, toIndex)
+                            }
                         }
                     }
-                }
 
                 Card {
                     LazyColumn(
                         state = overridesListState,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = LocalProfileConfigEditMetrics.OverrideBindingListMaxHeight),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .heightIn(
+                                    max = LocalProfileConfigEditMetrics.OverrideBindingListMaxHeight
+                                ),
                     ) {
-                        items(
-                            items = selectedConfigs,
-                            key = { "sel-${it.id}" },
-                        ) { config ->
+                        items(items = selectedConfigs, key = { "sel-${it.id}" }) { config ->
                             ReorderableItem(reorderState, key = "sel-${config.id}") { isDragging ->
                                 BasicComponent(
                                     modifier =
@@ -663,7 +648,8 @@ private fun LocalProfileOverrideBindingSection(
                                         ) {
                                             Icon(
                                                 imageVector = Yume.Close,
-                                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                                tint =
+                                                    MiuixTheme.colorScheme.onSurfaceVariantActions,
                                                 contentDescription = null,
                                             )
                                         }
@@ -677,10 +663,7 @@ private fun LocalProfileOverrideBindingSection(
                             )
                         }
 
-                        items(
-                            items = unselectedConfigs,
-                            key = { "avail-${it.id}" },
-                        ) { config ->
+                        items(items = unselectedConfigs, key = { "avail-${it.id}" }) { config ->
                             BasicComponent(
                                 title = config.name,
                                 summary =

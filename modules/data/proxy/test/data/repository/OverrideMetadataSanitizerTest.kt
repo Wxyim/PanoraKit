@@ -35,14 +35,9 @@ class OverrideMetadataSanitizerTest {
             )
 
         val sanitized =
-            index.sanitizePersistedOverrideState { overrideId ->
-                overrideId == "cfg-existing"
-            }
+            index.sanitizePersistedOverrideState { overrideId -> overrideId == "cfg-existing" }
 
-        assertEquals(
-            setOf("cfg-existing", "__runtime__-profile-demo"),
-            sanitized.configs.keys,
-        )
+        assertEquals(setOf("cfg-existing", "__runtime__-profile-demo"), sanitized.configs.keys)
         assertEquals(
             listOf("cfg-existing"),
             sanitized.profileChains.getValue("profile-1").overrideIds,
@@ -80,12 +75,6 @@ class OverrideMetadataSanitizerTest {
     }
 
     private fun existingMetadata(id: String): Pair<String, OverrideMetadata> {
-        return id to
-            OverrideMetadata(
-                id = id,
-                name = id,
-                createdAt = 1L,
-                updatedAt = 1L,
-            )
+        return id to OverrideMetadata(id = id, name = id, createdAt = 1L, updatedAt = 1L)
     }
 }

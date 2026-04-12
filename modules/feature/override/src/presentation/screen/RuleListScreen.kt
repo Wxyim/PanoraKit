@@ -135,7 +135,8 @@ fun OverrideRuleListEditorScreen(
                     if (isDeleteMode) {
                         IconButton(
                             onClick = {
-                                val latestValues = OverrideStructuredEditorStore.ruleEditorDraftValues
+                                val latestValues =
+                                    OverrideStructuredEditorStore.ruleEditorDraftValues
                                 val mode = OverrideStructuredEditorStore.ruleEditorSelectedMode
                                 val updatedValues =
                                     latestValues.update(

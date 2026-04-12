@@ -22,8 +22,8 @@ package com.github.yumelira.yumebox.screen.navigation
 
 import androidx.compose.runtime.Composable
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewScreen
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewScreen
 import com.github.yumelira.yumebox.presentation.screen.*
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSemantics
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
@@ -207,13 +207,14 @@ fun LocalProfileConfigEditRoute(navigator: DestinationsNavigator, profileUuid: S
             onEndChange ->
             val mergedValue =
                 buildList {
-                    addAll(startValue.orEmpty())
-                    addAll(replaceValue.orEmpty())
-                    addAll(endValue.orEmpty())
-                }.takeIf { it.isNotEmpty() }
+                        addAll(startValue.orEmpty())
+                        addAll(replaceValue.orEmpty())
+                        addAll(endValue.orEmpty())
+                    }
+                    .takeIf { it.isNotEmpty() }
             val values =
                 com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
-                    replaceValue = mergedValue,
+                    replaceValue = mergedValue
                 )
             val availableModes =
                 listOf(com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace)
@@ -221,7 +222,8 @@ fun LocalProfileConfigEditRoute(navigator: DestinationsNavigator, profileUuid: S
                 title = title,
                 placeholder = placeholder,
                 availableModes = availableModes,
-                selectedMode = com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
+                selectedMode =
+                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
                 values = values,
                 semantics = OverrideEditorSemantics.LocalConfig,
             ) { updatedValues ->

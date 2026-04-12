@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
@@ -221,18 +220,14 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
                             value = intervalText.takeIf(String::isNotBlank),
                             placeholder = "interval",
                             unsetLabel = "",
-                            onValueChange = {
-                                intervalText = it?.filter(Char::isDigit).orEmpty()
-                            },
+                            onValueChange = { intervalText = it?.filter(Char::isDigit).orEmpty() },
                         )
                         StringInputContent(
                             title = "timeout",
                             value = timeoutText.takeIf(String::isNotBlank),
                             placeholder = "timeout",
                             unsetLabel = "",
-                            onValueChange = {
-                                timeoutText = it?.filter(Char::isDigit).orEmpty()
-                            },
+                            onValueChange = { timeoutText = it?.filter(Char::isDigit).orEmpty() },
                         )
                         StringInputContent(
                             title = "max-failed-times",

@@ -23,10 +23,9 @@ package com.github.yumelira.yumebox.feature.editor.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.shadow
-import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
@@ -115,16 +115,11 @@ fun ConfigPreviewScreen(
         saveDecision = ConfigPreviewSaveDecision.Continue
         coroutineScope.launch {
             try {
-                onSave(
-                    editorState.content,
-                    { phase -> savePhase = phase },
-                    { saveDecision },
-                )
+                onSave(editorState.content, { phase -> savePhase = phase }, { saveDecision })
                     .onSuccess { outcome ->
                         when (outcome) {
                             ConfigPreviewSaveOutcome.Saved,
-                            ConfigPreviewSaveOutcome.SavedLocally,
-                            -> {
+                            ConfigPreviewSaveOutcome.SavedLocally -> {
                                 editorState.resetModified()
                                 navigator.navigateUp()
                             }
@@ -172,7 +167,7 @@ fun ConfigPreviewScreen(
                         MLang.Component.Editor.Error.JsonSyntaxError
                     } else {
                         MLang.Component.Editor.Error.Unknown
-                    },
+                    }
                 )
             }
 
@@ -206,13 +201,7 @@ fun ConfigPreviewScreen(
             )
         }
     ) { paddingValues ->
-        BoxWithConstraints(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .imePadding(),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding()) {
             val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
             val isWideLayout = !availableAdaptiveInfo.isCompactWidth
 
@@ -257,8 +246,10 @@ fun ConfigPreviewScreen(
                 title = MLang.Component.Editor.Action.Save,
                 summary =
                     when (savePhase) {
-                        ConfigPreviewSavePhase.LocalSaving -> MLang.Component.Editor.Dialog.LocalSaving
-                        ConfigPreviewSavePhase.Validating -> MLang.Component.Editor.Dialog.ValidatingConfig
+                        ConfigPreviewSavePhase.LocalSaving ->
+                            MLang.Component.Editor.Dialog.LocalSaving
+                        ConfigPreviewSavePhase.Validating ->
+                            MLang.Component.Editor.Dialog.ValidatingConfig
                         ConfigPreviewSavePhase.FetchingRemoteResources ->
                             MLang.Component.Editor.Dialog.FetchingRemoteResources
                         null -> MLang.Component.Loading.Starting
@@ -278,12 +269,8 @@ fun ConfigPreviewScreen(
 
                     if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
                         DialogButtonRow(
-                            onCancel = {
-                                saveDecision = ConfigPreviewSaveDecision.ContinueEditing
-                            },
-                            onConfirm = {
-                                saveDecision = ConfigPreviewSaveDecision.SaveLocally
-                            },
+                            onCancel = { saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
+                            onConfirm = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
                             cancelText = MLang.Component.Editor.Action.ContinueEditing,
                             confirmText =
                                 if (isRuntimeRunning) {
@@ -314,8 +301,7 @@ private fun EditorCommandBar(
 
     Column(
         modifier =
-            Modifier
-                .fillMaxWidth()
+            Modifier.fillMaxWidth()
                 .shadow(
                     elevation = 18.dp,
                     shape = surfaceShape,
@@ -328,8 +314,7 @@ private fun EditorCommandBar(
         if (isWideLayout) {
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = spacing.lg, vertical = spacing.lg),
                 horizontalArrangement = Arrangement.spacedBy(spacing.md),
@@ -368,8 +353,7 @@ private fun EditorCommandBar(
         } else {
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = spacing.lg, vertical = spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(spacing.md),
@@ -427,12 +411,7 @@ private fun EditorStatusSummary(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(10.dp)
-                    .background(style.contentColor, CircleShape),
-        )
+        Box(modifier = Modifier.size(10.dp).background(style.contentColor, CircleShape))
 
         Text(
             text =
@@ -446,11 +425,7 @@ private fun EditorStatusSummary(
             modifier = Modifier.weight(1f),
         )
 
-        StatusBadge(
-            text = editorLanguageLabel(language),
-            tone = SemanticTone.Info,
-            compact = true,
-        )
+        StatusBadge(text = editorLanguageLabel(language), tone = SemanticTone.Info, compact = true)
     }
 }
 

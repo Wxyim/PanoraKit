@@ -24,8 +24,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -137,16 +137,11 @@ fun OverrideAnimatedFab(
         label = "override_shared_fab_visibility",
     ) {
         val fabModifier =
-            Modifier.navigationBarsPadding().padding(
-                end = 20.dp,
-                bottom = 16.dp + extraBottomPadding,
-            )
+            Modifier.navigationBarsPadding()
+                .padding(end = 20.dp, bottom = 16.dp + extraBottomPadding)
 
         if (label.isNullOrBlank()) {
-            FloatingActionButton(
-                modifier = fabModifier,
-                onClick = onClick,
-            ) {
+            FloatingActionButton(modifier = fabModifier, onClick = onClick) {
                 Icon(
                     imageVector = imageVector,
                     contentDescription = contentDescription,
@@ -171,8 +166,7 @@ fun OverrideAnimatedFab(
                             shape = shape,
                             ambientColor =
                                 androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.16f),
-                            spotColor =
-                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.12f),
+                            spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.12f),
                         )
                         .clip(shape)
                         .background(containerColor, shape)
@@ -190,10 +184,7 @@ fun OverrideAnimatedFab(
                         modifier =
                             Modifier.size(38.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    colorScheme.primary.copy(alpha = 0.13f),
-                                    CircleShape,
-                                ),
+                                .background(colorScheme.primary.copy(alpha = 0.13f), CircleShape),
                         contentAlignment = androidx.compose.ui.Alignment.Center,
                     ) {
                         Icon(

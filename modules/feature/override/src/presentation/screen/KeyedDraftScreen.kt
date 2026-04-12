@@ -354,18 +354,14 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
                         value = intervalText.takeIf(String::isNotBlank),
                         placeholder = "interval",
                         unsetLabel = "",
-                        onValueChange = {
-                            intervalText = it?.filter(Char::isDigit).orEmpty()
-                        },
+                        onValueChange = { intervalText = it?.filter(Char::isDigit).orEmpty() },
                     )
                     StringInputContent(
                         title = "size-limit",
                         value = sizeLimitText.takeIf(String::isNotBlank),
                         placeholder = "size-limit",
                         unsetLabel = "",
-                        onValueChange = {
-                            sizeLimitText = it?.filter(Char::isDigit).orEmpty()
-                        },
+                        onValueChange = { sizeLimitText = it?.filter(Char::isDigit).orEmpty() },
                     )
                 }
             }

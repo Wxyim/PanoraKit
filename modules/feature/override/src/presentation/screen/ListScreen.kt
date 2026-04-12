@@ -315,7 +315,7 @@ fun OverrideListScreen(
                                     verticalArrangement =
                                         Arrangement.spacedBy(
                                             OverrideListMetrics.DialogButtonSpacing
-                                        )
+                                        ),
                                 ) {
                                     AppCommandButton(
                                         title = MLang.Override.Action.New,

@@ -39,8 +39,6 @@ enum class ConfigPreviewSaveOutcome {
 }
 
 typealias ConfigPreviewSaveCallback =
-    suspend (
-        String,
-        (ConfigPreviewSavePhase) -> Unit,
-        () -> ConfigPreviewSaveDecision,
-    ) -> Result<ConfigPreviewSaveOutcome>
+    suspend (String, (ConfigPreviewSavePhase) -> Unit, () -> ConfigPreviewSaveDecision) -> Result<
+            ConfigPreviewSaveOutcome
+        >

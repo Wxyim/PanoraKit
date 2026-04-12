@@ -69,8 +69,7 @@ fun OverrideEditScreen(
     var currentMapEditorKeyPlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValuePlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValue by remember { mutableStateOf<Map<String, String>?>(null) }
-    var currentMapEditorValidationMode by
-        remember { mutableStateOf(StringMapValidationMode.None) }
+    var currentMapEditorValidationMode by remember { mutableStateOf(StringMapValidationMode.None) }
 
     var currentJsonEditorTitle by remember { mutableStateOf("") }
     var currentJsonEditorPlaceholder by remember { mutableStateOf("") }

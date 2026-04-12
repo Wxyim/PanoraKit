@@ -40,8 +40,8 @@ import com.github.yumelira.yumebox.presentation.util.OverrideEditorSemantics
 import com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode
 import com.github.yumelira.yumebox.presentation.util.OverrideListModeValues
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
-import com.github.yumelira.yumebox.presentation.util.reorderDraftList
 import com.github.yumelira.yumebox.presentation.util.modeTitle
+import com.github.yumelira.yumebox.presentation.util.reorderDraftList
 import com.github.yumelira.yumebox.presentation.util.resolveLabel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -66,10 +66,7 @@ private object OverrideStringListMetrics {
     val ValueEndPadding = 8.dp
 }
 
-private data class StringListUiEntry(
-    val uiId: String,
-    val value: String,
-)
+private data class StringListUiEntry(val uiId: String, val value: String)
 
 @Composable
 fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
@@ -214,15 +211,17 @@ fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
                                 showItemDialog = true
                             },
                             onDelete = {
-                                val mode = OverrideStructuredEditorStore.stringListEditorSelectedMode
+                                val mode =
+                                    OverrideStructuredEditorStore.stringListEditorSelectedMode
                                 val latestValues = currentStringListValues()
                                 val updatedValues =
                                     latestValues.update(
                                         mode,
-                                        latestValues.valueFor(mode).orEmpty().toMutableList().also {
-                                            items ->
-                                            items.removeAt(index)
-                                        },
+                                        latestValues
+                                            .valueFor(mode)
+                                            .orEmpty()
+                                            .toMutableList()
+                                            .also { items -> items.removeAt(index) },
                                     )
                                 applyStringListValues(updatedValues)
                             },

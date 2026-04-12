@@ -216,7 +216,8 @@ fun OverrideObjectListEditorScreen(
                                         val mode =
                                             OverrideStructuredEditorStore.objectEditorSelectedMode
                                         val latestValues =
-                                            OverrideStructuredEditorStore.objectEditorProxyDraftValues
+                                            OverrideStructuredEditorStore
+                                                .objectEditorProxyDraftValues
                                         val updatedValues =
                                             latestValues.update(
                                                 mode,
