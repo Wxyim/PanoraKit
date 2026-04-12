@@ -11,6 +11,7 @@ import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.repository.LogRecordGateway
 import com.github.yumelira.yumebox.service.StatusProvider
 import com.github.yumelira.yumebox.service.common.constants.Intents
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 
 class RuntimeLogRecordingCoordinator(
@@ -57,7 +58,11 @@ class RuntimeLogRecordingCoordinator(
     }
 
     private fun isAnyRuntimeActive(): Boolean {
-        val rootStatus = rootTunStateStore.snapshot()
+        val rootStatus =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = application,
+                status = rootTunStateStore.snapshot(),
+            )
         return StatusProvider.isRuntimeActive(ProxyMode.Tun) ||
             StatusProvider.isRuntimeActive(ProxyMode.Http) ||
             rootStatus.state.isActive ||

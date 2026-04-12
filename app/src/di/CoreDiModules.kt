@@ -25,6 +25,7 @@ import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.data.repository.*
 import com.github.yumelira.yumebox.data.store.*
 import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
+import com.github.yumelira.yumebox.runtime.client.ProfilesProvider
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
@@ -86,12 +87,17 @@ val appFoundationModule = module {
 val appDataRuntimeModule = module {
     single { AppSettingsRepository(get()) }
     single { LogRepository(androidApplication(), get()) }
+    single<LogProvider> { get<LogRepository>() }
+    single { com.github.yumelira.yumebox.domain.model.StructuredLogCollector() }
+    single { DebugExportBundleBuilder(androidApplication(), get(), get()) }
     single { StorageCleanupManager(androidApplication(), get(), get()) }
     single { StorageCleanupScheduler(androidContext()) }
     single { NetworkInfoService() }
     single { ProxyChainResolver() }
     single { OverrideRepository(androidContext(), get()) }
+    single<OverrideProvider> { get<OverrideRepository>() }
     single { ProvidersRepository(androidContext()) }
+    single<ProvidersProvider> { get<ProvidersRepository>() }
 
     single { OverrideConfigRepository(androidContext()) }
     single<OverrideConfigProvider> { get<OverrideConfigRepository>() }
@@ -109,11 +115,13 @@ val appDataRuntimeModule = module {
     single { com.github.yumelira.yumebox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single { ProfilesRepository(androidContext(), get()) }
+    single<ProfilesProvider> { get<ProfilesRepository>() }
     single { RuntimeControlCoordinator(get(), get(), get()) }
     single { AppIdentityResolver(androidContext()) }
 
     single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
     single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
+    single<ConnectionActivityProvider> { get<ConnectionActivityRepository>() }
     single {
         TargetSiteTrafficCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME)))
     }

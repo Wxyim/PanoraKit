@@ -21,6 +21,8 @@
 package com.github.yumelira.yumebox.service.runtime.state
 
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.domain.model.ProductLifecycleState
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -41,6 +43,15 @@ enum class RuntimePhase {
 
     val running: Boolean
         get() = this == Running
+
+    fun toProductLifecycleState(): ProductLifecycleState =
+        when (this) {
+            Idle -> ProductLifecycleState.Idle
+            Starting -> ProductLifecycleState.Preparing
+            Running -> ProductLifecycleState.Active
+            Stopping -> ProductLifecycleState.Stopping
+            Failed -> ProductLifecycleState.Failed
+        }
 }
 
 @Serializable
@@ -57,6 +68,7 @@ data class RuntimeSnapshot(
     val profileUuid: String? = null,
     val profileName: String? = null,
     val lastError: String? = null,
+    val lastStructuredError: StructuredError? = null,
     val startedAt: Long? = null,
     val effectiveFingerprint: String? = null,
     val generation: Long = 0L,
@@ -64,4 +76,13 @@ data class RuntimeSnapshot(
 ) {
     val payloadReady: Boolean
         get() = profileReady && groupsReady && trafficReady
+
+    val lifecycleState: ProductLifecycleState
+        get() {
+            val base = phase.toProductLifecycleState()
+            if (base == ProductLifecycleState.Active && !payloadReady) {
+                return ProductLifecycleState.Degraded
+            }
+            return base
+        }
 }

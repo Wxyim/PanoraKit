@@ -24,6 +24,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.LogMessage
+import com.github.yumelira.yumebox.data.repository.DebugExportBundleBuilder
 import com.github.yumelira.yumebox.data.repository.LogRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,7 +38,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-class LogViewModel(private val repository: LogRepository) : ViewModel() {
+class LogViewModel(
+    private val repository: LogRepository,
+    private val debugExportBundleBuilder: DebugExportBundleBuilder,
+) : ViewModel() {
 
     private val refreshMutex = Mutex()
     private var autoRefreshJob: Job? = null
@@ -286,6 +290,27 @@ class LogViewModel(private val repository: LogRepository) : ViewModel() {
                 }
             repository.writeLogEntries(targetUri, repoEntries)
         }
+
+    suspend fun exportDebugBundle(
+        targetUri: Uri,
+        appVersionName: String,
+        appVersionCode: Int,
+        buildType: String,
+        runtimeStateSummary: Map<String, String> = emptyMap(),
+        configVersionId: String? = null,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            debugExportBundleBuilder.exportToUri(
+                targetUri = targetUri,
+                appVersionName = appVersionName,
+                appVersionCode = appVersionCode,
+                buildType = buildType,
+                runtimeStateSummary = runtimeStateSummary,
+                configVersionId = configVersionId,
+            )
+        }
+
+    fun suggestDebugBundleFileName(): String = debugExportBundleBuilder.suggestedFileName()
 
     data class LogEntry(val time: String, val level: LogMessage.Level, val message: String)
 

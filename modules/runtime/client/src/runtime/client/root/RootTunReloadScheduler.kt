@@ -26,6 +26,7 @@ import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.RootTunOperationResult
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import java.io.Closeable
 import kotlin.time.Duration.Companion.milliseconds
@@ -100,7 +101,11 @@ class RootTunReloadScheduler(context: Context, appScope: CoroutineScope) :
             return
         }
 
-        val state = RootTunStateStore(appContext).snapshot()
+        val state =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = appContext,
+                status = RootTunStateStore(appContext).snapshot(),
+            )
         if (!state.state.isActive && !state.runtimeReady) {
             clearReloadJob(currentJob)
             return

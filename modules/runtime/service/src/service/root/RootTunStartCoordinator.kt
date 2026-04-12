@@ -74,18 +74,28 @@ object RootTunStartCoordinator {
                     }
                 }
                 .getOrElse { error ->
+                    val failure =
+                        error.toRootTunOperationResult(
+                            fallbackCode = fallbackCode,
+                            fallbackMessage = fallbackMessage,
+                        )
+                    stateStore.markIdle(error = failure.error, errorCode = failure.errorCode)
+                    runCatching { RootTunService.stop(appContext) }
+                    runCatching { RootService.stop(Intent(appContext, RootTunRootService::class.java)) }
+                    RootTunRemoteClient.disconnect()
                     startupLogStore.append(
-                        "ROOT_TUN $callerTag: total=${System.currentTimeMillis() - startedAt}ms failed=${error.message}"
+                        "ROOT_TUN $callerTag: total=${System.currentTimeMillis() - startedAt}ms failed=${failure.error}"
                     )
-                    return error.toRootTunOperationResult(
-                        fallbackCode = fallbackCode,
-                        fallbackMessage = fallbackMessage,
-                    )
+                    return failure
                 }
         startupLogStore.append(
             "ROOT_TUN $callerTag: remoteStart=${System.currentTimeMillis() - foregroundStartAt}ms"
         )
         if (!result.success) {
+            stateStore.markIdle(error = result.error, errorCode = result.errorCode)
+            runCatching { RootTunService.stop(appContext) }
+            runCatching { RootService.stop(Intent(appContext, RootTunRootService::class.java)) }
+            RootTunRemoteClient.disconnect()
             startupLogStore.append(
                 "ROOT_TUN $callerTag: total=${System.currentTimeMillis() - startedAt}ms"
             )
@@ -118,6 +128,10 @@ object RootTunStartCoordinator {
                     ?.takeIf { it.isNotBlank() }
                     ?.let { append(" | rollback: ").append(it) }
             }
+            stateStore.markIdle(
+                error = message,
+                errorCode = RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+            )
             startupLogStore.append(
                 "ROOT_TUN $callerTag: total=${System.currentTimeMillis() - startedAt}ms failed=$message"
             )

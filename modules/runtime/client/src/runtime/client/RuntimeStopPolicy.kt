@@ -13,7 +13,8 @@ internal fun resolveRuntimeStopResolution(
     reason: String?,
 ): RuntimeStopResolution {
     return when {
-        currentPhase == RuntimePhase.Starting -> RuntimeStopResolution.IgnoreAsStale
+        currentPhase == RuntimePhase.Starting && reason.isNullOrBlank() ->
+            RuntimeStopResolution.IgnoreAsStale
         currentPhase == RuntimePhase.Idle && reason.isNullOrBlank() ->
             RuntimeStopResolution.SkipAsRedundant
         else -> RuntimeStopResolution.TransitionToIdle

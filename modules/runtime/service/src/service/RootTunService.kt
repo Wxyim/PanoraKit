@@ -27,6 +27,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationChannelCompat
@@ -41,6 +42,7 @@ import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunState
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import com.github.yumelira.yumebox.service.root.RootTunStatus
@@ -69,19 +71,30 @@ class RootTunService : BaseService() {
 
             ACTION_START,
             null -> {
-                val cachedStatus = stateStore.snapshot()
+                val cachedStatus =
+                    RootTunRuntimeRecovery.recoverStaleTransition(
+                        context = appContextOrSelf,
+                        status = stateStore.snapshot(),
+                    )
                 if (!cachedStatus.state.isActive && !cachedStatus.state.isRecovering) {
                     stopSelf()
                     return START_NOT_STICKY
                 }
 
-                startForeground(
-                    NOTIFICATION_ID,
+                val notification =
                     buildNotification(
                         cachedStatus.profileName ?: MLang.Service.Notification.UnknownProfile,
                         describeStatus(cachedStatus),
-                    ),
-                )
+                    )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
 
                 if (notificationJob?.isActive != true) {
                     notificationJob =
@@ -91,6 +104,20 @@ class RootTunService : BaseService() {
                             var lastStatus = cachedStatus
 
                             while (isActive) {
+                                val recoveredStatus =
+                                    RootTunRuntimeRecovery.recoverStaleTransition(
+                                        context = appContextOrSelf,
+                                        status = stateStore.snapshot(),
+                                    )
+                                if (
+                                    !recoveredStatus.state.isActive &&
+                                        !recoveredStatus.state.isRecovering
+                                ) {
+                                    syncStatus(recoveredStatus)
+                                    stopSelf()
+                                    break
+                                }
+
                                 val snapshotResult = runCatching {
                                     RootTunServiceBridge.queryStatus(appContextOrSelf)
                                 }

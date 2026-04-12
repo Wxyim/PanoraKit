@@ -456,22 +456,45 @@ class ProxyFacade(
                 )
             )
 
-            when (targetOwner) {
-                RuntimeOwner.RootTun -> {
-                    startRootTun().getOrThrow()
-                    handleRuntimeStarted(forceOwner = RuntimeOwner.RootTun)
+            try {
+                when (targetOwner) {
+                    RuntimeOwner.RootTun -> {
+                        startRootTun().getOrThrow()
+                        handleRuntimeStarted(forceOwner = RuntimeOwner.RootTun)
+                    }
+                    RuntimeOwner.LocalTun,
+                    RuntimeOwner.LocalHttp -> {
+                        startLocalRuntime(mode)
+                        awaitLocalStartTerminal(owner = targetOwner, mode = mode)
+                    }
+                    RuntimeOwner.None -> Unit
                 }
-                RuntimeOwner.LocalTun,
-                RuntimeOwner.LocalHttp -> startLocalRuntime(mode)
-                RuntimeOwner.None -> Unit
+            } catch (e: Exception) {
+                transitionToIdle(
+                    configuredMode = mode,
+                    generation = generation,
+                    lastError = e.message,
+                )
+                throw e
             }
         }
     }
 
     suspend fun stopProxy(mode: ProxyMode? = null) {
         val targetMode = mode ?: networkSettingsStorage.proxyMode.value
-
-        operationMutex.withLock { stopProxyInternal(targetMode) }
+        operationMutex.withLock {
+            val generation = runtimeState.nextGeneration()
+            try {
+                stopProxyInternal(targetMode)
+            } catch (e: Exception) {
+                transitionToIdle(
+                    configuredMode = targetMode,
+                    generation = generation,
+                    lastError = e.message,
+                )
+                throw e
+            }
+        }
     }
 
     suspend fun queryProxyGroupNames(excludeNotSelectable: Boolean = false): List<String> {
@@ -900,11 +923,17 @@ class ProxyFacade(
     }
 
     private fun resolveInitialRootTunStatus(): RootTunStatus {
-        return rootTunStateStore.snapshot()
+        return recoverRootTunStatus(rootTunStateStore.snapshot())
+    }
+
+    private fun recoverRootTunStatus(status: RootTunStatus = rootTunStateStore.snapshot()): RootTunStatus {
+        val recovered = RootTunRuntimeRecovery.recoverStaleTransition(appContext, status)
+        applyRootTunStatus(recovered)
+        return recovered
     }
 
     private fun isRootSessionActive(): Boolean {
-        val status = rootTunStatus.value
+        val status = recoverRootTunStatus()
         return status.state.isActive || status.runtimeReady
     }
 
@@ -1034,8 +1063,10 @@ class ProxyFacade(
     }
 
     private suspend fun currentRootTunStatus(): RootTunStatus {
-        return runCatching { RootTunController.queryStatus(appContext) }
-            .getOrElse { rootTunStatus.value }
+        val status =
+            runCatching { RootTunController.queryStatus(appContext) }
+                .getOrElse { rootTunStatus.value }
+        return recoverRootTunStatus(status)
     }
 
     private fun clearLegacyRuntimeCaches() {
@@ -1135,6 +1166,51 @@ class ProxyFacade(
         return StopTerminalOutcome.TimedOut
     }
 
+    private suspend fun awaitLocalStartTerminal(owner: RuntimeOwner, mode: ProxyMode) {
+        check(owner == RuntimeOwner.LocalTun || owner == RuntimeOwner.LocalHttp) {
+            "awaitLocalStartTerminal only supports local owners"
+        }
+
+        repeat(START_WAIT_RETRY_COUNT) {
+            val snapshot = runtimeSnapshot.value
+            when (snapshot.phase) {
+                RuntimePhase.Running -> return
+                RuntimePhase.Failed,
+                RuntimePhase.Idle -> {
+                    throw RuntimeGatewayException(
+                        code = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                        message =
+                            snapshot.lastError
+                                ?: "runtime moved to ${snapshot.phase.name} during start",
+                    )
+                }
+                RuntimePhase.Starting,
+                RuntimePhase.Stopping -> Unit
+            }
+            delay(START_WAIT_RETRY_DELAY_MS.milliseconds)
+        }
+
+        val processStarted = !isOwnerProcessStopped(owner)
+        val ownerActive = isOwnerActive(owner)
+        if (processStarted || ownerActive) {
+            Timber.w(
+                "Start receipt missing; reconciling stale starting marker for ${owner.name} (mode=${mode.name})"
+            )
+            handleRuntimeStarted(forceOwner = owner)
+            if (runtimeSnapshot.value.phase == RuntimePhase.Running) {
+                return
+            }
+        }
+
+        throw RuntimeGatewayException(
+            code = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+            message =
+                "Timed out waiting for start receipt " +
+                    "(owner=${owner.name}, mode=${mode.name}, " +
+                    "ownerActive=$ownerActive, processStarted=$processStarted)",
+        )
+    }
+
     private suspend fun collectStopSignalConsistency(owner: RuntimeOwner): StopSignalConsistency {
         val snapshotPhase = runtimeSnapshot.value.phase
         return StopSignalConsistency(
@@ -1148,7 +1224,7 @@ class ProxyFacade(
     private fun isOwnerProcessStopped(owner: RuntimeOwner): Boolean {
         return when (owner) {
             RuntimeOwner.RootTun -> {
-                val status = rootTunStateStore.snapshot()
+                val status = recoverRootTunStatus()
                 !status.state.isActive && !status.runtimeReady
             }
 
@@ -1340,6 +1416,8 @@ class ProxyFacade(
     }
 
     private companion object {
+        private const val START_WAIT_RETRY_COUNT = 80
+        private const val START_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_WAIT_RETRY_COUNT = 80
         private const val STOP_WAIT_RETRY_DELAY_MS = 125L
     }

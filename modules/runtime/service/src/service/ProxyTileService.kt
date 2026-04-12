@@ -36,7 +36,10 @@ import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
 import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
+import com.github.yumelira.yumebox.service.root.RootTunState
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
+import com.github.yumelira.yumebox.service.root.RootTunStatus
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeServiceLauncher
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
@@ -45,6 +48,20 @@ import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.LazyThreadSafetyMode
 import kotlinx.coroutines.*
 import timber.log.Timber
+
+internal fun rootTunTilePhase(status: RootTunStatus): RuntimePhase {
+    return when (status.state) {
+        RootTunState.Idle -> if (status.runtimeReady) RuntimePhase.Running else RuntimePhase.Idle
+        RootTunState.Starting -> RuntimePhase.Starting
+        RootTunState.Running -> RuntimePhase.Running
+        RootTunState.Stopping -> RuntimePhase.Stopping
+        RootTunState.Failed -> RuntimePhase.Failed
+    }
+}
+
+internal fun isTileTransitioning(phase: RuntimePhase): Boolean {
+    return phase == RuntimePhase.Starting || phase == RuntimePhase.Stopping
+}
 
 @SuppressLint("NewApi", "StartActivityAndCollapseDeprecated")
 class ProxyTileService : TileService() {
@@ -89,7 +106,7 @@ class ProxyTileService : TileService() {
         updateJob =
             scope.launch {
                 while (isActive) {
-                    updateTileState(currentSnapshot().running)
+                    updateTileState(currentSnapshot())
                     delay(500)
                 }
             }
@@ -107,6 +124,11 @@ class ProxyTileService : TileService() {
         toggleJob =
             scope.launch {
                 val snapshot = currentSnapshot()
+                if (isTileTransitioning(snapshot.phase)) {
+                    updateTileState(snapshot)
+                    return@launch
+                }
+
                 val isRunning = snapshot.running
                 val currentMode = effectiveMode(snapshot)
 
@@ -115,7 +137,7 @@ class ProxyTileService : TileService() {
                     (isRunning && tileState == Tile.STATE_INACTIVE) ||
                         (!isRunning && tileState == Tile.STATE_ACTIVE)
                 ) {
-                    updateTileState(isRunning)
+                    updateTileState(snapshot)
                     return@launch
                 }
 
@@ -198,14 +220,18 @@ class ProxyTileService : TileService() {
                     Timber.e(e, "Error toggling proxy from tile")
                 } finally {
                     delay(300)
-                    updateTileState(currentSnapshot().running)
+                    updateTileState(currentSnapshot())
                 }
             }
     }
 
     private fun currentSnapshot(): RuntimeSnapshot {
         val configuredMode = networkSettingsStorage.proxyMode.value
-        val rootStatus = rootTunStateStore.snapshot()
+        val rootStatus =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = applicationContext,
+                status = rootTunStateStore.snapshot(),
+            )
         val owner =
             when {
                 StatusProvider.isRuntimeActive(ProxyMode.Tun) -> RuntimeOwner.LocalTun
@@ -217,14 +243,28 @@ class ProxyTileService : TileService() {
         return if (owner == RuntimeOwner.None) {
             RuntimeSnapshot(
                 owner = RuntimeOwner.None,
-                phase = RuntimePhase.Idle,
+                phase = rootTunTilePhase(rootStatus).takeIf { it == RuntimePhase.Failed }
+                    ?: RuntimePhase.Idle,
                 targetMode = configuredMode,
+                lastError = rootStatus.composedError(),
             )
         } else {
             RuntimeSnapshot(
                 owner = owner,
-                phase = RuntimePhase.Running,
+                phase =
+                    if (owner == RuntimeOwner.RootTun) {
+                        rootTunTilePhase(rootStatus)
+                    } else {
+                        RuntimePhase.Running
+                    },
                 targetMode = modeForOwner(owner) ?: configuredMode,
+                profileReady =
+                    owner == RuntimeOwner.RootTun && !rootStatus.profileUuid.isNullOrBlank(),
+                profileUuid = rootStatus.profileUuid.takeIf { owner == RuntimeOwner.RootTun },
+                profileName = rootStatus.profileName.takeIf { owner == RuntimeOwner.RootTun },
+                lastError =
+                    rootStatus.composedError().takeIf { owner == RuntimeOwner.RootTun },
+                startedAt = rootStatus.startedAt.takeIf { owner == RuntimeOwner.RootTun },
             )
         }
     }
@@ -235,6 +275,16 @@ class ProxyTileService : TileService() {
             RuntimeOwner.LocalHttp -> ProxyMode.Http
             RuntimeOwner.RootTun -> ProxyMode.RootTun
             RuntimeOwner.None -> null
+        }
+    }
+
+    private fun updateTileState(snapshot: RuntimeSnapshot) {
+        when (snapshot.phase) {
+            RuntimePhase.Starting -> updateTilePendingState(isStarting = true)
+            RuntimePhase.Stopping -> updateTilePendingState(isStarting = false)
+            RuntimePhase.Running -> updateTileSteadyState(isRunning = true)
+            RuntimePhase.Idle,
+            RuntimePhase.Failed -> updateTileSteadyState(isRunning = false)
         }
     }
 
@@ -252,7 +302,7 @@ class ProxyTileService : TileService() {
         }
     }
 
-    private fun updateTileState(isRunning: Boolean) {
+    private fun updateTileSteadyState(isRunning: Boolean) {
         val tile = qsTile ?: return
         tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
 

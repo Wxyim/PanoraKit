@@ -6,10 +6,18 @@ import org.junit.Test
 
 class RuntimeStopPolicyTest {
     @Test
-    fun resolvesStartingPhaseAsStaleStop() {
+    fun resolvesStartingPhaseWithoutReasonAsStaleStop() {
         assertEquals(
             RuntimeStopResolution.IgnoreAsStale,
             resolveRuntimeStopResolution(RuntimePhase.Starting, null),
+        )
+    }
+
+    @Test
+    fun resolvesStartingPhaseWithReasonToIdleTransition() {
+        assertEquals(
+            RuntimeStopResolution.TransitionToIdle,
+            resolveRuntimeStopResolution(RuntimePhase.Starting, "RootTun reconciliation failed"),
         )
     }
 

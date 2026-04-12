@@ -28,6 +28,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -39,6 +40,7 @@ import com.github.yumelira.yumebox.service.common.constants.Components
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.remote.ILogObserver
 import com.github.yumelira.yumebox.service.root.RootTunJson
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import dev.oom_wg.purejoy.mlang.MLang
@@ -207,7 +209,16 @@ class LogRecordService : Service() {
                     currentLogFileName = file.name
                     isRecording = true
 
-                    startForeground(NOTIFICATION_ID, createNotification())
+                    val notification = createNotification()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
                     registerRuntimeReceiver()
                     scheduleObserverAttach()
                 }
@@ -470,7 +481,11 @@ class LogRecordService : Service() {
     }
 
     private fun isRootRuntimeActive(): Boolean {
-        val status = rootTunStateStore.snapshot()
+        val status =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = applicationContext,
+                status = rootTunStateStore.snapshot(),
+            )
         return status.state.isActive || status.runtimeReady
     }
 }

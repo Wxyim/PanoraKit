@@ -27,6 +27,7 @@ import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadDispatcher
 import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadReason
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
+import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import java.util.UUID
 
@@ -85,7 +86,11 @@ class RuntimeMutationCoordinator(
     }
 
     private fun isRootTunActive(): Boolean {
-        val status = rootTunStateStore.snapshot()
+        val status =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = appContext,
+                status = rootTunStateStore.snapshot(),
+            )
         return status.state.isActive || status.runtimeReady
     }
 }

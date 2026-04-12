@@ -58,10 +58,12 @@ val appViewModelModule = module {
             get(),
         )
     }
-    viewModel { ProfilesViewModel(androidApplication(), get(), get(), get(), get(), get(), get()) }
+    viewModel {
+        ProfilesViewModel(androidApplication(), get(), get(), get(), get(), get(), get(), get())
+    }
     viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get(), get(), get()) }
     viewModel { AccessControlViewModel(androidApplication(), get(), get(), get(), get()) }
-    viewModel { LogViewModel(get()) }
+    viewModel { LogViewModel(get(), get()) }
 }
 
 val appModule: List<Module> =

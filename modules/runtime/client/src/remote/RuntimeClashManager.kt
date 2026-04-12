@@ -248,7 +248,11 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) :
     }
 
     private fun useRootRuntime(): Boolean {
-        val status = rootTunStateStore.snapshot()
+        val status =
+            RootTunRuntimeRecovery.recoverStaleTransition(
+                context = appContext,
+                status = rootTunStateStore.snapshot(),
+            )
         return status.state.isActive || status.runtimeReady
     }
 

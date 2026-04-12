@@ -72,6 +72,9 @@ class App : Application() {
 
         koin = koinApp.koin
         appSettingsStorage = koin.get()
+
+        Timber.plant(com.github.yumelira.yumebox.startup.StructuredLoggingTree(koin.get()))
+
         startupCoordinator =
             AppStartupCoordinator(
                 application = this,
