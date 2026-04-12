@@ -20,6 +20,7 @@
 
 package com.github.yumelira.yumebox.data.util
 
+import com.github.yumelira.yumebox.core.model.ConfigurationOverrideRuleSanitizer
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -35,13 +36,6 @@ data class ParsedRemoteOverride(
     val config: ConfigurationOverride,
     val count: Int,
 )
-
-private val unsupportedRuleTypes = setOf("USER-AGENT", "URL-REGEX", "HEADER", "HTTP-METHOD")
-
-private val ruleTypeAliases = mapOf("DEST-PORT" to "DST-PORT")
-
-private val surgeRejectVariants =
-    setOf("REJECT-TINYGIF", "REJECT-200", "REJECT-IMG", "REJECT-DICT", "REJECT-ARRAY")
 
 @Serializable private data class OverrideConfigEnvelope(val config: ConfigurationOverride? = null)
 
@@ -79,7 +73,7 @@ object RemoteOverrideParser {
             if (decodedConfig != null) {
                 return ParsedRemoteOverride(
                     kind = RemoteOverrideContentKind.Config,
-                    config = decodedConfig,
+                    config = ConfigurationOverrideRuleSanitizer.sanitize(decodedConfig),
                     count = 1,
                 )
             }
@@ -113,25 +107,10 @@ object RemoteOverrideParser {
             val ruleLine = line.substringAfter('=', line).trim()
             if (ruleLine.isEmpty()) continue
 
-            val parts = ruleLine.split(',').map { it.trim() }
-            if (parts.size < 2) continue
-
-            val rawType = parts[0].uppercase()
-            if (rawType in unsupportedRuleTypes) continue
-
-            val normalizedType = ruleTypeAliases[rawType] ?: rawType
-            val normalizedParts = parts.toMutableList()
-            normalizedParts[0] = normalizedType
-
-            val policyIndex = if (normalizedType == "MATCH") 1 else 2
-            if (
-                policyIndex < normalizedParts.size &&
-                    normalizedParts[policyIndex].uppercase() in surgeRejectVariants
-            ) {
-                normalizedParts[policyIndex] = "REJECT"
+            val normalizedRule = ConfigurationOverrideRuleSanitizer.sanitizeRuleLine(ruleLine)
+            if (normalizedRule != null) {
+                result += normalizedRule
             }
-
-            result += normalizedParts.joinToString(",")
         }
 
         return result

@@ -36,6 +36,7 @@ import timber.log.Timber
 
 class ProfileBindingRepository(context: Context) : ProfileBindingProvider {
     private val metadataFile = File(context.filesDir, "overrides/metadata.json")
+    private val configsDir = File(context.filesDir, "overrides/configs")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -190,14 +191,9 @@ class ProfileBindingRepository(context: Context) : ProfileBindingProvider {
     }
 
     private fun sanitizeMetadataIndex(index: MetadataIndex): MetadataIndex {
-        return index.copy(
-            profileChains =
-                index.profileChains.mapValues { (_, binding) ->
-                    binding.copy(
-                        overrideIds = binding.overrideIds.filterNot(::isBuiltinPresetOverrideId)
-                    )
-                }
-        )
+        return index.sanitizePersistedOverrideState { overrideId ->
+            configsDir.resolve("$overrideId.json").exists()
+        }
     }
 
     private fun isBuiltinPresetOverrideId(overrideId: String): Boolean {

@@ -22,6 +22,7 @@ package com.github.yumelira.yumebox.data.repository
 
 import android.content.Context
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
+import com.github.yumelira.yumebox.core.model.ConfigurationOverrideRuleSanitizer
 import com.github.yumelira.yumebox.data.util.RemoteContentFetcher
 import com.github.yumelira.yumebox.data.util.RemoteOverrideParser
 import com.github.yumelira.yumebox.domain.model.MetadataIndex
@@ -150,24 +151,27 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         withContext(Dispatchers.IO) {
             if (isSystemPreset(config.id)) return@withContext
 
+            val sanitizedConfig =
+                config.copy(config = ConfigurationOverrideRuleSanitizer.sanitize(config.config))
+
             configsDir.mkdirs()
 
-            val configFile = configsDir.resolve("${config.id}.json")
-            configFile.writeText(encodeConfigContent(config.config))
+            val configFile = configsDir.resolve("${sanitizedConfig.id}.json")
+            configFile.writeText(encodeConfigContent(sanitizedConfig.config))
 
             val metadataIndex = loadMetadataIndex()
-            val existingMetadata = metadataIndex.getById(config.id)
+            val existingMetadata = metadataIndex.getById(sanitizedConfig.id)
             val metadata =
                 OverrideMetadata(
-                    id = config.id,
-                    name = config.name,
-                    description = config.description,
+                    id = sanitizedConfig.id,
+                    name = sanitizedConfig.name,
+                    description = sanitizedConfig.description,
                     isSystem = false,
                     remoteSourceUrl = existingMetadata?.remoteSourceUrl,
                     remoteUpdateIntervalSeconds = existingMetadata?.remoteUpdateIntervalSeconds,
                     remoteLastUpdatedAt = existingMetadata?.remoteLastUpdatedAt,
-                    createdAt = config.createdAt,
-                    updatedAt = config.updatedAt,
+                    createdAt = sanitizedConfig.createdAt,
+                    updatedAt = sanitizedConfig.updatedAt,
                     sortOrder = existingMetadata?.sortOrder ?: metadataIndex.nextUserSortOrder(),
                 )
             val index = metadataIndex.upsert(metadata)
@@ -177,7 +181,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                     .filterNot(OverrideConfig::isSystem)
                     .associateBy(OverrideConfig::id)
                     .toMutableMap()
-                    .apply { put(config.id, config) }
+                    .apply { put(sanitizedConfig.id, sanitizedConfig) }
             updateConfigsFlowSnapshot(metadataIndex = index, userConfigsById = userConfigsById)
         }
 
@@ -187,10 +191,11 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
 
             val configFile = configsDir.resolve("$id.json")
             val fileDeleted = !configFile.exists() || configFile.delete()
-            val metadataExists = loadMetadataIndex().getById(id) != null
+            val metadataIndex = loadMetadataIndex()
+            val metadataExists = metadataIndex.getById(id) != null
             val deleted = fileDeleted && metadataExists
             if (fileDeleted && metadataExists) {
-                val index = loadMetadataIndex().remove(id)
+                val index = metadataIndex.remove(id).removeUserOverrideReferences(id)
                 saveMetadataIndex(index)
                 val userConfigsById =
                     _configsFlow.value
@@ -357,7 +362,9 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         withContext(Dispatchers.IO) {
             try {
                 val configOverride =
-                    json.decodeFromString(ConfigurationOverride.serializer(), jsonString)
+                    ConfigurationOverrideRuleSanitizer.sanitize(
+                        json.decodeFromString(ConfigurationOverride.serializer(), jsonString)
+                    )
                 val now = System.currentTimeMillis()
                 val metadata =
                     OverrideMetadata(
@@ -504,7 +511,10 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         if (!file.exists()) return null
         return try {
             val raw = file.readText()
-            val decoded = json.decodeFromString(ConfigurationOverride.serializer(), raw)
+            val decoded =
+                ConfigurationOverrideRuleSanitizer.sanitize(
+                    json.decodeFromString(ConfigurationOverride.serializer(), raw)
+                )
             val cleaned = encodeConfigContent(decoded)
             if (cleaned != raw) {
                 file.writeText(cleaned)
@@ -516,7 +526,8 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
     }
 
     private fun encodeConfigContent(config: ConfigurationOverride): String {
-        val element = json.encodeToJsonElement(ConfigurationOverride.serializer(), config)
+        val sanitized = ConfigurationOverrideRuleSanitizer.sanitize(config)
+        val element = json.encodeToJsonElement(ConfigurationOverride.serializer(), sanitized)
         val cleaned = pruneJson(element) ?: JsonObject(emptyMap())
         return json.encodeToString(JsonElement.serializer(), cleaned)
     }
@@ -547,11 +558,16 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                     MetadataIndex()
                 }
             }
-        val normalizedIndex = metadataIndex.normalizeUserSortOrders()
-        if (normalizedIndex != metadataIndex) {
-            saveMetadataIndex(normalizedIndex)
+        val sanitizedIndex =
+            metadataIndex
+                .sanitizePersistedOverrideState { overrideId ->
+                    configsDir.resolve("$overrideId.json").exists()
+                }
+                .normalizeUserSortOrders()
+        if (sanitizedIndex != metadataIndex) {
+            saveMetadataIndex(sanitizedIndex)
         }
-        return normalizedIndex
+        return sanitizedIndex
     }
 
     private fun saveMetadataIndex(index: MetadataIndex) {

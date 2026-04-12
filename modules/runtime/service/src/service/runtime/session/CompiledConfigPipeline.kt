@@ -25,6 +25,7 @@ import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.CompileRequest
 import com.github.yumelira.yumebox.core.model.CompileResult
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
+import com.github.yumelira.yumebox.core.model.ConfigurationOverrideRuleSanitizer
 import com.github.yumelira.yumebox.core.model.ProxyGroup
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.RuntimeGatewayException
@@ -34,13 +35,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonObject
 
 class CompiledConfigPipeline(private val context: Context) {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        explicitNulls = false
         prettyPrint = true
     }
 
@@ -79,7 +84,7 @@ class CompiledConfigPipeline(private val context: Context) {
 
         val userOverridePaths = mutableListOf<String>()
         binding?.overrideIds.orEmpty().filterNot(::isReservedOverrideId).forEach { overrideId ->
-            val file = resolveUserOverrideFile(overridesDir, overrideId)
+            val file = resolveUserOverrideFile(overridesDir, overrideId, logger)
             if (file == null) {
                 error("Override config not found for profile=$profileUuid id=$overrideId")
             }
@@ -91,6 +96,7 @@ class CompiledConfigPipeline(private val context: Context) {
             if (systemPresetEnabled) {
                 resolveSystemPresetOverrideFile(overridesDir)
                     ?.also { file ->
+                        sanitizeOverrideFile(file, SYSTEM_OVERRIDE_FILE_ID, logger)
                         logger?.invoke(describeOverrideFile(file, SYSTEM_OVERRIDE_FILE_ID))
                     }
                     ?.absolutePath
@@ -100,7 +106,10 @@ class CompiledConfigPipeline(private val context: Context) {
 
         val runtimeInternalOverridePath =
             resolveRuntimeInternalOverrideFile(overridesDir, profileUuid)
-                ?.also { file -> logger?.invoke(describeOverrideFile(file, "__runtime__")) }
+                ?.also { file ->
+                    sanitizeOverrideFile(file, "__runtime__", logger)
+                    logger?.invoke(describeOverrideFile(file, "__runtime__"))
+                }
                 ?.absolutePath
 
         val paths = mutableListOf<String>()
@@ -218,7 +227,7 @@ class CompiledConfigPipeline(private val context: Context) {
             } else {
                 MetadataIndexPayload()
             }
-        val sanitized = sanitizeMetadataIndex(metadata)
+        val sanitized = sanitizeMetadataIndex(metadata, overridesDir)
         if (sanitized != metadata || metadataRaw.contains("\"enableSystemPreset\"")) {
             overridesDir.mkdirs()
             metadataFile.writeText(
@@ -231,18 +240,35 @@ class CompiledConfigPipeline(private val context: Context) {
         return sanitized
     }
 
-    private fun sanitizeMetadataIndex(metadata: MetadataIndexPayload): MetadataIndexPayload {
+    private fun sanitizeMetadataIndex(
+        metadata: MetadataIndexPayload,
+        overridesDir: File,
+    ): MetadataIndexPayload {
+        val validConfigIds =
+            metadata.configs.keys.filterTo(linkedSetOf()) { overrideId ->
+                isInternalRuntimeId(overrideId) ||
+                    overridesDir.resolve("configs/$overrideId.json").exists()
+            }
+        val sanitizedConfigs = JsonObject(metadata.configs.filterKeys(validConfigIds::contains))
+        val validUserOverrideIds = validConfigIds.filterNot(::isReservedOverrideId).toSet()
         return metadata.copy(
+            configs = sanitizedConfigs,
             profileChains =
                 metadata.profileChains.mapValues { (_, binding) ->
-                    binding.copy(overrideIds = binding.overrideIds.filterNot(::isBuiltinPresetId))
+                    binding.copy(
+                        overrideIds = binding.overrideIds.filter(validUserOverrideIds::contains)
+                    )
                 }
         )
     }
 
-    private fun resolveUserOverrideFile(overridesDir: File, overrideId: String): File? {
+    private fun resolveUserOverrideFile(
+        overridesDir: File,
+        overrideId: String,
+        logger: ((String) -> Unit)?,
+    ): File? {
         val configFile = overridesDir.resolve("configs/$overrideId.json")
-        return configFile.takeIf(File::exists)
+        return configFile.takeIf(File::exists)?.also { sanitizeOverrideFile(it, overrideId, logger) }
     }
 
     private fun resolveRuntimeInternalOverrideFile(overridesDir: File, profileUuid: String): File? {
@@ -269,6 +295,46 @@ class CompiledConfigPipeline(private val context: Context) {
             file.writeText(content)
         }
         return file
+    }
+
+    private fun sanitizeOverrideFile(
+        file: File,
+        overrideId: String,
+        logger: ((String) -> Unit)?,
+    ) {
+        val raw = file.takeIf(File::exists)?.readText().orEmpty()
+        if (raw.isBlank()) return
+
+        val decoded =
+            runCatching { json.decodeFromString(ConfigurationOverride.serializer(), raw) }
+                .getOrNull() ?: return
+
+        val sanitized = ConfigurationOverrideRuleSanitizer.sanitize(decoded)
+        if (sanitized == decoded) return
+
+        file.writeText(encodeOverrideContent(sanitized))
+        logger?.invoke("override resolve: sanitized id=$overrideId path=${file.absolutePath}")
+    }
+
+    private fun encodeOverrideContent(config: ConfigurationOverride): String {
+        val element = json.encodeToJsonElement(ConfigurationOverride.serializer(), config)
+        val cleaned = pruneJson(element) ?: JsonObject(emptyMap())
+        return json.encodeToString(JsonElement.serializer(), cleaned)
+    }
+
+    private fun pruneJson(element: JsonElement): JsonElement? {
+        return when (element) {
+            JsonNull -> null
+            is JsonObject -> {
+                val cleaned =
+                    element.entries
+                        .mapNotNull { (key, value) -> pruneJson(value)?.let { key to it } }
+                        .toMap()
+                if (cleaned.isEmpty()) null else JsonObject(cleaned)
+            }
+            is JsonArray -> JsonArray(element.mapNotNull(::pruneJson))
+            else -> element
+        }
     }
 
     private fun isInternalRuntimeId(overrideId: String): Boolean {
