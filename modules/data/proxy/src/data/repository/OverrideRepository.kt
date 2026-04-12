@@ -34,8 +34,8 @@ import kotlinx.coroutines.withContext
 class OverrideRepository(
     private val context: Context,
     private val configRepository: OverrideConfigRepository,
-) {
-    suspend fun updateProfile(
+) : OverrideProvider {
+    override suspend fun updateProfile(
         transform: (ConfigurationOverride) -> ConfigurationOverride
     ): Result<ConfigurationOverride> = updateInternal(transform)
 

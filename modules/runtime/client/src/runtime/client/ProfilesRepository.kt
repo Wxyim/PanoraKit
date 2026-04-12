@@ -34,8 +34,8 @@ import timber.log.Timber
 class ProfilesRepository(
     private val context: Context,
     private val mutationCoordinator: RuntimeMutationCoordinator,
-) {
-    suspend fun createProfile(type: Profile.Type, name: String, source: String = ""): UUID {
+) : ProfilesProvider {
+    override suspend fun createProfile(type: Profile.Type, name: String, source: String): UUID {
         Timber.d("Creating profile: type=$type, name=$name")
         return runGatewayCall("Failed to create profile") {
             ServiceClient.connect(context)
@@ -43,7 +43,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun cloneProfile(uuid: UUID): UUID {
+    override suspend fun cloneProfile(uuid: UUID): UUID {
         Timber.d("Cloning profile: uuid=$uuid")
         return runGatewayCall("Failed to clone profile") {
             ServiceClient.connect(context)
@@ -51,7 +51,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun deleteProfile(uuid: UUID) {
+    override suspend fun deleteProfile(uuid: UUID) {
         Timber.d("Deleting profile: uuid=$uuid")
         runGatewayCall("Failed to delete profile") {
             ServiceClient.connect(context)
@@ -66,11 +66,11 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun queryAllProfiles(): List<Profile> {
+    override suspend fun queryAllProfiles(): List<Profile> {
         return withContext(Dispatchers.IO) { queryAllProfilesInternal() }
     }
 
-    suspend fun queryActiveProfile(ensureDefault: Boolean = false): Profile? {
+    override suspend fun queryActiveProfile(ensureDefault: Boolean): Profile? {
         return withContext(Dispatchers.IO) {
             val activeProfile = queryActiveProfileInternal()
             if (activeProfile != null || !ensureDefault) {
@@ -94,11 +94,11 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun queryProfileByUUID(uuid: UUID): Profile? {
+    override suspend fun queryProfileByUUID(uuid: UUID): Profile? {
         return withContext(Dispatchers.IO) { queryProfileByUUIDInternal(uuid) }
     }
 
-    suspend fun setActiveProfile(uuid: UUID) {
+    override suspend fun setActiveProfile(uuid: UUID) {
         withContext(Dispatchers.IO) {
             val startedAt = System.currentTimeMillis()
             Timber.d("Setting active profile: uuid=$uuid")
@@ -121,7 +121,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun clearActiveProfile(profile: Profile) {
+    override suspend fun clearActiveProfile(profile: Profile) {
         Timber.d("Clearing active profile: uuid=${profile.uuid}")
         runGatewayCall("Failed to clear active profile") {
             ServiceClient.connect(context)
@@ -131,7 +131,7 @@ class ProfilesRepository(
         mutationCoordinator.notifyActiveProfileChanged()
     }
 
-    suspend fun reorderProfiles(uuids: List<UUID>) {
+    override suspend fun reorderProfiles(uuids: List<UUID>) {
         Timber.d("Reordering profiles: count=${uuids.size}")
         runGatewayCall("Failed to reorder profiles") {
             ServiceClient.connect(context)
@@ -139,7 +139,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun updateProfile(uuid: UUID, callback: IFetchObserver? = null) {
+    override suspend fun updateProfile(uuid: UUID, callback: IFetchObserver?) {
         Timber.d("Updating profile: uuid=$uuid")
         runGatewayCall("Failed to update profile") {
             ServiceClient.connect(context)
@@ -148,7 +148,7 @@ class ProfilesRepository(
         }
     }
 
-    suspend fun patchProfile(uuid: UUID, name: String, source: String, interval: Long) {
+    override suspend fun patchProfile(uuid: UUID, name: String, source: String, interval: Long) {
         Timber.d("Patching profile: uuid=$uuid")
         runGatewayCall("Failed to patch profile") {
             ServiceClient.connect(context)

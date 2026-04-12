@@ -34,7 +34,45 @@ data class OverrideMetadata(
     val createdAt: Long,
     val updatedAt: Long,
     val sortOrder: Long = 0L,
-) {
+) : ProductObjectContract {
+
+    override val stableId: String
+        get() = id
+
+    override val displayName: String
+        get() = name
+
+    override val lifecycleState: ProductLifecycleState
+        get() = ProductLifecycleState.Active
+
+    override val updatedAtMillis: Long
+        get() = updatedAt
+
+    override val owner: ProductObjectOwner
+        get() =
+            ProductObjectOwner(
+                id = if (isSystem) "system" else "user",
+                label = if (isSystem) "System" else "User",
+                kind = if (isSystem) "system" else "user",
+            )
+
+    override val editable: Boolean
+        get() = !isSystem
+
+    override val riskLevel: ProductRiskLevel
+        get() =
+            when {
+                isSystem -> ProductRiskLevel.Low
+                isRemoteResource -> ProductRiskLevel.Medium
+                else -> ProductRiskLevel.Low
+            }
+
+    override val effectiveRelation: EffectiveStateRelation
+        get() = EffectiveStateRelation.Candidate
+
+    override val changeState: ProductChangeState
+        get() = ProductChangeState.Synced
+
     companion object {
         const val ID_PREFIX = "cfg-"
         const val SYSTEM_PREFIX = "preset-"

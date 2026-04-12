@@ -31,9 +31,9 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ProvidersRepository(private val context: Context) {
+class ProvidersRepository(private val context: Context) : ProvidersProvider {
 
-    suspend fun queryProviders(): Result<List<Provider>> {
+    override suspend fun queryProviders(): Result<List<Provider>> {
         return try {
             ServiceClient.connect(context)
             Result.success(ServiceClient.clash().queryProviders())
@@ -47,11 +47,13 @@ class ProvidersRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateProvider(provider: Provider): Result<Unit> {
+    override suspend fun updateProvider(provider: Provider): Result<Unit> {
         return updateProviderInternal(provider.type, provider.name)
     }
 
-    suspend fun updateAllProviders(providers: List<Provider>): Result<UpdateProvidersResult> {
+    override suspend fun updateAllProviders(
+        providers: List<Provider>
+    ): Result<UpdateProvidersResult> {
         if (providers.isEmpty()) return Result.success(UpdateProvidersResult(emptyList()))
 
         val failed = mutableListOf<String>()
@@ -64,11 +66,11 @@ class ProvidersRepository(private val context: Context) {
         return Result.success(UpdateProvidersResult(failed))
     }
 
-    suspend fun uploadProviderFile(
+    override suspend fun uploadProviderFile(
         context: Context,
         provider: Provider,
         uri: Uri,
-        maxBytes: Long = MAX_UPLOAD_SIZE_BYTES,
+        maxBytes: Long,
     ): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {

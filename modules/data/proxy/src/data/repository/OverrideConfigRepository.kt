@@ -50,6 +50,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
 
     private val overridesDir = File(context.filesDir, "overrides")
     private val configsDir = File(overridesDir, "configs")
+    private val backupsDir = File(overridesDir, "backups")
     private val metadataFile = File(overridesDir, "metadata.json")
 
     private val json = Json {
@@ -157,6 +158,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             configsDir.mkdirs()
 
             val configFile = configsDir.resolve("${sanitizedConfig.id}.json")
+            backupConfigFile(configFile)
             configFile.writeText(encodeConfigContent(sanitizedConfig.config))
 
             val metadataIndex = loadMetadataIndex()
@@ -388,6 +390,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
                 save(config)
                 config
             } catch (e: Exception) {
+                timber.log.Timber.w(e, "Config import failed")
                 null
             }
         }
@@ -478,7 +481,9 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             val updatedAt = System.currentTimeMillis()
 
             configsDir.mkdirs()
-            configsDir.resolve("$id.json").writeText(content)
+            val configFile = configsDir.resolve("$id.json")
+            backupConfigFile(configFile)
+            configFile.writeText(content)
 
             val updatedMetadata = metadata.copy(updatedAt = updatedAt)
             val nextIndex = metadataIndex.upsert(updatedMetadata)
@@ -521,6 +526,7 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             }
             decoded
         } catch (e: Exception) {
+            timber.log.Timber.w(e, "Failed to load config content: %s", id)
             null
         }
     }
@@ -581,6 +587,38 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             maxBytes = MAX_REMOTE_CONTENT_BYTES,
             userAgent = "MonadBox",
         )
+    }
+
+    private fun backupConfigFile(configFile: File) {
+        if (!configFile.exists()) return
+        try {
+            backupsDir.mkdirs()
+            val backupFile = backupsDir.resolve(configFile.name)
+            configFile.copyTo(backupFile, overwrite = true)
+        } catch (_: Exception) {
+            // Backup is best-effort; do not block the save path
+        }
+    }
+
+    fun getBackupConfigContent(id: String): String? {
+        val backupFile = backupsDir.resolve("$id.json")
+        return try {
+            if (backupFile.exists()) backupFile.readText() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun restoreFromBackup(id: String): Boolean {
+        val backupFile = backupsDir.resolve("$id.json")
+        if (!backupFile.exists()) return false
+        return try {
+            val configFile = configsDir.resolve("$id.json")
+            backupFile.copyTo(configFile, overwrite = true)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun countOverrideRules(config: ConfigurationOverride?): Int {

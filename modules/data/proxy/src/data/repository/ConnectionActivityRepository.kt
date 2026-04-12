@@ -40,17 +40,19 @@ import timber.log.Timber
 class ConnectionActivityRepository(
     private val proxyFacade: ProxyFacade,
     private val scope: CoroutineScope,
-) {
+) : ConnectionActivityProvider {
     companion object {
         private const val POLL_INTERVAL_MS = 1000L
     }
 
     private val _activeConnections = MutableStateFlow<List<ConnectionInfo>>(emptyList())
-    val activeConnections: StateFlow<List<ConnectionInfo>> = _activeConnections.asStateFlow()
+    override val activeConnections: StateFlow<List<ConnectionInfo>> =
+        _activeConnections.asStateFlow()
 
     private val _closedConnections =
         MutableStateFlow(ConnectionHistoryManager.getClosedConnections())
-    val closedConnections: StateFlow<List<ConnectionInfo>> = _closedConnections.asStateFlow()
+    override val closedConnections: StateFlow<List<ConnectionInfo>> =
+        _closedConnections.asStateFlow()
 
     private var monitorJob: Job? = null
 

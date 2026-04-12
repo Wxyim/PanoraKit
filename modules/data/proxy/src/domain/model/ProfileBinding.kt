@@ -27,7 +27,48 @@ data class ProfileBinding(
     val profileId: String,
     val overrideIds: List<String> = emptyList(),
     val enabled: Boolean = false,
-) {
+) : ProductObjectContract {
+
+    override val stableId: String
+        get() = profileId
+
+    override val displayName: String
+        get() = "Binding[$profileId]"
+
+    override val lifecycleState: ProductLifecycleState
+        get() =
+            when {
+                enabled && overrideIds.isNotEmpty() -> ProductLifecycleState.Active
+                overrideIds.isNotEmpty() -> ProductLifecycleState.Idle
+                else -> ProductLifecycleState.Stopped
+            }
+
+    override val updatedAtMillis: Long
+        get() = 0L
+
+    override val owner: ProductObjectOwner
+        get() = ProductObjectOwner(id = profileId, label = profileId, kind = "profile")
+
+    override val editable: Boolean
+        get() = true
+
+    override val riskLevel: ProductRiskLevel
+        get() =
+            when {
+                overrideIds.size > 3 -> ProductRiskLevel.Medium
+                else -> ProductRiskLevel.Low
+            }
+
+    override val effectiveRelation: EffectiveStateRelation
+        get() =
+            when {
+                enabled -> EffectiveStateRelation.Active
+                else -> EffectiveStateRelation.Inactive
+            }
+
+    override val changeState: ProductChangeState
+        get() = ProductChangeState.Synced
+
     companion object {
 
         fun disabled(profileId: String): ProfileBinding {

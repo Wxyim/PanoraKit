@@ -36,7 +36,7 @@ import kotlinx.coroutines.withContext
 class LogRepository(
     private val application: Application,
     private val logRecordGateway: LogRecordGateway,
-) {
+) : LogProvider {
     companion object {
         private const val STOP_WAIT_MS = 300L
         private const val DEFAULT_MAX_ENTRIES = 2000
@@ -56,23 +56,23 @@ class LogRepository(
     private val filesDir: File
         get() = application.filesDir
 
-    fun startRecording() {
+    override fun startRecording() {
         logRecordGateway.start(application)
     }
 
-    fun stopRecording() {
+    override fun stopRecording() {
         logRecordGateway.stop(application)
     }
 
-    fun isRecording(): Boolean {
+    override fun isRecording(): Boolean {
         return logRecordGateway.isRecording
     }
 
-    fun isCurrentRecordingFile(fileName: String): Boolean {
+    override fun isCurrentRecordingFile(fileName: String): Boolean {
         return isRecording() && logRecordGateway.currentLogFileName == fileName
     }
 
-    fun listLogFiles(): List<LogFileInfo> {
+    override fun listLogFiles(): List<LogFileInfo> {
         val currentlyRecording = isRecording()
         val currentFileName = logRecordGateway.currentLogFileName
         val files =
@@ -88,7 +88,7 @@ class LogRepository(
         }
     }
 
-    fun listStartupLogFiles(): List<StartupLogFileInfo> {
+    override fun listStartupLogFiles(): List<StartupLogFileInfo> {
         return STARTUP_LOG_FILES.map { name -> File(filesDir, name) }
             .filter { it.exists() && it.isFile }
             .sortedByDescending { it.lastModified() }
@@ -101,13 +101,10 @@ class LogRepository(
             }
     }
 
-    suspend fun getLogFileSize(fileName: String): Long? =
+    override suspend fun getLogFileSize(fileName: String): Long? =
         withContext(Dispatchers.IO) { resolveLogFile(fileName)?.length() }
 
-    suspend fun readLogEntries(
-        fileName: String,
-        maxEntries: Int = DEFAULT_MAX_ENTRIES,
-    ): List<LogEntry> =
+    override suspend fun readLogEntries(fileName: String, maxEntries: Int): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val file = resolveLogFile(fileName) ?: return@withContext emptyList()
             if (maxEntries <= 0) return@withContext emptyList()
@@ -130,13 +127,13 @@ class LogRepository(
             }
         }
 
-    suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean =
+    override suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             val source = resolveLogFile(fileName) ?: return@withContext false
             copyFileToUri(source, targetUri)
         }
 
-    suspend fun exportCurrentRecording(targetUri: Uri): Boolean =
+    override suspend fun exportCurrentRecording(targetUri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             val current =
                 logRecordGateway.currentLogFileName?.let(::resolveLogFile)?.takeIf {
@@ -145,7 +142,7 @@ class LogRepository(
             copyFileToUri(current, targetUri)
         }
 
-    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
+    override suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             val source = resolveStartupLogFile(fileName) ?: return@withContext false
             copyFileToUri(source, targetUri)
@@ -164,10 +161,7 @@ class LogRepository(
         }
     }
 
-    suspend fun readStartupLogEntries(
-        fileName: String,
-        maxEntries: Int = DEFAULT_MAX_ENTRIES,
-    ): List<LogEntry> =
+    override suspend fun readStartupLogEntries(fileName: String, maxEntries: Int): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val file = resolveStartupLogFile(fileName) ?: return@withContext emptyList()
             if (maxEntries <= 0) return@withContext emptyList()
@@ -193,7 +187,7 @@ class LogRepository(
             }
         }
 
-    suspend fun persistReadableLogsForCleanup(): String? =
+    override suspend fun persistReadableLogsForCleanup(): String? =
         withContext(Dispatchers.IO) {
             val archiveLines = mutableListOf<String>()
 
@@ -241,7 +235,7 @@ class LogRepository(
             archiveFile.name
         }
 
-    suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogEntry> =
+    override suspend fun readTempLogEntries(maxEntries: Int): List<LogEntry> =
         withContext(Dispatchers.IO) {
             val currentlyRecording = isRecording()
             if (!currentlyRecording) {
@@ -250,7 +244,7 @@ class LogRepository(
             logRecordGateway.snapshotLiveLogLines(maxEntries).mapNotNull(::parseLogLine)
         }
 
-    fun currentRecordingFileName(): String? = logRecordGateway.currentLogFileName
+    override fun currentRecordingFileName(): String? = logRecordGateway.currentLogFileName
 
     private fun readLogFileEntries(file: File, maxEntries: Int): List<LogEntry> {
         return try {
@@ -273,7 +267,7 @@ class LogRepository(
         }
     }
 
-    suspend fun writeLogEntries(targetUri: Uri, entries: List<LogEntry>): Boolean =
+    override suspend fun writeLogEntries(targetUri: Uri, entries: List<LogEntry>): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 application.contentResolver.openOutputStream(targetUri)?.use { output ->
@@ -291,7 +285,7 @@ class LogRepository(
             }
         }
 
-    suspend fun deleteLogFile(fileName: String): Boolean =
+    override suspend fun deleteLogFile(fileName: String): Boolean =
         withContext(Dispatchers.IO) {
             val file = resolveLogFile(fileName) ?: return@withContext false
             val deletingCurrentRecording = isCurrentRecordingFile(file.name)
@@ -306,13 +300,13 @@ class LogRepository(
             deleted
         }
 
-    suspend fun deleteStartupLogFile(fileName: String): Boolean =
+    override suspend fun deleteStartupLogFile(fileName: String): Boolean =
         withContext(Dispatchers.IO) {
             val file = resolveStartupLogFile(fileName) ?: return@withContext false
             file.delete()
         }
 
-    suspend fun deleteAllLogs() =
+    override suspend fun deleteAllLogs() =
         withContext(Dispatchers.IO) {
             val wasRecording = isRecording()
             if (wasRecording) {
