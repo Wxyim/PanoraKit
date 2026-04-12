@@ -1,6 +1,9 @@
 package com.github.yumelira.yumebox.core.presentation
 
 import androidx.lifecycle.ViewModel
+import com.github.yumelira.yumebox.domain.model.ErrorCategory
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +47,23 @@ abstract class ContractStateViewModel<State : LoadableState<State>, Effect : Any
     protected fun postError(error: String, effect: Effect? = null) {
         updateState { it.withError(error).withLoading(false) }
         effect?.let(::tryEmitEffect)
+    }
+
+    protected fun postStructuredError(error: StructuredError, effect: Effect? = null) {
+        updateState { it.withStructuredError(error).withLoading(false) }
+        effect?.let(::tryEmitEffect)
+    }
+
+    protected fun postError(
+        throwable: Throwable,
+        phase: ErrorPhase = ErrorPhase.Running,
+        category: ErrorCategory = ErrorCategory.Unknown,
+        effect: Effect? = null,
+    ) {
+        postStructuredError(
+            StructuredError.fromThrowable(throwable, phase = phase, category = category),
+            effect,
+        )
     }
 
     protected fun postMessage(message: String, effect: Effect? = null) {

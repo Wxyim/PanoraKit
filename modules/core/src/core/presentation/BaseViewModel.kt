@@ -1,6 +1,9 @@
 package com.github.yumelira.yumebox.core.presentation
 
 import androidx.lifecycle.ViewModel
+import com.github.yumelira.yumebox.domain.model.ErrorCategory
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,11 +24,16 @@ abstract class BaseViewModel<State>(initialState: State) : ViewModel() {
 interface LoadableState<T : LoadableState<T>> {
     val isLoading: Boolean
     val error: String?
+    val structuredError: StructuredError?
+        get() = null
+
     val message: String?
 
     fun withLoading(loading: Boolean): T
 
     fun withError(error: String?): T
+
+    fun withStructuredError(error: StructuredError?): T = withError(error?.userVisibleMessage)
 
     fun withMessage(message: String?): T
 }
@@ -39,6 +47,20 @@ abstract class BaseLoadableViewModel<State : LoadableState<State>>(initialState:
 
     protected fun showError(error: String) {
         updateState { it.withError(error).withLoading(false) }
+    }
+
+    protected fun showStructuredError(error: StructuredError) {
+        updateState { it.withStructuredError(error).withLoading(false) }
+    }
+
+    protected fun showError(
+        throwable: Throwable,
+        phase: ErrorPhase = ErrorPhase.Running,
+        category: ErrorCategory = ErrorCategory.Unknown,
+    ) {
+        showStructuredError(
+            StructuredError.fromThrowable(throwable, phase = phase, category = category)
+        )
     }
 
     protected fun showMessage(message: String) {

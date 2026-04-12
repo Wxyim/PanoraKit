@@ -146,3 +146,40 @@ object ProductLifecycleTransitions {
         require(canTransition(from, to)) { "Invalid product lifecycle transition: $from -> $to" }
     }
 }
+
+object ProductChangeTransitions {
+    private val allowedTransitions: Map<ProductChangeState, Set<ProductChangeState>> =
+        mapOf(
+            ProductChangeState.Synced to setOf(ProductChangeState.Modified),
+            ProductChangeState.Modified to
+                setOf(
+                    ProductChangeState.Synced,
+                    ProductChangeState.Conflicted,
+                    ProductChangeState.Applying,
+                    ProductChangeState.Invalid,
+                    ProductChangeState.Reverted,
+                ),
+            ProductChangeState.Conflicted to
+                setOf(ProductChangeState.Modified, ProductChangeState.Reverted),
+            ProductChangeState.Applying to
+                setOf(
+                    ProductChangeState.Applied,
+                    ProductChangeState.Invalid,
+                    ProductChangeState.Conflicted,
+                ),
+            ProductChangeState.Applied to
+                setOf(ProductChangeState.Synced, ProductChangeState.Modified),
+            ProductChangeState.Invalid to
+                setOf(ProductChangeState.Modified, ProductChangeState.Reverted),
+            ProductChangeState.Reverted to
+                setOf(ProductChangeState.Synced, ProductChangeState.Modified),
+        )
+
+    fun canTransition(from: ProductChangeState, to: ProductChangeState): Boolean {
+        return from == to || allowedTransitions[from].orEmpty().contains(to)
+    }
+
+    fun requireTransition(from: ProductChangeState, to: ProductChangeState) {
+        require(canTransition(from, to)) { "Invalid product change transition: $from -> $to" }
+    }
+}

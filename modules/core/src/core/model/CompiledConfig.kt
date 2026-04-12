@@ -20,6 +20,11 @@
 
 package com.github.yumelira.yumebox.core.model
 
+import com.github.yumelira.yumebox.domain.model.ErrorCategory
+import com.github.yumelira.yumebox.domain.model.ErrorImpact
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.ErrorRetryability
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -38,4 +43,16 @@ data class CompileResult(
     val finalYaml: String = "",
     val warnings: List<String> = emptyList(),
     val error: String? = null,
-)
+) {
+    fun toStructuredError(): StructuredError? {
+        if (success || error == null) return null
+        return StructuredError(
+            category = ErrorCategory.Configuration,
+            phase = ErrorPhase.Compiling,
+            impact = ErrorImpact.FeatureUnavailable,
+            retryability = ErrorRetryability.RetryableAfterAction,
+            rawCause = error,
+            userVisibleMessage = error,
+        )
+    }
+}
