@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -59,19 +60,6 @@ func CompileOverride(requestJSON string, writeOutput bool) string {
 		return mustMarshal(errorResult(fmt.Sprintf("read profile yaml: %s", err)))
 	}
 
-	// No overrides → pass through with fingerprint
-	if len(request.OverridePaths) == 0 {
-		fingerprint := sha256Hex(request.ProfileUUID, string(sourceYaml))
-
-		if writeOutput {
-			if err := writeAtomic(request.OutputPath, sourceYaml); err != nil {
-				return mustMarshal(errorResult(fmt.Sprintf("write runtime yaml: %s", err)))
-			}
-		}
-
-		return mustMarshal(successResult(fingerprint, string(sourceYaml)))
-	}
-
 	// Parse YAML into generic map for manipulation
 	var root map[string]interface{}
 	if err := yaml.Unmarshal(sourceYaml, &root); err != nil {
@@ -85,12 +73,14 @@ func CompileOverride(requestJSON string, writeOutput bool) string {
 	patchStaticRuntime(root, request.ProfileDir)
 
 	// Load and merge override JSON files, then apply
-	combinedPatch, hasPatch, err := loadCombinedOverridePatch(request.OverridePaths)
-	if err != nil {
-		return mustMarshal(errorResult(err.Error()))
-	}
-	if hasPatch {
-		applyOverrideDocument(root, combinedPatch)
+	if len(request.OverridePaths) > 0 {
+		combinedPatch, hasPatch, err := loadCombinedOverridePatch(request.OverridePaths)
+		if err != nil {
+			return mustMarshal(errorResult(err.Error()))
+		}
+		if hasPatch {
+			applyOverrideDocument(root, combinedPatch)
+		}
 	}
 
 	// Marshal back to YAML
@@ -236,8 +226,8 @@ func overridePatchProviders(root map[string]interface{}, profileDir string) {
 				continue
 			}
 			if url, ok := p["url"].(string); ok && url != "" {
-				hash := sha256HexSingle(url)
-				p["path"] = fmt.Sprintf("./providers/%s/%s.yaml", field.prefix, hash)
+				path := fmt.Sprintf("%s/%s", field.prefix, md5Hex(url))
+				p["path"] = providerPath(profileDir, path)
 			}
 		}
 	}
@@ -245,17 +235,11 @@ func overridePatchProviders(root map[string]interface{}, profileDir string) {
 
 func normalizeProviderPath(path, profileDir string) string {
 	path = strings.ReplaceAll(path, "\\", "/")
-	if filepath.IsAbs(path) {
-		rel, err := filepath.Rel(profileDir, path)
-		if err == nil {
-			rel = strings.ReplaceAll(rel, "\\", "/")
-			if !strings.HasPrefix(rel, "./") && !strings.HasPrefix(rel, "../") {
-				return "./" + rel
-			}
-			return rel
-		}
-	}
-	return path
+	return providerPath(profileDir, resolveAsRoot(path))
+}
+
+func providerPath(profileDir, providerSubPath string) string {
+	return filepath.ToSlash(filepath.Join(profileDir, "providers", providerSubPath))
 }
 
 func loadCombinedOverridePatch(overridePaths []string) (map[string]interface{}, bool, error) {
@@ -504,10 +488,29 @@ func sha256Hex(profileUUID, content string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func sha256HexSingle(content string) string {
-	h := sha256.New()
-	h.Write([]byte(content))
-	return fmt.Sprintf("%x", h.Sum(nil))
+func md5Hex(content string) string {
+	sum := md5.Sum([]byte(content))
+	return fmt.Sprintf("%x", sum)
+}
+
+func resolveAsRoot(path string) string {
+	directories := strings.Split(path, "/")
+	result := make([]string, 0, len(directories))
+
+	for _, directory := range directories {
+		switch directory {
+		case "", ".":
+			continue
+		case "..":
+			if len(result) > 0 {
+				result = result[:len(result)-1]
+			}
+		default:
+			result = append(result, directory)
+		}
+	}
+
+	return strings.Join(result, "/")
 }
 
 func writeAtomic(path string, data []byte) error {
