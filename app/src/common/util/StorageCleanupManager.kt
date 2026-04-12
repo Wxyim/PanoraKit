@@ -121,7 +121,7 @@ class StorageCleanupManager(
             afterBytes = afterBytes,
             freedBytes = (beforeBytes - afterBytes).coerceAtLeast(0L),
             thresholdBytes = thresholdBytes,
-                archiveFileName = null,
+            archiveFileName = null,
             orphanImportedDirsRemoved = orphanRemovedCount,
         )
     }

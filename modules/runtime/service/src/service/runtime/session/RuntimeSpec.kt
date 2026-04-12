@@ -41,7 +41,57 @@ data class RuntimeSpec(
     val profileFingerprint: String = "",
 )
 
-@Serializable data class RuntimeFailure(val code: RuntimeGatewayErrorCode, val message: String)
+@Serializable
+enum class RuntimeFailureCategory {
+    Configuration,
+    Permission,
+    Network,
+    Runtime,
+    SystemIntegration,
+    Security,
+    Unknown,
+}
+
+@Serializable
+enum class RuntimeFailurePhase {
+    Preparing,
+    Permission,
+    ConfigurationCompile,
+    RuntimeStart,
+    RuntimeReload,
+    RuntimeStop,
+    RootTunnel,
+    Unknown,
+}
+
+@Serializable
+enum class RuntimeFailureImpact {
+    RuntimeUnavailable,
+    ConfigurationNotApplied,
+    TrafficInterrupted,
+    DiagnosticsOnly,
+}
+
+@Serializable
+enum class RuntimeFailureRetryability {
+    Retryable,
+    UserActionRequired,
+    NotRetryable,
+    Unknown,
+}
+
+@Serializable
+data class RuntimeFailure(
+    val code: RuntimeGatewayErrorCode,
+    val message: String,
+    val category: RuntimeFailureCategory = code.defaultCategory(),
+    val phase: RuntimeFailurePhase = code.defaultPhase(),
+    val impact: RuntimeFailureImpact = code.defaultImpact(),
+    val retryability: RuntimeFailureRetryability = code.defaultRetryability(),
+    val suggestedAction: String = code.defaultSuggestedAction(),
+    val rawCause: String = message,
+    val userMessage: String = message,
+)
 
 @Serializable
 data class RuntimeOperationResult(
@@ -89,7 +139,12 @@ internal fun Throwable.toRuntimeFailure(
     val message =
         runtimeError?.message?.takeIf { it.isNotBlank() }
             ?: this.toDiagnosticMessage(fallbackMessage)
-    return RuntimeFailure(code = code, message = message)
+    return RuntimeFailure(
+        code = code,
+        message = message,
+        rawCause = rootCause().toDiagnosticMessage(fallbackMessage),
+        userMessage = message,
+    )
 }
 
 internal fun Throwable.toDiagnosticMessage(fallbackMessage: String): String {
@@ -116,6 +171,103 @@ private fun Throwable.rootCause(): Throwable {
     }
     return current
 }
+
+fun RuntimeFailure.runtimeGatewayMessage(defaultMessage: String): String {
+    val readableMessage =
+        userMessage.takeIf { it.isNotBlank() }
+            ?: message.takeIf { it.isNotBlank() }
+            ?: defaultMessage
+    return "${code.name}: $readableMessage"
+}
+
+private fun RuntimeGatewayErrorCode.defaultCategory(): RuntimeFailureCategory =
+    when (this) {
+        RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING ->
+            RuntimeFailureCategory.Configuration
+        RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+        RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
+        RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED -> RuntimeFailureCategory.SystemIntegration
+        RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED ->
+            RuntimeFailureCategory.SystemIntegration
+        RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED -> RuntimeFailureCategory.Runtime
+    }
+
+private fun RuntimeGatewayErrorCode.defaultPhase(): RuntimeFailurePhase =
+    when (this) {
+        RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED -> RuntimeFailurePhase.Preparing
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED ->
+            RuntimeFailurePhase.ConfigurationCompile
+        RuntimeGatewayErrorCode.RUNTIME_START_FAILED -> RuntimeFailurePhase.RuntimeStart
+        RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED -> RuntimeFailurePhase.RuntimeReload
+        RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED -> RuntimeFailurePhase.RuntimeStop
+        RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED -> RuntimeFailurePhase.RootTunnel
+        RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+        RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
+        RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED -> RuntimeFailurePhase.Unknown
+    }
+
+private fun RuntimeGatewayErrorCode.defaultImpact(): RuntimeFailureImpact =
+    when (this) {
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED ->
+            RuntimeFailureImpact.DiagnosticsOnly
+        RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING ->
+            RuntimeFailureImpact.ConfigurationNotApplied
+        RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED -> RuntimeFailureImpact.TrafficInterrupted
+        else -> RuntimeFailureImpact.RuntimeUnavailable
+    }
+
+private fun RuntimeGatewayErrorCode.defaultRetryability(): RuntimeFailureRetryability =
+    when (this) {
+        RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING ->
+            RuntimeFailureRetryability.UserActionRequired
+        RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
+        RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
+        RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
+        RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
+        RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
+        RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED ->
+            RuntimeFailureRetryability.Retryable
+    }
+
+private fun RuntimeGatewayErrorCode.defaultSuggestedAction(): String =
+    when (defaultRetryability()) {
+        RuntimeFailureRetryability.UserActionRequired ->
+            "Review the active profile and override configuration, then apply again."
+        RuntimeFailureRetryability.Retryable ->
+            "Retry the operation. If it fails again, export diagnostics with sanitized logs."
+        RuntimeFailureRetryability.NotRetryable -> "Change the configuration before trying again."
+        RuntimeFailureRetryability.Unknown ->
+            "Check diagnostics and retry after the runtime state is stable."
+    }
 
 @Serializable
 data class RuntimeLogChunk(val nextSeq: Long = 0L, val items: List<String> = emptyList())

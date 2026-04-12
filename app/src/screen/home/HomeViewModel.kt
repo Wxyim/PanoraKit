@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -63,9 +64,8 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
 data class HomeSelectedServerState(val groupName: String?, val name: String?, val delay: Int?)
@@ -631,9 +631,11 @@ class HomeViewModel(
                 runtimeActionExecutor.reloadCurrentProfile(
                     operation = "home:reload-profile",
                     presentation =
-                        RuntimeActionFailurePresentation.Global(message = { reason ->
-                            MLang.Home.Message.ConfigSwitchFailed.format(reason)
-                        }),
+                        RuntimeActionFailurePresentation.Global(
+                            message = { reason ->
+                                MLang.Home.Message.ConfigSwitchFailed.format(reason)
+                            }
+                        ),
                 )
             if (outcome !is RuntimeActionOutcome.Success) {
                 return
@@ -676,10 +678,10 @@ class HomeViewModel(
                 val startOutcome =
                     withContext(Dispatchers.IO) {
                         runtimeActionExecutor.startProxy(
-                        operation = "home:start-proxy",
-                        profileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
-                        mode = proxyMode,
-                        fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                            operation = "home:start-proxy",
+                            profileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
+                            mode = proxyMode,
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
                         )
                     }
 
@@ -690,10 +692,7 @@ class HomeViewModel(
                             current.copy(
                                 isToggling = false,
                                 ui =
-                                    current.ui.copy(
-                                        isStartingProxy = false,
-                                        loadingProgress = null,
-                                    ),
+                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
                             )
                         }
                         vpnPermissionCoordinator.requestPermission(startOutcome.intent) {
@@ -707,10 +706,7 @@ class HomeViewModel(
                             current.copy(
                                 isToggling = false,
                                 ui =
-                                    current.ui.copy(
-                                        isStartingProxy = false,
-                                        loadingProgress = null,
-                                    ),
+                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
                             )
                         }
                         return@launch
@@ -755,9 +751,9 @@ class HomeViewModel(
                     runtimeActionExecutor.stopProxy(
                         operation = "home:stop-proxy",
                         presentation =
-                            RuntimeActionFailurePresentation.Global(message = { reason ->
-                                MLang.Home.Message.StopFailed.format(reason)
-                            }),
+                            RuntimeActionFailurePresentation.Global(
+                                message = { reason -> MLang.Home.Message.StopFailed.format(reason) }
+                            ),
                     )
                 }
             if (outcome !is RuntimeActionOutcome.Success) {
@@ -793,7 +789,8 @@ class HomeViewModel(
                             snapshot.phase == RuntimePhase.Running ||
                                 snapshot.phase == RuntimePhase.Failed
                         } else {
-                            snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed
+                            snapshot.phase == RuntimePhase.Idle ||
+                                snapshot.phase == RuntimePhase.Failed
                         }
                     }
                     .first { it }
@@ -804,7 +801,9 @@ class HomeViewModel(
                     refreshHomeEntryData()
                     refreshProxyMode()
                 }
-                .onFailure { error -> Timber.d(error, "Home runtime reconciliation refresh skipped") }
+                .onFailure { error ->
+                    Timber.d(error, "Home runtime reconciliation refresh skipped")
+                }
         }
 
         val snapshot = runtimeSnapshot.value

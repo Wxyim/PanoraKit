@@ -77,7 +77,8 @@ class ProfilesRepository(
                 return@withContext activeProfile
             }
 
-            val fallbackProfile = queryAllProfilesInternal().firstOrNull() ?: return@withContext null
+            val fallbackProfile =
+                queryAllProfilesInternal().firstOrNull() ?: return@withContext null
             Timber.i(
                 "Recovered missing active profile by selecting first profile: uuid=%s",
                 fallbackProfile.uuid,

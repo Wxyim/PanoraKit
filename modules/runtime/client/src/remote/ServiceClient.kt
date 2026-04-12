@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.remote
 
 import android.content.Context
+import android.os.Build
 import com.github.yumelira.yumebox.service.ClashManager
 import com.github.yumelira.yumebox.service.ProfileManager
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
@@ -60,8 +61,14 @@ object ServiceClient {
                     clashManager = runtime
                     profileManager = ProfileManager(appContext)
                     initialized = true
+                    val processName =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            android.app.Application.getProcessName()
+                        } else {
+                            appContext.packageName
+                        }
                     Timber.d(
-                        "ServiceClient gateway initialized in pid=${android.os.Process.myPid()}, process=${android.app.Application.getProcessName()}, cost=${System.currentTimeMillis() - startedAt}ms"
+                        "ServiceClient gateway initialized in pid=${android.os.Process.myPid()}, process=$processName, cost=${System.currentTimeMillis() - startedAt}ms"
                     )
                 } catch (e: Exception) {
                     runtimeClashManager?.close()

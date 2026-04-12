@@ -33,13 +33,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
-class LogViewModel(
-    private val repository: LogRepository,
-) : ViewModel() {
+class LogViewModel(private val repository: LogRepository) : ViewModel() {
 
     private val refreshMutex = Mutex()
     private var autoRefreshJob: Job? = null
@@ -131,13 +129,19 @@ class LogViewModel(
             _tempLogEntries.value = browserState.tempEntries
 
             val selectedHistory = _selectedHistoryFileName.value
-            if (!selectedHistory.isNullOrBlank() && browserState.historyFiles.none { it.name == selectedHistory }) {
+            if (
+                !selectedHistory.isNullOrBlank() &&
+                    browserState.historyFiles.none { it.name == selectedHistory }
+            ) {
                 _selectedHistoryFileName.value = null
                 _selectedHistoryEntries.value = emptyList()
             }
 
             val selectedStartup = _selectedStartupFileName.value
-            if (!selectedStartup.isNullOrBlank() && browserState.startupFiles.none { it.name == selectedStartup }) {
+            if (
+                !selectedStartup.isNullOrBlank() &&
+                    browserState.startupFiles.none { it.name == selectedStartup }
+            ) {
                 _selectedStartupFileName.value = null
                 _selectedStartupEntries.value = emptyList()
             }

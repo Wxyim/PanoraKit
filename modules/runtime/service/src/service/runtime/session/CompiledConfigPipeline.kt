@@ -37,8 +37,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 
 class CompiledConfigPipeline(private val context: Context) {
@@ -258,7 +258,7 @@ class CompiledConfigPipeline(private val context: Context) {
                     binding.copy(
                         overrideIds = binding.overrideIds.filter(validUserOverrideIds::contains)
                     )
-                }
+                },
         )
     }
 
@@ -268,7 +268,9 @@ class CompiledConfigPipeline(private val context: Context) {
         logger: ((String) -> Unit)?,
     ): File? {
         val configFile = overridesDir.resolve("configs/$overrideId.json")
-        return configFile.takeIf(File::exists)?.also { sanitizeOverrideFile(it, overrideId, logger) }
+        return configFile.takeIf(File::exists)?.also {
+            sanitizeOverrideFile(it, overrideId, logger)
+        }
     }
 
     private fun resolveRuntimeInternalOverrideFile(overridesDir: File, profileUuid: String): File? {
@@ -297,11 +299,7 @@ class CompiledConfigPipeline(private val context: Context) {
         return file
     }
 
-    private fun sanitizeOverrideFile(
-        file: File,
-        overrideId: String,
-        logger: ((String) -> Unit)?,
-    ) {
+    private fun sanitizeOverrideFile(file: File, overrideId: String, logger: ((String) -> Unit)?) {
         val raw = file.takeIf(File::exists)?.readText().orEmpty()
         if (raw.isBlank()) return
 

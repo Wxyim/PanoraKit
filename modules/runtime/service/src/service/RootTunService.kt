@@ -20,15 +20,19 @@
 
 package com.github.yumelira.yumebox.service
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.common.util.formatSpeed
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -120,10 +124,7 @@ class RootTunService : BaseService() {
                                         } else {
                                             error?.message ?: "Waiting for reconnect"
                                         }
-                                    notificationManager.notify(
-                                        NOTIFICATION_ID,
-                                        buildNotification(title, content),
-                                    )
+                                    postNotification(title, content)
                                     if (
                                         !fallbackStatus.state.isActive &&
                                             !fallbackStatus.state.isRecovering
@@ -150,13 +151,10 @@ class RootTunService : BaseService() {
                                     snapshot.state == RootTunState.Idle ||
                                         snapshot.state == RootTunState.Failed
                                 ) {
-                                    notificationManager.notify(
-                                        NOTIFICATION_ID,
-                                        buildNotification(
-                                            snapshot.profileName
-                                                ?: MLang.Service.Notification.UnknownProfile,
-                                            describeStatus(snapshot),
-                                        ),
+                                    postNotification(
+                                        snapshot.profileName
+                                            ?: MLang.Service.Notification.UnknownProfile,
+                                        describeStatus(snapshot),
                                     )
                                     stopSelf()
                                     break
@@ -171,10 +169,7 @@ class RootTunService : BaseService() {
                                     } else {
                                         describeStatus(snapshot)
                                     }
-                                notificationManager.notify(
-                                    NOTIFICATION_ID,
-                                    buildNotification(profileName, content),
-                                )
+                                postNotification(profileName, content)
                                 delay(1000L.milliseconds)
                             }
                         }
@@ -265,6 +260,20 @@ class RootTunService : BaseService() {
                 .setName(CHANNEL_NAME)
                 .build()
         )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun postNotification(title: CharSequence, content: CharSequence) {
+        if (!canPostNotifications()) return
+        runCatching {
+            notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content))
+        }
+    }
+
+    private fun canPostNotifications(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     private fun decodeTrafficHalf(encoded: Long): Long {

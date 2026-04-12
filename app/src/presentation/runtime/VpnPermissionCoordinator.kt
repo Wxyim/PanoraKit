@@ -42,14 +42,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class VpnPermissionLaunchRequest(
-    val id: Long,
-    val intent: Intent,
-)
+data class VpnPermissionLaunchRequest(val id: Long, val intent: Intent)
 
-class VpnPermissionCoordinator(
-    private val appScope: CoroutineScope,
-) {
+class VpnPermissionCoordinator(private val appScope: CoroutineScope) {
     private data class PendingRequest(
         val request: VpnPermissionLaunchRequest,
         val onGranted: suspend () -> Unit,
@@ -76,17 +71,18 @@ class VpnPermissionCoordinator(
     }
 
     fun resolve(requestId: Long, granted: Boolean) {
-        val onGranted = synchronized(lock) {
-            val callback = callbacks.remove(requestId)
-            val next = if (queue.isEmpty()) null else queue.removeFirst()
-            if (next == null) {
-                _currentRequest.value = null
-            } else {
-                callbacks[next.request.id] = next.onGranted
-                _currentRequest.value = next.request
+        val onGranted =
+            synchronized(lock) {
+                val callback = callbacks.remove(requestId)
+                val next = if (queue.isEmpty()) null else queue.removeFirst()
+                if (next == null) {
+                    _currentRequest.value = null
+                } else {
+                    callbacks[next.request.id] = next.onGranted
+                    _currentRequest.value = next.request
+                }
+                callback
             }
-            callback
-        }
 
         if (granted && onGranted != null) {
             appScope.launch { onGranted() }

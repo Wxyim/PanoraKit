@@ -88,8 +88,7 @@ class TunService : VpnService(), CoroutineScope {
                                         defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
                                         defaultMessage = "tun runtime stop failed",
                                     )
-                                reason =
-                                    failure.runtimeGatewayMessage("tun runtime stop failed")
+                                reason = failure.runtimeGatewayMessage("tun runtime stop failed")
                                 startupLogStore.append(
                                     "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
                                 )

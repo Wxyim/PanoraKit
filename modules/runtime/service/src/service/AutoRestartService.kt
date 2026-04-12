@@ -67,13 +67,17 @@ class AutoRestartService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
             val notification = createNotification()
-            val foregroundFlags =
-                when {
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val foregroundFlags =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                    else -> 0
-                }
-            startForeground(NOTIFICATION_ID, notification, foregroundFlags)
+                    } else {
+                        0
+                    }
+                startForeground(NOTIFICATION_ID, notification, foregroundFlags)
+            } else {
+                @Suppress("DEPRECATION") startForeground(NOTIFICATION_ID, notification)
+            }
         }
 
         serviceScope.launch {

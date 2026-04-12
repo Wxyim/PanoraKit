@@ -20,16 +20,19 @@
 
 package com.github.yumelira.yumebox.service
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
@@ -126,9 +129,7 @@ class LogRecordService : Service() {
         private fun drainLiveLogChunk(): String {
             synchronized(liveLogLock) {
                 if (liveLogLines.isEmpty()) return ""
-                val chunk = buildString {
-                    liveLogLines.forEach { append(it) }
-                }
+                val chunk = buildString { liveLogLines.forEach { append(it) } }
                 liveLogLines.clear()
                 liveLogBytes = 0L
                 return chunk
@@ -374,12 +375,20 @@ class LogRecordService : Service() {
             .build()
     }
 
+    @SuppressLint("MissingPermission")
     private fun updateNotification() {
         if (!isRecording) return
+        if (!canPostNotifications()) return
         runCatching {
                 NotificationManagerCompat.from(this).notify(NOTIFICATION_ID, createNotification())
             }
             .onFailure { error -> Timber.tag(TAG).d(error, "Update log notification skipped") }
+    }
+
+    private fun canPostNotifications(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     private fun scheduleObserverAttach() {

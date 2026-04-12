@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import com.github.yumelira.yumebox.common.util.ToastDialogBridge
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
@@ -43,10 +44,7 @@ private enum class RuntimeFailureCategory {
     Unknown,
 }
 
-private data class RuntimeFailureDialogContent(
-    val title: String,
-    val detail: String,
-)
+private data class RuntimeFailureDialogContent(val title: String, val detail: String)
 
 private data class RuntimeFailureDialogSignal(
     val phase: RuntimePhase,
@@ -74,10 +72,7 @@ object RuntimeFailureDialogPresenter {
         return if (targetMode == ProxyMode.Tun) {
             buildStartFailureContent(reason, targetMode)
         } else {
-            RuntimeFailureDialogContent(
-                title = MLang.Component.Message.Error,
-                detail = reason,
-            )
+            RuntimeFailureDialogContent(title = MLang.Component.Message.Error, detail = reason)
         }
     }
 
@@ -202,14 +197,13 @@ object RuntimeFailureDialogPresenter {
 
         return when (code) {
             RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
-            RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED,
-            -> RuntimeFailureCategory.Syntax
+            RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED -> RuntimeFailureCategory.Syntax
 
             RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
             RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
             RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
-            RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED,
-            -> RuntimeFailureCategory.RuntimeService
+            RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED ->
+                RuntimeFailureCategory.RuntimeService
 
             RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
             RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
@@ -218,8 +212,8 @@ object RuntimeFailureDialogPresenter {
             RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
             RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
             RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
-            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
-            -> RuntimeFailureCategory.RuntimeControl
+            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING ->
+                RuntimeFailureCategory.RuntimeControl
 
             RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED -> RuntimeFailureCategory.Profile
             RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED -> RuntimeFailureCategory.Unknown
@@ -237,8 +231,8 @@ object GlobalDialogPresenter {
 
 @Composable
 fun RuntimeFailureDialogEffect(runtimeSnapshot: StateFlow<RuntimeSnapshot>) {
-    CollectFlowWithLifecycle(
-        flow =
+    val failureSignalFlow =
+        remember(runtimeSnapshot) {
             runtimeSnapshot
                 .map { snapshot ->
                     RuntimeFailureDialogSignal(
@@ -248,8 +242,10 @@ fun RuntimeFailureDialogEffect(runtimeSnapshot: StateFlow<RuntimeSnapshot>) {
                         targetMode = snapshot.targetMode,
                     )
                 }
-                .distinctUntilChanged(),
-    ) { signal ->
+                .distinctUntilChanged()
+        }
+
+    CollectFlowWithLifecycle(flow = failureSignalFlow) { signal ->
         val lastError = signal.lastError
         if (signal.phase == RuntimePhase.Failed && !lastError.isNullOrBlank()) {
             RuntimeFailureDialogPresenter.showRuntimeFailure(

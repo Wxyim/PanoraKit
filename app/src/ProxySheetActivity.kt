@@ -20,14 +20,18 @@
 
 package com.github.yumelira.yumebox
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
@@ -38,6 +42,10 @@ import org.koin.androidx.compose.koinViewModel
 
 class ProxySheetActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         super.onCreate(savedInstanceState)
         setFinishOnTouchOutside(true)
         @Suppress("DEPRECATION") overridePendingTransition(0, 0)
@@ -52,34 +60,34 @@ class ProxySheetActivity : ComponentActivity() {
             ProvideAndroidPlatformTheme {
                 val systemDensity = LocalDensity.current
                 val scaledDensity =
-                    Density(
-                        density = systemDensity.density,
-                        fontScale = systemDensity.fontScale * pageScale,
-                    )
+                    remember(systemDensity, pageScale) {
+                        Density(
+                            density = systemDensity.density,
+                            fontScale = systemDensity.fontScale * pageScale,
+                        )
+                    }
                 CompositionLocalProvider(LocalDensity provides scaledDensity) {
-                    val configuration = LocalConfiguration.current
-                    val windowAdaptiveInfo =
-                        rememberAvailableWindowAdaptiveInfo(
-                            maxWidth = configuration.screenWidthDp.dp,
-                            maxHeight = configuration.screenHeightDp.dp,
-                        )
-                    val adaptiveSpacing =
-                        rememberAdaptiveSpacing(
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val windowAdaptiveInfo =
+                            rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                        val adaptiveSpacing =
+                            rememberAdaptiveSpacing(
+                                windowAdaptiveInfo = windowAdaptiveInfo,
+                                pageScale = pageScale,
+                            )
+                        YumeTheme(
+                            themeMode = themeMode,
+                            themeSeedColorArgb = themeSeedColorArgb,
+                            spacing = adaptiveSpacing,
                             windowAdaptiveInfo = windowAdaptiveInfo,
-                            pageScale = pageScale,
-                        )
-                    YumeTheme(
-                        themeMode = themeMode,
-                        themeSeedColorArgb = themeSeedColorArgb,
-                        spacing = adaptiveSpacing,
-                        windowAdaptiveInfo = windowAdaptiveInfo,
-                    ) {
-                        ProxySheetContent(
-                            onDismiss = {
-                                finish()
-                                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
-                            }
-                        )
+                        ) {
+                            ProxySheetContent(
+                                onDismiss = {
+                                    finish()
+                                    @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                                }
+                            )
+                        }
                     }
                 }
             }

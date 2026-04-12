@@ -49,10 +49,8 @@ sealed interface RuntimeActionFailurePresentation {
     data class Start(val targetMode: ProxyMode, val fallbackMessage: String) :
         RuntimeActionFailurePresentation
 
-    data class Runtime(
-        val fallbackMessage: String,
-        val targetMode: ProxyMode? = null,
-    ) : RuntimeActionFailurePresentation
+    data class Runtime(val fallbackMessage: String, val targetMode: ProxyMode? = null) :
+        RuntimeActionFailurePresentation
 
     data class Global(
         val message: (String) -> String,
@@ -124,7 +122,9 @@ class RuntimeActionExecutor(
         operation: String,
         profileId: UUID,
         presentation: RuntimeActionFailurePresentation =
-            RuntimeActionFailurePresentation.Runtime(fallbackMessage = MLang.ProfilesVM.Error.Unknown),
+            RuntimeActionFailurePresentation.Runtime(
+                fallbackMessage = MLang.ProfilesVM.Error.Unknown
+            ),
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(presentation = presentation) {
             runtimeControlCoordinator.reloadIfActiveProfile(operation, profileId)
@@ -188,10 +188,7 @@ class RuntimeActionExecutor(
         }
     }
 
-    private fun presentFailure(
-        error: Exception,
-        presentation: RuntimeActionFailurePresentation,
-    ) {
+    private fun presentFailure(error: Exception, presentation: RuntimeActionFailurePresentation) {
         when (presentation) {
             is RuntimeActionFailurePresentation.Start -> {
                 RuntimeFailureDialogPresenter.showStartFailure(

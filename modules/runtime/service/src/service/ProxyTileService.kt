@@ -46,7 +46,7 @@ import kotlin.LazyThreadSafetyMode
 import kotlinx.coroutines.*
 import timber.log.Timber
 
-@SuppressLint("NewApi")
+@SuppressLint("NewApi", "StartActivityAndCollapseDeprecated")
 class ProxyTileService : TileService() {
 
     companion object {

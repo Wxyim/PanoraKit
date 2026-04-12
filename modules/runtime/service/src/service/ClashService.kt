@@ -87,8 +87,7 @@ class ClashService : BaseService() {
                                         defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
                                         defaultMessage = "http runtime stop failed",
                                     )
-                                reason =
-                                    failure.runtimeGatewayMessage("http runtime stop failed")
+                                reason = failure.runtimeGatewayMessage("http runtime stop failed")
                                 startupLogStore.append(
                                     "LOCAL_HTTP failed=${failure.code.name}:${failure.message}"
                                 )

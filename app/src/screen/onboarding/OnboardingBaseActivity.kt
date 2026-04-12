@@ -26,15 +26,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.MainActivity
@@ -140,34 +140,33 @@ private fun OnboardingActivityTheme(content: @Composable () -> Unit) {
     ProvideAndroidPlatformTheme {
         val systemDensity = LocalDensity.current
         val scaledDensity =
-            Density(
-                density = systemDensity.density,
-                fontScale = systemDensity.fontScale * pageScale,
-            )
+            remember(systemDensity, pageScale) {
+                Density(
+                    density = systemDensity.density,
+                    fontScale = systemDensity.fontScale * pageScale,
+                )
+            }
         CompositionLocalProvider(LocalDensity provides scaledDensity) {
-            val configuration = LocalConfiguration.current
-            val windowAdaptiveInfo =
-                rememberAvailableWindowAdaptiveInfo(
-                    maxWidth = configuration.screenWidthDp.dp,
-                    maxHeight = configuration.screenHeightDp.dp,
-                )
-            val adaptiveSpacing =
-                rememberAdaptiveSpacing(
-                    windowAdaptiveInfo = windowAdaptiveInfo,
-                    pageScale = pageScale,
-                )
-            YumeTheme(
-                themeMode = themeMode,
-                themeSeedColorArgb = themeSeedColorArgb,
-                spacing = adaptiveSpacing,
-                windowAdaptiveInfo = windowAdaptiveInfo,
-            ) {
-                Scaffold { _ ->
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MiuixTheme.colorScheme.surface,
-                        content = content,
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val windowAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                val adaptiveSpacing =
+                    rememberAdaptiveSpacing(
+                        windowAdaptiveInfo = windowAdaptiveInfo,
+                        pageScale = pageScale,
                     )
+                YumeTheme(
+                    themeMode = themeMode,
+                    themeSeedColorArgb = themeSeedColorArgb,
+                    spacing = adaptiveSpacing,
+                    windowAdaptiveInfo = windowAdaptiveInfo,
+                ) {
+                    Scaffold { _ ->
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MiuixTheme.colorScheme.surface,
+                            content = content,
+                        )
+                    }
                 }
             }
         }

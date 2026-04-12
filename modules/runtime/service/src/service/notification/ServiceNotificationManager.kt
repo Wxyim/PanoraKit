@@ -20,13 +20,17 @@
 
 package com.github.yumelira.yumebox.service.notification
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.common.util.formatSpeed
 import com.github.yumelira.yumebox.core.Clash
@@ -64,13 +68,29 @@ class ServiceNotificationManager(private val service: Service, private val confi
         return buildRunningNotification()
     }
 
+    @SuppressLint("MissingPermission")
     fun startTrafficUpdate(scope: CoroutineScope): Job {
         return scope.launch(Dispatchers.Default) {
             while (isActive) {
-                notificationManager.notify(config.notificationId, buildRunningNotification())
+                if (canPostNotifications()) {
+                    runCatching {
+                        notificationManager.notify(
+                            config.notificationId,
+                            buildRunningNotification(),
+                        )
+                    }
+                }
                 delay(1000L.milliseconds)
             }
         }
+    }
+
+    private fun canPostNotifications(): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+        return ContextCompat.checkSelfPermission(service, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     private fun buildRunningNotification(): Notification {

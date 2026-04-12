@@ -31,25 +31,23 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -60,8 +58,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -79,10 +75,10 @@ import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBe
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.LocalPagerState
-import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogEffect
-import com.github.yumelira.yumebox.presentation.component.SideRailContent
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
+import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogEffect
+import com.github.yumelira.yumebox.presentation.component.SideRailContent
 import com.github.yumelira.yumebox.presentation.component.ToastDialogHost
 import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
@@ -91,9 +87,9 @@ import com.github.yumelira.yumebox.presentation.screen.ProxyPager
 import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
-import com.github.yumelira.yumebox.presentation.theme.WindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
 import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.screen.home.HomeRoute
 import com.github.yumelira.yumebox.screen.onboarding.OnboardingLauncher
 import com.github.yumelira.yumebox.screen.profiles.ProfilesPager
@@ -152,7 +148,6 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var intentController: IntentController
 
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         StartupGate.loadPrimary()
         enableEdgeToEdge()
@@ -199,62 +194,52 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 CompositionLocalProvider(LocalDensity provides scaledDensity) {
-                    val configuration = LocalConfiguration.current
-                    val windowSizeClass = calculateWindowSizeClass(this@MainActivity)
-                    val windowAdaptiveInfo =
-                        remember(
-                            windowSizeClass.widthSizeClass,
-                            windowSizeClass.heightSizeClass,
-                            configuration.screenWidthDp,
-                            configuration.screenHeightDp,
-                        ) {
-                            WindowAdaptiveInfo(
-                                widthSizeClass = windowSizeClass.widthSizeClass,
-                                heightSizeClass = windowSizeClass.heightSizeClass,
-                                windowWidth = configuration.screenWidthDp.dp,
-                                windowHeight = configuration.screenHeightDp.dp,
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val windowAdaptiveInfo =
+                            rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                        val adaptiveSpacing =
+                            rememberAdaptiveSpacing(
+                                windowAdaptiveInfo = windowAdaptiveInfo,
+                                pageScale = pageScale,
                             )
-                        }
-                    val adaptiveSpacing =
-                        rememberAdaptiveSpacing(
+                        YumeTheme(
+                            themeMode = themeMode,
+                            themeSeedColorArgb = themeSeedColorArgb,
+                            spacing = adaptiveSpacing,
                             windowAdaptiveInfo = windowAdaptiveInfo,
-                            pageScale = pageScale,
-                        )
-                    YumeTheme(
-                        themeMode = themeMode,
-                        themeSeedColorArgb = themeSeedColorArgb,
-                        spacing = adaptiveSpacing,
-                        windowAdaptiveInfo = windowAdaptiveInfo,
-                    ) {
-                        val topBarHazeState = remember { HazeState() }
-                        val topBarBackground = MiuixTheme.colorScheme.surface
-                        val topBarHazeStyle =
-                            remember(topBarBackground) {
-                                HazeStyle(
-                                    backgroundColor = topBarBackground,
-                                    tint = HazeTint(topBarBackground.copy(0.8f)),
-                                )
-                            }
-                        val navController = rememberNavController()
-
-                        CompositionLocalProvider(
-                            LocalTopBarHazeState provides
-                                if (topBarBlurEnabled) topBarHazeState else null,
-                            LocalTopBarHazeStyle provides
-                                if (topBarBlurEnabled) topBarHazeStyle else null,
                         ) {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MiuixTheme.colorScheme.surface,
+                            val topBarHazeState = remember { HazeState() }
+                            val topBarBackground = MiuixTheme.colorScheme.surface
+                            val topBarHazeStyle =
+                                remember(topBarBackground) {
+                                    HazeStyle(
+                                        backgroundColor = topBarBackground,
+                                        tint = HazeTint(topBarBackground.copy(0.8f)),
+                                    )
+                                }
+                            val navController = rememberNavController()
+
+                            CompositionLocalProvider(
+                                LocalTopBarHazeState provides
+                                    if (topBarBlurEnabled) topBarHazeState else null,
+                                LocalTopBarHazeStyle provides
+                                    if (topBarBlurEnabled) topBarHazeStyle else null,
                             ) {
-                                RuntimeFailureDialogEffect(runtimeSnapshot = proxyFacade.runtimeSnapshot)
-                                VpnPermissionHost(coordinator = vpnPermissionCoordinator)
-                                DestinationsNavHost(
-                                    navGraph = NavGraphs.root,
-                                    navController = navController,
-                                    defaultTransitions = NavigationTransitions.defaultStyle,
-                                )
-                                ToastDialogHost()
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MiuixTheme.colorScheme.surface,
+                                ) {
+                                    RuntimeFailureDialogEffect(
+                                        runtimeSnapshot = proxyFacade.runtimeSnapshot
+                                    )
+                                    VpnPermissionHost(coordinator = vpnPermissionCoordinator)
+                                    DestinationsNavHost(
+                                        navGraph = NavGraphs.root,
+                                        navController = navController,
+                                        defaultTransitions = NavigationTransitions.defaultStyle,
+                                    )
+                                    ToastDialogHost()
+                                }
                             }
                         }
                     }

@@ -797,7 +797,9 @@ class SessionRuntime(
                 while (isActive) {
                     runCatching {
                         val snapshot = Clash.queryConnections()
-                        ConnectionHistoryManager.updateConnections(snapshot.connections ?: emptyList())
+                        ConnectionHistoryManager.updateConnections(
+                            snapshot.connections ?: emptyList()
+                        )
                     }
                     delay(CONNECTION_TRACKING_INTERVAL_MS)
                 }
