@@ -48,10 +48,9 @@ internal fun CountryFlagFilledIcon(
 ) {
     val normalized =
         remember(countryCode) {
-            LocaleUtil.normalizeRegionCode(countryCode)
-                ?.trim()
-                ?.uppercase(Locale.ROOT)
-                ?.takeIf { it.length == 2 && it.all(Char::isLetter) }
+            LocaleUtil.normalizeRegionCode(countryCode)?.trim()?.uppercase(Locale.ROOT)?.takeIf {
+                it.length == 2 && it.all(Char::isLetter)
+            }
         }
 
     if (normalized == null) {
@@ -61,7 +60,8 @@ internal fun CountryFlagFilledIcon(
 
     val context = LocalContext.current
     val placeholderColorInt = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f).toArgb()
-    val iconUri = remember(normalized) { "https://flagcdn.com/w80/${normalized.lowercase(Locale.ROOT)}.png" }
+    val iconUri =
+        remember(normalized) { "https://flagcdn.com/w80/${normalized.lowercase(Locale.ROOT)}.png" }
     val request =
         remember(context, iconUri, placeholderColorInt) {
             ImageRequest(context, iconUri) {

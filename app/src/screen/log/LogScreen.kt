@@ -151,7 +151,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                     context.toast(MLang.Util.Error.UnknownError)
                                 }
                             }
-                        },
+                        }
                     ) {
                         Icon(
                             imageVector = Yume.Delete,
@@ -236,7 +236,8 @@ fun LogScreen(navigator: DestinationsNavigator) {
             val isDetailMode = contentMode == LogContentMode.Detail
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 ScreenLazyColumn(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = LogScreenMetrics.ContentMaxWidth),
+                    modifier =
+                        Modifier.fillMaxWidth().widthIn(max = LogScreenMetrics.ContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = 20.dp,
@@ -246,7 +247,9 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         item(key = "history_header") {
                             Card(
                                 modifier =
-                                    Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)
+                                    Modifier.padding(
+                                        vertical = LogScreenMetrics.CardVerticalPadding
+                                    )
                             ) {
                                 Row(
                                     modifier =
@@ -279,11 +282,15 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                                 val success =
                                                     when {
                                                         historyFileName != null -> {
-                                                            viewModel.deleteHistoryFile(historyFileName)
+                                                            viewModel.deleteHistoryFile(
+                                                                historyFileName
+                                                            )
                                                         }
 
                                                         startupFileName != null -> {
-                                                            viewModel.deleteStartupFile(startupFileName)
+                                                            viewModel.deleteStartupFile(
+                                                                startupFileName
+                                                            )
                                                         }
 
                                                         else -> false
@@ -305,9 +312,8 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         }
                     } else if (historyFiles.isNotEmpty()) {
                         item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
-                        itemsIndexed(items = historyFiles, key = { _, item -> item.name }) {
-                            _,
-                            file ->
+                        itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file
+                            ->
                             Card(
                                 modifier =
                                     Modifier.padding(
@@ -333,9 +339,8 @@ fun LogScreen(navigator: DestinationsNavigator) {
 
                     if (!isDetailMode && startupFiles.isNotEmpty()) {
                         item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
-                        itemsIndexed(items = startupFiles, key = { _, item -> item.name }) {
-                            _,
-                            file ->
+                        itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file
+                            ->
                             Card(
                                 modifier =
                                     Modifier.padding(

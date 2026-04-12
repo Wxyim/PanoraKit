@@ -187,11 +187,7 @@ private fun decodeQrFromImageProxy(imageProxy: ImageProxy): String? {
     return decodeQrFromSource(source)
 }
 
-private fun extractLuminance(
-    plane: ImageProxy.PlaneProxy,
-    width: Int,
-    height: Int,
-): ByteArray {
+private fun extractLuminance(plane: ImageProxy.PlaneProxy, width: Int, height: Int): ByteArray {
     val rowStride = plane.rowStride
     val pixelStride = plane.pixelStride
     val buffer = plane.buffer.duplicate().apply { rewind() }
@@ -263,9 +259,7 @@ private fun rotateLuminance90(data: ByteArray, width: Int, height: Int): ByteArr
 
 private fun rotateLuminance180(data: ByteArray): ByteArray {
     val rotated = ByteArray(data.size)
-    data.indices.forEach { index ->
-        rotated[data.lastIndex - index] = data[index]
-    }
+    data.indices.forEach { index -> rotated[data.lastIndex - index] = data[index] }
     return rotated
 }
 

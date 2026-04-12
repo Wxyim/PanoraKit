@@ -165,7 +165,8 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             ScreenLazyColumn(
-                modifier = Modifier.fillMaxWidth().widthIn(max = ConnectionPageSpacing.ContentMaxWidth),
+                modifier =
+                    Modifier.fillMaxWidth().widthIn(max = ConnectionPageSpacing.ContentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
                 contentPadding =

@@ -354,11 +354,7 @@ private fun LazyListScope.providerSection(
     onUpdate: (Provider) -> Unit,
     onUpload: (Provider, Uri) -> Unit,
 ) {
-    item(key = "title_${section.title}") {
-        ProvidersCenteredContent {
-            SmallTitle(section.title)
-        }
-    }
+    item(key = "title_${section.title}") { ProvidersCenteredContent { SmallTitle(section.title) } }
     items(
         items = section.providers,
         key = { provider -> "${provider.type}_${provider.name}" },
@@ -381,11 +377,7 @@ private fun LazyListScope.remoteOverrideSection(
     isUpdating: (String) -> Boolean,
     onUpdate: (RemoteOverrideResource) -> Unit,
 ) {
-    item(key = "title_${section.title}") {
-        ProvidersCenteredContent {
-            SmallTitle(section.title)
-        }
-    }
+    item(key = "title_${section.title}") { ProvidersCenteredContent { SmallTitle(section.title) } }
     items(
         items = section.resources,
         key = { resource -> "override_${resource.id}" },
@@ -403,15 +395,9 @@ private fun LazyListScope.remoteOverrideSection(
 
 @Composable
 private fun ProvidersCenteredContent(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.TopCenter,
-    ) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = ProvidersScreenMetrics.ContentMaxWidth)
+            modifier = Modifier.fillMaxWidth().widthIn(max = ProvidersScreenMetrics.ContentMaxWidth)
         ) {
             content()
         }

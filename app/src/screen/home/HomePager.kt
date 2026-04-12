@@ -92,8 +92,10 @@ fun HomePager(
 
     val scrollBehavior = MiuixScrollBehavior()
 
-    val canStartProxy = profilesLoaded && hasEnabledProfile && recommendedProfile != null && !isToggling
-    val canToggleProxy = profilesLoaded && hasProfiles && !isToggling && (displayRunning || canStartProxy)
+    val canStartProxy =
+        profilesLoaded && hasEnabledProfile && recommendedProfile != null && !isToggling
+    val canToggleProxy =
+        profilesLoaded && hasProfiles && !isToggling && (displayRunning || canStartProxy)
     val hasTrafficHistory = speedHistory.size > 0
 
     val handleProxyToggle = {
@@ -171,7 +173,8 @@ fun HomePager(
                                         canStartProxy = canStartProxy,
                                         isRunning = displayRunning,
                                         proxyMode = proxyMode,
-                                        onStatusCapsuleClick = handleProxyToggle.takeIf { canToggleProxy },
+                                        onStatusCapsuleClick =
+                                            handleProxyToggle.takeIf { canToggleProxy },
                                         onModeBadgeClick = onModeSwitchRequest,
                                         onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                                     )
@@ -181,7 +184,9 @@ fun HomePager(
                                     modifier = Modifier.weight(0.96f),
                                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                                 ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(infoSpacing)
+                                    ) {
                                         NodeInfoDisplay(
                                             selectedServer = selectedServer,
                                             tunnelMode = currentTunnelMode,
@@ -214,13 +219,16 @@ fun HomePager(
                                     canStartProxy = canStartProxy,
                                     isRunning = displayRunning,
                                     proxyMode = proxyMode,
-                                    onStatusCapsuleClick = handleProxyToggle.takeIf { canToggleProxy },
+                                    onStatusCapsuleClick =
+                                        handleProxyToggle.takeIf { canToggleProxy },
                                     onModeBadgeClick = onModeSwitchRequest,
                                     onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                                 )
 
                                 Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(infoSpacing)
+                                    ) {
                                         NodeInfoDisplay(
                                             selectedServer = selectedServer,
                                             tunnelMode = currentTunnelMode,

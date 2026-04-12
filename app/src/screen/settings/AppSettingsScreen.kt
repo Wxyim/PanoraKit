@@ -31,8 +31,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -58,11 +58,10 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.text.toString
 import kotlin.math.roundToInt
+import kotlin.text.toString
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
@@ -147,9 +146,8 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         showPageScaleSheet.value = true
     }
     val notificationPermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission()
-        ) { granted ->
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            granted ->
             if (granted) {
                 viewModel.onShowTrafficNotificationChange(true)
             } else {
@@ -184,7 +182,8 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 ScreenLazyColumn(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = AppSettingsMetrics.ContentMaxWidth),
+                    modifier =
+                        Modifier.fillMaxWidth().widthIn(max = AppSettingsMetrics.ContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                 ) {
@@ -772,18 +771,13 @@ private fun ServiceSettingsSection(
 }
 
 @Composable
-private fun NetworkSettingsSection(
-    customUserAgent: String,
-    onEditCustomUserAgent: () -> Unit,
-) {
+private fun NetworkSettingsSection(customUserAgent: String, onEditCustomUserAgent: () -> Unit) {
     SmallTitle(MLang.AppSettings.Section.Network)
     Card {
         ConfigSettingRow(
             title = MLang.AppSettings.Network.CustomUserAgentTitle,
             summary =
-                customUserAgent.ifEmpty {
-                    MLang.AppSettings.Network.CustomUserAgentSummaryDefault
-                },
+                customUserAgent.ifEmpty { MLang.AppSettings.Network.CustomUserAgentSummaryDefault },
             showDivider = false,
             onClick = onEditCustomUserAgent,
         )

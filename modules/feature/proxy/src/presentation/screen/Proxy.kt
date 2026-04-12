@@ -66,7 +66,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,6 +99,7 @@ import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
 import com.github.yumelira.yumebox.presentation.screen.node.adaptiveNodeGroupItems
 import com.github.yumelira.yumebox.presentation.screen.node.proxyLatencyVisual
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
+import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
@@ -510,10 +510,11 @@ private fun ProxyDisplaySettingsDialog(
     onShowHiddenGroupsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val configuration = LocalConfiguration.current
-    val contentSpacing = if (configuration.screenHeightDp < 560) 12.dp else 16.dp
-    val sectionSpacing = if (configuration.screenHeightDp < 560) 8.dp else 10.dp
-    val dialogContentMaxHeight = (configuration.screenHeightDp.dp * 0.7f).coerceAtMost(520.dp)
+    val windowHeight = LocalWindowAdaptiveInfo.current.windowHeight.takeIf { it > 0.dp } ?: 640.dp
+    val compactHeight = windowHeight < 560.dp
+    val contentSpacing = if (compactHeight) 12.dp else 16.dp
+    val sectionSpacing = if (compactHeight) 8.dp else 10.dp
+    val dialogContentMaxHeight = (windowHeight * 0.7f).coerceAtMost(520.dp)
 
     AppDialog(show = show, title = MLang.Proxy.Action.More, onDismissRequest = onDismiss) {
         Column(
@@ -831,7 +832,7 @@ private fun FloatingGroupOverlay(
                     onClick = onDismiss,
                 )
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             val panelShape = RoundedCornerShape(FloatingPanelDefaults.CornerRadius)
             Column(
                 modifier =

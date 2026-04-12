@@ -26,10 +26,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
@@ -40,16 +38,16 @@ import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmA
 import com.github.yumelira.yumebox.presentation.component.AppDialog
 import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
 import com.github.yumelira.yumebox.presentation.icon.yume.Link
+import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
+import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import sh.calvin.reorderable.ReorderableItem
@@ -234,21 +232,22 @@ internal fun ProfileSettingsDialog(
         rememberSaveable(profile.uuid) { mutableStateOf(emptyList<String>()) }
 
     val overridesListState = rememberLazyListState()
-    val reorderState = rememberReorderableLazyListState(overridesListState) { from, to ->
-        val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
-        val toKey = to.key as? String ?: return@rememberReorderableLazyListState
-        if (fromKey.startsWith("sel-") && toKey.startsWith("sel-")) {
-            val fromId = fromKey.removePrefix("sel-")
-            val toId = toKey.removePrefix("sel-")
-            val newList = pendingSelectedUserOverrideIds.toMutableList()
-            val fromIdx = newList.indexOf(fromId)
-            val toIdx = newList.indexOf(toId)
-            if (fromIdx >= 0 && toIdx >= 0) {
-                newList.add(toIdx, newList.removeAt(fromIdx))
-                pendingSelectedUserOverrideIds = newList
+    val reorderState =
+        rememberReorderableLazyListState(overridesListState) { from, to ->
+            val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+            val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+            if (fromKey.startsWith("sel-") && toKey.startsWith("sel-")) {
+                val fromId = fromKey.removePrefix("sel-")
+                val toId = toKey.removePrefix("sel-")
+                val newList = pendingSelectedUserOverrideIds.toMutableList()
+                val fromIdx = newList.indexOf(fromId)
+                val toIdx = newList.indexOf(toId)
+                if (fromIdx >= 0 && toIdx >= 0) {
+                    newList.add(toIdx, newList.removeAt(fromIdx))
+                    pendingSelectedUserOverrideIds = newList
+                }
             }
         }
-    }
 
     LaunchedEffect(show.value, profile.uuid, profile.name, binding?.overrideIds, binding?.enabled) {
         if (show.value) {
@@ -263,17 +262,16 @@ internal fun ProfileSettingsDialog(
         pendingSelectedUserOverrideIds =
             toggleOverrideIdSelection(pendingSelectedUserOverrideIds, overrideId, isSelected)
     }
-    val guiSectionSummary =
-        remember {
-            listOf(
-                    OverrideEditorSection.General.title,
-                    OverrideEditorSection.Inbound.title,
-                    OverrideEditorSection.Dns.title,
-                    OverrideEditorSection.Tun.title,
-                    OverrideEditorSection.Sniffer.title,
-                )
-                .joinToString(" · ")
-        }
+    val guiSectionSummary = remember {
+        listOf(
+                OverrideEditorSection.General.title,
+                OverrideEditorSection.Inbound.title,
+                OverrideEditorSection.Dns.title,
+                OverrideEditorSection.Tun.title,
+                OverrideEditorSection.Sniffer.title,
+            )
+            .joinToString(" · ")
+    }
     val saveSettings = {
         val trimmedName = editName.trim()
         val trimmedSource = editSource.trim()
@@ -373,7 +371,8 @@ internal fun ProfileSettingsDialog(
                             AppActionTile(
                                 title = MLang.ProfilesPage.SettingsDialog.OpenConfig,
                                 imageVector = Yume.`Scroll-text`,
-                                summary = MLang.ProfilesPage.SettingsDialog.LocalConfigEditorSummary,
+                                summary =
+                                    MLang.ProfilesPage.SettingsDialog.LocalConfigEditorSummary,
                                 onClick = onOpenConfigTextEditor,
                                 modifier = Modifier.fillMaxWidth(),
                                 tone = SemanticTone.Neutral,
@@ -394,10 +393,12 @@ internal fun ProfileSettingsDialog(
                 }
 
                 if (userConfigs.isNotEmpty()) {
-                    val selectedConfigs = pendingSelectedUserOverrideIds.mapNotNull { id ->
-                        userConfigs.firstOrNull { it.id == id }
-                    }
-                    val unselectedConfigs = userConfigs.filter { it.id !in pendingSelectedUserOverrideIds }
+                    val selectedConfigs =
+                        pendingSelectedUserOverrideIds.mapNotNull { id ->
+                            userConfigs.firstOrNull { it.id == id }
+                        }
+                    val unselectedConfigs =
+                        userConfigs.filter { it.id !in pendingSelectedUserOverrideIds }
                     Card {
                         LazyColumn(
                             state = overridesListState,
@@ -406,11 +407,9 @@ internal fun ProfileSettingsDialog(
                                     .heightIn(max = PROFILE_SETTINGS_LIST_MAX_HEIGHT),
                         ) {
                             // Selected overrides (draggable via long-press handle)
-                            items(
-                                items = selectedConfigs,
-                                key = { "sel-${it.id}" },
-                            ) { config ->
-                                ReorderableItem(reorderState, key = "sel-${config.id}") { isDragging ->
+                            items(items = selectedConfigs, key = { "sel-${it.id}" }) { config ->
+                                ReorderableItem(reorderState, key = "sel-${config.id}") { isDragging
+                                    ->
                                     BasicComponent(
                                         modifier =
                                             Modifier.alpha(if (isDragging) 0.82f else 1f)
@@ -455,10 +454,7 @@ internal fun ProfileSettingsDialog(
                                 )
                             }
                             // Available (unselected) overrides
-                            items(
-                                items = unselectedConfigs,
-                                key = { "avail-${it.id}" },
-                            ) { config ->
+                            items(items = unselectedConfigs, key = { "avail-${it.id}" }) { config ->
                                 BasicComponent(
                                     title = config.name,
                                     summary =
@@ -491,12 +487,13 @@ internal fun ProfileSettingsDialog(
                                                 }
                                     },
                                 )
-                                if (unselectedConfigs.indexOf(config) < unselectedConfigs.lastIndex) {
+                                if (
+                                    unselectedConfigs.indexOf(config) < unselectedConfigs.lastIndex
+                                ) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(horizontal = 16.dp),
                                         thickness = 0.5.dp,
-                                        color =
-                                            MiuixTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        color = MiuixTheme.colorScheme.outline.copy(alpha = 0.3f),
                                     )
                                 }
                             }

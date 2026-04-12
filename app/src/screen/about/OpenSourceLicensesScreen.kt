@@ -85,7 +85,8 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 ScreenLazyColumn(
                     modifier =
-                        Modifier.fillMaxWidth().widthIn(max = OpenSourceLicensesMetrics.ContentMaxWidth),
+                        Modifier.fillMaxWidth()
+                            .widthIn(max = OpenSourceLicensesMetrics.ContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = 20.dp,

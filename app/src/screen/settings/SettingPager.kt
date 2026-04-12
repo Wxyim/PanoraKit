@@ -84,8 +84,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         contentAlignment = Alignment.TopCenter,
                     ) {
                         val contentModifier =
-                            Modifier
-                                .fillMaxWidth()
+                            Modifier.fillMaxWidth()
                                 .padding(horizontal = LocalSpacing.current.gutter)
                                 .let { modifier ->
                                     if (contentMaxWidth != Dp.Unspecified) {
@@ -159,7 +158,10 @@ private fun SettingsSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.md)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.md),
+    ) {
         SmallTitle(title)
         content()
     }
@@ -177,7 +179,9 @@ private fun UiSettingsCard(
             summary = MLang.Settings.UiSettings.AppSummary,
             imageVector = Yume.`Settings-2`,
             tone = SemanticTone.Neutral,
-            onClick = { navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true } },
+            onClick = {
+                navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true }
+            },
         )
         SettingsDivider()
         SettingsRow(
@@ -203,7 +207,9 @@ private fun UiSettingsCard(
             summary = MLang.Settings.UiSettings.MetaFeaturesSummary,
             imageVector = Yume.Meta,
             tone = SemanticTone.Brand,
-            onClick = { navigator.navigate(MetaFeatureScreenDestination) { launchSingleTop = true } },
+            onClick = {
+                navigator.navigate(MetaFeatureScreenDestination) { launchSingleTop = true }
+            },
         )
     }
 }

@@ -44,11 +44,7 @@ import com.github.yumelira.yumebox.common.util.formatBytes
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-data class BarChartItem(
-    val label: String,
-    val value: Long,
-    val isCurrent: Boolean = false,
-)
+data class BarChartItem(val label: String, val value: Long, val isCurrent: Boolean = false)
 
 @Composable
 fun TrafficBarChart(
@@ -141,7 +137,9 @@ fun TrafficBarChart(
                                             Modifier.clickable(
                                                 role = Role.Button,
                                                 onClickLabel = barLabel,
-                                            ) { onItemClick(index) }
+                                            ) {
+                                                onItemClick(index)
+                                            }
                                         } else {
                                             Modifier
                                         }
@@ -184,8 +182,7 @@ fun TrafficBarChart(
                         color =
                             when {
                                 isSelected -> MiuixTheme.colorScheme.primary
-                                isCurrent ->
-                                    MiuixTheme.colorScheme.primary.copy(alpha = 0.72f)
+                                isCurrent -> MiuixTheme.colorScheme.primary.copy(alpha = 0.72f)
                                 else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
                             },
                         maxLines = 1,

@@ -70,10 +70,7 @@ data class WindowAdaptiveInfo(
 val LocalWindowAdaptiveInfo = staticCompositionLocalOf { WindowAdaptiveInfo() }
 
 @Composable
-fun rememberAvailableWindowAdaptiveInfo(
-    maxWidth: Dp,
-    maxHeight: Dp = 0.dp,
-): WindowAdaptiveInfo {
+fun rememberAvailableWindowAdaptiveInfo(maxWidth: Dp, maxHeight: Dp = 0.dp): WindowAdaptiveInfo {
     return remember(maxWidth, maxHeight) {
         WindowAdaptiveInfo(
             widthSizeClass = calculateAdaptiveWidthSizeClass(maxWidth),

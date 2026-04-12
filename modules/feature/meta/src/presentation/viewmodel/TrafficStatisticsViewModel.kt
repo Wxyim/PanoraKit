@@ -82,8 +82,7 @@ class TrafficStatisticsViewModel(
     val selectedBarIndex: StateFlow<Int> = _selectedBarIndex.asStateFlow()
 
     private val statisticsClock: Flow<StatisticsClockSnapshot> =
-        PollingTimers
-            .ticks(PollingTimerSpecs.dynamic("traffic_statistics_clock", 60_000L, 0L))
+        PollingTimers.ticks(PollingTimerSpecs.dynamic("traffic_statistics_clock", 60_000L, 0L))
             .onStart { emit(0L) }
             .map {
                 val calendar = Calendar.getInstance()
@@ -150,8 +149,8 @@ class TrafficStatisticsViewModel(
 
     val todaySummary: StateFlow<DailyTrafficSummary> =
         combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->
-            trafficStatisticsStore.getTodaySummary()
-        }
+                trafficStatisticsStore.getTodaySummary()
+            }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -160,8 +159,8 @@ class TrafficStatisticsViewModel(
 
     val yesterdaySummary: StateFlow<DailyTrafficSummary> =
         combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->
-            trafficStatisticsStore.getYesterdaySummary()
-        }
+                trafficStatisticsStore.getYesterdaySummary()
+            }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -207,9 +206,9 @@ class TrafficStatisticsViewModel(
 
     val chartItems: StateFlow<List<BarChartItem>> =
         combine(_selectedTimeRange, trafficStatisticsStore.dailySummaries, statisticsClock) {
-            timeRange,
-            _,
-            _ ->
+                timeRange,
+                _,
+                _ ->
                 when (timeRange) {
                     StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
                     StatisticsTimeRange.WEEK -> getDailyChartItems()

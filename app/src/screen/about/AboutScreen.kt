@@ -101,7 +101,9 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                             contentDescription = null,
                             modifier =
                                 Modifier.size(AboutPageMetrics.HeroIconSize)
-                                    .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
+                                    .clip(
+                                        RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)
+                                    ),
                             tint = Color.Unspecified,
                         )
 
@@ -173,7 +175,8 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 item {
                     Column(
                         modifier =
-                            Modifier.fillMaxWidth().padding(top = AboutPageMetrics.FooterTopPadding),
+                            Modifier.fillMaxWidth()
+                                .padding(top = AboutPageMetrics.FooterTopPadding),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
@@ -186,9 +189,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 }
 
 @Composable
-private fun AboutLinkItem(
-    title: String,
-    url: String,
-) {
+private fun AboutLinkItem(title: String, url: String) {
     LinkItem(title = title, url = url, showArrow = true)
 }

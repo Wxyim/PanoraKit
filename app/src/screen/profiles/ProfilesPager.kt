@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,13 +47,12 @@ import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
@@ -119,7 +117,9 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     var profileBinding by remember { mutableStateOf<ProfileBinding?>(null) }
     var isDownloading by rememberSaveable { mutableStateOf(false) }
     var pendingRuntimeReloadProfileId by remember { mutableStateOf<UUID?>(null) }
-    var pendingLocalProfileConfigEditorProfileId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingLocalProfileConfigEditorProfileId by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
     var pendingOpenTextEditorProfileId by rememberSaveable { mutableStateOf<String?>(null) }
     var swipeHintTargetProfileId by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -183,10 +183,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         }
     }
 
-    LaunchedEffect(
-        showSettingsDialog.value,
-        pendingLocalProfileConfigEditorProfileId,
-    ) {
+    LaunchedEffect(showSettingsDialog.value, pendingLocalProfileConfigEditorProfileId) {
         if (!showSettingsDialog.value) {
             pendingLocalProfileConfigEditorProfileId?.let { profileId ->
                 pendingLocalProfileConfigEditorProfileId = null
@@ -261,39 +258,42 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     return@setupConfigPreview Result.success(ConfigPreviewSaveOutcome.Saved)
                 }
                 runCatching {
-                    profilesViewModel.saveProfileConfigContent(
-                        uuid = profileUuid,
-                        content = updatedContent,
-                        onPhaseChanged = onPhaseChanged,
-                        decisionProvider = decisionProvider,
-                        stopRuntime = {
-                            val isSavingRuntimeProfile =
-                                isRunning && homeViewModel.isCurrentProfile(profileUuid)
-                            if (isSavingRuntimeProfile) {
-                                homeViewModel.stopProxy()
-                            }
-                        },
+                        profilesViewModel.saveProfileConfigContent(
+                            uuid = profileUuid,
+                            content = updatedContent,
+                            onPhaseChanged = onPhaseChanged,
+                            decisionProvider = decisionProvider,
+                            stopRuntime = {
+                                val isSavingRuntimeProfile =
+                                    isRunning && homeViewModel.isCurrentProfile(profileUuid)
+                                if (isSavingRuntimeProfile) {
+                                    homeViewModel.stopProxy()
+                                }
+                            },
+                        )
+                    }
+                    .fold(
+                        onSuccess = { outcome -> Result.success(outcome) },
+                        onFailure = { error -> Result.failure(error) },
                     )
-                }.fold(
-                    onSuccess = { outcome -> Result.success(outcome) },
-                    onFailure = { error -> Result.failure(error) },
-                )
             },
         )
         navigator.navigate(OverrideConfigPreviewRouteDestination)
     }
 
     val openLocalProfileConfigEditor: (UUID) -> Unit = { profileUuid ->
-        navigator.navigate(LocalProfileConfigEditRouteDestination(profileUuid = profileUuid.toString()))
+        navigator.navigate(
+            LocalProfileConfigEditRouteDestination(profileUuid = profileUuid.toString())
+        )
     }
 
     LaunchedEffect(showSettingsDialog.value, pendingOpenTextEditorProfileId, profiles) {
         if (!showSettingsDialog.value) {
             pendingOpenTextEditorProfileId?.let { profileId ->
                 pendingOpenTextEditorProfileId = null
-                profiles.firstOrNull { it.uuid.toString() == profileId }?.let { profile ->
-                    openProfileEditor(profile.uuid, profile.name)
-                }
+                profiles
+                    .firstOrNull { it.uuid.toString() == profileId }
+                    ?.let { profile -> openProfileEditor(profile.uuid, profile.name) }
             }
         }
     }
@@ -358,7 +358,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                         }
                     },
                 )
-            }
+            },
         ) { innerPadding ->
             if (profiles.isEmpty()) {
                 Box(
@@ -496,204 +496,203 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             }
         }
         AddProfileSheet(
-        show = showAddBottomSheet,
-        profileToEdit = null,
-        importUrl = importUrlFromScheme ?: scannedUrl,
-        onAddProfile = { name, source, type, interval, fileUri ->
-            profilesViewModel.createProfile(type, name, source, interval, fileUri)
-        },
-        onCreateBlankProfile = { name ->
-            showAddBottomSheet.value = false
-            profilesViewModel.createBlankProfile(
-                name = name,
-                initialContent = BLANK_PROFILE_TEMPLATE,
-            ) { uuid ->
-                openProfileEditor(uuid, name)
-            }
-        },
-        onUpdateProfile = { uuid, name, source, interval ->
-            pendingRuntimeReloadProfileId = uuid
-            profilesViewModel.patchProfile(uuid, name, source, interval)
-        },
-        onDownloadComplete = {
-            isDownloading = false
-            showAddBottomSheet.value = false
-            profilesViewModel.clearDownloadProgress()
-        },
-        profilesViewModel = profilesViewModel,
+            show = showAddBottomSheet,
+            profileToEdit = null,
+            importUrl = importUrlFromScheme ?: scannedUrl,
+            onAddProfile = { name, source, type, interval, fileUri ->
+                profilesViewModel.createProfile(type, name, source, interval, fileUri)
+            },
+            onCreateBlankProfile = { name ->
+                showAddBottomSheet.value = false
+                profilesViewModel.createBlankProfile(
+                    name = name,
+                    initialContent = BLANK_PROFILE_TEMPLATE,
+                ) { uuid ->
+                    openProfileEditor(uuid, name)
+                }
+            },
+            onUpdateProfile = { uuid, name, source, interval ->
+                pendingRuntimeReloadProfileId = uuid
+                profilesViewModel.patchProfile(uuid, name, source, interval)
+            },
+            onDownloadComplete = {
+                isDownloading = false
+                showAddBottomSheet.value = false
+                profilesViewModel.clearDownloadProgress()
+            },
+            profilesViewModel = profilesViewModel,
         )
 
         deleteDialogProfile?.let { profile ->
             DeleteConfirmDialog(
-            show = isDeleteDialogVisible,
-            profileName = profile.name,
-            onConfirm = {
-                isDeleteDialogVisible = false
-                scope.launch {
-                    if (profile.active && isRunning) {
-                        homeViewModel.stopProxy()
+                show = isDeleteDialogVisible,
+                profileName = profile.name,
+                onConfirm = {
+                    isDeleteDialogVisible = false
+                    scope.launch {
+                        if (profile.active && isRunning) {
+                            homeViewModel.stopProxy()
+                        }
+                        profilesViewModel.deleteProfile(profile.uuid)
                     }
-                    profilesViewModel.deleteProfile(profile.uuid)
-                }
-            },
-            onDismiss = { isDeleteDialogVisible = false },
-            onDismissFinished = { deleteDialogProfileId = null },
+                },
+                onDismiss = { isDeleteDialogVisible = false },
+                onDismissFinished = { deleteDialogProfileId = null },
             )
         }
 
         val currentProfileToEdit = settingsProfile
         if (currentProfileToEdit != null) {
             ProfileSettingsDialog(
-            show = showSettingsDialog,
-            profile = currentProfileToEdit,
-            systemPreset = systemPresets.firstOrNull(),
-            userConfigs = userConfigs,
-            binding = profileBinding,
-            onDismiss = { showSettingsDialog.value = false },
-            onDismissFinished = {
-                settingsProfileId = null
-                profileBinding = null
-            },
-            onOpenConfigOptionsEditor = {
-                showSettingsDialog.value = false
-                pendingLocalProfileConfigEditorProfileId = currentProfileToEdit.uuid.toString()
-            },
-            onOpenConfigTextEditor = {
-                showSettingsDialog.value = false
-                pendingOpenTextEditorProfileId = currentProfileToEdit.uuid.toString()
-            },
-            onSaveProfileMeta = { newName, newSource ->
-                if (newName.isNotBlank() && newSource.isNotBlank()) {
-                    scope.launch {
-                        runCatching {
-                                profilesViewModel.patchProfileNow(
-                                    currentProfileToEdit.uuid,
-                                    newName,
-                                    newSource,
-                                    currentProfileToEdit.interval,
-                                )
-                            }
-                            .onFailure {
-                                com.github.yumelira.yumebox.App.instance.toast(
-                                    it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
-                                )
-                            }
+                show = showSettingsDialog,
+                profile = currentProfileToEdit,
+                systemPreset = systemPresets.firstOrNull(),
+                userConfigs = userConfigs,
+                binding = profileBinding,
+                onDismiss = { showSettingsDialog.value = false },
+                onDismissFinished = {
+                    settingsProfileId = null
+                    profileBinding = null
+                },
+                onOpenConfigOptionsEditor = {
+                    showSettingsDialog.value = false
+                    pendingLocalProfileConfigEditorProfileId = currentProfileToEdit.uuid.toString()
+                },
+                onOpenConfigTextEditor = {
+                    showSettingsDialog.value = false
+                    pendingOpenTextEditorProfileId = currentProfileToEdit.uuid.toString()
+                },
+                onSaveProfileMeta = { newName, newSource ->
+                    if (newName.isNotBlank() && newSource.isNotBlank()) {
+                        scope.launch {
+                            runCatching {
+                                    profilesViewModel.patchProfileNow(
+                                        currentProfileToEdit.uuid,
+                                        newName,
+                                        newSource,
+                                        currentProfileToEdit.interval,
+                                    )
+                                }
+                                .onFailure {
+                                    com.github.yumelira.yumebox.App.instance.toast(
+                                        it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
+                                    )
+                                }
+                        }
                     }
-                }
-            },
-            onSaveOverrideSettings = { systemPresetEnabled, selectedOverrideIds ->
-                scope.launch {
-                    val profileId = currentProfileToEdit.uuid.toString()
-                    val normalizedOverrideIds = selectedOverrideIds.distinct()
-                    val currentBinding = profileBinding ?: bindingProvider.getBinding(profileId)
-                    val updatedBinding =
-                        currentBinding?.copy(
-                            overrideIds = normalizedOverrideIds,
-                            enabled = systemPresetEnabled,
-                        )
-                            ?: ProfileBinding(
-                                profileId = profileId,
+                },
+                onSaveOverrideSettings = { systemPresetEnabled, selectedOverrideIds ->
+                    scope.launch {
+                        val profileId = currentProfileToEdit.uuid.toString()
+                        val normalizedOverrideIds = selectedOverrideIds.distinct()
+                        val currentBinding = profileBinding ?: bindingProvider.getBinding(profileId)
+                        val updatedBinding =
+                            currentBinding?.copy(
                                 overrideIds = normalizedOverrideIds,
                                 enabled = systemPresetEnabled,
                             )
+                                ?: ProfileBinding(
+                                    profileId = profileId,
+                                    overrideIds = normalizedOverrideIds,
+                                    enabled = systemPresetEnabled,
+                                )
 
-                    bindingProvider.setBinding(updatedBinding)
-                    profileBinding = bindingProvider.getBinding(profileId)
+                        bindingProvider.setBinding(updatedBinding)
+                        profileBinding = bindingProvider.getBinding(profileId)
 
-                    activeProfileOverrideReloader.reapplyIfActiveProfile(profileId)
-                }
-            },
+                        activeProfileOverrideReloader.reapplyIfActiveProfile(profileId)
+                    }
+                },
             )
         }
 
         shareProfile?.let { profile ->
             ShareOptionsDialog(
-            show = showShareDialog,
-            profile = profile,
-            onDismiss = { showShareDialog.value = false },
-            onDismissFinished = { shareProfileId = null },
-            onShareFile = { profile ->
-                val context = com.github.yumelira.yumebox.App.instance
-                val file =
-                    File(File(context.filesDir, "imported"), "${profile.uuid}/config.yaml").takeIf {
-                        it.exists()
-                    }
-                        ?: File(
-                                File(context.filesDir, "clash"),
-                                "profiles/${profile.uuid}/config.yaml",
-                            )
+                show = showShareDialog,
+                profile = profile,
+                onDismiss = { showShareDialog.value = false },
+                onDismissFinished = { shareProfileId = null },
+                onShareFile = { profile ->
+                    val context = com.github.yumelira.yumebox.App.instance
+                    val file =
+                        File(File(context.filesDir, "imported"), "${profile.uuid}/config.yaml")
                             .takeIf { it.exists() }
-
-                if (file == null) {
-                    context.toast(MLang.ProfilesPage.Message.ProfileFileNotExist)
-                } else {
-                    runCatching {
-                            val uri =
-                                FileProvider.getUriForFile(
-                                    context,
-                                    "${context.packageName}.fileprovider",
-                                    file,
+                            ?: File(
+                                    File(context.filesDir, "clash"),
+                                    "profiles/${profile.uuid}/config.yaml",
                                 )
-                            val intent =
-                                Intent(Intent.ACTION_SEND).apply {
-                                    type = "application/x-yaml"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                            context.startActivity(
-                                Intent.createChooser(
-                                        intent,
-                                        MLang.ProfilesPage.ShareDialog.ShareFile,
+                                .takeIf { it.exists() }
+
+                    if (file == null) {
+                        context.toast(MLang.ProfilesPage.Message.ProfileFileNotExist)
+                    } else {
+                        runCatching {
+                                val uri =
+                                    FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file,
                                     )
-                                    .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                            )
-                        }
-                        .onFailure {
-                            context.toast(it.message ?: MLang.ProfilesPage.Message.ShareFailed)
-                        }
-                }
-                showShareDialog.value = false
-            },
-            onShareLink = { profile ->
-                val context = com.github.yumelira.yumebox.App.instance
-                val url = if (profile.type == Profile.Type.Url) profile.source else null
-                url?.let {
-                    val intent =
-                        Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, it)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                    context.startActivity(
-                        Intent.createChooser(intent, MLang.ProfilesPage.ShareDialog.ShareLink)
-                            .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                    )
-                } ?: run { context.toast(MLang.ProfilesPage.ShareDialog.NoLink) }
-                showShareDialog.value = false
-            },
+                                val intent =
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/x-yaml"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                context.startActivity(
+                                    Intent.createChooser(
+                                            intent,
+                                            MLang.ProfilesPage.ShareDialog.ShareFile,
+                                        )
+                                        .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                                )
+                            }
+                            .onFailure {
+                                context.toast(it.message ?: MLang.ProfilesPage.Message.ShareFailed)
+                            }
+                    }
+                    showShareDialog.value = false
+                },
+                onShareLink = { profile ->
+                    val context = com.github.yumelira.yumebox.App.instance
+                    val url = if (profile.type == Profile.Type.Url) profile.source else null
+                    url?.let {
+                        val intent =
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, it)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                        context.startActivity(
+                            Intent.createChooser(intent, MLang.ProfilesPage.ShareDialog.ShareLink)
+                                .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                        )
+                    } ?: run { context.toast(MLang.ProfilesPage.ShareDialog.NoLink) }
+                    showShareDialog.value = false
+                },
             )
         }
 
         moreActionsProfile?.let { profile ->
             ProfileMoreActionsDialog(
-            show = moreActionsProfileId != null,
-            profile = profile,
-            onEditText = {
-                moreActionsProfileId = null
-                openProfileEditor(profile.uuid, profile.name)
-            },
-            onExport = {
-                moreActionsProfileId = null
-                shareProfileId = profile.uuid.toString()
-                showShareDialog.value = true
-            },
-            onDelete = {
-                moreActionsProfileId = null
-                deleteDialogProfileId = profile.uuid.toString()
-                isDeleteDialogVisible = true
-            },
-            onDismiss = { moreActionsProfileId = null },
+                show = moreActionsProfileId != null,
+                profile = profile,
+                onEditText = {
+                    moreActionsProfileId = null
+                    openProfileEditor(profile.uuid, profile.name)
+                },
+                onExport = {
+                    moreActionsProfileId = null
+                    shareProfileId = profile.uuid.toString()
+                    showShareDialog.value = true
+                },
+                onDelete = {
+                    moreActionsProfileId = null
+                    deleteDialogProfileId = profile.uuid.toString()
+                    isDeleteDialogVisible = true
+                },
+                onDismiss = { moreActionsProfileId = null },
             )
         }
     }
@@ -737,10 +736,7 @@ private fun ProfileUpdateAllChip(
 }
 
 @Composable
-private fun ProfileAddTopBarChip(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun ProfileAddTopBarChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val style = SemanticActionDefaults.style(SemanticTone.Brand, highEmphasis = true)
     val shape = RoundedCornerShape(22.dp)
 

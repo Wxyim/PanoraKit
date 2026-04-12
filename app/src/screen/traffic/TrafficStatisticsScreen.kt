@@ -27,10 +27,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.formatBytes
-import com.github.yumelira.yumebox.core.model.ConnectionInfo
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
 import com.github.yumelira.yumebox.feature.meta.presentation.component.toDisplayAddress
@@ -114,8 +113,9 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
     val selectedBarIndex by viewModel.selectedBarIndex.collectAsStateWithLifecycle()
     val recentRequests by viewModel.recentRequests.collectAsStateWithLifecycle()
     val targetSites by viewModel.targetSites.collectAsStateWithLifecycle()
-    var selectedDetailSectionName by
-        rememberSaveable { mutableStateOf(TrafficDetailSection.RecentRequests.name) }
+    var selectedDetailSectionName by rememberSaveable {
+        mutableStateOf(TrafficDetailSection.RecentRequests.name)
+    }
     var selectedConnectionId by rememberSaveable { mutableStateOf<String?>(null) }
     var showConnectionDetail by rememberSaveable { mutableStateOf(false) }
     val selectedDetailSection =
@@ -460,15 +460,13 @@ private fun DetailSectionSelector(
     onSectionSelected: (TrafficDetailSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(modifier = modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TrafficDetailSection.entries.forEach { section ->
             val isSelected = section == selectedSection
             val label =
                 when (section) {
-                    TrafficDetailSection.RecentRequests -> MLang.TrafficStatistics.RecentRequests.Title
+                    TrafficDetailSection.RecentRequests ->
+                        MLang.TrafficStatistics.RecentRequests.Title
                     TrafficDetailSection.TargetSites -> MLang.TrafficStatistics.TargetSites.Title
                 }
             Surface(
@@ -579,10 +577,7 @@ private fun TimeRangeSelector(
     onRangeSelected: (StatisticsTimeRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(modifier = modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         StatisticsTimeRange.entries.forEach { range ->
             val isSelected = range == selectedRange
             Surface(

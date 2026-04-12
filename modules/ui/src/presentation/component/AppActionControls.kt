@@ -23,7 +23,6 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +44,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -52,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.chevron
+import com.github.yumelira.yumebox.presentation.theme.LocalSemanticColors
+import com.github.yumelira.yumebox.presentation.theme.SemanticColorToken
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -74,62 +79,27 @@ data class SemanticActionStyle(
 
 object SemanticActionDefaults {
     @Composable
-    fun style(
-        tone: SemanticTone,
-        highEmphasis: Boolean = false,
-    ): SemanticActionStyle {
-        val colorScheme = MiuixTheme.colorScheme
-        val isDark = isSystemInDarkTheme()
-        val foreground =
+    fun style(tone: SemanticTone, highEmphasis: Boolean = false): SemanticActionStyle {
+        val semanticColors = LocalSemanticColors.current
+        val token =
             when (tone) {
-                SemanticTone.Brand -> colorScheme.primary
-                SemanticTone.Success ->
-                    if (isDark) {
-                        Color(0xFF77D9C6)
-                    } else {
-                        Color(0xFF087F6C)
-                    }
-                SemanticTone.Info ->
-                    if (isDark) {
-                        Color(0xFF7CCDE4)
-                    } else {
-                        Color(0xFF147E9D)
-                    }
-                SemanticTone.Warning ->
-                    if (isDark) {
-                        Color(0xFFE8C46A)
-                    } else {
-                        Color(0xFF92640D)
-                    }
-                SemanticTone.Danger -> colorScheme.error
-                SemanticTone.Neutral -> colorScheme.onSurface.copy(alpha = if (isDark) 0.86f else 0.92f)
-            }
-        val neutralContainer =
-            if (isDark) {
-                colorScheme.surfaceVariant.copy(alpha = if (highEmphasis) 0.94f else 0.76f)
-            } else {
-                colorScheme.surfaceVariant.copy(alpha = if (highEmphasis) 0.96f else 0.82f)
-            }
-        val semanticContainerAlpha =
-            when {
-                highEmphasis && isDark -> 0.24f
-                highEmphasis -> 0.16f
-                isDark -> 0.16f
-                else -> 0.10f
-            }
-        val container =
-            when (tone) {
-                SemanticTone.Neutral -> neutralContainer
-                SemanticTone.Danger ->
-                    colorScheme.errorContainer.copy(alpha = if (highEmphasis) 0.82f else 0.54f)
-                else -> foreground.copy(alpha = semanticContainerAlpha)
+                SemanticTone.Brand -> semanticColors.brand
+                SemanticTone.Success -> semanticColors.success
+                SemanticTone.Info -> semanticColors.info
+                SemanticTone.Warning -> semanticColors.warning
+                SemanticTone.Danger -> semanticColors.danger
+                SemanticTone.Neutral -> semanticColors.neutral
             }
 
+        return token.toActionStyle(highEmphasis)
+    }
+
+    private fun SemanticColorToken.toActionStyle(highEmphasis: Boolean): SemanticActionStyle {
         return SemanticActionStyle(
-            containerColor = container,
+            containerColor = if (highEmphasis) highEmphasisContainer else container,
             contentColor = foreground,
-            iconContainerColor = foreground.copy(alpha = if (highEmphasis) 0.14f else 0.10f),
-            borderColor = foreground.copy(alpha = if (highEmphasis) 0.22f else 0.12f),
+            iconContainerColor = if (highEmphasis) highEmphasisIconContainer else iconContainer,
+            borderColor = if (highEmphasis) highEmphasisBorder else border,
         )
     }
 }
@@ -168,12 +138,19 @@ fun AppCircularIconAction(
         } else {
             borderColor
         }
+    val toneDescription = tone.accessibilityDescription()
 
     Box(
         modifier =
             modifier
                 .size(size)
                 .alpha(if (enabled) 1f else 0.48f)
+                .semantics {
+                    this.contentDescription =
+                        buildSemanticDescription(contentDescription, toneDescription)
+                    stateDescription = if (enabled) "enabled" else "disabled"
+                    if (!enabled) disabled()
+                }
                 .shadow(
                     elevation = if (enabled) 3.dp else 0.dp,
                     shape = CircleShape,
@@ -240,6 +217,8 @@ fun AppActionTile(
         } else {
             borderColor
         }
+    val semanticDescription =
+        buildSemanticDescription(title, summary, tone.accessibilityDescription())
 
     if (compact) {
         Column(
@@ -248,6 +227,11 @@ fun AppActionTile(
                     .fillMaxWidth()
                     .heightIn(min = minHeight)
                     .alpha(if (enabled) 1f else 0.48f)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = semanticDescription
+                        stateDescription = if (enabled) "enabled" else "disabled"
+                        if (!enabled) disabled()
+                    }
                     .clip(shape)
                     .background(resolvedContainer, shape)
                     .border(0.8.dp, resolvedBorder, shape)
@@ -280,6 +264,11 @@ fun AppActionTile(
                     .fillMaxWidth()
                     .heightIn(min = minHeight)
                     .alpha(if (enabled) 1f else 0.48f)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = semanticDescription
+                        stateDescription = if (enabled) "enabled" else "disabled"
+                        if (!enabled) disabled()
+                    }
                     .clip(shape)
                     .background(resolvedContainer, shape)
                     .border(0.8.dp, resolvedBorder, shape)
@@ -337,6 +326,7 @@ fun AppCommandButton(
 ) {
     val actionStyle = SemanticActionDefaults.style(tone = tone, highEmphasis = highEmphasis)
     val shape = RoundedCornerShape(22.dp)
+    val semanticDescription = buildSemanticDescription(title, tone.accessibilityDescription())
 
     Row(
         modifier =
@@ -344,6 +334,11 @@ fun AppCommandButton(
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .alpha(if (enabled) 1f else 0.48f)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = semanticDescription
+                    stateDescription = if (enabled) "enabled" else "disabled"
+                    if (!enabled) disabled()
+                }
                 .clip(shape)
                 .background(actionStyle.containerColor, shape)
                 .border(0.8.dp, actionStyle.borderColor, shape)
@@ -380,10 +375,15 @@ fun StatusBadge(
 ) {
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = false)
     val shape = RoundedCornerShape(999.dp)
+    val semanticDescription = buildSemanticDescription(text, tone.accessibilityDescription())
 
     Row(
         modifier =
             modifier
+                .semantics(mergeDescendants = true) {
+                    contentDescription = semanticDescription
+                    stateDescription = text
+                }
                 .clip(shape)
                 .background(style.containerColor, shape)
                 .border(0.7.dp, style.borderColor, shape)
@@ -420,12 +420,18 @@ fun SettingsRow(
 ) {
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = true)
     val shape = RoundedCornerShape(22.dp)
+    val semanticDescription =
+        buildSemanticDescription(title, summary, tone.accessibilityDescription())
 
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .heightIn(min = 72.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = semanticDescription
+                    stateDescription = tone.accessibilityDescription()
+                }
                 .clip(shape)
                 .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -440,10 +446,7 @@ fun SettingsRow(
             iconSize = 21.dp,
         )
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
                 text = title,
                 color = MiuixTheme.colorScheme.onSurface,
@@ -488,11 +491,17 @@ fun MetricCard(
 ) {
     val style = SemanticActionDefaults.style(tone = tone)
     val shape = RoundedCornerShape(24.dp)
+    val semanticDescription =
+        buildSemanticDescription(title, value, summary, tone.accessibilityDescription())
 
     Column(
         modifier =
             modifier
                 .widthIn(min = 132.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = semanticDescription
+                    stateDescription = value
+                }
                 .clip(shape)
                 .background(style.containerColor, shape)
                 .border(0.8.dp, style.borderColor, shape)
@@ -525,6 +534,23 @@ fun MetricCard(
             )
         }
     }
+}
+
+private fun SemanticTone.accessibilityDescription(): String =
+    when (this) {
+        SemanticTone.Brand -> "brand"
+        SemanticTone.Success -> "success"
+        SemanticTone.Info -> "info"
+        SemanticTone.Warning -> "warning"
+        SemanticTone.Danger -> "danger"
+        SemanticTone.Neutral -> "neutral"
+    }
+
+private fun buildSemanticDescription(vararg parts: String?): String {
+    return parts
+        .mapNotNull { part -> part?.trim()?.takeIf(String::isNotBlank) }
+        .distinct()
+        .joinToString(separator = ", ")
 }
 
 @Composable

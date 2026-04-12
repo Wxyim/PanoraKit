@@ -134,7 +134,9 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
                     mmkv.encode(KEY_TARGET_SITE_USAGES_OVERFLOW, json.encodeToString(usages))
                 }
             }
-            .onSuccess { _targetSiteOverflowRevision.value = _targetSiteOverflowRevision.value + 1L }
+            .onSuccess {
+                _targetSiteOverflowRevision.value = _targetSiteOverflowRevision.value + 1L
+            }
     }
 
     private fun compactTargetSiteUsagesForMemory(): MutableMap<String, TargetSiteTrafficUsage> {
@@ -200,15 +202,19 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
                 if (index == segments.lastIndex) {
                     remainingUpload
                 } else {
-                    ((uploadDelta * segment.durationMillis) / totalDuration)
-                        .coerceIn(0L, remainingUpload)
+                    ((uploadDelta * segment.durationMillis) / totalDuration).coerceIn(
+                        0L,
+                        remainingUpload,
+                    )
                 }
             val segmentDownload =
                 if (index == segments.lastIndex) {
                     remainingDownload
                 } else {
-                    ((downloadDelta * segment.durationMillis) / totalDuration)
-                        .coerceIn(0L, remainingDownload)
+                    ((downloadDelta * segment.durationMillis) / totalDuration).coerceIn(
+                        0L,
+                        remainingDownload,
+                    )
                 }
             applyTrafficDelta(
                 data = currentSummaries,
@@ -498,9 +504,10 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         if (sanitizedHourlyData.size == summary.hourlyData.size) return summary
 
         val futureSlots =
-            summary.hourlyData.keys.filter { it > currentSlotIndex }.sorted().mapNotNull { index ->
-                TimeSlot.entries.getOrNull(index)?.label
-            }
+            summary.hourlyData.keys
+                .filter { it > currentSlotIndex }
+                .sorted()
+                .mapNotNull { index -> TimeSlot.entries.getOrNull(index)?.label }
         Log.w(
             TAG,
             "sanitizeTodaySummaryIfNeeded: now=${calendar.time} tz=${calendar.timeZone.id} " +
@@ -525,7 +532,9 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         endMillis: Long,
     ): List<TrafficAttributionSegment> {
         if (endMillis <= startMillis) {
-            return listOf(TrafficAttributionSegment(timestampMillis = endMillis, durationMillis = 1L))
+            return listOf(
+                TrafficAttributionSegment(timestampMillis = endMillis, durationMillis = 1L)
+            )
         }
 
         val segments = mutableListOf<TrafficAttributionSegment>()

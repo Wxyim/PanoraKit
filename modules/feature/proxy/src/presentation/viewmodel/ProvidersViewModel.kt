@@ -99,7 +99,9 @@ class ProvidersViewModel(
 
                     if (staleResources.isNotEmpty()) {
                         val failedResources = mutableListOf<String>()
-                        runtimeControlCoordinator.runSerialized("providers:refresh-stale-overrides") {
+                        runtimeControlCoordinator.runSerialized(
+                            "providers:refresh-stale-overrides"
+                        ) {
                             staleResources.forEach { stale ->
                                 refreshRemoteOverrideInternal(stale.id).onFailure {
                                     failedResources += stale.name
@@ -137,9 +139,10 @@ class ProvidersViewModel(
         val key = remoteOverrideKey(resource.id)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
-            runtimeControlCoordinator.runSerialized("providers:update-remote-override:${resource.id}") {
-                refreshRemoteOverrideInternal(resource.id)
-            }
+            runtimeControlCoordinator
+                .runSerialized("providers:update-remote-override:${resource.id}") {
+                    refreshRemoteOverrideInternal(resource.id)
+                }
                 .onSuccess {
                     refreshRemoteOverrides()
                     _uiState.update {

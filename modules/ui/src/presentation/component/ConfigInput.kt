@@ -338,16 +338,16 @@ fun StringMapWithModifiersInput(
             if (!compactSingleMode) {
                 null
             } else {
-                linkedMapOf<String, String>().apply {
-                    mergeValue.orEmpty().forEach { (key, value) ->
-                        this[key] = value
-                    }
-                    replaceValue.orEmpty().forEach { (key, value) ->
-                        if (key !in this) {
-                            this[key] = value
+                linkedMapOf<String, String>()
+                    .apply {
+                        mergeValue.orEmpty().forEach { (key, value) -> this[key] = value }
+                        replaceValue.orEmpty().forEach { (key, value) ->
+                            if (key !in this) {
+                                this[key] = value
+                            }
                         }
                     }
-                }.takeIf { it.isNotEmpty() }
+                    .takeIf { it.isNotEmpty() }
             }
         }
 
@@ -421,8 +421,14 @@ fun StringMapWithModifiersInput(
                     )
                 },
             imageVector = imageVector,
-            tone = if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty()) SemanticTone.Warning else SemanticTone.Neutral,
-            badgeTone = if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty()) SemanticTone.Warning else SemanticTone.Neutral,
+            tone =
+                if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty())
+                    SemanticTone.Warning
+                else SemanticTone.Neutral,
+            badgeTone =
+                if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty())
+                    SemanticTone.Warning
+                else SemanticTone.Neutral,
             onClick = { expanded = !expanded },
         )
 
@@ -528,10 +534,7 @@ private fun ModifierModeCard(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         StatusBadge(text = title, tone = tone, compact = true)
-        Text(
-            text = summary,
-            color = MiuixTheme.colorScheme.onSurface,
-        )
+        Text(text = summary, color = MiuixTheme.colorScheme.onSurface)
         Text(
             text = helperText,
             style = MiuixTheme.textStyles.body2,

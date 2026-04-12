@@ -51,10 +51,22 @@ fun YumeTheme(
         remember(isDark, themeSeedColorArgb) {
             colorSchemeFromSeed(colorFromArgb(themeSeedColorArgb), isDark)
         }
+    val semanticColors =
+        remember(isDark, colors) {
+            appSemanticColors(
+                isDark = isDark,
+                primary = colors.primary,
+                error = colors.error,
+                errorContainer = colors.errorContainer,
+                surfaceVariant = colors.surfaceVariant,
+                onSurface = colors.onSurface,
+            )
+        }
 
     CompositionLocalProvider(
         LocalSpacing provides spacing,
         LocalRadii provides radii,
+        LocalSemanticColors provides semanticColors,
         LocalWindowAdaptiveInfo provides windowAdaptiveInfo,
     ) {
         MiuixTheme(colors = colors) { content() }

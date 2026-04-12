@@ -39,7 +39,6 @@ import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.root.RootPackageShell
-import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -287,9 +286,7 @@ class NetworkSettingsViewModel(
 
     fun onAccessControlModeChange(mode: AccessControlMode) {
         if (!canUseAccessControlMode(mode)) {
-            GlobalDialogPresenter.showError(
-                "Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。"
-            )
+            GlobalDialogPresenter.showError("Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。")
             return
         }
         updatePreference(

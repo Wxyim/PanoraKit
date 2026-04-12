@@ -58,8 +58,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.OemPermissionSettingsNavigator
 import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.presentation.component.AppCommandButton
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumelira.yumebox.presentation.component.AppCommandButton
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.ConfigActionMenuRow
 import com.github.yumelira.yumebox.presentation.component.ConfigEntryActionOption
@@ -164,7 +164,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     ScreenLazyColumn(
                         modifier =
-                            Modifier.fillMaxWidth().widthIn(max = AccessControlMetrics.ContentMaxWidth),
+                            Modifier.fillMaxWidth()
+                                .widthIn(max = AccessControlMetrics.ContentMaxWidth),
                         scrollBehavior = scrollBehavior,
                         innerPadding = innerPadding,
                         topPadding = 20.dp,
@@ -193,7 +194,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             highEmphasis = true,
                                         )
                                         AppCommandButton(
-                                            title = MLang.AccessControl.AppList.OpenPermissionSettings,
+                                            title =
+                                                MLang.AccessControl.AppList.OpenPermissionSettings,
                                             imageVector = Yume.`Settings-2`,
                                             onClick = {
                                                 val opened =
@@ -476,8 +478,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                                 title = MLang.AccessControl.Settings.ClearSelected,
                                                 icon = Yume.`Settings-2`,
                                                 onClick = {
-                                                    val cleared =
-                                                        viewModel.clearSelectedPackages()
+                                                    val cleared = viewModel.clearSelectedPackages()
                                                     context.toast(
                                                         MLang.AccessControl.Settings
                                                             .ClearSelectedResult
@@ -522,7 +523,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                                 context.toast(
                                                     MLang.AccessControl.Settings.RegionSelectResult
                                                         .format(
-                                                            MLang.AccessControl.Settings.OverseasApps,
+                                                            MLang.AccessControl.Settings
+                                                                .OverseasApps,
                                                             selectedCount,
                                                         )
                                                 )
@@ -546,8 +548,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             onClick = {
                                                 val clipData = clipboardManager.primaryClip
                                                 val text =
-                                                    if (clipData != null &&
-                                                        clipData.itemCount > 0
+                                                    if (
+                                                        clipData != null && clipData.itemCount > 0
                                                     ) {
                                                         clipData.getItemAt(0)?.text?.toString()
                                                             ?: ""
@@ -584,10 +586,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             onClick = {
                                                 val exportText = viewModel.exportPackages()
                                                 val clip =
-                                                    ClipData.newPlainText(
-                                                        "packages",
-                                                        exportText,
-                                                    )
+                                                    ClipData.newPlainText("packages", exportText)
                                                 clipboardManager.setPrimaryClip(clip)
                                                 context.toast(
                                                     MLang.AccessControl.Settings.ExportSuccess

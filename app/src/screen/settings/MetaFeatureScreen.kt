@@ -83,7 +83,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             ScreenLazyColumn(
-                modifier = Modifier.fillMaxWidth().widthIn(max = MetaFeatureMetrics.ContentMaxWidth),
+                modifier =
+                    Modifier.fillMaxWidth().widthIn(max = MetaFeatureMetrics.ContentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
             ) {
@@ -117,7 +118,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     try {
                                         ServiceClient.connect(context)
                                         val activeProfile = ServiceClient.profile().queryActive()
-                                        val runtimeConfig = ServiceClient.clash().queryConfiguration()
+                                        val runtimeConfig =
+                                            ServiceClient.clash().queryConfiguration()
                                         if (activeProfile == null) {
                                             context.toast(
                                                 MLang.MetaFeature.RuntimeConfig.NoActiveProfile

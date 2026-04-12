@@ -20,8 +20,8 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,11 +43,7 @@ fun NullableBooleanSelector(
     onValueChange: (Boolean?) -> Unit,
 ) {
     val items =
-        listOf(
-            unsetLabel,
-            MLang.Component.Selector.Enable,
-            MLang.Component.Selector.Disable,
-        )
+        listOf(unsetLabel, MLang.Component.Selector.Enable, MLang.Component.Selector.Disable)
     val selectedIndex =
         when (value) {
             null -> 0

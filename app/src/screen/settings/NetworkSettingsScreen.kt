@@ -59,10 +59,8 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperSwitch
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object NetworkSettingsMetrics {
     val ContentMaxWidth = 1120.dp
@@ -97,8 +95,19 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
     val rootTunFakeIpRangeDraft by viewModel.rootTunFakeIpRangeDraft.collectAsStateWithLifecycle()
     val rootTunFakeIpRange6Draft by viewModel.rootTunFakeIpRange6Draft.collectAsStateWithLifecycle()
     var enableModeTransition by remember { mutableStateOf(false) }
+    var pendingProxyModeConfirmation by rememberSaveable { mutableStateOf<ProxyMode?>(null) }
 
     LaunchedEffect(Unit) { enableModeTransition = true }
+
+    val requestProxyModeChange: (ProxyMode) -> Unit = { targetMode ->
+        if (
+            requiresHighRiskProxyModeConfirmation(currentMode = proxyMode, targetMode = targetMode)
+        ) {
+            pendingProxyModeConfirmation = targetMode
+        } else {
+            viewModel.onProxyModeChange(targetMode)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -118,7 +127,8 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 ScreenLazyColumn(
                     modifier =
-                        Modifier.fillMaxWidth().widthIn(max = NetworkSettingsMetrics.ContentMaxWidth),
+                        Modifier.fillMaxWidth()
+                            .widthIn(max = NetworkSettingsMetrics.ContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                 ) {
@@ -144,7 +154,7 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
                             rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
                             rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
                             enableModeTransition = enableModeTransition,
-                            onProxyModeChange = viewModel::onProxyModeChange,
+                            onProxyModeChange = requestProxyModeChange,
                             onBypassPrivateNetworkChange = viewModel::onBypassPrivateNetworkChange,
                             onDnsHijackChange = viewModel::onDnsHijackChange,
                             onAllowBypassChange = viewModel::onAllowBypassChange,
@@ -182,6 +192,15 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            HighRiskProxyModeDialog(
+                targetMode = pendingProxyModeConfirmation,
+                onDismiss = { pendingProxyModeConfirmation = null },
+                onConfirm = { targetMode ->
+                    pendingProxyModeConfirmation = null
+                    viewModel.onProxyModeChange(targetMode)
+                },
+            )
+
             AnimatedVisibility(
                 visible = uiState.isApplying,
                 enter = fadeIn(),
@@ -202,6 +221,35 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
+    }
+}
+
+private fun requiresHighRiskProxyModeConfirmation(
+    currentMode: ProxyMode,
+    targetMode: ProxyMode,
+): Boolean {
+    return currentMode != targetMode &&
+        (currentMode == ProxyMode.RootTun || targetMode == ProxyMode.RootTun)
+}
+
+@Composable
+private fun HighRiskProxyModeDialog(
+    targetMode: ProxyMode?,
+    onDismiss: () -> Unit,
+    onConfirm: (ProxyMode) -> Unit,
+) {
+    AppDialog(
+        show = targetMode != null,
+        title = "Confirm traffic routing change",
+        summary =
+            "This changes how MonadBox captures and routes device traffic. If the service is running, MonadBox will apply it with rollback on failure.",
+        onDismissRequest = onDismiss,
+    ) {
+        DialogButtonRow(
+            onCancel = onDismiss,
+            onConfirm = { targetMode?.let(onConfirm) },
+            confirmTone = SemanticTone.Warning,
+        )
     }
 }
 
@@ -321,8 +369,7 @@ private fun NetworkSettingsContent(
                             commitRootTunIfName = commitRootTunIfName,
                             commitRootTunMtu = commitRootTunMtu,
                             commitRootTunIncludeAndroidUser = commitRootTunIncludeAndroidUser,
-                            commitRootTunRouteExcludeAddress =
-                                commitRootTunRouteExcludeAddress,
+                            commitRootTunRouteExcludeAddress = commitRootTunRouteExcludeAddress,
                             commitRootTunFakeIpRange = commitRootTunFakeIpRange,
                             commitRootTunFakeIpRange6 = commitRootTunFakeIpRange6,
                         )
@@ -370,8 +417,7 @@ private fun NetworkSettingsContent(
                     onRootTunDnsModeChange = onRootTunDnsModeChange,
                     onRootTunIfNameDraftChange = onRootTunIfNameDraftChange,
                     onRootTunMtuDraftChange = onRootTunMtuDraftChange,
-                    onRootTunIncludeAndroidUserDraftChange =
-                        onRootTunIncludeAndroidUserDraftChange,
+                    onRootTunIncludeAndroidUserDraftChange = onRootTunIncludeAndroidUserDraftChange,
                     onRootTunRouteExcludeAddressDraftChange =
                         onRootTunRouteExcludeAddressDraftChange,
                     onRootTunFakeIpRangeDraftChange = onRootTunFakeIpRangeDraftChange,
@@ -473,10 +519,8 @@ private fun VpnServiceSection(
 
     AnimatedVisibility(
         visible = uiState.showServiceOptions,
-        enter =
-            if (enableModeTransition) fadeIn() + expandVertically() else EnterTransition.None,
-        exit =
-            if (enableModeTransition) fadeOut() + shrinkVertically() else ExitTransition.None,
+        enter = if (enableModeTransition) fadeIn() + expandVertically() else EnterTransition.None,
+        exit = if (enableModeTransition) fadeOut() + shrinkVertically() else ExitTransition.None,
     ) {
         Column {
             SmallTitle(MLang.NetworkSettings.Section.VpnOptions)
@@ -523,8 +567,7 @@ private fun VpnServiceSection(
                                 rootTunIfNameDraft = rootTunIfNameDraft,
                                 rootTunMtuDraft = rootTunMtuDraft,
                                 rootTunIncludeAndroidUserDraft = rootTunIncludeAndroidUserDraft,
-                                rootTunRouteExcludeAddressDraft =
-                                    rootTunRouteExcludeAddressDraft,
+                                rootTunRouteExcludeAddressDraft = rootTunRouteExcludeAddressDraft,
                                 rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
                                 rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
                                 showFakeIpRange = uiState.showFakeIpRange,
@@ -543,14 +586,11 @@ private fun VpnServiceSection(
                                 onRootTunRouteExcludeAddressDraftChange =
                                     onRootTunRouteExcludeAddressDraftChange,
                                 onRootTunFakeIpRangeDraftChange = onRootTunFakeIpRangeDraftChange,
-                                onRootTunFakeIpRange6DraftChange =
-                                    onRootTunFakeIpRange6DraftChange,
+                                onRootTunFakeIpRange6DraftChange = onRootTunFakeIpRange6DraftChange,
                                 commitRootTunIfName = commitRootTunIfName,
                                 commitRootTunMtu = commitRootTunMtu,
-                                commitRootTunIncludeAndroidUser =
-                                    commitRootTunIncludeAndroidUser,
-                                commitRootTunRouteExcludeAddress =
-                                    commitRootTunRouteExcludeAddress,
+                                commitRootTunIncludeAndroidUser = commitRootTunIncludeAndroidUser,
+                                commitRootTunRouteExcludeAddress = commitRootTunRouteExcludeAddress,
                                 commitRootTunFakeIpRange = commitRootTunFakeIpRange,
                                 commitRootTunFakeIpRange6 = commitRootTunFakeIpRange6,
                             )

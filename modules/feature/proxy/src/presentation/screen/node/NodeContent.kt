@@ -20,7 +20,6 @@
 
 package com.github.yumelira.yumebox.presentation.screen.node
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -38,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -47,6 +45,7 @@ import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.normalizeProxySheetHeightFraction
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
+import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -132,12 +131,11 @@ internal fun NodeTabs(groups: List<ProxyGroupInfo>, selectedIndex: Int, onSelect
     }
 }
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 internal fun rememberNodeSheetHeight(sheetHeightFraction: Float): Dp {
     val normalized = normalizeProxySheetHeightFraction(sheetHeightFraction)
-    val screenHeightDp = LocalConfiguration.current.screenHeightDp
-    return remember(screenHeightDp, normalized) { screenHeightDp.dp * normalized }
+    val windowHeight = LocalWindowAdaptiveInfo.current.windowHeight.takeIf { it > 0.dp } ?: 640.dp
+    return remember(windowHeight, normalized) { windowHeight * normalized }
 }
 
 @Composable

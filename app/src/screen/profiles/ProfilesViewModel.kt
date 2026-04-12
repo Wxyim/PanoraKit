@@ -51,9 +51,9 @@ import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import java.util.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -310,10 +310,13 @@ class ProfilesViewModel(
                             profileId = activeProfile.uuid,
                             enabled = false,
                             presentation =
-                                RuntimeActionFailurePresentation.Global(message = { reason ->
-                                    MLang.ProfilesVM.Message.DeleteFailed.format(reason)
-                                }),
-                        ).getOrThrowHandled()
+                                RuntimeActionFailurePresentation.Global(
+                                    message = { reason ->
+                                        MLang.ProfilesVM.Message.DeleteFailed.format(reason)
+                                    }
+                                ),
+                        )
+                        .getOrThrowHandled()
                 }
             profilesRepository.deleteProfile(uuid)
             runCatching { bindingProvider.removeBinding(uuid.toString()) }
@@ -339,9 +342,11 @@ class ProfilesViewModel(
                     profileId = uuid,
                     enabled = true,
                     presentation =
-                        RuntimeActionFailurePresentation.Global(message = { reason ->
-                            MLang.ProfilesVM.Message.ToggleFailed.format(reason)
-                        }),
+                        RuntimeActionFailurePresentation.Global(
+                            message = { reason ->
+                                MLang.ProfilesVM.Message.ToggleFailed.format(reason)
+                            }
+                        ),
                 )
             when (outcome) {
                 is RuntimeActionOutcome.Success -> Unit
@@ -455,9 +460,10 @@ class ProfilesViewModel(
                 profileId = uuid,
                 presentation =
                     RuntimeActionFailurePresentation.Runtime(
-                        fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                        fallbackMessage = MLang.ProfilesVM.Error.Unknown
                     ),
-            ).getOrThrowHandled()
+            )
+            .getOrThrowHandled()
         refreshProfilesNow()
         return profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
     }
@@ -473,9 +479,10 @@ class ProfilesViewModel(
                     profileId = uuid,
                     presentation =
                         RuntimeActionFailurePresentation.Runtime(
-                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown
                         ),
-                ).getOrThrowHandled()
+                )
+                .getOrThrowHandled()
         } catch (error: Exception) {
             runCatching {
                 profilesRepository.patchProfile(
@@ -498,10 +505,11 @@ class ProfilesViewModel(
                 profileId = uuid,
                 enabled = enabled,
                 presentation =
-                    RuntimeActionFailurePresentation.Global(message = { reason ->
-                        MLang.ProfilesVM.Message.ToggleFailed.format(reason)
-                    }),
-            ).getOrThrowHandled()
+                    RuntimeActionFailurePresentation.Global(
+                        message = { reason -> MLang.ProfilesVM.Message.ToggleFailed.format(reason) }
+                    ),
+            )
+            .getOrThrowHandled()
         refreshProfilesNow()
         return profilesRepository.queryProfileByUUID(uuid)
             ?: error("Profile not found after profile activation: $uuid")
@@ -514,9 +522,11 @@ class ProfilesViewModel(
         decisionProvider: () -> ConfigPreviewSaveDecision = { ConfigPreviewSaveDecision.Continue },
         stopRuntime: suspend () -> Unit = {},
     ): ConfigPreviewSaveOutcome {
-        val profile = profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
+        val profile =
+            profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
         val liveConfigFile = resolveProfileConfigFile(uuid)
-        val liveProfileDir = liveConfigFile.parentFile ?: error("Profile directory not found: $uuid")
+        val liveProfileDir =
+            liveConfigFile.parentFile ?: error("Profile directory not found: $uuid")
         val stagingDir = createProfileSaveStagingDirectory(uuid)
         var remoteFetchStarted = false
         var shouldDeleteStagingDir = true
@@ -562,10 +572,11 @@ class ProfilesViewModel(
             }
 
             val interruptedOutcome: ConfigPreviewSaveOutcome? = coroutineScope {
-                val remoteFetch = async(Dispatchers.IO) {
-                    remoteFetchStarted = true
-                    Clash.fetchAndValid(stagingDir, profile.source, false) { }.await()
-                }
+                val remoteFetch =
+                    async(Dispatchers.IO) {
+                        remoteFetchStarted = true
+                        Clash.fetchAndValid(stagingDir, profile.source, false) {}.await()
+                    }
 
                 while (!remoteFetch.isCompleted) {
                     when (decisionProvider()) {
@@ -610,9 +621,10 @@ class ProfilesViewModel(
                     profileId = uuid,
                     presentation =
                         RuntimeActionFailurePresentation.Runtime(
-                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown
                         ),
-                ).getOrThrowHandled()
+                )
+                .getOrThrowHandled()
             setLocalUnvalidatedMarker(uuid, false)
             refreshProfilesNow()
             return ConfigPreviewSaveOutcome.Saved
@@ -629,9 +641,7 @@ class ProfilesViewModel(
             error(MLang.ProfilesPage.Message.ProfileFileNotExist)
         }
 
-        return withContext(Dispatchers.IO) {
-            parseProfileConfigYaml(liveConfigFile.readText())
-        }
+        return withContext(Dispatchers.IO) { parseProfileConfigYaml(liveConfigFile.readText()) }
     }
 
     fun hasProfileGuiConfigChanges(
@@ -693,7 +703,9 @@ class ProfilesViewModel(
                 )
             }
         if (!result.success) {
-            error(result.error?.takeIf { it.isNotBlank() } ?: MLang.Component.Editor.Error.SaveFailed)
+            error(
+                result.error?.takeIf { it.isNotBlank() } ?: MLang.Component.Editor.Error.SaveFailed
+            )
         }
     }
 
@@ -725,10 +737,7 @@ class ProfilesViewModel(
         return profileGuiJson.encodeToString(JsonElement.serializer(), diffElement)
     }
 
-    private fun diffJsonElement(
-        original: JsonElement?,
-        updated: JsonElement?,
-    ): JsonElement? {
+    private fun diffJsonElement(original: JsonElement?, updated: JsonElement?): JsonElement? {
         if (original == updated) {
             return null
         }
@@ -756,8 +765,7 @@ class ProfilesViewModel(
         val configElement =
             if (rootElement is JsonObject) {
                 sanitizeJsonElementForSerializer(rootElement, ConfigurationOverride.serializer())
-                    as? JsonObject
-                    ?: JsonObject(emptyMap())
+                    as? JsonObject ?: JsonObject(emptyMap())
             } else {
                 JsonObject(emptyMap())
             }
@@ -795,8 +803,7 @@ class ProfilesViewModel(
 
         return when (descriptor.kind) {
             StructureKind.CLASS,
-            StructureKind.OBJECT,
-            -> sanitizeJsonObject(element as? JsonObject, descriptor)
+            StructureKind.OBJECT -> sanitizeJsonObject(element as? JsonObject, descriptor)
 
             StructureKind.LIST ->
                 sanitizeJsonArray(
@@ -817,15 +824,15 @@ class ProfilesViewModel(
 
             PrimitiveKind.BYTE,
             PrimitiveKind.SHORT,
-            PrimitiveKind.INT,
-            -> (element as? JsonPrimitive)?.intOrNull?.let { value -> JsonPrimitive(value) }
+            PrimitiveKind.INT ->
+                (element as? JsonPrimitive)?.intOrNull?.let { value -> JsonPrimitive(value) }
 
             PrimitiveKind.LONG ->
                 (element as? JsonPrimitive)?.longOrNull?.let { value -> JsonPrimitive(value) }
 
             PrimitiveKind.FLOAT,
-            PrimitiveKind.DOUBLE,
-            -> (element as? JsonPrimitive)?.doubleOrNull?.let { value -> JsonPrimitive(value) }
+            PrimitiveKind.DOUBLE ->
+                (element as? JsonPrimitive)?.doubleOrNull?.let { value -> JsonPrimitive(value) }
 
             PrimitiveKind.CHAR ->
                 (element as? JsonPrimitive)?.content?.singleOrNull()?.let { value ->
@@ -850,9 +857,10 @@ class ProfilesViewModel(
                     val key = descriptor.getElementName(index)
                     val childElement = element[key] ?: continue
                     sanitizeJsonElementForDescriptor(
-                        element = childElement,
-                        descriptor = descriptor.getElementDescriptor(index),
-                    )?.let { sanitizedChild -> put(key, sanitizedChild) }
+                            element = childElement,
+                            descriptor = descriptor.getElementDescriptor(index),
+                        )
+                        ?.let { sanitizedChild -> put(key, sanitizedChild) }
                 }
             }
 
@@ -904,10 +912,7 @@ class ProfilesViewModel(
         return JsonObject(content)
     }
 
-    private fun applyProfileGuiDiffToYaml(
-        originalYaml: String,
-        diffJson: String,
-    ): String {
+    private fun applyProfileGuiDiffToYaml(originalYaml: String, diffJson: String): String {
         val diffElement = profileGuiJson.parseToJsonElement(diffJson)
         if (diffElement !is JsonObject || diffElement.isEmpty()) {
             return originalYaml
@@ -940,7 +945,8 @@ class ProfilesViewModel(
                 }
             }
 
-            is List<*> -> value.mapTo(mutableListOf()) { childValue -> toMutableYamlValue(childValue) }
+            is List<*> ->
+                value.mapTo(mutableListOf()) { childValue -> toMutableYamlValue(childValue) }
             else -> value
         }
     }
@@ -971,10 +977,7 @@ class ProfilesViewModel(
         }
     }
 
-    private fun applyJsonDiffToYamlMap(
-        target: MutableMap<String, Any?>,
-        diff: JsonObject,
-    ) {
+    private fun applyJsonDiffToYamlMap(target: MutableMap<String, Any?>, diff: JsonObject) {
         diff.forEach { (key, value) ->
             when (value) {
                 JsonNull -> target.remove(key)
@@ -1061,7 +1064,8 @@ class ProfilesViewModel(
 
     private fun cleanupOldProfileSaveStagingDirectories(uuid: UUID, keep: File) {
         val root = getApplication<Application>().cacheDir.resolve("profile-save-staging")
-        root.listFiles()
+        root
+            .listFiles()
             ?.filter { it != keep && it.name.startsWith("$uuid-") }
             ?.forEach { runCatching { it.deleteRecursively() } }
     }
@@ -1098,9 +1102,11 @@ class ProfilesViewModel(
                         profileId = uuid,
                         enabled = !profile.active,
                         presentation =
-                            RuntimeActionFailurePresentation.Global(message = { reason ->
-                                MLang.ProfilesVM.Message.ToggleFailed.format(reason)
-                            }),
+                            RuntimeActionFailurePresentation.Global(
+                                message = { reason ->
+                                    MLang.ProfilesVM.Message.ToggleFailed.format(reason)
+                                }
+                            ),
                     )
                 when (outcome) {
                     is RuntimeActionOutcome.Success -> Unit

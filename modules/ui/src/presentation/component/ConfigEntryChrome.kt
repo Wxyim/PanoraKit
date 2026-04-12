@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -85,7 +84,8 @@ fun ConfigSettingRow(
 
         if (showDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = ConfigRowDividerStart, end = ConfigRowDividerEnd),
+                modifier =
+                    Modifier.padding(start = ConfigRowDividerStart, end = ConfigRowDividerEnd),
                 thickness = 0.5.dp,
                 color = MiuixTheme.colorScheme.outline.copy(alpha = 0.14f),
             )

@@ -21,8 +21,8 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -30,9 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
 @Stable
-class BottomBarScrollBehavior(
-    private val scrollThresholdPx: Float,
-) {
+class BottomBarScrollBehavior(private val scrollThresholdPx: Float) {
     var isBottomBarVisible by mutableStateOf(true)
         private set
 
@@ -103,7 +101,8 @@ fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomB
     val isAtTop by remember {
         derivedStateOf {
             !listState.canScrollBackward ||
-                (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 1)
+                (listState.firstVisibleItemIndex == 0 &&
+                    listState.firstVisibleItemScrollOffset <= 1)
         }
     }
 

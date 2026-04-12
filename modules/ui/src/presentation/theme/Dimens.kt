@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Returns an adaptive [Spacing] instance tuned for the current window size class:
- *
  * - **Compact**: narrow phone or split-window layouts → `screenH = 12 dp`
  * - **Medium**: landscape phones / foldables / narrow tablets → `screenH = 24 dp`
  * - **Expanded**: wide tablets or desktop-like windows → constrain content toward a ~680 dp column.
@@ -39,7 +38,11 @@ fun rememberAdaptiveSpacing(
     pageScale: Float = 1f,
 ): Spacing {
     val normalizedScale = pageScale.coerceIn(0.8f, 1.2f)
-    return remember(windowAdaptiveInfo.widthSizeClass, windowAdaptiveInfo.windowWidth, normalizedScale) {
+    return remember(
+        windowAdaptiveInfo.widthSizeClass,
+        windowAdaptiveInfo.windowWidth,
+        normalizedScale,
+    ) {
         val baseSpacing =
             when (windowAdaptiveInfo.widthSizeClass) {
                 androidx.compose.material3.windowsizeclass.WindowWidthSizeClass.Expanded -> {

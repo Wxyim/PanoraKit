@@ -30,13 +30,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.White
@@ -45,11 +46,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -160,8 +160,7 @@ fun BottomBarContent(isVisible: Boolean = true) {
         ) {
             BottomBarDestination.entries.forEachIndexed { index, destination ->
                 val selected = navigationState.page == index
-                val itemColor: Color =
-                    if (selected) selectedColor else unselectedColor
+                val itemColor: Color = if (selected) selectedColor else unselectedColor
                 BottomNavigationTabItem(
                     selected = selected,
                     enabled = bottomBarVisible,
@@ -404,21 +403,13 @@ private fun BottomNavigationBar(
 
         Box(
             Modifier.matchParentSize()
-                .border(
-                    width = 0.8.dp,
-                    color = containerBorderColor,
-                    shape = Capsule(),
-                )
+                .border(width = 0.8.dp, color = containerBorderColor, shape = Capsule())
         )
 
         Box(
             Modifier.matchParentSize()
                 .padding(1.dp)
-                .border(
-                    width = 0.35.dp,
-                    color = innerHighlightColor,
-                    shape = Capsule(),
-                )
+                .border(width = 0.35.dp, color = innerHighlightColor, shape = Capsule())
         )
     }
 }
@@ -435,11 +426,7 @@ private fun RowScope.BottomNavigationTabItem(
         modifier
             .semantics(mergeDescendants = true) { this.selected = selected }
             .clip(Capsule())
-            .clickable(
-                enabled = enabled,
-                role = Role.Tab,
-                onClick = onClick,
-            )
+            .clickable(enabled = enabled, role = Role.Tab, onClick = onClick)
             .fillMaxHeight()
             .weight(1f),
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
