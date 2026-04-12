@@ -26,13 +26,13 @@ import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     base
@@ -66,10 +66,7 @@ extensions.configure(SpotlessExtension::class.java) {
     }
 }
 
-data class GithubOssDependencyRule(
-    val reason: String,
-    val markers: List<String>,
-)
+data class GithubOssDependencyRule(val reason: String, val markers: List<String>)
 
 data class GithubOssDependencyFinding(
     val file: File,
@@ -78,7 +75,9 @@ data class GithubOssDependencyFinding(
     val reason: String,
 )
 
-@DisableCachingByDefault(because = "Scans repository build metadata for GitHub OSS policy violations.")
+@DisableCachingByDefault(
+    because = "Scans repository build metadata for GitHub OSS policy violations."
+)
 abstract class CheckGithubOssLicensePolicyTask : DefaultTask() {
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -95,11 +94,7 @@ abstract class CheckGithubOssLicensePolicyTask : DefaultTask() {
                 GithubOssDependencyRule(
                     reason =
                         "F2DLPRL-covered FYTxt/FVV components must not be shipped in GitHub OSS release binaries.",
-                    markers =
-                        listOf(
-                            "dev.oom-wg.purejoy.fyl.fytxt",
-                            "libs.fytxt.common.android",
-                        ),
+                    markers = listOf("dev.oom-wg.purejoy.fyl.fytxt", "libs.fytxt.common.android"),
                 ),
                 GithubOssDependencyRule(
                     reason =

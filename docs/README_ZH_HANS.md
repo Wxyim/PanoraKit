@@ -43,6 +43,30 @@ MonadBox 是一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的定制
 - 隐私与更安全的默认行为
 - 本地化与 UI 体验优化
 
+## 项目规范声明
+
+本项目遵循 [2026 现代 Android 应用设计与工程规范](SPEC_ZH_HANS.md)。
+
+核心规则：
+
+- 应用采用分层架构、单向数据流、UI state、state holder 与 Repository 边界。
+- UI 采用 adaptive-first、edge-to-edge、information-first 的 Compose 设计系统。
+- 产品能力按初级 / 中级 / 高级三层暴露。
+- 核心对象需要结构化建模；高影响变更必须具备确认、预览、回滚或恢复路径。
+- 自定义组件必须提供 semantics、无障碍支持与稳定测试钩子。
+- Android 平台约束，包括前台服务、窗口变化、本地网络访问与系统返回行为，均视为产品约束。
+
+合并门禁：
+
+1. 稳定对象模型
+2. 单一 UI 真相源
+3. Adaptive 布局验收
+4. Edge-to-edge 验收
+5. 关键路径测试
+6. 高风险操作保护
+7. 组件语义
+8. 最小性能基线
+
 ## 许可状态
 
 - MonadBox 自有代码与 fork 衍生代码采用 AGPL-3.0-only。
