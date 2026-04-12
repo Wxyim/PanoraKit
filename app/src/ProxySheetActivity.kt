@@ -24,12 +24,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
 import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -54,8 +57,23 @@ class ProxySheetActivity : ComponentActivity() {
                         fontScale = systemDensity.fontScale * pageScale,
                     )
                 CompositionLocalProvider(LocalDensity provides scaledDensity) {
-                    val adaptiveSpacing = rememberAdaptiveSpacing(pageScale = pageScale)
-                    YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb, spacing = adaptiveSpacing) {
+                    val configuration = LocalConfiguration.current
+                    val windowAdaptiveInfo =
+                        rememberAvailableWindowAdaptiveInfo(
+                            maxWidth = configuration.screenWidthDp.dp,
+                            maxHeight = configuration.screenHeightDp.dp,
+                        )
+                    val adaptiveSpacing =
+                        rememberAdaptiveSpacing(
+                            windowAdaptiveInfo = windowAdaptiveInfo,
+                            pageScale = pageScale,
+                        )
+                    YumeTheme(
+                        themeMode = themeMode,
+                        themeSeedColorArgb = themeSeedColorArgb,
+                        spacing = adaptiveSpacing,
+                        windowAdaptiveInfo = windowAdaptiveInfo,
+                    ) {
                         ProxySheetContent(
                             onDismiss = {
                                 finish()

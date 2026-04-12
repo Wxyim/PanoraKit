@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.screen.home
 
 import android.app.Application
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.TunnelState
@@ -32,26 +31,26 @@ import com.github.yumelira.yumebox.data.repository.NetworkInfoService
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
+import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
+import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import com.github.yumelira.yumebox.remote.VpnPermissionRequired
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import dev.oom_wg.purejoy.mlang.MLang
-import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -96,12 +95,6 @@ data class HomeUiState(
     val loadingProgress: String? = null,
     val message: String? = null,
     val error: String? = null,
-    val startFailureDialog: HomeStartFailureDialog? = null,
-)
-
-data class HomeStartFailureDialog(
-    val title: String,
-    val detail: String,
 )
 
 enum class HomeRuntimeVisualState {
@@ -187,25 +180,11 @@ private object HomeSpeedSampler {
     }
 }
 
-private const val LOCAL_UNVALIDATED_MARKER_FILE = ".local-unvalidated-profile"
-
 private data class HomeTrafficSample(
     val phase: RuntimePhase,
     val trafficReady: Boolean,
     val latestTraffic: Long,
 )
-
-private enum class HomeStartFailureCategory {
-    Syntax,
-    Remote,
-    Network,
-    Permission,
-    Profile,
-    RuntimeService,
-    RuntimeControl,
-    Environment,
-    Unknown,
-}
 
 private object HomeProxySelectionResolver {
     fun resolveGlobalDisplayGroup(
@@ -278,6 +257,12 @@ private object HomeProxySelectionResolver {
     }
 }
 
+private object HomeProfileResolver {
+    fun resolveDisplayProfile(runningProfile: Profile?, activeProfile: Profile?): Profile? {
+        return runningProfile ?: activeProfile
+    }
+}
+
 class HomeViewModel(
     private val application: Application,
     private val proxyFacade: ProxyFacade,
@@ -287,7 +272,8 @@ class HomeViewModel(
     private val proxyChainResolver: ProxyChainResolver,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val networkSettingsStorage: NetworkSettingsStorage,
-    private val runtimeControlCoordinator: RuntimeControlCoordinator,
+    private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : ViewModel() {
 
     private val profilesStateMutable = MutableStateFlow(HomeProfilesState())
@@ -319,14 +305,6 @@ class HomeViewModel(
                 SharingStarted.WhileSubscribed(5000),
                 RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
             )
-
-    private val _vpnPrepareIntent =
-        MutableSharedFlow<Intent>(
-            replay = 0,
-            extraBufferCapacity = 1,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST,
-        )
-    val vpnPrepareIntent = _vpnPrepareIntent.asSharedFlow()
 
     private val currentTunnelMode: StateFlow<TunnelState.Mode> =
         proxyDisplaySettingsStore.proxyMode.state.stateIn(
@@ -477,8 +455,13 @@ class HomeViewModel(
                 },
             ) { chromeAndProfiles, profileAndServer, runtimeUi ->
                 val (chrome, profiles) = chromeAndProfiles
-                val (currentProfile, selectedServer) = profileAndServer
+                val (runningProfile, selectedServer) = profileAndServer
                 val (ipState, speedHistory, trafficNow) = runtimeUi
+                val displayProfile =
+                    HomeProfileResolver.resolveDisplayProfile(
+                        runningProfile = runningProfile,
+                        activeProfile = profiles.recommendedProfile,
+                    )
                 HomeScreenState(
                     ui = chrome.ui,
                     runtimeVisualState = chrome.runtimeVisualState,
@@ -489,7 +472,7 @@ class HomeViewModel(
                     recommendedProfile = profiles.recommendedProfile,
                     profilesLoaded = profiles.profilesLoaded,
                     hasEnabledProfile = profiles.profiles.any { it.active },
-                    currentProfile = currentProfile,
+                    currentProfile = displayProfile,
                     selectedServer = selectedServer,
                     ipMonitoringState = ipState,
                     speedHistory = speedHistory,
@@ -502,7 +485,6 @@ class HomeViewModel(
         refreshProfiles()
         refreshHomeEntryData()
         syncDisplayState()
-        observeRuntimeFailures()
         syncProxyModeState()
         observeProfileChanges()
     }
@@ -621,20 +603,6 @@ class HomeViewModel(
         }
     }
 
-    private fun observeRuntimeFailures() {
-        viewModelScope.launch {
-            runtimeSnapshot
-                .drop(1)
-                .map { snapshot -> Triple(snapshot.phase, snapshot.lastError, snapshot.generation) }
-                .distinctUntilChanged()
-                .collect { (phase, lastError, _) ->
-                    if (phase == RuntimePhase.Failed && !lastError.isNullOrBlank()) {
-                        showError(lastError)
-                    }
-                }
-        }
-    }
-
     fun refreshProxyMode() {
         setDisplayProxyMode(
             RuntimeStateMapper.resolveDisplayMode(
@@ -650,7 +618,7 @@ class HomeViewModel(
 
             val activeProfile = profilesRepository.queryActiveProfile(ensureDefault = true)
             if (activeProfile == null) {
-                showError(
+                GlobalDialogPresenter.showError(
                     MLang.Home.Message.ConfigSwitchFailed.format(
                         MLang.ProfilesVM.Error.ProfileNotExist
                     )
@@ -659,15 +627,27 @@ class HomeViewModel(
             }
 
             profilesRepository.updateProfile(activeProfile.uuid)
-            runtimeControlCoordinator.reloadCurrentProfile("home:reload-profile")
+            val outcome =
+                runtimeActionExecutor.reloadCurrentProfile(
+                    operation = "home:reload-profile",
+                    presentation =
+                        RuntimeActionFailurePresentation.Global(message = { reason ->
+                            MLang.Home.Message.ConfigSwitchFailed.format(reason)
+                        }),
+                )
+            if (outcome !is RuntimeActionOutcome.Success) {
+                return
+            }
             showMessage(MLang.Home.Message.ConfigSwitched)
         } catch (e: Exception) {
             Timber.e(e, "Failed to reload profile")
-            showError(
-                MLang.Home.Message.ConfigSwitchFailed.format(
-                    e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+            if (e !is VpnPermissionRequired) {
+                GlobalDialogPresenter.showError(
+                    MLang.Home.Message.ConfigSwitchFailed.format(
+                        e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+                    )
                 )
-            )
+            }
         } finally {
             setLoading(false)
         }
@@ -683,16 +663,9 @@ class HomeViewModel(
         viewModelScope.launch {
             val startedAt = System.currentTimeMillis()
             updateChromeForStartRequest()
-
-            val requestedProfileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString)
-            val requestedProfile = requestedProfileId?.let { profilesRepository.queryProfileByUUID(it) }
-            val shouldShowDetailedFailureDialog =
-                requestedProfile?.let { profile ->
-                    profile.type == Profile.Type.File && hasUnvalidatedLocalMarker(profile.uuid)
-                } == true
+            val proxyMode = mode ?: networkSettingsStorage.proxyMode.value
 
             try {
-                val proxyMode = mode ?: networkSettingsStorage.proxyMode.value
                 setDisplayProxyMode(proxyMode)
                 if (!logRecordGateway.isRecording) {
                     runCatching { logRecordGateway.start(application) }
@@ -700,12 +673,48 @@ class HomeViewModel(
                 }
                 Timber.d("Home startProxy kickoff: mode=$proxyMode profileId=$profileId")
 
-                withContext(Dispatchers.IO) {
-                    runtimeControlCoordinator.startProxy(
+                val startOutcome =
+                    withContext(Dispatchers.IO) {
+                        runtimeActionExecutor.startProxy(
                         operation = "home:start-proxy",
                         profileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
                         mode = proxyMode,
-                    )
+                        fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                        )
+                    }
+
+                when (startOutcome) {
+                    is RuntimeActionOutcome.Success -> Unit
+                    is RuntimeActionOutcome.PermissionRequired -> {
+                        chromeStateMutable.update { current ->
+                            current.copy(
+                                isToggling = false,
+                                ui =
+                                    current.ui.copy(
+                                        isStartingProxy = false,
+                                        loadingProgress = null,
+                                    ),
+                            )
+                        }
+                        vpnPermissionCoordinator.requestPermission(startOutcome.intent) {
+                            startProxy(profileId = profileId, mode = proxyMode)
+                        }
+                        Timber.i("VPN permission required")
+                        return@launch
+                    }
+                    RuntimeActionOutcome.FailureHandled -> {
+                        chromeStateMutable.update { current ->
+                            current.copy(
+                                isToggling = false,
+                                ui =
+                                    current.ui.copy(
+                                        isStartingProxy = false,
+                                        loadingProgress = null,
+                                    ),
+                            )
+                        }
+                        return@launch
+                    }
                 }
 
                 reconcileRuntimeState(expectRunning = true)
@@ -713,15 +722,6 @@ class HomeViewModel(
                 Timber.i(
                     "Home startProxy completed in ${System.currentTimeMillis() - startedAt}ms, mode=$proxyMode"
                 )
-            } catch (e: VpnPermissionRequired) {
-                chromeStateMutable.update { current ->
-                    current.copy(
-                        isToggling = false,
-                        ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                    )
-                }
-                _vpnPrepareIntent.emit(e.intent)
-                Timber.i("VPN permission required")
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -732,11 +732,12 @@ class HomeViewModel(
                     )
                 }
                 Timber.e(e, "Failed to start proxy")
-                val failureReason = e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
-                if (shouldShowDetailedFailureDialog) {
-                    showStartFailureDialog(buildStartFailureDialog(failureReason))
-                } else {
-                    showError(MLang.Home.Message.StartFailed.format(failureReason))
+                if (e !is VpnPermissionRequired) {
+                    val failureReason = e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+                    RuntimeFailureDialogPresenter.showStartFailure(
+                        reason = failureReason,
+                        targetMode = proxyMode,
+                    )
                 }
             }
         }
@@ -749,7 +750,21 @@ class HomeViewModel(
         setLoading(true)
 
         try {
-            withContext(Dispatchers.IO) { runtimeControlCoordinator.stopProxy("home:stop-proxy") }
+            val outcome =
+                withContext(Dispatchers.IO) {
+                    runtimeActionExecutor.stopProxy(
+                        operation = "home:stop-proxy",
+                        presentation =
+                            RuntimeActionFailurePresentation.Global(message = { reason ->
+                                MLang.Home.Message.StopFailed.format(reason)
+                            }),
+                    )
+                }
+            if (outcome !is RuntimeActionOutcome.Success) {
+                chromeStateMutable.update { current -> current.copy(isToggling = false) }
+                setLoading(false)
+                return
+            }
             reconcileRuntimeState(expectRunning = false)
             chromeStateMutable.update { current -> current.copy(isToggling = false) }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -757,11 +772,13 @@ class HomeViewModel(
         } catch (e: Exception) {
             chromeStateMutable.update { current -> current.copy(isToggling = false) }
             Timber.e(e, "Failed to stop proxy")
-            showError(
-                MLang.Home.Message.StopFailed.format(
-                    e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+            if (e !is VpnPermissionRequired) {
+                GlobalDialogPresenter.showError(
+                    MLang.Home.Message.StopFailed.format(
+                        e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
+                    )
                 )
-            )
+            }
         }
 
         setLoading(false)
@@ -853,154 +870,6 @@ class HomeViewModel(
         }
     }
 
-    private fun showStartFailureDialog(dialog: HomeStartFailureDialog) {
-        chromeStateMutable.update { current -> current.copy(ui = current.ui.copy(startFailureDialog = dialog)) }
-    }
-
-    private fun buildStartFailureDialog(reason: String): HomeStartFailureDialog {
-        val category = classifyStartFailure(reason)
-        val detail =
-            when (category) {
-                HomeStartFailureCategory.Syntax ->
-                    MLang.Home.Message.StartFailedSyntaxReason.format(reason)
-
-                HomeStartFailureCategory.Remote ->
-                    MLang.Home.Message.StartFailedRemoteReason.format(reason)
-
-                HomeStartFailureCategory.Network ->
-                    MLang.Home.Message.StartFailedNetworkReason.format(reason)
-
-                HomeStartFailureCategory.Permission ->
-                    MLang.Home.Message.StartFailedPermissionReason.format(reason)
-
-                HomeStartFailureCategory.Profile ->
-                    MLang.Home.Message.StartFailedProfileReason.format(reason)
-
-                HomeStartFailureCategory.RuntimeService ->
-                    MLang.Home.Message.StartFailedRuntimeServiceReason.format(reason)
-
-                HomeStartFailureCategory.RuntimeControl ->
-                    MLang.Home.Message.StartFailedRuntimeControlReason.format(reason)
-
-                HomeStartFailureCategory.Environment ->
-                    MLang.Home.Message.StartFailedEnvironmentReason.format(reason)
-
-                HomeStartFailureCategory.Unknown ->
-                    MLang.Home.Message.StartFailedUnknownReason.format(reason)
-            }
-        return HomeStartFailureDialog(title = MLang.Home.Message.StartFailedDialogTitle, detail = detail)
-    }
-
-    private fun classifyStartFailure(reason: String): HomeStartFailureCategory {
-        val normalized = reason.lowercase()
-
-        fun containsAny(vararg tokens: String): Boolean {
-            return tokens.any { token -> normalized.contains(token) }
-        }
-
-        val code =
-            RuntimeGatewayErrorCode.entries.firstOrNull { gatewayCode ->
-                normalized.startsWith(gatewayCode.name.lowercase())
-            }
-
-        if (
-            containsAny(
-                "provider fetch failed",
-                "subscription",
-                "fetch configuration",
-                "fetch providers",
-                "remote resource",
-                "download",
-            )
-        ) {
-            return HomeStartFailureCategory.Remote
-        }
-
-        if (containsAny("yaml", "syntax", "parse", "decode", "line", "column")) {
-            return HomeStartFailureCategory.Syntax
-        }
-
-        if (containsAny("unauthorized", "permission", "denied", "forbidden", "access")) {
-            return HomeStartFailureCategory.Permission
-        }
-
-        if (
-            containsAny(
-                "timeout",
-                "timed out",
-                "connection reset",
-                "refused",
-                "unreachable",
-                "network",
-                "dns",
-                "tls",
-                "ssl",
-                "certificate",
-                "host",
-            )
-        ) {
-            return HomeStartFailureCategory.Network
-        }
-
-        if (containsAny("profile", "not found", "no profile", "active profile")) {
-            return HomeStartFailureCategory.Profile
-        }
-
-        if (
-            containsAny(
-                "port",
-                "address already in use",
-                "bind",
-                "device",
-                "tun",
-                "vpn",
-                "resource busy",
-                "not supported",
-            )
-        ) {
-            return HomeStartFailureCategory.Environment
-        }
-
-        return when (code) {
-            RuntimeGatewayErrorCode.RUNTIME_CONFIG_COMPILE_FAILED,
-            RuntimeGatewayErrorCode.RUNTIME_CONFIG_PREVIEW_FAILED,
-            -> HomeStartFailureCategory.Syntax
-
-            RuntimeGatewayErrorCode.CLIENT_NOT_CONNECTED,
-            RuntimeGatewayErrorCode.CLIENT_INIT_FAILED,
-            RuntimeGatewayErrorCode.ROOT_RUNTIME_DISCONNECTED,
-            RuntimeGatewayErrorCode.ROOT_RUNTIME_QUERY_FAILED,
-            -> HomeStartFailureCategory.RuntimeService
-
-            RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
-            RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-            RuntimeGatewayErrorCode.RUNTIME_RESTART_FAILED,
-            RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-            RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
-            RuntimeGatewayErrorCode.ROOT_TUN_RELOAD_FAILED,
-            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_ROLLBACK_FAILED,
-            RuntimeGatewayErrorCode.ROOT_TUN_CONFIG_SNAPSHOT_MISSING,
-            -> HomeStartFailureCategory.RuntimeControl
-
-            RuntimeGatewayErrorCode.RUNTIME_SPEC_BUILD_FAILED -> HomeStartFailureCategory.Profile
-            RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED -> HomeStartFailureCategory.Unknown
-            null -> HomeStartFailureCategory.Unknown
-        }
-    }
-
-    private fun hasUnvalidatedLocalMarker(uuid: UUID): Boolean {
-        return resolveProfileMarkerFile(uuid).exists()
-    }
-
-    private fun resolveProfileMarkerFile(uuid: UUID): File {
-        val filesDir = application.filesDir
-        val importedMarker = filesDir.resolve("imported/$uuid/$LOCAL_UNVALIDATED_MARKER_FILE")
-        if (importedMarker.exists()) {
-            return importedMarker
-        }
-        return filesDir.resolve("clash/profiles/$uuid/$LOCAL_UNVALIDATED_MARKER_FILE")
-    }
-
     fun consumeMessage() {
         chromeStateMutable.update { current ->
             if (current.ui.message == null) {
@@ -1017,16 +886,6 @@ class HomeViewModel(
                 current
             } else {
                 current.copy(ui = current.ui.copy(error = null))
-            }
-        }
-    }
-
-    fun consumeStartFailureDialog() {
-        chromeStateMutable.update { current ->
-            if (current.ui.startFailureDialog == null) {
-                current
-            } else {
-                current.copy(ui = current.ui.copy(startFailureDialog = null))
             }
         }
     }

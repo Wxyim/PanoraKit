@@ -20,7 +20,10 @@
 
 package com.github.yumelira.yumebox
 
+import android.app.Activity
 import android.app.ActivityManager
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -38,11 +41,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -71,14 +79,19 @@ import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBe
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.LocalPagerState
+import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogEffect
 import com.github.yumelira.yumebox.presentation.component.SideRailContent
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumelira.yumebox.presentation.component.ToastDialogHost
 import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionHost
 import com.github.yumelira.yumebox.presentation.screen.ProxyPager
+import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
+import com.github.yumelira.yumebox.presentation.theme.WindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
 import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
 import com.github.yumelira.yumebox.screen.home.HomeRoute
@@ -134,10 +147,12 @@ class MainActivity : ComponentActivity() {
         com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator by
         inject()
     private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
+    private val vpnPermissionCoordinator: VpnPermissionCoordinator by inject()
     private val serviceCache: MMKV by inject(qualifier = named(StoreIds.SERVICE_CACHE))
 
     private lateinit var intentController: IntentController
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         StartupGate.loadPrimary()
         enableEdgeToEdge()
@@ -184,8 +199,33 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 CompositionLocalProvider(LocalDensity provides scaledDensity) {
-                    val adaptiveSpacing = rememberAdaptiveSpacing(pageScale = pageScale)
-                    YumeTheme(themeMode = themeMode, themeSeedColorArgb = themeSeedColorArgb, spacing = adaptiveSpacing) {
+                    val configuration = LocalConfiguration.current
+                    val windowSizeClass = calculateWindowSizeClass(this@MainActivity)
+                    val windowAdaptiveInfo =
+                        remember(
+                            windowSizeClass.widthSizeClass,
+                            windowSizeClass.heightSizeClass,
+                            configuration.screenWidthDp,
+                            configuration.screenHeightDp,
+                        ) {
+                            WindowAdaptiveInfo(
+                                widthSizeClass = windowSizeClass.widthSizeClass,
+                                heightSizeClass = windowSizeClass.heightSizeClass,
+                                windowWidth = configuration.screenWidthDp.dp,
+                                windowHeight = configuration.screenHeightDp.dp,
+                            )
+                        }
+                    val adaptiveSpacing =
+                        rememberAdaptiveSpacing(
+                            windowAdaptiveInfo = windowAdaptiveInfo,
+                            pageScale = pageScale,
+                        )
+                    YumeTheme(
+                        themeMode = themeMode,
+                        themeSeedColorArgb = themeSeedColorArgb,
+                        spacing = adaptiveSpacing,
+                        windowAdaptiveInfo = windowAdaptiveInfo,
+                    ) {
                         val topBarHazeState = remember { HazeState() }
                         val topBarBackground = MiuixTheme.colorScheme.surface
                         val topBarHazeStyle =
@@ -207,6 +247,8 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxSize(),
                                 color = MiuixTheme.colorScheme.surface,
                             ) {
+                                RuntimeFailureDialogEffect(runtimeSnapshot = proxyFacade.runtimeSnapshot)
+                                VpnPermissionHost(coordinator = vpnPermissionCoordinator)
                                 DestinationsNavHost(
                                     navGraph = NavGraphs.root,
                                     navController = navController,
@@ -298,8 +340,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 @Destination<RootGraph>
 fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
-    val configuration = LocalConfiguration.current
-    val useRailNavigation = configuration.screenWidthDp >= 600
+    val adaptiveInfo = LocalWindowAdaptiveInfo.current
+    val useRailNavigation = adaptiveInfo.useRailNavigation
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, 3), pageCount = { 4 })
     val hazeState = remember { HazeState() }
@@ -317,6 +359,12 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         } else {
             rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
         }
+
+    LaunchedEffect(useRailNavigation, pagerState.currentPage, bottomBarScrollBehavior) {
+        if (!useRailNavigation) {
+            bottomBarScrollBehavior?.showBottomBar(force = true)
+        }
+    }
 
     var pageChangeJob by remember { mutableStateOf<Job?>(null) }
 
@@ -346,15 +394,21 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         Scaffold { innerPadding ->
             val density = LocalDensity.current
             val layoutDirection = LocalLayoutDirection.current
-            val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
-            val systemTopInset = systemBarsPadding.calculateTopPadding()
-            val systemStartInset = systemBarsPadding.calculateStartPadding(layoutDirection)
-            val systemEndInset = systemBarsPadding.calculateEndPadding(layoutDirection)
+            val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
+            val safeTopInset = safeDrawingPadding.calculateTopPadding()
+            val safeStartInset = safeDrawingPadding.calculateStartPadding(layoutDirection)
+            val safeEndInset = safeDrawingPadding.calculateEndPadding(layoutDirection)
             val systemBottomInset =
                 with(density) {
                     val navBottom = WindowInsets.navigationBars.getBottom(this)
                     val gestureBottom = WindowInsets.systemGestures.getBottom(this)
                     max(navBottom, gestureBottom).toDp()
+                }
+            val safeBottomInset =
+                if (safeDrawingPadding.calculateBottomPadding() > systemBottomInset) {
+                    safeDrawingPadding.calculateBottomPadding()
+                } else {
+                    systemBottomInset
                 }
             val bottomBarReservedHeight = if (useRailNavigation) 0.dp else 74.dp
             val safeMainPadding =
@@ -363,9 +417,9 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                     bottom =
                         innerPadding.calculateBottomPadding() +
                             bottomBarReservedHeight +
-                            systemBottomInset,
-                    start = if (useRailNavigation) 0.dp else systemStartInset,
-                    end = systemEndInset,
+                            safeBottomInset,
+                    start = if (useRailNavigation) 0.dp else safeStartInset,
+                    end = safeEndInset,
                 )
             val pagerModifier =
                 Modifier.fillMaxSize()
@@ -379,18 +433,7 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                     )
 
             val pagerContent: @Composable (Modifier) -> Unit = { modifier ->
-                HorizontalPager(
-                    modifier = modifier,
-                    state = pagerState,
-                    beyondViewportPageCount = 0,
-                    userScrollEnabled = true,
-                    pageNestedScrollConnection =
-                        PagerDefaults.pageNestedScrollConnection(
-                            state = pagerState,
-                            orientation =
-                                androidx.compose.foundation.gestures.Orientation.Horizontal,
-                        ),
-                ) { page ->
+                val pageContent: @Composable (Int) -> Unit = { page ->
                     when (page) {
                         0 ->
                             HomeRoute(
@@ -412,6 +455,38 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                         3 -> SettingPager(safeMainPadding)
                     }
                 }
+
+                if (adaptiveInfo.useVerticalPageSwitch) {
+                    VerticalPager(
+                        modifier = modifier,
+                        state = pagerState,
+                        beyondViewportPageCount = 0,
+                        userScrollEnabled = false,
+                        pageNestedScrollConnection =
+                            PagerDefaults.pageNestedScrollConnection(
+                                state = pagerState,
+                                orientation =
+                                    androidx.compose.foundation.gestures.Orientation.Vertical,
+                            ),
+                    ) { page ->
+                        pageContent(page)
+                    }
+                } else {
+                    HorizontalPager(
+                        modifier = modifier,
+                        state = pagerState,
+                        beyondViewportPageCount = 0,
+                        userScrollEnabled = true,
+                        pageNestedScrollConnection =
+                            PagerDefaults.pageNestedScrollConnection(
+                                state = pagerState,
+                                orientation =
+                                    androidx.compose.foundation.gestures.Orientation.Horizontal,
+                            ),
+                    ) { page ->
+                        pageContent(page)
+                    }
+                }
             }
 
             if (useRailNavigation) {
@@ -419,10 +494,10 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                     Box(
                         modifier =
                             Modifier.padding(
-                                    start = systemStartInset + 12.dp,
-                                    top = systemTopInset + 12.dp,
+                                    start = safeStartInset + 12.dp,
+                                    top = safeTopInset + 12.dp,
                                     end = 12.dp,
-                                    bottom = systemBottomInset + 12.dp,
+                                    bottom = safeBottomInset + 12.dp,
                                 )
                                 .fillMaxHeight(),
                         contentAlignment = Alignment.Center,
@@ -448,3 +523,10 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         }
     }
 }
+
+private tailrec fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
