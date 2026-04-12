@@ -73,6 +73,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(project(":platform"))
     implementation(project(":locale"))
     implementation(project(":data:settings"))

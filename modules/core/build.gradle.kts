@@ -52,6 +52,24 @@ android {
                 manifest.srcFile("AndroidManifest.xml")
             }
         }
+        getByName("test") {
+            kotlin.directories.apply {
+                clear()
+                add("test")
+            }
+            resources.directories.apply {
+                clear()
+                add("test/resources")
+            }
+            assets.directories.clear()
+        }
+        getByName("androidTest") {
+            kotlin.directories.clear()
+            res.directories.clear()
+            assets.directories.clear()
+            aidl.directories.clear()
+            resources.directories.clear()
+        }
     }
 }
 
@@ -62,4 +80,6 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.annotation.jvm)
     implementation(libs.timber)
+
+    testImplementation("junit:junit:4.13.2")
 }

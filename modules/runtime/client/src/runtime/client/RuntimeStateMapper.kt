@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.runtime.client
 
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.domain.model.ProductLifecycleState
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
@@ -32,6 +33,21 @@ object RuntimeStateMapper {
 
     fun isActuallyRunning(snapshot: RuntimeSnapshot): Boolean {
         return snapshot.phase == RuntimePhase.Running
+    }
+
+    fun lifecycleState(snapshot: RuntimeSnapshot): ProductLifecycleState {
+        return when (snapshot.phase) {
+            RuntimePhase.Idle -> ProductLifecycleState.Idle
+            RuntimePhase.Starting -> ProductLifecycleState.Preparing
+            RuntimePhase.Running ->
+                if (snapshot.payloadReady && snapshot.configReady && snapshot.transportReady) {
+                    ProductLifecycleState.Active
+                } else {
+                    ProductLifecycleState.Degraded
+                }
+            RuntimePhase.Stopping -> ProductLifecycleState.Stopping
+            RuntimePhase.Failed -> ProductLifecycleState.Failed
+        }
     }
 
     fun modeForOwner(owner: RuntimeOwner): ProxyMode? {

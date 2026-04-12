@@ -34,14 +34,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +59,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -75,6 +79,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.Share
 import com.github.yumelira.yumebox.presentation.theme.horizontalPadding
 import com.github.yumelira.yumebox.presentation.util.*
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
+import com.github.yumelira.yumebox.service.runtime.entity.toProductProfileObject
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import kotlin.math.abs
@@ -84,7 +89,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
 
 private object ProfileCardMetrics {
     val OuterBottomPadding = 8.dp
@@ -138,7 +142,27 @@ fun ProfileCard(
     val colorScheme = MiuixTheme.colorScheme
     val activeStyle = SemanticActionDefaults.style(SemanticTone.Success, highEmphasis = true)
     val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
+    val profileObject =
+        remember(profile, isConfigSaved) { profile.toProductProfileObject(isConfigSaved) }
     val infoText = remember(profile) { profile.getInfoText() }
+    val profileSemanticDescription =
+        remember(profileObject, infoText, isSelected, isDownloading) {
+            listOfNotNull(
+                    profileObject.displayName,
+                    profileObject.owner.label,
+                    profileObject.lifecycleState.name.lowercase(),
+                    profileObject.effectiveRelation.name.lowercase(),
+                    profileObject.riskLevel.name.lowercase(),
+                    infoText.replace('\n', ' '),
+                    if (isSelected) MLang.Proxy.Selection.Current else null,
+                    if (!profileObject.configSaved) "not exportable" else null,
+                    if (isDownloading) "downloading" else null,
+                )
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .distinct()
+                .joinToString(separator = ", ")
+        }
     val showUpdateButton = profile.shouldShowUpdateButton()
     val headerEndPadding =
         if (showUpdateButton) {
@@ -148,16 +172,14 @@ fun ProfileCard(
         }
     val revealWidthPx =
         with(LocalDensity.current) {
-            (
-                ProfileCardMetrics.SwipeRailWidth +
-                    ProfileCardMetrics.SwipeActionEndPadding * 2
-            )
+            (ProfileCardMetrics.SwipeRailWidth + ProfileCardMetrics.SwipeActionEndPadding * 2)
                 .toPx()
         }
     val interactionSource = remember { MutableInteractionSource() }
 
     var swipeOffsetPx by remember(profile.uuid) { mutableFloatStateOf(0f) }
-    val animatedOffsetPx by animateFloatAsState(targetValue = swipeOffsetPx, label = "profile_card_swipe")
+    val animatedOffsetPx by
+        animateFloatAsState(targetValue = swipeOffsetPx, label = "profile_card_swipe")
     val revealProgress = (-animatedOffsetPx / revealWidthPx).coerceIn(0f, 1f)
     val actionsInteractable = revealProgress > 0.06f && !isDownloading
 
@@ -184,10 +206,7 @@ fun ProfileCard(
     val swipeNestedScrollConnection =
         remember(isDownloading) {
             object : NestedScrollConnection {
-                override fun onPreScroll(
-                    available: Offset,
-                    source: NestedScrollSource,
-                ): Offset {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                     if (isDownloading || source != NestedScrollSource.UserInput) return Offset.Zero
                     if (abs(available.x) <= abs(available.y)) return Offset.Zero
                     return Offset(available.x, 0f)
@@ -202,7 +221,10 @@ fun ProfileCard(
         }
 
     Box(
-        modifier = Modifier.fillMaxWidth().horizontalPadding().padding(bottom = ProfileCardMetrics.OuterBottomPadding)
+        modifier =
+            Modifier.fillMaxWidth()
+                .horizontalPadding()
+                .padding(bottom = ProfileCardMetrics.OuterBottomPadding)
     ) {
         Box(
             modifier = Modifier.matchParentSize().zIndex(0f),
@@ -273,14 +295,23 @@ fun ProfileCard(
                     modifier =
                         Modifier.fillMaxWidth()
                             .then(dragHandleModifier)
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = profileSemanticDescription
+                                stateDescription =
+                                    if (isSelected) {
+                                        MLang.Proxy.Selection.Current
+                                    } else {
+                                        ""
+                                    }
+                                selected = isSelected
+                            }
                             .draggable(
                                 enabled = !isDownloading,
                                 orientation = Orientation.Horizontal,
                                 state =
                                     rememberDraggableState { delta ->
                                         swipeOffsetPx =
-                                            (swipeOffsetPx + delta)
-                                                .coerceIn(-revealWidthPx, 0f)
+                                            (swipeOffsetPx + delta).coerceIn(-revealWidthPx, 0f)
                                     },
                                 onDragStopped = { velocity -> settleActions(velocity) },
                             )
@@ -315,7 +346,8 @@ fun ProfileCard(
                         )
 
                         Row(
-                            modifier = Modifier.padding(top = ProfileCardMetrics.ProviderTopPadding),
+                            modifier =
+                                Modifier.padding(top = ProfileCardMetrics.ProviderTopPadding),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -375,7 +407,10 @@ fun ProfileCard(
                                             Text(
                                                 text = timeText,
                                                 fontSize = ProfileCardMetrics.InfoTrailingFontSize,
-                                                color = colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                                                color =
+                                                    colorScheme.onTertiaryContainer.copy(
+                                                        alpha = 0.8f
+                                                    ),
                                                 fontWeight = FontWeight.Medium,
                                                 maxLines = 1,
                                                 modifier = Modifier.padding(start = 12.dp),
@@ -422,10 +457,7 @@ fun ProfileCard(
 }
 
 @Composable
-private fun ProfileActiveRail(
-    modifier: Modifier = Modifier,
-    color: Color,
-) {
+private fun ProfileActiveRail(modifier: Modifier = Modifier, color: Color) {
     Box(
         modifier =
             modifier

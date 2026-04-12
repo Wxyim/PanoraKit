@@ -1,6 +1,7 @@
 package com.github.yumelira.yumebox.runtime.client
 
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.domain.model.ProductLifecycleState
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
@@ -83,6 +84,31 @@ class RuntimeTransitionPolicyTest {
                 groupsEmpty = false,
                 profileMissing = false,
             )
+        )
+    }
+
+    @Test
+    fun lifecycleState_mapsRuntimeReadinessIntoProductState() {
+        assertEquals(
+            ProductLifecycleState.Preparing,
+            RuntimeStateMapper.lifecycleState(RuntimeSnapshot(phase = RuntimePhase.Starting)),
+        )
+        assertEquals(
+            ProductLifecycleState.Degraded,
+            RuntimeStateMapper.lifecycleState(RuntimeSnapshot(phase = RuntimePhase.Running)),
+        )
+        assertEquals(
+            ProductLifecycleState.Active,
+            RuntimeStateMapper.lifecycleState(
+                RuntimeSnapshot(
+                    phase = RuntimePhase.Running,
+                    profileReady = true,
+                    groupsReady = true,
+                    trafficReady = true,
+                    configReady = true,
+                    transportReady = true,
+                )
+            ),
         )
     }
 }
