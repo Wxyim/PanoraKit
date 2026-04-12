@@ -26,6 +26,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -130,6 +132,8 @@ internal fun NodeSelectableCard(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     paddingVertical: Dp = NodeCardDefaults.PaddingVertical,
+    interactionRole: Role = Role.RadioButton,
+    onClickLabel: String? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -154,13 +158,25 @@ internal fun NodeSelectableCard(
                 .background(backgroundColor)
                 .border(1.dp, borderColor, shape)
                 .let {
-                    if (onClick != null)
-                        it.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = onClick,
-                        )
-                    else it
+                    when {
+                        onClick == null -> it
+                        interactionRole == Role.RadioButton ->
+                            it.selectable(
+                                selected = isSelected,
+                                role = interactionRole,
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = onClick,
+                            )
+                        else ->
+                            it.clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                role = interactionRole,
+                                onClickLabel = onClickLabel,
+                                onClick = onClick,
+                            )
+                    }
                 }
                 .padding(
                     horizontal = NodeCardDefaults.PaddingHorizontal,
@@ -182,6 +198,9 @@ internal fun NodeCard(
     onSingleNodeTestClick: (() -> Unit)? = null,
     showCountryFlag: Boolean = true,
     singleNodeTestEnabled: Boolean = true,
+    interactionRole: Role = Role.RadioButton,
+    onClickLabel: String? = null,
+    actionChipLabel: String? = null,
 ) {
     val onCardClick =
         remember(proxy.name, onClick) { onClick?.let { click -> { click(proxy.name) } } }
@@ -191,10 +210,13 @@ internal fun NodeCard(
         onClick = onCardClick,
         modifier = modifier,
         paddingVertical = 12.dp,
+        interactionRole = interactionRole,
+        onClickLabel = onClickLabel,
     ) {
         val flagged = remember(proxy.name) { extractFlaggedName(proxy.name) }
         val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
         val delayLabel = remember(proxy.delay) { nodeLatencyLabel(proxy.delay) }
+        val primary = MiuixTheme.colorScheme.primary
         val iconUri =
             remember(proxy.icon) {
                 proxy.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeIconUri)
@@ -234,6 +256,13 @@ internal fun NodeCard(
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
+                        actionChipLabel?.let { label ->
+                            NodeTagChip(
+                                label = label,
+                                textColor = primary,
+                                backgroundColor = primary.copy(alpha = 0.16f),
+                            )
+                        }
                         NodeTagChip(label = proxy.type.name)
                         tags.keywords.forEach { kw -> NodeTagChip(label = kw) }
                         tags.multiplier?.let { m -> if (m > 0f) NodeMultiplierChip(multiplier = m) }
@@ -420,15 +449,21 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
 }
 
 @Composable
-private fun NodeTagChip(label: String) {
+private fun NodeTagChip(
+    label: String,
+    textColor: Color? = null,
+    backgroundColor: Color? = null,
+) {
     val primary = MiuixTheme.colorScheme.primary
+    val resolvedTextColor = textColor ?: primary
+    val resolvedBackgroundColor = backgroundColor ?: primary.copy(alpha = 0.1f)
     Text(
         text = label,
         style = MiuixTheme.textStyles.footnote1.copy(fontSize = NodeCardDefaults.ChipFontSize),
-        color = primary,
+        color = resolvedTextColor,
         modifier =
             Modifier.clip(RoundedCornerShape(100.dp))
-                .background(primary.copy(alpha = 0.1f))
+                .background(resolvedBackgroundColor)
                 .padding(
                     horizontal = NodeCardDefaults.ChipHorizontalPadding,
                     vertical = NodeCardDefaults.ChipVerticalPadding,

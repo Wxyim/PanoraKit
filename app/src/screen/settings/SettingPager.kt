@@ -21,26 +21,20 @@
 package com.github.yumelira.yumebox.screen.settings
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.nomadboxlab.monadbox.BuildConfig
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
+import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
@@ -49,79 +43,14 @@ import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsSc
 import com.ramcosta.composedestinations.generated.destinations.OverrideScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Surface
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object SettingsPageMetrics {
-    val EntryIconSlotSize = 24.dp
-    val EntryIconContainerSize = 36.dp
-    val EntryIconContainerCornerRadius = 16.dp
-    val EntryIconSize = 22.dp
-    val EntryIconOuterStartPadding = 4.dp
-    val EntryIconOuterEndPadding = 16.dp
-    val VersionBadgeHeight = 22.dp
-    val VersionBadgeEndPadding = 12.dp
-    val VersionBadgeHorizontalPadding = 12.dp
-    val VersionBadgeFontSize = 12.sp
-}
-
-@Composable
-private fun CircularIcon(
-    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    iconSize: Float = 1f,
-) {
-    Box(
-        modifier =
-            modifier
-                .padding(
-                    start = SettingsPageMetrics.EntryIconOuterStartPadding,
-                    end = SettingsPageMetrics.EntryIconOuterEndPadding,
-                )
-                .requiredSize(SettingsPageMetrics.EntryIconSlotSize),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier.layout { measurable, _ ->
-                        val containerSize = SettingsPageMetrics.EntryIconContainerSize.roundToPx()
-                        val parentSize = SettingsPageMetrics.EntryIconSlotSize.roundToPx()
-                        val offset = (containerSize - parentSize) / 2
-
-                        val placeable =
-                            measurable.measure(
-                                androidx.compose.ui.unit.Constraints.fixed(
-                                    containerSize,
-                                    containerSize,
-                                )
-                            )
-                        layout(parentSize, parentSize) { placeable.place(-offset, -offset) }
-                    }
-                    .size(SettingsPageMetrics.EntryIconContainerSize)
-                    .clip(RoundedCornerShape(SettingsPageMetrics.EntryIconContainerCornerRadius))
-                    .background(MiuixTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = imageVector,
-                contentDescription = contentDescription,
-                tint = MiuixTheme.colorScheme.onPrimary,
-                modifier =
-                    Modifier.size(SettingsPageMetrics.EntryIconSize)
-                        .graphicsLayer(
-                            scaleX = iconSize,
-                            scaleY = iconSize,
-                            transformOrigin = TransformOrigin.Center,
-                        ),
-            )
-        }
-    }
+    val SinglePaneMaxWidth = 760.dp
+    val TwoPaneMaxWidth = 1280.dp
 }
 
 @SuppressLint("LocalContextResourcesRead")
@@ -129,107 +58,95 @@ private fun CircularIcon(
 fun SettingPager(mainInnerPadding: PaddingValues) {
     val scrollBehavior = MiuixScrollBehavior()
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
 
     val versionInfo = remember { BuildConfig.VERSION_NAME }
 
     Scaffold(topBar = { TopBar(title = MLang.Settings.Title, scrollBehavior = scrollBehavior) }) {
         innerPadding ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
-        ) {
-            item {
-                SmallTitle(MLang.Settings.Section.UiSettings)
-                Card {
-                    SuperArrow(
-                        title = MLang.Settings.UiSettings.App,
-                        summary = MLang.Settings.UiSettings.AppSummary,
-                        onClick = {
-                            navigator.navigate(AppSettingsScreenDestination) {
-                                launchSingleTop = true
-                            }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.`Settings-2`, contentDescription = null)
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.Settings.UiSettings.Network,
-                        summary = MLang.Settings.UiSettings.NetworkSummary,
-                        onClick = {
-                            navigator.navigate(NetworkSettingsScreenDestination) {
-                                launchSingleTop = true
-                            }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.`Wifi-cog`, contentDescription = null)
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.Settings.UiSettings.Override,
-                        summary = MLang.Settings.UiSettings.OverrideSummary,
-                        onClick = {
-                            navigator.navigate(OverrideScreenDestination) { launchSingleTop = true }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.`Git-merge`, contentDescription = null)
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.Settings.UiSettings.MetaFeatures,
-                        summary = MLang.Settings.UiSettings.MetaFeaturesSummary,
-                        onClick = {
-                            navigator.navigate(MetaFeatureScreenDestination) {
-                                launchSingleTop = true
-                            }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.Meta, contentDescription = null)
-                        },
-                    )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+            val useTwoPaneLayout = availableAdaptiveInfo.prefersTwoPaneContent
+            val sectionSpacing = LocalSpacing.current.xl
+            val contentMaxWidth =
+                when {
+                    availableAdaptiveInfo.isExpandedWidth -> SettingsPageMetrics.TwoPaneMaxWidth
+                    availableAdaptiveInfo.isMediumWidth -> SettingsPageMetrics.SinglePaneMaxWidth
+                    else -> Dp.Unspecified
                 }
-            }
-            item {
-                SmallTitle(MLang.Settings.Section.More)
 
-                Card {
-                    SuperArrow(
-                        title = MLang.Settings.More.TrafficStatistics,
-                        summary = MLang.Settings.More.TrafficStatisticsSummary,
-                        onClick = {
-                            navigator.navigate(TrafficStatisticsScreenDestination) {
-                                launchSingleTop = true
+            ScreenLazyColumn(
+                scrollBehavior = scrollBehavior,
+                innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
+            ) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        val contentModifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = LocalSpacing.current.gutter)
+                                .let { modifier ->
+                                    if (contentMaxWidth != Dp.Unspecified) {
+                                        modifier.widthIn(max = contentMaxWidth)
+                                    } else {
+                                        modifier
+                                    }
+                                }
+
+                        if (useTwoPaneLayout) {
+                            Row(
+                                modifier = contentModifier,
+                                horizontalArrangement = Arrangement.spacedBy(sectionSpacing),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                SettingsSection(
+                                    title = MLang.Settings.Section.UiSettings,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    UiSettingsCard(
+                                        navigator = navigator,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        applyHorizontalPadding = false,
+                                    )
+                                }
+                                SettingsSection(
+                                    title = MLang.Settings.Section.More,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    MoreSettingsCard(
+                                        navigator = navigator,
+                                        versionInfo = versionInfo,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        applyHorizontalPadding = false,
+                                    )
+                                }
                             }
-                        },
-                        startAction = {
-                            CircularIcon(
-                                imageVector = Yume.`Chart-column`,
-                                contentDescription = null,
-                            )
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.Settings.More.Logs,
-                        summary = MLang.Settings.More.LogsSummary,
-                        onClick = {
-                            navigator.navigate(LogScreenDestination) { launchSingleTop = true }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.Activity, contentDescription = null)
-                        },
-                    )
-                    SuperArrow(
-                        title = MLang.Settings.More.About,
-                        summary = MLang.Settings.More.AboutSummary,
-                        onClick = {
-                            navigator.navigate(AboutScreenDestination) { launchSingleTop = true }
-                        },
-                        startAction = {
-                            CircularIcon(imageVector = Yume.Github, contentDescription = null)
-                        },
-                        endActions = { VersionBadge(versionInfo) },
-                    )
+                        } else {
+                            Column(
+                                modifier = contentModifier,
+                                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                            ) {
+                                SettingsSection(title = MLang.Settings.Section.UiSettings) {
+                                    UiSettingsCard(
+                                        navigator = navigator,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        applyHorizontalPadding = false,
+                                    )
+                                }
+
+                                SettingsSection(title = MLang.Settings.Section.More) {
+                                    MoreSettingsCard(
+                                        navigator = navigator,
+                                        versionInfo = versionInfo,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        applyHorizontalPadding = false,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -237,29 +154,107 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 }
 
 @Composable
-private fun VersionBadge(versionInfo: String?) {
-    Surface(
-        color = MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(50),
-        modifier =
-            Modifier.height(SettingsPageMetrics.VersionBadgeHeight)
-                .padding(end = SettingsPageMetrics.VersionBadgeEndPadding),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier =
-                Modifier.padding(horizontal = SettingsPageMetrics.VersionBadgeHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = versionInfo ?: "Unknown",
-                style =
-                    MiuixTheme.textStyles.footnote1.copy(
-                        fontSize = SettingsPageMetrics.VersionBadgeFontSize,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                color = MiuixTheme.colorScheme.primary,
-            )
-        }
+private fun SettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.md)) {
+        SmallTitle(title)
+        content()
     }
+}
+
+@Composable
+private fun UiSettingsCard(
+    navigator: com.ramcosta.composedestinations.navigation.DestinationsNavigator,
+    modifier: Modifier = Modifier,
+    applyHorizontalPadding: Boolean = true,
+) {
+    Card(modifier = modifier, applyHorizontalPadding = applyHorizontalPadding) {
+        SettingsRow(
+            title = MLang.Settings.UiSettings.App,
+            summary = MLang.Settings.UiSettings.AppSummary,
+            imageVector = Yume.`Settings-2`,
+            tone = SemanticTone.Neutral,
+            onClick = { navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true } },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Settings.UiSettings.Network,
+            summary = MLang.Settings.UiSettings.NetworkSummary,
+            imageVector = Yume.`Wifi-cog`,
+            tone = SemanticTone.Info,
+            onClick = {
+                navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true }
+            },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Settings.UiSettings.Override,
+            summary = MLang.Settings.UiSettings.OverrideSummary,
+            imageVector = Yume.`Git-merge`,
+            tone = SemanticTone.Warning,
+            onClick = { navigator.navigate(OverrideScreenDestination) { launchSingleTop = true } },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Settings.UiSettings.MetaFeatures,
+            summary = MLang.Settings.UiSettings.MetaFeaturesSummary,
+            imageVector = Yume.Meta,
+            tone = SemanticTone.Brand,
+            onClick = { navigator.navigate(MetaFeatureScreenDestination) { launchSingleTop = true } },
+        )
+    }
+}
+
+@Composable
+private fun MoreSettingsCard(
+    navigator: com.ramcosta.composedestinations.navigation.DestinationsNavigator,
+    versionInfo: String?,
+    modifier: Modifier = Modifier,
+    applyHorizontalPadding: Boolean = true,
+) {
+    Card(modifier = modifier, applyHorizontalPadding = applyHorizontalPadding) {
+        SettingsRow(
+            title = MLang.Settings.More.TrafficStatistics,
+            summary = MLang.Settings.More.TrafficStatisticsSummary,
+            imageVector = Yume.`Chart-column`,
+            tone = SemanticTone.Info,
+            onClick = {
+                navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true }
+            },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Settings.More.Logs,
+            summary = MLang.Settings.More.LogsSummary,
+            imageVector = Yume.Activity,
+            tone = SemanticTone.Neutral,
+            onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Settings.More.About,
+            summary = MLang.Settings.More.AboutSummary,
+            imageVector = Yume.Github,
+            tone = SemanticTone.Brand,
+            onClick = { navigator.navigate(AboutScreenDestination) { launchSingleTop = true } },
+            endContent = { VersionBadge(versionInfo) },
+        )
+    }
+}
+
+@Composable
+private fun VersionBadge(versionInfo: String?) {
+    StatusBadge(text = versionInfo ?: "Unknown", tone = SemanticTone.Brand, compact = true)
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 70.dp, end = 18.dp),
+        thickness = 0.5.dp,
+        color = MiuixTheme.colorScheme.outline.copy(alpha = 0.16f),
+    )
 }

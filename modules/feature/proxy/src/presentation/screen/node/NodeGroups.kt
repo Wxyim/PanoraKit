@@ -27,11 +27,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,8 +56,11 @@ import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import com.github.yumelira.yumebox.core.model.Proxy
+import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
+import com.github.yumelira.yumebox.presentation.component.SemanticActionDefaults
+import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.chevron
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
@@ -66,28 +71,16 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
 
-private data class GroupBadge(val label: String, val textColor: Color, val backgroundColor: Color)
-
-private val GroupTypeBadgeTextColor = Color(0xFF178C7A)
-private val GroupTypeBadgeBackgroundColor = Color(0xFFE5F4F1)
+private data class GroupBadge(val label: String, val tone: SemanticTone)
 
 private fun groupBadge(type: Proxy.Type): GroupBadge =
     when (type) {
+        Proxy.Type.Selector -> GroupBadge(label = type.name, tone = SemanticTone.Brand)
         Proxy.Type.URLTest,
         Proxy.Type.Fallback,
-        Proxy.Type.Smart ->
-            GroupBadge(
-                label = type.name,
-                textColor = GroupTypeBadgeTextColor,
-                backgroundColor = GroupTypeBadgeBackgroundColor,
-            )
-
-        else ->
-            GroupBadge(
-                label = type.name,
-                textColor = GroupTypeBadgeTextColor,
-                backgroundColor = GroupTypeBadgeBackgroundColor,
-            )
+        Proxy.Type.Smart -> GroupBadge(label = type.name, tone = SemanticTone.Info)
+        Proxy.Type.Direct -> GroupBadge(label = type.name, tone = SemanticTone.Success)
+        else -> GroupBadge(label = type.name, tone = SemanticTone.Neutral)
     }
 
 internal fun LazyListScope.nodeGroupItems(
@@ -101,6 +94,7 @@ internal fun LazyListScope.nodeGroupItems(
     onTestDelay: ((groupName: String) -> Unit)? = null,
     onTestProxyDelay: ((String) -> Unit)? = null,
     singleNodeTestEnabled: Boolean = true,
+    expandedContentMaxHeight: Dp? = null,
     itemVerticalPadding: Dp = 6.dp,
 ) {
     items(
@@ -128,12 +122,95 @@ internal fun LazyListScope.nodeGroupItems(
                             onTestDelay = onTestDelay,
                             onTestProxyDelay = onTestProxyDelay,
                             singleNodeTestEnabled = singleNodeTestEnabled,
+                            maxHeight = expandedContentMaxHeight,
                         )
                     }
                 } else {
                     null
                 },
         )
+    }
+}
+
+internal fun LazyListScope.adaptiveNodeGroupItems(
+    groups: List<ProxyGroupInfo>,
+    columns: Int,
+    onGroupClick: (ProxyGroupInfo) -> Unit,
+    testingGroupNames: Set<String> = emptySet(),
+    testingProxyNames: Set<String> = emptySet(),
+    expandedGroupName: String? = null,
+    onGroupBoundsChanged: ((String, Rect) -> Unit)? = null,
+    onSelectProxy: ((groupName: String, proxyName: String) -> Unit)? = null,
+    onTestDelay: ((groupName: String) -> Unit)? = null,
+    onTestProxyDelay: ((String) -> Unit)? = null,
+    singleNodeTestEnabled: Boolean = true,
+    expandedContentMaxHeight: Dp? = null,
+    itemVerticalPadding: Dp = 6.dp,
+) {
+    if (columns <= 1) {
+        nodeGroupItems(
+            groups = groups,
+            onGroupClick = onGroupClick,
+            testingGroupNames = testingGroupNames,
+            testingProxyNames = testingProxyNames,
+            expandedGroupName = expandedGroupName,
+            onGroupBoundsChanged = onGroupBoundsChanged,
+            onSelectProxy = onSelectProxy,
+            onTestDelay = onTestDelay,
+            onTestProxyDelay = onTestProxyDelay,
+            singleNodeTestEnabled = singleNodeTestEnabled,
+            expandedContentMaxHeight = expandedContentMaxHeight,
+            itemVerticalPadding = itemVerticalPadding,
+        )
+        return
+    }
+
+    val rows = groups.chunked(columns)
+    items(
+        items = rows,
+        key = { row -> row.joinToString(separator = "|") { group -> "${group.type.name}:${group.name}" } },
+        contentType = { "AdaptiveNodeGroupRow" },
+    ) { rowGroups ->
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = itemVerticalPadding),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            rowGroups.forEach { group ->
+                val isExpanded = expandedGroupName == group.name
+                NodeGroupCard(
+                    group = group,
+                    isExpanded = isExpanded,
+                    isDelayTesting = testingGroupNames.contains(group.name),
+                    onClick = { onGroupClick(group) },
+                    modifier = Modifier.weight(1f),
+                    onBoundsChanged =
+                        onGroupBoundsChanged?.let { callback ->
+                            { rect -> callback(group.name, rect) }
+                        },
+                    expandedContent =
+                        if (isExpanded) {
+                            {
+                                ExpandedProxyGroupContent(
+                                    group = group,
+                                    isDelayTesting = testingGroupNames.contains(group.name),
+                                    testingProxyNames = testingProxyNames,
+                                    onSelectProxy = onSelectProxy,
+                                    onTestDelay = onTestDelay,
+                                    onTestProxyDelay = onTestProxyDelay,
+                                    singleNodeTestEnabled = singleNodeTestEnabled,
+                                    maxHeight = expandedContentMaxHeight,
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                )
+            }
+            repeat(columns - rowGroups.size) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 
@@ -186,7 +263,9 @@ internal fun NodeGroupCard(
                 .clip(cardShape)
                 .background(MiuixTheme.colorScheme.background)
                 .pressable(interactionSource = interactionSource, indication = SinkFeedback())
-                .clickable(
+                .selectable(
+                    selected = isExpanded,
+                    role = Role.Button,
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = onClick,
@@ -315,7 +394,7 @@ internal fun NodeGroupCard(
                     fadeOut(animationSpec = tween(durationMillis = 140)),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp).selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 content = expandedContent ?: {},
             )
@@ -325,11 +404,12 @@ internal fun NodeGroupCard(
 
 @Composable
 private fun NodeGroupBadgeChip(badge: GroupBadge, modifier: Modifier = Modifier) {
+    val style = SemanticActionDefaults.style(badge.tone)
     Row(
         modifier =
             modifier
                 .clip(RoundedCornerShape(100.dp))
-                .background(badge.backgroundColor)
+                .background(style.containerColor)
                 .padding(
                     horizontal = NodeCardDefaults.ChipHorizontalPadding,
                     vertical = NodeCardDefaults.ChipVerticalPadding + 1.dp,
@@ -339,7 +419,7 @@ private fun NodeGroupBadgeChip(badge: GroupBadge, modifier: Modifier = Modifier)
         Text(
             text = badge.label,
             style = MiuixTheme.textStyles.footnote1.copy(fontSize = NodeCardDefaults.ChipFontSize),
-            color = badge.textColor,
+            color = style.contentColor,
         )
     }
 }
@@ -353,23 +433,53 @@ private fun ExpandedProxyGroupContent(
     onTestDelay: ((groupName: String) -> Unit)?,
     onTestProxyDelay: ((String) -> Unit)?,
     singleNodeTestEnabled: Boolean,
+    maxHeight: Dp? = null,
 ) {
+    val isSelectorGroup = group.type == Proxy.Type.Selector
+    val interactionRole = if (isSelectorGroup) Role.RadioButton else Role.Button
+    val clickLabel = if (isSelectorGroup) null else MLang.Proxy.Action.Test
+    val actionChipLabel = if (isSelectorGroup) null else MLang.Proxy.Action.Test
+    val onNodeClick: ((String) -> Unit)? =
+        when {
+            isSelectorGroup ->
+                onSelectProxy?.let { selectProxy -> { proxyName -> selectProxy(group.name, proxyName) } }
+
+            else -> onTestProxyDelay?.let { testProxyDelay -> { proxyName -> testProxyDelay(proxyName) } }
+        }
+
+    if (maxHeight != null) {
+        NodeGrid(
+            proxies = group.proxies,
+            selectedProxyName = group.now,
+            displayMode = ProxyDisplayMode.SINGLE_DETAILED,
+            onProxyClick = onNodeClick,
+            isDelayTesting = isDelayTesting,
+            testingProxyNames = testingProxyNames,
+            onSingleNodeTestClick = onTestProxyDelay,
+            listStateKey = "inline_group_${group.name}",
+            modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight),
+            contentPadding = PaddingValues(0.dp),
+            singleNodeTestEnabled = singleNodeTestEnabled,
+            interactionRole = interactionRole,
+            onProxyClickLabel = clickLabel,
+            actionChipLabel = actionChipLabel,
+        )
+        return
+    }
+
     group.proxies.forEach { proxy ->
         NodeCard(
             proxy = proxy,
             isSelected = proxy.name == group.now,
-            onClick = { proxyName ->
-                if (group.type == Proxy.Type.Selector) {
-                    onSelectProxy?.invoke(group.name, proxyName)
-                } else {
-                    onTestDelay?.invoke(group.name)
-                }
-            },
+            onClick = onNodeClick,
             isDelayTesting = isDelayTesting,
             isThisProxyTesting = proxy.name in testingProxyNames,
             onSingleNodeTestClick = onTestProxyDelay?.let { { it(proxy.name) } },
             showCountryFlag = true,
             singleNodeTestEnabled = singleNodeTestEnabled,
+            interactionRole = interactionRole,
+            onClickLabel = clickLabel,
+            actionChipLabel = actionChipLabel,
             modifier = Modifier.fillMaxWidth(),
         )
     }

@@ -28,11 +28,15 @@ import com.github.yumelira.yumebox.common.util.InstalledAppsAccessMode
 import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.root.RootPackageShell
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,7 +50,8 @@ class AccessControlViewModel(
     application: Application,
     private val networkSettingsStorage: NetworkSettingsStorage,
     private val proxyFacade: ProxyFacade,
-    private val runtimeControlCoordinator: RuntimeControlCoordinator,
+    private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : AndroidViewModel(application) {
     data class ImportResult(val addedCount: Int, val ignoredCount: Int, val totalCount: Int)
 
@@ -66,7 +71,7 @@ class AccessControlViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private var applyPackagesJob: Job? = null
 
-    val isApplying: StateFlow<Boolean> = runtimeControlCoordinator.isMutating
+    val isApplying: StateFlow<Boolean> = runtimeActionExecutor.isMutating
 
     init {
         checkAndLoad()
@@ -154,7 +159,7 @@ class AccessControlViewModel(
     }
 
     fun onAppSelectionChange(packageName: String, selected: Boolean) {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         _uiState.update { state ->
             val newSelectedPackages =
                 if (selected) {
@@ -169,7 +174,7 @@ class AccessControlViewModel(
     }
 
     fun selectAll() {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         if (!_uiState.value.canBrowseApps) return
         _uiState.update { state ->
             val visiblePackages = AccessControlSelection.visiblePackages(state)
@@ -180,7 +185,7 @@ class AccessControlViewModel(
     }
 
     fun deselectAll() {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         if (!_uiState.value.canBrowseApps) return
         _uiState.update { state ->
             val visiblePackages = AccessControlSelection.visiblePackages(state)
@@ -191,7 +196,7 @@ class AccessControlViewModel(
     }
 
     fun invertSelection() {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         if (!_uiState.value.canBrowseApps) return
         _uiState.update { state ->
             val allPackages = AccessControlSelection.visiblePackages(state)
@@ -273,7 +278,7 @@ class AccessControlViewModel(
     }
 
     fun importPackages(text: String): ImportResult {
-        if (runtimeControlCoordinator.isMutating.value) {
+        if (runtimeActionExecutor.isMutating.value) {
             return ImportResult(addedCount = 0, ignoredCount = 0, totalCount = 0)
         }
         val packages =
@@ -308,7 +313,7 @@ class AccessControlViewModel(
     }
 
     fun addManualPackage(): Boolean {
-        if (runtimeControlCoordinator.isMutating.value) return false
+        if (runtimeActionExecutor.isMutating.value) return false
         val normalized =
             AccessControlSelection.normalizeManualPackageName(_uiState.value.manualPackageName)
         if (normalized.isEmpty()) {
@@ -341,8 +346,8 @@ class AccessControlViewModel(
                 if (networkSettingsStorage.accessControlMode.value == AccessControlMode.ALLOW_ALL)
                     return@launch
 
-                runCatching {
-                    runtimeControlCoordinator.applyConfigChange(
+                val outcome =
+                    runtimeActionExecutor.applyConfigChange(
                         operation = "access-control:packages",
                         persist = {},
                         shouldRestart = { mode ->
@@ -350,7 +355,20 @@ class AccessControlViewModel(
                                 networkSettingsStorage.accessControlMode.value !=
                                     AccessControlMode.ALLOW_ALL
                         },
+                        presentation =
+                            RuntimeActionFailurePresentation.Runtime(
+                                fallbackMessage = "Failed to apply access control packages",
+                                targetMode = activeMode,
+                            ),
                     )
+                when (outcome) {
+                    is RuntimeActionOutcome.Success -> Unit
+                    is RuntimeActionOutcome.PermissionRequired -> {
+                        vpnPermissionCoordinator.requestPermission(outcome.intent) {
+                            persistSelectionAndApply()
+                        }
+                    }
+                    RuntimeActionOutcome.FailureHandled -> Unit
                 }
             }
     }

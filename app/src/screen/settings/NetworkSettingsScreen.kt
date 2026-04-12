@@ -20,8 +20,6 @@
 
 package com.github.yumelira.yumebox.screen.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,43 +27,46 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.VpnUtils
-import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.RootTunDnsMode
 import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.presentation.component.AppDialog
 import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.CollectFlowWithLifecycle
+import com.github.yumelira.yumebox.presentation.component.ConfigSettingRow
+import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.component.EnumSelector
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private object NetworkSettingsMetrics {
+    val ContentMaxWidth = 1120.dp
+}
 
 @Composable
 @Destination<RootGraph>
@@ -73,7 +74,6 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<NetworkSettingsViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     val proxyMode by viewModel.currentProxyMode.collectAsStateWithLifecycle()
     val bypassPrivateNetwork by viewModel.bypassPrivateNetwork.state.collectAsStateWithLifecycle()
@@ -98,201 +98,87 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
     val rootTunFakeIpRange6Draft by viewModel.rootTunFakeIpRange6Draft.collectAsStateWithLifecycle()
     var enableModeTransition by remember { mutableStateOf(false) }
 
-    CollectFlowWithLifecycle(flow = viewModel.errors) { message -> context.toast(message) }
-
     LaunchedEffect(Unit) { enableModeTransition = true }
 
-    val vpnPermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                viewModel.onProxyModeChange(ProxyMode.Tun)
-            } else {
-                context.toast(MLang.NetworkSettings.Error.VpnDenied)
-            }
-        }
-
     Scaffold(
-        topBar = { TopBar(title = MLang.NetworkSettings.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = MLang.NetworkSettings.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
-                item {
-                    SmallTitle(MLang.NetworkSettings.Section.VpnService)
-                    Card {
-                        EnumSelector(
-                            title = MLang.NetworkSettings.VpnService.RouteTrafficTitle,
-                            summary =
-                                when {
-                                    uiState.isApplying ->
-                                        MLang.NetworkSettings.VpnService.RouteTrafficApplying
-                                            .format(
-                                                uiState.effectiveMode.toDisplayName(),
-                                                uiState.configuredMode.toDisplayName(),
-                                            )
-                                    uiState.serviceState == ServiceState.Running ->
-                                        MLang.NetworkSettings.VpnService.RouteTrafficEffective
-                                            .format(
-                                                uiState.effectiveMode.toDisplayName(),
-                                                uiState.configuredMode.toDisplayName(),
-                                            )
-                                    else -> MLang.NetworkSettings.VpnService.RouteTrafficSummary
-                                },
-                            currentValue = proxyMode,
-                            items =
-                                listOf(
-                                    MLang.NetworkSettings.VpnService.SystemProxy,
-                                    MLang.NetworkSettings.VpnService.VpnMode,
-                                    MLang.NetworkSettings.VpnService.RootTunMode,
-                                ),
-                            values = listOf(ProxyMode.Http, ProxyMode.Tun, ProxyMode.RootTun),
-                            onValueChange = { mode ->
-                                if (
-                                    mode == ProxyMode.Tun && !VpnUtils.checkVpnPermission(context)
-                                ) {
-                                    VpnUtils.getVpnPermissionIntent(context)
-                                        ?.let(vpnPermissionLauncher::launch)
-                                        ?: viewModel.onProxyModeChange(mode)
-                                } else {
-                                    viewModel.onProxyModeChange(mode)
-                                }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                ScreenLazyColumn(
+                    modifier =
+                        Modifier.fillMaxWidth().widthIn(max = NetworkSettingsMetrics.ContentMaxWidth),
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = innerPadding,
+                ) {
+                    item {
+                        NetworkSettingsContent(
+                            uiState = uiState,
+                            proxyMode = proxyMode,
+                            bypassPrivateNetwork = bypassPrivateNetwork,
+                            dnsHijack = dnsHijack,
+                            allowBypass = allowBypass,
+                            enableIPv6 = enableIPv6,
+                            systemProxy = systemProxy,
+                            tunStack = tunStack,
+                            rootTunAutoRoute = rootTunAutoRoute,
+                            rootTunStrictRoute = rootTunStrictRoute,
+                            rootTunAutoRedirect = rootTunAutoRedirect,
+                            rootTunDnsMode = rootTunDnsMode,
+                            accessControlMode = accessControlMode,
+                            rootTunIfNameDraft = rootTunIfNameDraft,
+                            rootTunMtuDraft = rootTunMtuDraft,
+                            rootTunIncludeAndroidUserDraft = rootTunIncludeAndroidUserDraft,
+                            rootTunRouteExcludeAddressDraft = rootTunRouteExcludeAddressDraft,
+                            rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
+                            rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
+                            enableModeTransition = enableModeTransition,
+                            onProxyModeChange = viewModel::onProxyModeChange,
+                            onBypassPrivateNetworkChange = viewModel::onBypassPrivateNetworkChange,
+                            onDnsHijackChange = viewModel::onDnsHijackChange,
+                            onAllowBypassChange = viewModel::onAllowBypassChange,
+                            onEnableIPv6Change = viewModel::onEnableIPv6Change,
+                            onSystemProxyChange = viewModel::onSystemProxyChange,
+                            onTunStackChange = viewModel::onTunStackChange,
+                            onRootTunAutoRouteChange = viewModel::onRootTunAutoRouteChange,
+                            onRootTunStrictRouteChange = viewModel::onRootTunStrictRouteChange,
+                            onRootTunAutoRedirectChange = viewModel::onRootTunAutoRedirectChange,
+                            onRootTunDnsModeChange = viewModel::onRootTunDnsModeChange,
+                            onRootTunIfNameDraftChange = viewModel::onRootTunIfNameDraftChange,
+                            onRootTunMtuDraftChange = viewModel::onRootTunMtuDraftChange,
+                            onRootTunIncludeAndroidUserDraftChange =
+                                viewModel::onRootTunIncludeAndroidUserDraftChange,
+                            onRootTunRouteExcludeAddressDraftChange =
+                                viewModel::onRootTunRouteExcludeAddressDraftChange,
+                            onRootTunFakeIpRangeDraftChange =
+                                viewModel::onRootTunFakeIpRangeDraftChange,
+                            onRootTunFakeIpRange6DraftChange =
+                                viewModel::onRootTunFakeIpRange6DraftChange,
+                            commitRootTunIfName = viewModel::commitRootTunIfName,
+                            commitRootTunMtu = viewModel::commitRootTunMtu,
+                            commitRootTunIncludeAndroidUser =
+                                viewModel::commitRootTunIncludeAndroidUser,
+                            commitRootTunRouteExcludeAddress =
+                                viewModel::commitRootTunRouteExcludeAddress,
+                            commitRootTunFakeIpRange = viewModel::commitRootTunFakeIpRange,
+                            commitRootTunFakeIpRange6 = viewModel::commitRootTunFakeIpRange6,
+                            onAccessControlModeChange = viewModel::onAccessControlModeChange,
+                            onManageAccessControl = {
+                                navigator.navigate(AccessControlScreenDestination)
                             },
                         )
                     }
-
-                    AnimatedVisibility(
-                        visible = uiState.showServiceOptions,
-                        enter =
-                            if (enableModeTransition) fadeIn() + expandVertically()
-                            else EnterTransition.None,
-                        exit =
-                            if (enableModeTransition) fadeOut() + shrinkVertically()
-                            else ExitTransition.None,
-                    ) {
-                        Column {
-                            SmallTitle(MLang.NetworkSettings.Section.VpnOptions)
-                            Card(modifier = Modifier.animateContentSize()) {
-                                AnimatedContent(
-                                    targetState = uiState.configuredMode,
-                                    transitionSpec = {
-                                        if (enableModeTransition) {
-                                            fadeIn() togetherWith fadeOut()
-                                        } else {
-                                            EnterTransition.None togetherWith ExitTransition.None
-                                        }
-                                    },
-                                    label = "network_service_options",
-                                ) { mode ->
-                                    when (mode) {
-                                        ProxyMode.Http -> Spacer(modifier = Modifier.height(0.dp))
-                                        ProxyMode.Tun ->
-                                            TunServiceOptions(
-                                                bypassPrivateNetwork = bypassPrivateNetwork,
-                                                dnsHijack = dnsHijack,
-                                                allowBypass = allowBypass,
-                                                enableIPv6 = enableIPv6,
-                                                systemProxy = systemProxy,
-                                                tunStack = tunStack,
-                                                onBypassPrivateNetworkChange =
-                                                    viewModel::onBypassPrivateNetworkChange,
-                                                onDnsHijackChange = viewModel::onDnsHijackChange,
-                                                onAllowBypassChange =
-                                                    viewModel::onAllowBypassChange,
-                                                onEnableIPv6Change = viewModel::onEnableIPv6Change,
-                                                onSystemProxyChange =
-                                                    viewModel::onSystemProxyChange,
-                                                onTunStackChange = viewModel::onTunStackChange,
-                                            )
-
-                                        ProxyMode.RootTun ->
-                                            RootTunServiceOptions(
-                                                bypassPrivateNetwork = bypassPrivateNetwork,
-                                                dnsHijack = dnsHijack,
-                                                enableIPv6 = enableIPv6,
-                                                tunStack = tunStack,
-                                                rootTunAutoRoute = rootTunAutoRoute,
-                                                rootTunStrictRoute = rootTunStrictRoute,
-                                                rootTunAutoRedirect = rootTunAutoRedirect,
-                                                rootTunDnsMode = rootTunDnsMode,
-                                                rootTunIfNameDraft = rootTunIfNameDraft,
-                                                rootTunMtuDraft = rootTunMtuDraft,
-                                                rootTunIncludeAndroidUserDraft =
-                                                    rootTunIncludeAndroidUserDraft,
-                                                rootTunRouteExcludeAddressDraft =
-                                                    rootTunRouteExcludeAddressDraft,
-                                                rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
-                                                rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
-                                                showFakeIpRange = uiState.showFakeIpRange,
-                                                onBypassPrivateNetworkChange =
-                                                    viewModel::onBypassPrivateNetworkChange,
-                                                onDnsHijackChange = viewModel::onDnsHijackChange,
-                                                onEnableIPv6Change = viewModel::onEnableIPv6Change,
-                                                onTunStackChange = viewModel::onTunStackChange,
-                                                onRootTunAutoRouteChange =
-                                                    viewModel::onRootTunAutoRouteChange,
-                                                onRootTunStrictRouteChange =
-                                                    viewModel::onRootTunStrictRouteChange,
-                                                onRootTunAutoRedirectChange =
-                                                    viewModel::onRootTunAutoRedirectChange,
-                                                onRootTunDnsModeChange =
-                                                    viewModel::onRootTunDnsModeChange,
-                                                onRootTunIfNameDraftChange =
-                                                    viewModel::onRootTunIfNameDraftChange,
-                                                onRootTunMtuDraftChange =
-                                                    viewModel::onRootTunMtuDraftChange,
-                                                onRootTunIncludeAndroidUserDraftChange =
-                                                    viewModel::
-                                                        onRootTunIncludeAndroidUserDraftChange,
-                                                onRootTunRouteExcludeAddressDraftChange =
-                                                    viewModel::
-                                                        onRootTunRouteExcludeAddressDraftChange,
-                                                onRootTunFakeIpRangeDraftChange =
-                                                    viewModel::onRootTunFakeIpRangeDraftChange,
-                                                onRootTunFakeIpRange6DraftChange =
-                                                    viewModel::onRootTunFakeIpRange6DraftChange,
-                                                commitRootTunIfName =
-                                                    viewModel::commitRootTunIfName,
-                                                commitRootTunMtu = viewModel::commitRootTunMtu,
-                                                commitRootTunIncludeAndroidUser =
-                                                    viewModel::commitRootTunIncludeAndroidUser,
-                                                commitRootTunRouteExcludeAddress =
-                                                    viewModel::commitRootTunRouteExcludeAddress,
-                                                commitRootTunFakeIpRange =
-                                                    viewModel::commitRootTunFakeIpRange,
-                                                commitRootTunFakeIpRange6 =
-                                                    viewModel::commitRootTunFakeIpRange6,
-                                            )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    SmallTitle(MLang.NetworkSettings.Section.ProxyOptions)
-                    Card {
-                        if (uiState.showAccessControlMode) {
-                            EnumSelector(
-                                title = MLang.NetworkSettings.ProxyOptions.AccessControlModeTitle,
-                                currentValue = accessControlMode,
-                                items =
-                                    listOf(
-                                        MLang.NetworkSettings.ProxyOptions.AllowAll,
-                                        MLang.NetworkSettings.ProxyOptions.AllowSelected,
-                                        MLang.NetworkSettings.ProxyOptions.RejectSelected,
-                                    ),
-                                values = AccessControlMode.entries,
-                                onValueChange = viewModel::onAccessControlModeChange,
-                            )
-                        }
-                        SuperArrow(
-                            title = MLang.NetworkSettings.ProxyOptions.ManageAccessControlTitle,
-                            summary = MLang.NetworkSettings.ProxyOptions.ManageAccessControlSummary,
-                            onClick = { navigator.navigate(AccessControlScreenDestination) },
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
 
@@ -325,6 +211,388 @@ private fun ProxyMode.toDisplayName(): String =
         ProxyMode.Tun -> MLang.NetworkSettings.VpnService.VpnMode
         ProxyMode.RootTun -> MLang.NetworkSettings.VpnService.RootTunMode
     }
+
+@Composable
+private fun NetworkSettingsContent(
+    uiState: NetworkSettingsUiState,
+    proxyMode: ProxyMode,
+    bypassPrivateNetwork: Boolean,
+    dnsHijack: Boolean,
+    allowBypass: Boolean,
+    enableIPv6: Boolean,
+    systemProxy: Boolean,
+    tunStack: TunStack,
+    rootTunAutoRoute: Boolean,
+    rootTunStrictRoute: Boolean,
+    rootTunAutoRedirect: Boolean,
+    rootTunDnsMode: RootTunDnsMode,
+    accessControlMode: AccessControlMode,
+    rootTunIfNameDraft: String,
+    rootTunMtuDraft: String,
+    rootTunIncludeAndroidUserDraft: String,
+    rootTunRouteExcludeAddressDraft: String,
+    rootTunFakeIpRangeDraft: String,
+    rootTunFakeIpRange6Draft: String,
+    enableModeTransition: Boolean,
+    onProxyModeChange: (ProxyMode) -> Unit,
+    onBypassPrivateNetworkChange: (Boolean) -> Unit,
+    onDnsHijackChange: (Boolean) -> Unit,
+    onAllowBypassChange: (Boolean) -> Unit,
+    onEnableIPv6Change: (Boolean) -> Unit,
+    onSystemProxyChange: (Boolean) -> Unit,
+    onTunStackChange: (TunStack) -> Unit,
+    onRootTunAutoRouteChange: (Boolean) -> Unit,
+    onRootTunStrictRouteChange: (Boolean) -> Unit,
+    onRootTunAutoRedirectChange: (Boolean) -> Unit,
+    onRootTunDnsModeChange: (RootTunDnsMode) -> Unit,
+    onRootTunIfNameDraftChange: (String) -> Unit,
+    onRootTunMtuDraftChange: (String) -> Unit,
+    onRootTunIncludeAndroidUserDraftChange: (String) -> Unit,
+    onRootTunRouteExcludeAddressDraftChange: (String) -> Unit,
+    onRootTunFakeIpRangeDraftChange: (String) -> Unit,
+    onRootTunFakeIpRange6DraftChange: (String) -> Unit,
+    commitRootTunIfName: () -> Unit,
+    commitRootTunMtu: () -> Unit,
+    commitRootTunIncludeAndroidUser: () -> Unit,
+    commitRootTunRouteExcludeAddress: () -> Unit,
+    commitRootTunFakeIpRange: () -> Unit,
+    commitRootTunFakeIpRange6: () -> Unit,
+    onAccessControlModeChange: (AccessControlMode) -> Unit,
+    onManageAccessControl: () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+        val isWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
+        val sectionSpacing = 16.dp
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+        ) {
+            if (isWideLayout) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(sectionSpacing),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                    ) {
+                        VpnServiceSection(
+                            uiState = uiState,
+                            proxyMode = proxyMode,
+                            bypassPrivateNetwork = bypassPrivateNetwork,
+                            dnsHijack = dnsHijack,
+                            allowBypass = allowBypass,
+                            enableIPv6 = enableIPv6,
+                            systemProxy = systemProxy,
+                            tunStack = tunStack,
+                            rootTunAutoRoute = rootTunAutoRoute,
+                            rootTunStrictRoute = rootTunStrictRoute,
+                            rootTunAutoRedirect = rootTunAutoRedirect,
+                            rootTunDnsMode = rootTunDnsMode,
+                            rootTunIfNameDraft = rootTunIfNameDraft,
+                            rootTunMtuDraft = rootTunMtuDraft,
+                            rootTunIncludeAndroidUserDraft = rootTunIncludeAndroidUserDraft,
+                            rootTunRouteExcludeAddressDraft = rootTunRouteExcludeAddressDraft,
+                            rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
+                            rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
+                            enableModeTransition = enableModeTransition,
+                            onProxyModeChange = onProxyModeChange,
+                            onBypassPrivateNetworkChange = onBypassPrivateNetworkChange,
+                            onDnsHijackChange = onDnsHijackChange,
+                            onAllowBypassChange = onAllowBypassChange,
+                            onEnableIPv6Change = onEnableIPv6Change,
+                            onSystemProxyChange = onSystemProxyChange,
+                            onTunStackChange = onTunStackChange,
+                            onRootTunAutoRouteChange = onRootTunAutoRouteChange,
+                            onRootTunStrictRouteChange = onRootTunStrictRouteChange,
+                            onRootTunAutoRedirectChange = onRootTunAutoRedirectChange,
+                            onRootTunDnsModeChange = onRootTunDnsModeChange,
+                            onRootTunIfNameDraftChange = onRootTunIfNameDraftChange,
+                            onRootTunMtuDraftChange = onRootTunMtuDraftChange,
+                            onRootTunIncludeAndroidUserDraftChange =
+                                onRootTunIncludeAndroidUserDraftChange,
+                            onRootTunRouteExcludeAddressDraftChange =
+                                onRootTunRouteExcludeAddressDraftChange,
+                            onRootTunFakeIpRangeDraftChange = onRootTunFakeIpRangeDraftChange,
+                            onRootTunFakeIpRange6DraftChange = onRootTunFakeIpRange6DraftChange,
+                            commitRootTunIfName = commitRootTunIfName,
+                            commitRootTunMtu = commitRootTunMtu,
+                            commitRootTunIncludeAndroidUser = commitRootTunIncludeAndroidUser,
+                            commitRootTunRouteExcludeAddress =
+                                commitRootTunRouteExcludeAddress,
+                            commitRootTunFakeIpRange = commitRootTunFakeIpRange,
+                            commitRootTunFakeIpRange6 = commitRootTunFakeIpRange6,
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        ProxyOptionsSection(
+                            uiState = uiState,
+                            accessControlMode = accessControlMode,
+                            onAccessControlModeChange = onAccessControlModeChange,
+                            onManageAccessControl = onManageAccessControl,
+                        )
+                    }
+                }
+            } else {
+                VpnServiceSection(
+                    uiState = uiState,
+                    proxyMode = proxyMode,
+                    bypassPrivateNetwork = bypassPrivateNetwork,
+                    dnsHijack = dnsHijack,
+                    allowBypass = allowBypass,
+                    enableIPv6 = enableIPv6,
+                    systemProxy = systemProxy,
+                    tunStack = tunStack,
+                    rootTunAutoRoute = rootTunAutoRoute,
+                    rootTunStrictRoute = rootTunStrictRoute,
+                    rootTunAutoRedirect = rootTunAutoRedirect,
+                    rootTunDnsMode = rootTunDnsMode,
+                    rootTunIfNameDraft = rootTunIfNameDraft,
+                    rootTunMtuDraft = rootTunMtuDraft,
+                    rootTunIncludeAndroidUserDraft = rootTunIncludeAndroidUserDraft,
+                    rootTunRouteExcludeAddressDraft = rootTunRouteExcludeAddressDraft,
+                    rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
+                    rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
+                    enableModeTransition = enableModeTransition,
+                    onProxyModeChange = onProxyModeChange,
+                    onBypassPrivateNetworkChange = onBypassPrivateNetworkChange,
+                    onDnsHijackChange = onDnsHijackChange,
+                    onAllowBypassChange = onAllowBypassChange,
+                    onEnableIPv6Change = onEnableIPv6Change,
+                    onSystemProxyChange = onSystemProxyChange,
+                    onTunStackChange = onTunStackChange,
+                    onRootTunAutoRouteChange = onRootTunAutoRouteChange,
+                    onRootTunStrictRouteChange = onRootTunStrictRouteChange,
+                    onRootTunAutoRedirectChange = onRootTunAutoRedirectChange,
+                    onRootTunDnsModeChange = onRootTunDnsModeChange,
+                    onRootTunIfNameDraftChange = onRootTunIfNameDraftChange,
+                    onRootTunMtuDraftChange = onRootTunMtuDraftChange,
+                    onRootTunIncludeAndroidUserDraftChange =
+                        onRootTunIncludeAndroidUserDraftChange,
+                    onRootTunRouteExcludeAddressDraftChange =
+                        onRootTunRouteExcludeAddressDraftChange,
+                    onRootTunFakeIpRangeDraftChange = onRootTunFakeIpRangeDraftChange,
+                    onRootTunFakeIpRange6DraftChange = onRootTunFakeIpRange6DraftChange,
+                    commitRootTunIfName = commitRootTunIfName,
+                    commitRootTunMtu = commitRootTunMtu,
+                    commitRootTunIncludeAndroidUser = commitRootTunIncludeAndroidUser,
+                    commitRootTunRouteExcludeAddress = commitRootTunRouteExcludeAddress,
+                    commitRootTunFakeIpRange = commitRootTunFakeIpRange,
+                    commitRootTunFakeIpRange6 = commitRootTunFakeIpRange6,
+                )
+                ProxyOptionsSection(
+                    uiState = uiState,
+                    accessControlMode = accessControlMode,
+                    onAccessControlModeChange = onAccessControlModeChange,
+                    onManageAccessControl = onManageAccessControl,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun VpnServiceSection(
+    uiState: NetworkSettingsUiState,
+    proxyMode: ProxyMode,
+    bypassPrivateNetwork: Boolean,
+    dnsHijack: Boolean,
+    allowBypass: Boolean,
+    enableIPv6: Boolean,
+    systemProxy: Boolean,
+    tunStack: TunStack,
+    rootTunAutoRoute: Boolean,
+    rootTunStrictRoute: Boolean,
+    rootTunAutoRedirect: Boolean,
+    rootTunDnsMode: RootTunDnsMode,
+    rootTunIfNameDraft: String,
+    rootTunMtuDraft: String,
+    rootTunIncludeAndroidUserDraft: String,
+    rootTunRouteExcludeAddressDraft: String,
+    rootTunFakeIpRangeDraft: String,
+    rootTunFakeIpRange6Draft: String,
+    enableModeTransition: Boolean,
+    onProxyModeChange: (ProxyMode) -> Unit,
+    onBypassPrivateNetworkChange: (Boolean) -> Unit,
+    onDnsHijackChange: (Boolean) -> Unit,
+    onAllowBypassChange: (Boolean) -> Unit,
+    onEnableIPv6Change: (Boolean) -> Unit,
+    onSystemProxyChange: (Boolean) -> Unit,
+    onTunStackChange: (TunStack) -> Unit,
+    onRootTunAutoRouteChange: (Boolean) -> Unit,
+    onRootTunStrictRouteChange: (Boolean) -> Unit,
+    onRootTunAutoRedirectChange: (Boolean) -> Unit,
+    onRootTunDnsModeChange: (RootTunDnsMode) -> Unit,
+    onRootTunIfNameDraftChange: (String) -> Unit,
+    onRootTunMtuDraftChange: (String) -> Unit,
+    onRootTunIncludeAndroidUserDraftChange: (String) -> Unit,
+    onRootTunRouteExcludeAddressDraftChange: (String) -> Unit,
+    onRootTunFakeIpRangeDraftChange: (String) -> Unit,
+    onRootTunFakeIpRange6DraftChange: (String) -> Unit,
+    commitRootTunIfName: () -> Unit,
+    commitRootTunMtu: () -> Unit,
+    commitRootTunIncludeAndroidUser: () -> Unit,
+    commitRootTunRouteExcludeAddress: () -> Unit,
+    commitRootTunFakeIpRange: () -> Unit,
+    commitRootTunFakeIpRange6: () -> Unit,
+) {
+    SmallTitle(MLang.NetworkSettings.Section.VpnService)
+    Card {
+        EnumSelector(
+            title = MLang.NetworkSettings.VpnService.RouteTrafficTitle,
+            summary =
+                when {
+                    uiState.isApplying ->
+                        MLang.NetworkSettings.VpnService.RouteTrafficApplying.format(
+                            uiState.effectiveMode.toDisplayName(),
+                            uiState.configuredMode.toDisplayName(),
+                        )
+                    uiState.serviceState == ServiceState.Running ->
+                        MLang.NetworkSettings.VpnService.RouteTrafficEffective.format(
+                            uiState.effectiveMode.toDisplayName(),
+                            uiState.configuredMode.toDisplayName(),
+                        )
+                    else -> MLang.NetworkSettings.VpnService.RouteTrafficSummary
+                },
+            currentValue = proxyMode,
+            items =
+                listOf(
+                    MLang.NetworkSettings.VpnService.SystemProxy,
+                    MLang.NetworkSettings.VpnService.VpnMode,
+                    MLang.NetworkSettings.VpnService.RootTunMode,
+                ),
+            values = listOf(ProxyMode.Http, ProxyMode.Tun, ProxyMode.RootTun),
+            onValueChange = onProxyModeChange,
+        )
+    }
+
+    AnimatedVisibility(
+        visible = uiState.showServiceOptions,
+        enter =
+            if (enableModeTransition) fadeIn() + expandVertically() else EnterTransition.None,
+        exit =
+            if (enableModeTransition) fadeOut() + shrinkVertically() else ExitTransition.None,
+    ) {
+        Column {
+            SmallTitle(MLang.NetworkSettings.Section.VpnOptions)
+            Card(modifier = Modifier.animateContentSize()) {
+                AnimatedContent(
+                    targetState = uiState.configuredMode,
+                    transitionSpec = {
+                        if (enableModeTransition) {
+                            fadeIn() togetherWith fadeOut()
+                        } else {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        }
+                    },
+                    label = "network_service_options",
+                ) { mode ->
+                    when (mode) {
+                        ProxyMode.Http -> Spacer(modifier = Modifier.height(0.dp))
+                        ProxyMode.Tun ->
+                            TunServiceOptions(
+                                bypassPrivateNetwork = bypassPrivateNetwork,
+                                dnsHijack = dnsHijack,
+                                allowBypass = allowBypass,
+                                enableIPv6 = enableIPv6,
+                                systemProxy = systemProxy,
+                                tunStack = tunStack,
+                                onBypassPrivateNetworkChange = onBypassPrivateNetworkChange,
+                                onDnsHijackChange = onDnsHijackChange,
+                                onAllowBypassChange = onAllowBypassChange,
+                                onEnableIPv6Change = onEnableIPv6Change,
+                                onSystemProxyChange = onSystemProxyChange,
+                                onTunStackChange = onTunStackChange,
+                            )
+
+                        ProxyMode.RootTun ->
+                            RootTunServiceOptions(
+                                bypassPrivateNetwork = bypassPrivateNetwork,
+                                dnsHijack = dnsHijack,
+                                enableIPv6 = enableIPv6,
+                                tunStack = tunStack,
+                                rootTunAutoRoute = rootTunAutoRoute,
+                                rootTunStrictRoute = rootTunStrictRoute,
+                                rootTunAutoRedirect = rootTunAutoRedirect,
+                                rootTunDnsMode = rootTunDnsMode,
+                                rootTunIfNameDraft = rootTunIfNameDraft,
+                                rootTunMtuDraft = rootTunMtuDraft,
+                                rootTunIncludeAndroidUserDraft = rootTunIncludeAndroidUserDraft,
+                                rootTunRouteExcludeAddressDraft =
+                                    rootTunRouteExcludeAddressDraft,
+                                rootTunFakeIpRangeDraft = rootTunFakeIpRangeDraft,
+                                rootTunFakeIpRange6Draft = rootTunFakeIpRange6Draft,
+                                showFakeIpRange = uiState.showFakeIpRange,
+                                onBypassPrivateNetworkChange = onBypassPrivateNetworkChange,
+                                onDnsHijackChange = onDnsHijackChange,
+                                onEnableIPv6Change = onEnableIPv6Change,
+                                onTunStackChange = onTunStackChange,
+                                onRootTunAutoRouteChange = onRootTunAutoRouteChange,
+                                onRootTunStrictRouteChange = onRootTunStrictRouteChange,
+                                onRootTunAutoRedirectChange = onRootTunAutoRedirectChange,
+                                onRootTunDnsModeChange = onRootTunDnsModeChange,
+                                onRootTunIfNameDraftChange = onRootTunIfNameDraftChange,
+                                onRootTunMtuDraftChange = onRootTunMtuDraftChange,
+                                onRootTunIncludeAndroidUserDraftChange =
+                                    onRootTunIncludeAndroidUserDraftChange,
+                                onRootTunRouteExcludeAddressDraftChange =
+                                    onRootTunRouteExcludeAddressDraftChange,
+                                onRootTunFakeIpRangeDraftChange = onRootTunFakeIpRangeDraftChange,
+                                onRootTunFakeIpRange6DraftChange =
+                                    onRootTunFakeIpRange6DraftChange,
+                                commitRootTunIfName = commitRootTunIfName,
+                                commitRootTunMtu = commitRootTunMtu,
+                                commitRootTunIncludeAndroidUser =
+                                    commitRootTunIncludeAndroidUser,
+                                commitRootTunRouteExcludeAddress =
+                                    commitRootTunRouteExcludeAddress,
+                                commitRootTunFakeIpRange = commitRootTunFakeIpRange,
+                                commitRootTunFakeIpRange6 = commitRootTunFakeIpRange6,
+                            )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProxyOptionsSection(
+    uiState: NetworkSettingsUiState,
+    accessControlMode: AccessControlMode,
+    onAccessControlModeChange: (AccessControlMode) -> Unit,
+    onManageAccessControl: () -> Unit,
+) {
+    SmallTitle(MLang.NetworkSettings.Section.ProxyOptions)
+    Card {
+        if (uiState.showAccessControlMode) {
+            EnumSelector(
+                title = MLang.NetworkSettings.ProxyOptions.AccessControlModeTitle,
+                currentValue = accessControlMode,
+                items =
+                    listOf(
+                        MLang.NetworkSettings.ProxyOptions.AllowAll,
+                        MLang.NetworkSettings.ProxyOptions.AllowSelected,
+                        MLang.NetworkSettings.ProxyOptions.RejectSelected,
+                    ),
+                values = AccessControlMode.entries,
+                onValueChange = onAccessControlModeChange,
+            )
+        }
+        ConfigSettingRow(
+            title = MLang.NetworkSettings.ProxyOptions.ManageAccessControlTitle,
+            summary = MLang.NetworkSettings.ProxyOptions.ManageAccessControlSummary,
+            tone = SemanticTone.Info,
+            showDivider = false,
+            onClick = onManageAccessControl,
+        )
+    }
+}
 
 @Composable
 private fun TunServiceOptions(
@@ -478,20 +746,20 @@ private fun RootTunAdvancedOptions(
     commitRootTunFakeIpRange: () -> Unit,
     commitRootTunFakeIpRange6: () -> Unit,
 ) {
-    var editDialog by remember { mutableStateOf<RootTunEditDialogState?>(null) }
+    var editDialog by rememberSaveable { mutableStateOf<RootTunEditDialogState?>(null) }
 
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        SuperArrow(
+        ConfigSettingRow(
             title = MLang.NetworkSettings.RootTun.IfNameTitle,
             summary = rootTunIfNameDraft.ifBlank { MLang.NetworkSettings.RootTun.IfNameSummary },
             onClick = { editDialog = RootTunEditDialogState.IfName },
         )
-        SuperArrow(
+        ConfigSettingRow(
             title = MLang.NetworkSettings.RootTun.MtuTitle,
             summary = rootTunMtuDraft.ifBlank { MLang.NetworkSettings.RootTun.MtuSummary },
             onClick = { editDialog = RootTunEditDialogState.Mtu },
         )
-        SuperArrow(
+        ConfigSettingRow(
             title = MLang.NetworkSettings.RootTun.AndroidUsersTitle,
             summary =
                 rootTunIncludeAndroidUserDraft.ifBlank {
@@ -499,7 +767,7 @@ private fun RootTunAdvancedOptions(
                 },
             onClick = { editDialog = RootTunEditDialogState.AndroidUsers },
         )
-        SuperArrow(
+        ConfigSettingRow(
             title = MLang.NetworkSettings.RootTun.RouteExcludesTitle,
             summary =
                 rootTunRouteExcludeAddressDraft.ifBlank {
@@ -543,7 +811,7 @@ private fun RootTunAdvancedOptions(
             exit = fadeOut() + shrinkVertically(),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                SuperArrow(
+                ConfigSettingRow(
                     title = MLang.NetworkSettings.RootTun.FakeIpRangeTitle,
                     summary =
                         rootTunFakeIpRangeDraft.ifBlank {
@@ -551,12 +819,13 @@ private fun RootTunAdvancedOptions(
                         },
                     onClick = { editDialog = RootTunEditDialogState.FakeIpRange },
                 )
-                SuperArrow(
+                ConfigSettingRow(
                     title = MLang.NetworkSettings.RootTun.FakeIpRange6Title,
                     summary =
                         rootTunFakeIpRange6Draft.ifBlank {
                             MLang.NetworkSettings.RootTun.FakeIpRange6Summary
                         },
+                    showDivider = false,
                     onClick = { editDialog = RootTunEditDialogState.FakeIpRange6 },
                 )
             }
@@ -723,24 +992,15 @@ private fun RootTunTextEditDialog(
                             }
                         ),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text(MLang.ProfilesPage.Button.Cancel)
-                    }
-                    Button(
-                        onClick = {
-                            onCommit()
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColorsPrimary(),
-                    ) {
-                        Text(
-                            text = MLang.ProfilesPage.Button.Confirm,
-                            color = MiuixTheme.colorScheme.onPrimary,
-                        )
-                    }
-                }
+                DialogButtonRow(
+                    onCancel = onDismiss,
+                    onConfirm = {
+                        onCommit()
+                        onDismiss()
+                    },
+                    cancelText = MLang.ProfilesPage.Button.Cancel,
+                    confirmText = MLang.ProfilesPage.Button.Confirm,
+                )
             }
         },
     )

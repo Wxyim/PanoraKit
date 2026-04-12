@@ -41,7 +41,7 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     val excludeFromRecents by boolFlow(false)
     val showTrafficNotification by boolFlow(true)
     val autoStartLogRecording by boolFlow(false)
-    val bottomBarAutoHide by boolFlow(true)
+    val bottomBarAutoHide by boolFlow(false)
     val topBarBlurEnabled by boolFlow(true)
     val bottomBarLiquidGlassEnabled by boolFlow(false)
     val profileSwipeHintShown by boolFlow(false)

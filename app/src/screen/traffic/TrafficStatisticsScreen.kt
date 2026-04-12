@@ -59,6 +59,7 @@ import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.TrafficBarChart
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -91,7 +92,6 @@ private object TrafficStatisticsMetrics {
     val RecentRequestItemPadding = 12.dp
     val RecentRequestItemSpacing = 10.dp
     val RecentRequestChipCorner = 100.dp
-    val WideLayoutBreakpoint = 840.dp
 }
 
 private enum class TrafficDetailSection {
@@ -162,7 +162,9 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                         Modifier.fillMaxWidth()
                             .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
                 ) {
-                    val useWideLayout = maxWidth >= TrafficStatisticsMetrics.WideLayoutBreakpoint
+                    val availableAdaptiveInfo =
+                        rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                    val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
                     if (useWideLayout) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

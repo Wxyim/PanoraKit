@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -48,6 +49,9 @@ internal fun LazyListScope.nodeGridItems(
     outerHorizontalPadding: Dp = 0.dp,
     itemVerticalPadding: Dp = 0.dp,
     singleNodeTestEnabled: Boolean = true,
+    interactionRole: Role = Role.RadioButton,
+    onProxyClickLabel: String? = null,
+    actionChipLabel: String? = null,
 ) {
     items(items = proxies, key = { it.name }, contentType = { "NodeCard1" }) { proxy ->
         NodeCard(
@@ -59,6 +63,9 @@ internal fun LazyListScope.nodeGridItems(
             onSingleNodeTestClick = onSingleNodeTestClick?.let { { it(proxy.name) } },
             showCountryFlag = true,
             singleNodeTestEnabled = singleNodeTestEnabled,
+            interactionRole = interactionRole,
+            onClickLabel = onProxyClickLabel,
+            actionChipLabel = actionChipLabel,
             modifier =
                 Modifier.animateItem()
                     .padding(horizontal = outerHorizontalPadding, vertical = itemVerticalPadding),
@@ -79,6 +86,9 @@ internal fun NodeGrid(
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     singleNodeTestEnabled: Boolean = true,
+    interactionRole: Role = Role.RadioButton,
+    onProxyClickLabel: String? = null,
+    actionChipLabel: String? = null,
 ) {
     val listState = rememberSaveable(listStateKey, saver = LazyListState.Saver) { LazyListState() }
     LazyColumn(
@@ -96,6 +106,9 @@ internal fun NodeGrid(
             testingProxyNames = testingProxyNames,
             onSingleNodeTestClick = onSingleNodeTestClick,
             singleNodeTestEnabled = singleNodeTestEnabled,
+            interactionRole = interactionRole,
+            onProxyClickLabel = onProxyClickLabel,
+            actionChipLabel = actionChipLabel,
         )
     }
 }

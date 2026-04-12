@@ -27,13 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.BuildConfig
 import com.github.nomadboxlab.monadbox.R
-import com.github.yumelira.yumebox.common.util.openUrl
 import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.component.ConfigSettingRow
+import com.github.yumelira.yumebox.presentation.component.LinkItem
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
@@ -43,7 +44,6 @@ import com.ramcosta.composedestinations.generated.destinations.OpenSourceLicense
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object AboutPageMetrics {
@@ -54,6 +54,7 @@ private object AboutPageMetrics {
     val HeroMetaSpacing = 8.dp
     val FooterTopPadding = 32.dp
     val FooterBottomSpacing = 32.dp
+    val ContentMaxWidth = 920.dp
 }
 
 private object AboutProjectLinks {
@@ -66,109 +67,119 @@ private object AboutProjectLinks {
 @Composable
 @Destination<RootGraph>
 fun AboutScreen(navigator: DestinationsNavigator) {
-    val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
 
-    Scaffold(topBar = { TopBar(title = MLang.About.Title, scrollBehavior = scrollBehavior) }) {
-        innerPadding ->
-        ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroTopSpacing))
+    Scaffold(
+        topBar = {
+            TopBar(
+                title = MLang.About.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            ScreenLazyColumn(
+                modifier = Modifier.fillMaxWidth().widthIn(max = AboutPageMetrics.ContentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+            ) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroTopSpacing))
 
-                    Icon(
-                        painter = painterResource(id = R.drawable.monadbox_about_logo),
-                        contentDescription = null,
+                        Icon(
+                            painter = painterResource(id = R.drawable.monadbox_about_logo),
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(AboutPageMetrics.HeroIconSize)
+                                    .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
+                            tint = Color.Unspecified,
+                        )
+
+                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroSectionSpacing))
+
+                        Text(text = MLang.About.App.Name, style = MiuixTheme.textStyles.title1)
+
+                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
+
+                        Text(
+                            text =
+                                MLang.About.App.VersionWithMihomo.format(
+                                    BuildConfig.VERSION_NAME,
+                                    BuildConfig.MIHOMO_VERSION,
+                                ),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+
+                        Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
+                    }
+
+                    Card {
+                        BasicComponent(
+                            title = MLang.About.App.Name,
+                            summary = MLang.About.App.Description,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.ProjectLinks)
+                    Card {
+                        AboutLinkItem(
+                            title = MLang.About.Link.Repository,
+                            url = AboutProjectLinks.MonadBoxRepo,
+                        )
+                        AboutLinkItem(
+                            title = MLang.About.Link.Releases,
+                            url = AboutProjectLinks.MonadBoxLatestRelease,
+                        )
+                        AboutLinkItem(
+                            title = MLang.About.Link.Mihomo,
+                            url = AboutProjectLinks.MihomoRepo,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.Credits)
+                    Card {
+                        AboutLinkItem(
+                            title = MLang.About.Link.Upstream,
+                            url = AboutProjectLinks.YumeBoxUpstreamRepo,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.License)
+                    Card {
+                        ConfigSettingRow(
+                            title = MLang.About.License.Libraries,
+                            summary = MLang.About.License.LibrariesSummary,
+                            showDivider = false,
+                            onClick = { navigator.navigate(OpenSourceLicensesScreenDestination) },
+                        )
+                        BasicComponent(
+                            title = MLang.About.License.AgplName,
+                            summary = MLang.About.License.AgplDescription,
+                        )
+                    }
+                }
+
+                item {
+                    Column(
                         modifier =
-                            Modifier.size(AboutPageMetrics.HeroIconSize)
-                                .clip(RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)),
-                        tint = Color.Unspecified,
-                    )
-
-                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroSectionSpacing))
-
-                    Text(text = MLang.About.App.Name, style = MiuixTheme.textStyles.title1)
-
-                    Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
-
-                    Text(
-                        text =
-                            MLang.About.App.VersionWithMihomo.format(
-                                BuildConfig.VERSION_NAME,
-                                BuildConfig.MIHOMO_VERSION,
-                            ),
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-
+                            Modifier.fillMaxWidth().padding(top = AboutPageMetrics.FooterTopPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
+                    }
                     Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
                 }
-
-                Card {
-                    BasicComponent(
-                        title = MLang.About.App.Name,
-                        summary = MLang.About.App.Description,
-                    )
-                }
-
-                SmallTitle(MLang.About.Section.ProjectLinks)
-                Card {
-                    AboutLinkItem(
-                        title = MLang.About.Link.Repository,
-                        url = AboutProjectLinks.MonadBoxRepo,
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = false,
-                    )
-                    AboutLinkItem(
-                        title = MLang.About.Link.Releases,
-                        url = AboutProjectLinks.MonadBoxLatestRelease,
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = false,
-                    )
-                    AboutLinkItem(
-                        title = MLang.About.Link.Mihomo,
-                        url = AboutProjectLinks.MihomoRepo,
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = false,
-                    )
-                }
-
-                SmallTitle(MLang.About.Section.Credits)
-                Card {
-                    AboutLinkItem(
-                        title = MLang.About.Link.Upstream,
-                        url = AboutProjectLinks.YumeBoxUpstreamRepo,
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = false,
-                    )
-                }
-
-                SmallTitle(MLang.About.Section.License)
-                Card {
-                    SuperArrow(
-                        title = MLang.About.License.Libraries,
-                        summary = MLang.About.License.LibrariesSummary,
-                        onClick = { navigator.navigate(OpenSourceLicensesScreenDestination) },
-                    )
-                    BasicComponent(
-                        title = MLang.About.License.AgplName,
-                        summary = MLang.About.License.AgplDescription,
-                    )
-                }
-            }
-
-            item {
-                Column(
-                    modifier =
-                        Modifier.fillMaxWidth().padding(top = AboutPageMetrics.FooterTopPadding),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
-                }
-                Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
             }
         }
     }
@@ -178,12 +189,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 private fun AboutLinkItem(
     title: String,
     url: String,
-    onOpenUrl: (String) -> Unit,
-    showArrow: Boolean,
 ) {
-    if (showArrow) {
-        SuperArrow(title = title, summary = url, onClick = { onOpenUrl(url) })
-    } else {
-        BasicComponent(title = title, summary = url, onClick = { onOpenUrl(url) })
-    }
+    LinkItem(title = title, url = url, showArrow = true)
 }

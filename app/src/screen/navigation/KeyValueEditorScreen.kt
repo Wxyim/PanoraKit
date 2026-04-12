@@ -39,7 +39,6 @@ import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.DialogDefaults
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.AddCircle
 import top.yukonga.miuix.kmp.icon.extended.Delete
@@ -366,27 +365,27 @@ private fun RuleAddDialog(title: String, onConfirm: (String) -> Unit, onDismiss:
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                WindowDropdown(
+                EnumSelector(
                     title = MLang.Component.Editor.Rule.Type,
+                    currentValue = ruleType,
                     items = RULE_TYPE_PRESETS,
-                    selectedIndex = selectedRuleTypeIndex,
-                    onSelectedIndexChange = { idx ->
-                        if (idx in RULE_TYPE_PRESETS.indices) {
-                            ruleType = RULE_TYPE_PRESETS[idx]
-                            errorText = null
-                        }
+                    values = RULE_TYPE_PRESETS,
+                    showDivider = false,
+                    onValueChange = {
+                        ruleType = it
+                        errorText = null
                     },
                 )
 
-                WindowDropdown(
+                EnumSelector(
                     title = MLang.Component.Editor.Rule.Target,
+                    currentValue = target,
                     items = targetItems,
-                    selectedIndex = selectedTargetIndex,
-                    onSelectedIndexChange = { idx ->
-                        if (idx in targetItems.indices) {
-                            target = targetItems[idx]
-                            errorText = null
-                        }
+                    values = targetItems,
+                    showDivider = false,
+                    onValueChange = {
+                        target = it
+                        errorText = null
                     },
                 )
 

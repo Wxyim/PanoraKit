@@ -37,6 +37,7 @@ import com.github.yumelira.yumebox.feature.meta.presentation.component.TabRowWit
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionSort
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionTab
 import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.ramcosta.composedestinations.annotation.Destination
@@ -59,6 +60,7 @@ private object ConnectionPageSpacing {
     val TopBarActionOuter = 24.dp
     val SearchVerticalPadding = 8.dp
     val EmptyStatePadding = 32.dp
+    val ContentMaxWidth = 1080.dp
 }
 
 private val SortModes =
@@ -106,6 +108,12 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
             TopBar(
                 title = MLang.Connection.Title,
                 scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
                 actions = {
                     Box {
                         IconButton(
@@ -155,89 +163,95 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
             )
         }
     ) { innerPadding ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = innerPadding,
-            contentPadding =
-                PaddingValues(
-                    start = ConnectionPageSpacing.ContentHorizontal,
-                    end = ConnectionPageSpacing.ContentHorizontal,
-                    top = innerPadding.calculateTopPadding() + ConnectionPageSpacing.ContentTop,
-                    bottom = innerPadding.calculateBottomPadding(),
-                ),
-        ) {
-            item {
-                TabRowWithContour(
-                    tabs = tabs,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelected = { selectedTabIndex = it },
-                )
-            }
-
-            item {
-                AnimatedVisibility(
-                    visible = showSearchBar,
-                    enter =
-                        expandVertically(
-                            animationSpec = tween(200, easing = FastOutSlowInEasing),
-                            expandFrom = Alignment.Top,
-                        ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
-                    exit =
-                        shrinkVertically(
-                            animationSpec = tween(200, easing = FastOutSlowInEasing),
-                            shrinkTowards = Alignment.Top,
-                        ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(vertical = ConnectionPageSpacing.SearchVerticalPadding),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextField(
-                            value = searchText,
-                            onValueChange = { searchText = it },
-                            modifier = Modifier.weight(1f),
-                            label = MLang.Connection.SearchHint,
-                            singleLine = true,
-                        )
-                    }
-                }
-            }
-
-            if (filteredConnections.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            ScreenLazyColumn(
+                modifier = Modifier.fillMaxWidth().widthIn(max = ConnectionPageSpacing.ContentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                contentPadding =
+                    PaddingValues(
+                        start = ConnectionPageSpacing.ContentHorizontal,
+                        end = ConnectionPageSpacing.ContentHorizontal,
+                        top = innerPadding.calculateTopPadding() + ConnectionPageSpacing.ContentTop,
+                        bottom = innerPadding.calculateBottomPadding(),
+                    ),
+            ) {
                 item {
-                    Box(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(ConnectionPageSpacing.EmptyStatePadding),
-                        contentAlignment = Alignment.Center,
+                    TabRowWithContour(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = { selectedTabIndex = it },
+                    )
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = showSearchBar,
+                        enter =
+                            expandVertically(
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                expandFrom = Alignment.Top,
+                            ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
+                        exit =
+                            shrinkVertically(
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                shrinkTowards = Alignment.Top,
+                            ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)),
                     ) {
-                        Text(
-                            text =
-                                if (state.isLoading) {
-                                    MLang.Connection.Loading
-                                } else if (state.searchQuery.isNotEmpty()) {
-                                    MLang.Connection.NoResults
-                                } else {
-                                    MLang.Connection.Empty
-                                },
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .padding(
+                                        vertical = ConnectionPageSpacing.SearchVerticalPadding
+                                    ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextField(
+                                value = searchText,
+                                onValueChange = { searchText = it },
+                                modifier = Modifier.weight(1f),
+                                label = MLang.Connection.SearchHint,
+                                singleLine = true,
+                            )
+                        }
                     }
                 }
-            } else {
 
-                items(items = filteredConnections, key = { it.id }) { connection ->
-                    ConnectionCard(
-                        connectionInfo = connection,
-                        onClick = {
-                            selectedConnection = connection
-                            showDetailSheet = true
-                        },
-                        modifier = Modifier.padding(vertical = ConnectionPageSpacing.ItemVertical),
-                    )
+                if (filteredConnections.isEmpty()) {
+                    item {
+                        Box(
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .padding(ConnectionPageSpacing.EmptyStatePadding),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text =
+                                    if (state.isLoading) {
+                                        MLang.Connection.Loading
+                                    } else if (state.searchQuery.isNotEmpty()) {
+                                        MLang.Connection.NoResults
+                                    } else {
+                                        MLang.Connection.Empty
+                                    },
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    }
+                } else {
+
+                    items(items = filteredConnections, key = { it.id }) { connection ->
+                        ConnectionCard(
+                            connectionInfo = connection,
+                            onClick = {
+                                selectedConnection = connection
+                                showDetailSheet = true
+                            },
+                            modifier =
+                                Modifier.padding(vertical = ConnectionPageSpacing.ItemVertical),
+                        )
+                    }
                 }
             }
         }

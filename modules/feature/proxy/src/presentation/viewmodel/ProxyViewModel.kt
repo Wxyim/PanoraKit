@@ -73,6 +73,8 @@ class ProxyViewModel(
     private val _currentMode = MutableStateFlow(proxyDisplaySettingsStore.proxyMode.value)
     val currentMode: StateFlow<TunnelState.Mode> = _currentMode.asStateFlow()
 
+    val isRunning: StateFlow<Boolean> = proxyFacade.isRunning
+
     val displayMode: StateFlow<ProxyDisplayMode> =
         proxyDisplaySettingsStore.displayMode.state.stateIn(
             viewModelScope,
@@ -84,7 +86,7 @@ class ProxyViewModel(
         proxyDisplaySettingsStore.groupStyle.state.stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            ProxyGroupStyle.INLINE,
+            ProxyGroupStyle.FLOATING,
         )
 
     val sortMode: StateFlow<ProxySortMode> =
@@ -270,6 +272,10 @@ class ProxyViewModel(
 
     fun testDelay(groupName: String? = null) {
         viewModelScope.launch {
+            if (!proxyFacade.isRunning.value) {
+                showError(MLang.Providers.Empty.NotRunning)
+                return@launch
+            }
             setLoading(true)
             val currentGroups = proxyGroups.value
             val testingTargets: Set<String> =
@@ -332,6 +338,10 @@ class ProxyViewModel(
 
     fun selectProxy(groupName: String, proxyName: String) {
         viewModelScope.launch {
+            if (!proxyFacade.isRunning.value) {
+                showError(MLang.Providers.Empty.NotRunning)
+                return@launch
+            }
             runCatching {
                     val success = proxyFacade.selectProxy(groupName, proxyName)
                     if (!success) {
@@ -344,6 +354,10 @@ class ProxyViewModel(
 
     fun testProxyDelay(proxyName: String) {
         viewModelScope.launch {
+            if (!proxyFacade.isRunning.value) {
+                showError(MLang.Providers.Empty.NotRunning)
+                return@launch
+            }
             _testingProxyNames.update { it + proxyName }
             runCatching { proxyFacade.healthCheckProxy(proxyName) }
             delay(500.milliseconds)

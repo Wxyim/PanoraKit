@@ -31,17 +31,18 @@ import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
+import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
 import com.github.yumelira.yumebox.service.root.RootPackageShell
-import kotlinx.coroutines.flow.MutableSharedFlow
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -135,7 +136,8 @@ class NetworkSettingsViewModel(
     networkSettingsStorage: NetworkSettingsStorage,
     appSettingsRepository: AppSettingsRepository,
     private val proxyFacade: ProxyFacade,
-    private val runtimeControlCoordinator: RuntimeControlCoordinator,
+    private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : AndroidViewModel(application) {
     val proxyMode: Preference<ProxyMode> = networkSettingsStorage.proxyMode
     val bypassPrivateNetwork: Preference<Boolean> = networkSettingsStorage.bypassPrivateNetwork
@@ -179,9 +181,6 @@ class NetworkSettingsViewModel(
     private val _rootTunFakeIpRange6Draft = MutableStateFlow(rootTunFakeIpRange6.value)
     val rootTunFakeIpRange6Draft: StateFlow<String> = _rootTunFakeIpRange6Draft.asStateFlow()
 
-    private val _errors = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val errors: SharedFlow<String> = _errors.asSharedFlow()
-
     private val runtimeSnapshot = proxyFacade.runtimeSnapshot
 
     val serviceState: StateFlow<ServiceState> =
@@ -209,8 +208,8 @@ class NetworkSettingsViewModel(
                         dnsMode,
                     )
                 },
-                runtimeControlCoordinator.isMutating,
-                runtimeControlCoordinator.activeOperation,
+                runtimeActionExecutor.isMutating,
+                runtimeActionExecutor.activeOperation,
             ) { baseState, isApplying, activeOperation ->
                 baseState.copy(isApplying = isApplying, activeOperation = activeOperation)
             }
@@ -222,20 +221,27 @@ class NetworkSettingsViewModel(
             )
 
     fun onProxyModeChange(mode: ProxyMode) {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         if (proxyMode.value == mode) return
         val previousMode = proxyMode.value
         viewModelScope.launch {
-            runCatching {
-                    runtimeControlCoordinator.applyConfigChange(
-                        operation = "network:proxy-mode",
-                        persist = { proxyMode.set(mode) },
-                        rollback = { proxyMode.set(previousMode) },
-                    )
-                }
-                .onFailure { error ->
-                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to switch proxy mode"))
-                }
+            val outcome =
+                runtimeActionExecutor.applyConfigChange(
+                    operation = "network:proxy-mode",
+                    persist = { proxyMode.set(mode) },
+                    rollback = { proxyMode.set(previousMode) },
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = "Failed to switch proxy mode",
+                            targetMode = mode,
+                        ),
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired ->
+                    requestVpnPermission(startOutcome = outcome) { onProxyModeChange(mode) }
+                RuntimeActionOutcome.FailureHandled -> Unit
+            }
         }
     }
 
@@ -281,7 +287,9 @@ class NetworkSettingsViewModel(
 
     fun onAccessControlModeChange(mode: AccessControlMode) {
         if (!canUseAccessControlMode(mode)) {
-            _errors.tryEmit("Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。")
+            GlobalDialogPresenter.showError(
+                "Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。"
+            )
             return
         }
         updatePreference(
@@ -370,28 +378,41 @@ class NetworkSettingsViewModel(
 
     fun startService(mode: ProxyMode) {
         viewModelScope.launch {
-            runCatching {
-                    runtimeControlCoordinator.startProxy("network:start-service", mode = mode)
-                }
-                .onFailure { error ->
-                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to start proxy service"))
-                }
+            val outcome =
+                runtimeActionExecutor.startProxy(
+                    operation = "network:start-service",
+                    mode = mode,
+                    fallbackMessage = "Failed to start proxy service",
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired ->
+                    requestVpnPermission(startOutcome = outcome) { startService(mode) }
+                RuntimeActionOutcome.FailureHandled -> Unit
+            }
         }
     }
 
     fun restartService() {
         viewModelScope.launch {
             if (!RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value)) return@launch
-            runCatching {
-                    runtimeControlCoordinator.applyConfigChange(
-                        operation = "network:restart-service",
-                        persist = {},
-                        shouldRestart = { true },
-                    )
-                }
-                .onFailure { error ->
-                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to restart proxy service"))
-                }
+            val outcome =
+                runtimeActionExecutor.applyConfigChange(
+                    operation = "network:restart-service",
+                    persist = {},
+                    shouldRestart = { true },
+                    presentation =
+                        RuntimeActionFailurePresentation.Start(
+                            targetMode = runtimeActionExecutor.resolveDialogMode(),
+                            fallbackMessage = "Failed to restart proxy service",
+                        ),
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired ->
+                    requestVpnPermission(startOutcome = outcome) { restartService() }
+                RuntimeActionOutcome.FailureHandled -> Unit
+            }
         }
     }
 
@@ -401,21 +422,42 @@ class NetworkSettingsViewModel(
         operation: String,
         shouldRestart: (ProxyMode) -> Boolean = { true },
     ) {
-        if (runtimeControlCoordinator.isMutating.value) return
+        if (runtimeActionExecutor.isMutating.value) return
         if (preference.value == value) return
         val previousValue = preference.value
         viewModelScope.launch {
-            runCatching {
-                    runtimeControlCoordinator.applyConfigChange(
-                        operation = operation,
-                        persist = { preference.set(value) },
-                        rollback = { preference.set(previousValue) },
-                        shouldRestart = shouldRestart,
-                    )
-                }
-                .onFailure { error ->
-                    _errors.tryEmit(error.runtimeGatewayMessage("Failed to apply network settings"))
-                }
+            val outcome =
+                runtimeActionExecutor.applyConfigChange(
+                    operation = operation,
+                    persist = { preference.set(value) },
+                    rollback = { preference.set(previousValue) },
+                    shouldRestart = shouldRestart,
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = "Failed to apply network settings",
+                            targetMode = runtimeActionExecutor.resolveDialogMode(),
+                        ),
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired ->
+                    requestVpnPermission(startOutcome = outcome) {
+                        updatePreference(
+                            preference = preference,
+                            value = value,
+                            operation = operation,
+                            shouldRestart = shouldRestart,
+                        )
+                    }
+                RuntimeActionOutcome.FailureHandled -> Unit
+            }
         }
+    }
+
+    private fun requestVpnPermission(
+        startOutcome: RuntimeActionOutcome.PermissionRequired,
+        retry: suspend () -> Unit,
+    ) {
+        vpnPermissionCoordinator.requestPermission(startOutcome.intent, retry)
     }
 }

@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +56,7 @@ import com.github.yumelira.yumebox.domain.model.TrafficData
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
@@ -64,12 +67,19 @@ private const val DOWNLOAD_SPEED_VALUE_PLACEHOLDER = "8888"
 private const val SPEED_UNIT_PLACEHOLDER = "GB/s"
 private const val UPLOAD_SPEED_PLACEHOLDER = "8888 GB/s"
 
+private enum class HomeControlTone {
+    Primary,
+    Secondary,
+    Muted,
+}
+
 @Composable
 fun TrafficDisplay(
     trafficNow: TrafficData,
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
     runtimeVisualState: HomeRuntimeVisualState,
+    canStartProxy: Boolean,
     isRunning: Boolean,
     proxyMode: ProxyMode,
     onStatusCapsuleClick: (() -> Unit)? = null,
@@ -78,8 +88,18 @@ fun TrafficDisplay(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth)
         val metrics = remember(maxWidth) { HomeTrafficMetrics.from(maxWidth) }
-        val controlColumnWidth = (maxWidth * 0.46f).coerceIn(176.dp, 212.dp)
+        val shouldEmphasizeProfileSelection =
+            runtimeVisualState == HomeRuntimeVisualState.Idle && !canStartProxy
+        val controlColumnWidth =
+            when {
+                availableAdaptiveInfo.isExpandedWidth ->
+                    (maxWidth * 0.34f).coerceIn(224.dp, 292.dp)
+                availableAdaptiveInfo.isMediumWidth ->
+                    (maxWidth * 0.40f).coerceIn(196.dp, 244.dp)
+                else -> (maxWidth * 0.46f).coerceIn(176.dp, 212.dp)
+            }
 
         Column(
             modifier =
@@ -116,14 +136,28 @@ fun TrafficDisplay(
                         profileName = profileName,
                         tunnelMode = tunnelMode,
                         metrics = metrics,
+                        tone =
+                            if (shouldEmphasizeProfileSelection) {
+                                HomeControlTone.Primary
+                            } else {
+                                HomeControlTone.Secondary
+                            },
                         onClick = onModeBadgeClick,
                         onBoundsChanged = onModeBadgeBoundsChanged,
                     )
 
                     ProxyStatusCapsule(
                         runtimeVisualState = runtimeVisualState,
+                        canStartProxy = canStartProxy,
+                        tunnelMode = tunnelMode,
                         proxyMode = proxyMode,
                         metrics = metrics,
+                        tone =
+                            if (canStartProxy || runtimeVisualState != HomeRuntimeVisualState.Idle) {
+                                HomeControlTone.Primary
+                            } else {
+                                HomeControlTone.Muted
+                            },
                         onClick = onStatusCapsuleClick,
                     )
                 }
@@ -153,23 +187,24 @@ private fun ProfileModeBadge(
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
     metrics: HomeTrafficMetrics,
+    tone: HomeControlTone,
     onClick: (() -> Unit)?,
     onBoundsChanged: (Rect) -> Unit,
 ) {
     val primary = MiuixTheme.colorScheme.primary
+    val accentColor =
+        if (tone == HomeControlTone.Primary) {
+            primary
+        } else {
+            MiuixTheme.colorScheme.onSurface
+        }
+    val headline = tunnelMode.toDisplayName()
+    val controlDescription = listOf(profileName ?: MLang.Home.Profile.NoProfile, headline).joinToString(", ")
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
         animateColorAsState(
-            targetValue =
-                primary.copy(
-                    alpha =
-                        if (onClick != null && isPressed) {
-                            0.14f
-                        } else {
-                            0.08f
-                        }
-                ),
+            targetValue = accentColor.copy(alpha = tone.containerAlpha(onClick != null, isPressed)),
             animationSpec =
                 tween(
                     durationMillis = AnimationSpecs.DURATION_INSTANT,
@@ -193,9 +228,7 @@ private fun ProfileModeBadge(
             label = "ModeBadgeScale",
         )
     Box(
-        modifier =
-            Modifier.widthIn(min = metrics.modeBadgeMinWidth, max = metrics.modeBadgeMaxWidth)
-                .heightIn(min = metrics.controlTouchTargetHeight),
+        modifier = Modifier.fillMaxWidth().heightIn(min = metrics.controlTouchTargetHeight),
         contentAlignment = Alignment.CenterEnd,
     ) {
         Surface(
@@ -205,6 +238,9 @@ private fun ProfileModeBadge(
                 Modifier.fillMaxWidth()
                     .scale(controlScale)
                     .heightIn(min = metrics.modeBadgeHeight)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = controlDescription
+                    }
                     .onGloballyPositioned { coordinates ->
                         onBoundsChanged(coordinates.boundsInRoot())
                     }
@@ -213,6 +249,7 @@ private fun ProfileModeBadge(
                             baseModifier.clickable(
                                 role = Role.Button,
                                 interactionSource = interactionSource,
+                                onClickLabel = controlDescription,
                                 onClick = onClick,
                             )
                         } else {
@@ -222,9 +259,10 @@ private fun ProfileModeBadge(
         ) {
             HomeControlTextBlock(
                 caption = profileName ?: MLang.Home.Profile.NoProfile,
-                headline = tunnelMode.toDisplayName(),
+                headline = headline,
                 headlineLeadingIcon = tunnelMode.toDisplayIcon(),
                 metrics = metrics,
+                accentColor = accentColor,
                 modifier =
                     Modifier.padding(
                         horizontal = metrics.controlHorizontalPadding,
@@ -234,7 +272,7 @@ private fun ProfileModeBadge(
                     Icon(
                         imageVector = Yume.chevron,
                         contentDescription = null,
-                        tint = primary.copy(alpha = 0.76f),
+                        tint = accentColor.copy(alpha = 0.70f),
                         modifier = Modifier.size(metrics.controlChevronSize),
                     )
                 },
@@ -321,24 +359,44 @@ private fun ReservedMetricText(
 @Composable
 private fun ProxyStatusCapsule(
     runtimeVisualState: HomeRuntimeVisualState,
+    canStartProxy: Boolean,
+    tunnelMode: TunnelState.Mode?,
     proxyMode: ProxyMode,
     metrics: HomeTrafficMetrics,
+    tone: HomeControlTone,
     onClick: (() -> Unit)?,
 ) {
     val primary = MiuixTheme.colorScheme.primary
+    val statusHeadline =
+        when {
+            runtimeVisualState == HomeRuntimeVisualState.Idle && !canStartProxy ->
+                MLang.Home.Profile.NoProfile
+            runtimeVisualState == HomeRuntimeVisualState.Starting -> MLang.Home.Status.Starting
+            runtimeVisualState == HomeRuntimeVisualState.Running -> MLang.Home.Status.Running
+            runtimeVisualState == HomeRuntimeVisualState.Stopping -> MLang.Home.Status.Stopping
+            else -> MLang.Home.Status.TapToStart
+        }
+    val statusIcon =
+        when {
+            runtimeVisualState == HomeRuntimeVisualState.Idle && !canStartProxy ->
+                tunnelMode.toDisplayIcon()
+            runtimeVisualState == HomeRuntimeVisualState.Starting -> Yume.Play
+            runtimeVisualState == HomeRuntimeVisualState.Running -> Yume.Activity
+            runtimeVisualState == HomeRuntimeVisualState.Stopping -> Yume.Square
+            else -> Yume.Rocket
+        }
+    val contentColor =
+        if (runtimeVisualState == HomeRuntimeVisualState.Idle && !canStartProxy) {
+            MiuixTheme.colorScheme.onSurfaceVariantSummary
+        } else {
+            primary
+        }
+    val controlDescription = listOf(proxyMode.toTransportLabel(), statusHeadline).joinToString(", ")
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
         animateColorAsState(
-            targetValue =
-                primary.copy(
-                    alpha =
-                        if (onClick != null && isPressed) {
-                            0.14f
-                        } else {
-                            0.08f
-                        }
-                ),
+            targetValue = contentColor.copy(alpha = tone.containerAlpha(onClick != null, isPressed)),
             animationSpec =
                 tween(
                     durationMillis = AnimationSpecs.DURATION_INSTANT,
@@ -362,9 +420,7 @@ private fun ProxyStatusCapsule(
             label = "StatusCapsuleScale",
         )
     Box(
-        modifier =
-            Modifier.widthIn(min = metrics.statusCapsuleMinWidth)
-                .heightIn(min = metrics.controlTouchTargetHeight),
+        modifier = Modifier.fillMaxWidth().heightIn(min = metrics.controlTouchTargetHeight),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -374,11 +430,15 @@ private fun ProxyStatusCapsule(
                 Modifier.fillMaxWidth()
                     .scale(controlScale)
                     .heightIn(min = metrics.statusCapsuleHeight)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = controlDescription
+                    }
                     .let { baseModifier ->
                         if (onClick != null) {
                             baseModifier.clickable(
                                 role = Role.Button,
                                 interactionSource = interactionSource,
+                                onClickLabel = controlDescription,
                                 onClick = onClick,
                             )
                         } else {
@@ -431,21 +491,10 @@ private fun ProxyStatusCapsule(
             ) {
                 HomeControlTextBlock(
                     caption = proxyMode.toTransportLabel(),
-                    headline =
-                        when (it) {
-                            HomeRuntimeVisualState.Starting -> MLang.Home.Status.Starting
-                            HomeRuntimeVisualState.Running -> MLang.Home.Status.Running
-                            HomeRuntimeVisualState.Stopping -> MLang.Home.Status.Stopping
-                            HomeRuntimeVisualState.Idle -> MLang.Home.Status.TapToStart
-                        },
-                    headlineLeadingIcon =
-                        when (it) {
-                            HomeRuntimeVisualState.Starting -> Yume.Play
-                            HomeRuntimeVisualState.Running -> Yume.Activity
-                            HomeRuntimeVisualState.Stopping -> Yume.Square
-                            HomeRuntimeVisualState.Idle -> Yume.Rocket
-                        },
+                    headline = statusHeadline,
+                    headlineLeadingIcon = statusIcon,
                     metrics = metrics,
+                    accentColor = contentColor,
                     modifier =
                         Modifier.fillMaxWidth().padding(
                             horizontal = metrics.controlHorizontalPadding,
@@ -464,10 +513,9 @@ private fun HomeControlTextBlock(
     metrics: HomeTrafficMetrics,
     modifier: Modifier = Modifier,
     headlineLeadingIcon: ImageVector? = null,
+    accentColor: Color = MiuixTheme.colorScheme.primary,
     trailing: @Composable (() -> Unit)? = null,
 ) {
-    val primary = MiuixTheme.colorScheme.primary
-
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(metrics.controlInnerSpacing),
@@ -484,7 +532,7 @@ private fun HomeControlTextBlock(
                         fontSize = metrics.modeCaptionTextSize,
                         fontWeight = FontWeight.Medium,
                     ),
-                color = primary.copy(alpha = 0.76f),
+                color = accentColor.copy(alpha = 0.76f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -496,7 +544,7 @@ private fun HomeControlTextBlock(
                     Icon(
                         imageVector = headlineLeadingIcon,
                         contentDescription = null,
-                        tint = primary,
+                        tint = accentColor,
                         modifier = Modifier.size(metrics.controlIconSize),
                     )
                 }
@@ -507,7 +555,7 @@ private fun HomeControlTextBlock(
                             fontSize = metrics.controlTextSize,
                             fontWeight = FontWeight.Bold,
                         ),
-                    color = primary,
+                    color = accentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -517,6 +565,30 @@ private fun HomeControlTextBlock(
         trailing?.invoke()
     }
 }
+
+private fun HomeControlTone.containerAlpha(enabled: Boolean, pressed: Boolean): Float =
+    when (this) {
+        HomeControlTone.Primary ->
+            when {
+                enabled && pressed -> 0.22f
+                enabled -> 0.16f
+                else -> 0.10f
+            }
+
+        HomeControlTone.Secondary ->
+            when {
+                enabled && pressed -> 0.10f
+                enabled -> 0.05f
+                else -> 0.03f
+            }
+
+        HomeControlTone.Muted ->
+            when {
+                enabled && pressed -> 0.08f
+                enabled -> 0.04f
+                else -> 0.025f
+            }
+    }
 
 private fun TunnelState.Mode?.toDisplayName(): String =
     when (this) {
@@ -583,8 +655,8 @@ private data class HomeTrafficMetrics(
         fun from(width: Dp): HomeTrafficMetrics {
             val scale = (width / 390.dp).coerceIn(0.9f, 1f)
             return HomeTrafficMetrics(
-                topPadding = (46.dp * scale).coerceIn(38.dp, 46.dp),
-                bottomPadding = (10.dp * scale).coerceIn(8.dp, 10.dp),
+                topPadding = (36.dp * scale).coerceIn(30.dp, 36.dp),
+                bottomPadding = (8.dp * scale).coerceIn(6.dp, 8.dp),
                 sectionSpacing = (16.dp * scale).coerceIn(12.dp, 16.dp),
                 capsuleSectionSpacing = (12.dp * scale).coerceIn(8.dp, 12.dp),
                 controlStackSpacing = (12.dp * scale).coerceIn(10.dp, 12.dp),

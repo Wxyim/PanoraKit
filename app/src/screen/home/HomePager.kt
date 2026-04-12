@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
@@ -35,16 +34,17 @@ import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.repository.IpMonitoringState
 import com.github.yumelira.yumebox.domain.model.TrafficData
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun HomePager(
@@ -65,10 +65,8 @@ fun HomePager(
     proxyMode: ProxyMode,
     uiError: String?,
     uiMessage: String?,
-    startFailureDialog: HomeStartFailureDialog?,
     onConsumeError: () -> Unit = {},
     onConsumeMessage: () -> Unit = {},
-    onConsumeStartFailureDialog: () -> Unit = {},
     onProxyToggleRequest:
         (
             isRunning: Boolean,
@@ -82,7 +80,6 @@ fun HomePager(
 ) {
     val navigator = LocalNavigator.current
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
 
     androidx.compose.runtime.LaunchedEffect(uiError) {
         uiError?.let {
@@ -95,12 +92,9 @@ fun HomePager(
 
     val scrollBehavior = MiuixScrollBehavior()
 
-    val isProxyEnabled = profilesLoaded && hasProfiles && !isToggling
-    val gestureSurfaceHeight =
-        (configuration.screenHeightDp.dp -
-                mainInnerPadding.calculateTopPadding() -
-                mainInnerPadding.calculateBottomPadding())
-            .coerceAtLeast(360.dp)
+    val canStartProxy = profilesLoaded && hasEnabledProfile && recommendedProfile != null && !isToggling
+    val canToggleProxy = profilesLoaded && hasProfiles && !isToggling && (displayRunning || canStartProxy)
+    val hasTrafficHistory = speedHistory.size > 0
 
     val handleProxyToggle = {
         if (!hasEnabledProfile || recommendedProfile == null) {
@@ -117,26 +111,47 @@ fun HomePager(
             innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
         ) {
             item {
-                Box(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .heightIn(min = gestureSurfaceHeight)
-                            .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
-                ) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        val contentScale = (maxWidth / 390.dp).coerceIn(0.9f, 1f)
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    BoxWithConstraints(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .widthIn(max = 1080.dp)
+                                .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
+                    ) {
+                        val availableAdaptiveInfo =
+                            rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                        val contentScale = (maxWidth / 390.dp).coerceIn(0.92f, 1.04f)
                         val sectionSpacing =
-                            (AppConstants.UI.DEFAULT_VERTICAL_SPACING * contentScale).coerceIn(
-                                18.dp,
-                                AppConstants.UI.DEFAULT_VERTICAL_SPACING,
-                            )
-                        val infoSpacing = (16.dp * contentScale).coerceIn(12.dp, 16.dp)
+                            if (availableAdaptiveInfo.prefersTwoPaneContent) {
+                                24.dp
+                            } else {
+                                (AppConstants.UI.DEFAULT_VERTICAL_SPACING * contentScale).coerceIn(
+                                    18.dp,
+                                    AppConstants.UI.DEFAULT_VERTICAL_SPACING,
+                                )
+                            }
+                        val infoSpacing =
+                            if (availableAdaptiveInfo.prefersTwoPaneContent) {
+                                18.dp
+                            } else {
+                                (16.dp * contentScale).coerceIn(12.dp, 16.dp)
+                            }
                         val chartHeight =
-                            (AppConstants.UI.SPEED_CHART_HEIGHT * contentScale).coerceIn(
-                                112.dp,
-                                AppConstants.UI.SPEED_CHART_HEIGHT,
-                            )
-                        val useWideLayout = maxWidth >= 760.dp
+                            when {
+                                displayRunning ->
+                                    (AppConstants.UI.SPEED_CHART_HEIGHT * contentScale).coerceIn(
+                                        112.dp,
+                                        AppConstants.UI.SPEED_CHART_HEIGHT,
+                                    )
+                                hasTrafficHistory ->
+                                    (AppConstants.UI.SPEED_CHART_HEIGHT * 0.82f).coerceIn(
+                                        88.dp,
+                                        104.dp,
+                                    )
+                                else -> 72.dp
+                            }
+                        val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
+                        val visibleTraffic = if (displayRunning) trafficNow else TrafficData.ZERO
 
                         if (useWideLayout) {
                             Row(
@@ -145,30 +160,25 @@ fun HomePager(
                                 verticalAlignment = Alignment.Top,
                             ) {
                                 Column(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1.04f),
                                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                                 ) {
                                     TrafficDisplay(
-                                        trafficNow =
-                                            if (displayRunning) {
-                                                trafficNow
-                                            } else {
-                                                TrafficData.ZERO
-                                            },
+                                        trafficNow = visibleTraffic,
                                         profileName = currentProfileName,
                                         tunnelMode = currentTunnelMode,
                                         runtimeVisualState = runtimeVisualState,
+                                        canStartProxy = canStartProxy,
                                         isRunning = displayRunning,
                                         proxyMode = proxyMode,
-                                        onStatusCapsuleClick =
-                                            handleProxyToggle.takeIf { isProxyEnabled },
+                                        onStatusCapsuleClick = handleProxyToggle.takeIf { canToggleProxy },
                                         onModeBadgeClick = onModeSwitchRequest,
                                         onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                                     )
                                 }
 
                                 Column(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(0.96f),
                                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(infoSpacing)) {
@@ -179,7 +189,7 @@ fun HomePager(
                                         IpInfoDisplay(state = ipMonitoringState)
                                     }
 
-                                    SpeedChart(
+                                    HomeTrafficChartSection(
                                         speedHistory = speedHistory,
                                         isRunning = displayRunning,
                                         chartHeight = chartHeight,
@@ -197,19 +207,14 @@ fun HomePager(
                                 verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                             ) {
                                 TrafficDisplay(
-                                    trafficNow =
-                                        if (displayRunning) {
-                                            trafficNow
-                                        } else {
-                                            TrafficData.ZERO
-                                        },
+                                    trafficNow = visibleTraffic,
                                     profileName = currentProfileName,
                                     tunnelMode = currentTunnelMode,
                                     runtimeVisualState = runtimeVisualState,
+                                    canStartProxy = canStartProxy,
                                     isRunning = displayRunning,
                                     proxyMode = proxyMode,
-                                    onStatusCapsuleClick =
-                                        handleProxyToggle.takeIf { isProxyEnabled },
+                                    onStatusCapsuleClick = handleProxyToggle.takeIf { canToggleProxy },
                                     onModeBadgeClick = onModeSwitchRequest,
                                     onModeBadgeBoundsChanged = onModeBadgeBoundsChanged,
                                 )
@@ -223,7 +228,7 @@ fun HomePager(
                                         IpInfoDisplay(state = ipMonitoringState)
                                     }
 
-                                    SpeedChart(
+                                    HomeTrafficChartSection(
                                         speedHistory = speedHistory,
                                         isRunning = displayRunning,
                                         chartHeight = chartHeight,
@@ -242,19 +247,30 @@ fun HomePager(
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
+    }
+}
 
-        AppDialog(
-            show = startFailureDialog != null,
-            title = startFailureDialog?.title.orEmpty(),
-            summary = startFailureDialog?.detail,
-            onDismissRequest = onConsumeStartFailureDialog,
-        ) {
-            DialogButtonRow(
-                onCancel = onConsumeStartFailureDialog,
-                onConfirm = onConsumeStartFailureDialog,
-                cancelText = MLang.Component.Button.Cancel,
-                confirmText = MLang.Component.Button.Confirm,
+@Composable
+private fun HomeTrafficChartSection(
+    speedHistory: SpeedHistoryBuffer,
+    isRunning: Boolean,
+    chartHeight: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (!isRunning) {
+            Text(
+                text = MLang.TrafficStatistics.Title,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
+
+        SpeedChart(
+            speedHistory = speedHistory,
+            isRunning = isRunning,
+            chartHeight = chartHeight,
+            onClick = onClick,
+        )
     }
 }

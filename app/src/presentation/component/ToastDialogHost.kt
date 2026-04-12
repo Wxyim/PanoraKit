@@ -23,19 +23,22 @@ package com.github.yumelira.yumebox.presentation.component
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.ToastDialogBridge
 import com.github.yumelira.yumebox.common.util.ToastDialogEvent
 import com.github.yumelira.yumebox.common.util.ToastMode
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.icon.yume.Copy
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.extra.DialogDefaults
-import top.yukonga.miuix.kmp.extra.WindowDialog
 
 @Composable
 fun ToastDialogHost() {
@@ -52,50 +55,47 @@ fun ToastDialogHost() {
     }
 
     eventSnapshot?.let { snapshot ->
-        WindowDialog(
+        AppDialog(
             show = showDialog.value,
-            modifier = Modifier,
             title = snapshot.title,
-            titleColor = DialogDefaults.titleColor(),
             summary = snapshot.message,
-            summaryColor = DialogDefaults.summaryColor(),
-            backgroundColor = DialogDefaults.backgroundColor(),
-            enableWindowDim = true,
             onDismissRequest = { showDialog.value = false },
             onDismissFinished = {
                 ToastDialogBridge.dismiss(snapshot.id)
                 eventSnapshot = null
                 showDialog.value = false
             },
-            outsideMargin = DialogDefaults.outsideMargin,
-            insideMargin = DialogDefaults.insideMargin,
-            defaultWindowInsetsPadding = true,
-            content = {
-                if (snapshot.mode == ToastMode.COPY) {
-                    TextButton(
-                        text = MLang.Override.Card.Copy,
-                        onClick = {
-                            val clipboardManager =
-                                context.getSystemService(Context.CLIPBOARD_SERVICE)
-                                    as ClipboardManager
-                            val textToCopy = snapshot.message.ifBlank { snapshot.title }
-                            clipboardManager.setPrimaryClip(
-                                ClipData.newPlainText(snapshot.title, textToCopy)
-                            )
-                            showDialog.value = false
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColorsPrimary(),
-                    )
-                } else {
-                    TextButton(
-                        text = MLang.Component.Button.Confirm,
+        ) {
+            if (snapshot.mode == ToastMode.COPY) {
+                DialogButtonRow(
+                    onCancel = { showDialog.value = false },
+                    onConfirm = {
+                        val clipboardManager =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val textToCopy = snapshot.message.ifBlank { snapshot.title }
+                        clipboardManager.setPrimaryClip(
+                            ClipData.newPlainText(snapshot.title, textToCopy)
+                        )
+                        showDialog.value = false
+                    },
+                    cancelText = MLang.Component.Button.Cancel,
+                    confirmText = MLang.Override.Card.Copy,
+                    confirmTone = SemanticTone.Brand,
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    AppCommandButton(
+                        title = MLang.Component.Button.Confirm,
+                        imageVector = Yume.Check,
+                        tone = SemanticTone.Brand,
+                        highEmphasis = true,
                         onClick = { showDialog.value = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
                 }
-            },
-        )
+            }
+        }
     }
 }

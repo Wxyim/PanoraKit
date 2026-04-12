@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.mikepenz.aboutlibraries.entity.Library
@@ -50,6 +51,10 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private object OpenSourceLicensesMetrics {
+    val ContentMaxWidth = 920.dp
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 @Destination<RootGraph>
@@ -63,27 +68,42 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
     val libraries by produceLibraries(R.raw.aboutlibraries)
 
     Scaffold(
-        topBar = { TopBar(title = MLang.OpenSourceLicenses.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = MLang.OpenSourceLicenses.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            ScreenLazyColumn(
-                scrollBehavior = scrollBehavior,
-                innerPadding = innerPadding,
-                topPadding = 20.dp,
-            ) {
-                libraries?.libraries?.let { libs ->
-                    items(libs.size) { index ->
-                        val library = libs[index]
-                        LibraryItem(
-                            library = library,
-                            onClick = {
-                                selectedLibrary.value = library
-                                showLicenseSheet.value = true
-                            },
-                        )
-                    }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                ScreenLazyColumn(
+                    modifier =
+                        Modifier.fillMaxWidth().widthIn(max = OpenSourceLicensesMetrics.ContentMaxWidth),
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = innerPadding,
+                    topPadding = 20.dp,
+                ) {
+                    libraries?.libraries?.let { libs ->
+                        items(libs.size) { index ->
+                            val library = libs[index]
+                            LibraryItem(
+                                library = library,
+                                onClick = {
+                                    selectedLibrary.value = library
+                                    showLicenseSheet.value = true
+                                },
+                            )
+                        }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+                    }
                 }
             }
 

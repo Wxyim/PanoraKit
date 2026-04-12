@@ -21,8 +21,6 @@
 package com.github.yumelira.yumebox.screen.home
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +42,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.domain.model.TrafficData
-import com.github.yumelira.yumebox.presentation.component.CollectFlowWithLifecycle
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
@@ -62,10 +59,6 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val proxyUiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
     val currentTunnelMode by proxyViewModel.currentMode.collectAsStateWithLifecycle()
 
-    var pendingProfileId by remember { mutableStateOf<String?>(null) }
-    var pendingProxyMode by remember {
-        mutableStateOf<com.github.yumelira.yumebox.data.model.ProxyMode?>(null)
-    }
     var showQuickModePanel by remember { mutableStateOf(false) }
     var modeBadgeBounds by remember { mutableStateOf<Rect?>(null) }
 
@@ -81,23 +74,6 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    val vpnPermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                pendingProfileId?.let { profileId ->
-                    homeViewModel.startProxy(profileId, mode = pendingProxyMode)
-                }
-            }
-            pendingProfileId = null
-            pendingProxyMode = null
-        }
-
-    CollectFlowWithLifecycle(flow = homeViewModel.vpnPrepareIntent) { intent ->
-        vpnPermissionLauncher.launch(intent)
     }
 
     val requestProxyToggle:
@@ -121,8 +97,6 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
                     return@proxyToggleRequest
                 }
                 if (!isRunning) {
-                    pendingProfileId = profile.uuid.toString()
-                    pendingProxyMode = proxyMode
                     homeViewModel.startProxy(profileId = profile.uuid.toString(), mode = proxyMode)
                 } else {
                     coroutineScope.launch { homeViewModel.stopProxy() }
@@ -149,7 +123,6 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
             proxyMode = screenState.proxyMode,
             uiError = screenState.ui.error ?: proxyUiState.error,
             uiMessage = screenState.ui.message ?: proxyUiState.message,
-            startFailureDialog = screenState.ui.startFailureDialog,
             onConsumeError = {
                 homeViewModel.consumeError()
                 proxyViewModel.clearError()
@@ -158,7 +131,6 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
                 homeViewModel.consumeMessage()
                 proxyViewModel.clearMessage()
             },
-            onConsumeStartFailureDialog = { homeViewModel.consumeStartFailureDialog() },
             onProxyToggleRequest = requestProxyToggle,
             onModeSwitchRequest = { showQuickModePanel = true },
             onModeBadgeBoundsChanged = { bounds -> modeBadgeBounds = bounds },

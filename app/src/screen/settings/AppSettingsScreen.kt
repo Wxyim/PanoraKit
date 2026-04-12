@@ -32,6 +32,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
@@ -45,6 +47,7 @@ import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.screen.onboarding.isNotificationGranted
 import com.github.yumelira.yumebox.screen.onboarding.openAppNotificationSettings
 import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerItem
@@ -56,20 +59,22 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.text.toString
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private object AppSettingsMetrics {
+    val ContentMaxWidth = 1120.dp
+}
 
 @Composable
 @Destination<RootGraph>
@@ -93,12 +98,13 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         viewModel.showTrafficNotification.state.collectAsStateWithLifecycle().value
     val autoStartLogRecording =
         viewModel.autoStartLogRecording.state.collectAsStateWithLifecycle().value
+    val singleNodeTest = viewModel.singleNodeTest.state.collectAsStateWithLifecycle().value
     val bottomBarAutoHide = viewModel.bottomBarAutoHide.state.collectAsStateWithLifecycle().value
     val topBarBlurEnabled = viewModel.topBarBlurEnabled.state.collectAsStateWithLifecycle().value
     val bottomBarLiquidGlassEnabled =
         viewModel.bottomBarLiquidGlassEnabled.state.collectAsStateWithLifecycle().value
     val pageScaleState = viewModel.pageScale.state.collectAsStateWithLifecycle().value
-    var pageScaleLocal by remember(pageScaleState) { mutableFloatStateOf(pageScaleState) }
+    var pageScaleLocal by rememberSaveable(pageScaleState) { mutableFloatStateOf(pageScaleState) }
 
     val customUserAgent = viewModel.customUserAgent.state.collectAsStateWithLifecycle().value
     val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsStateWithLifecycle().value
@@ -108,18 +114,38 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         viewModel.cleanupIntervalHours.state.collectAsStateWithLifecycle().value
     val cleanupLastRunAt = viewModel.cleanupLastRunAt.state.collectAsStateWithLifecycle().value
 
-    val showHideIconDialog = remember { mutableStateOf(false) }
-    val showEditCustomUserAgentDialog = remember { mutableStateOf(false) }
-    val showPageScaleSheet = remember { mutableStateOf(false) }
-    val showCleanupThresholdDialog = remember { mutableStateOf(false) }
-    val showCleanupIntervalDialog = remember { mutableStateOf(false) }
+    val showHideIconDialog = rememberSaveable { mutableStateOf(false) }
+    val showEditCustomUserAgentDialog = rememberSaveable { mutableStateOf(false) }
+    val showPageScaleSheet = rememberSaveable { mutableStateOf(false) }
+    val showCleanupThresholdDialog = rememberSaveable { mutableStateOf(false) }
+    val showCleanupIntervalDialog = rememberSaveable { mutableStateOf(false) }
 
-    val customUserAgentTextFieldState = remember { mutableStateOf(TextFieldValue(customUserAgent)) }
+    val customUserAgentTextFieldState =
+        rememberSaveable(stateSaver = TextFieldValue.Saver) {
+            mutableStateOf(TextFieldValue(customUserAgent))
+        }
     var cleanupThresholdText by
-        remember(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
+        rememberSaveable(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
     var cleanupIntervalText by
-        remember(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
+        rememberSaveable(cleanupIntervalHours) { mutableStateOf(cleanupIntervalHours.toString()) }
+    var pageScaleDialogText by rememberSaveable {
+        mutableStateOf((pageScaleState * 100).roundToInt().toString())
+    }
     val dateTimeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val pageScaleLabel = "${(pageScaleState * 100).roundToInt()}%"
+    val cleanupLastRunSummary =
+        if (cleanupLastRunAt > 0L) {
+            MLang.AppSettings.Cleanup.LastRunSummary.format(
+                dateTimeFormatter.format(Date(cleanupLastRunAt))
+            )
+        } else {
+            MLang.AppSettings.Cleanup.LastRunNever
+        }
+    val openPageScaleDialog = {
+        pageScaleLocal = pageScaleState
+        pageScaleDialogText = (pageScaleState * 100).roundToInt().toString()
+        showPageScaleSheet.value = true
+    }
     val notificationPermissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
@@ -142,111 +168,64 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         }
 
     Scaffold(
-        topBar = { TopBar(title = MLang.AppSettings.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = MLang.AppSettings.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
-                item {
-                    SmallTitle(MLang.AppSettings.Section.Behavior)
-                    Card {
-                        SuperSwitch(
-                            title = MLang.AppSettings.Behavior.AutoStartTitle,
-                            summary = MLang.AppSettings.Behavior.AutoStartSummary,
-                            checked = automaticRestart,
-                            onCheckedChange = { viewModel.onAutomaticRestartChange(it) },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Behavior.AutoUpdateOnStartTitle,
-                            summary = MLang.AppSettings.Behavior.AutoUpdateOnStartSummary,
-                            checked = autoUpdateCurrentProfileOnStart,
-                            onCheckedChange = {
-                                viewModel.onAutoUpdateCurrentProfileOnStartChange(it)
-                            },
-                        )
-                    }
-                    SmallTitle(MLang.AppSettings.Section.Interface)
-                    Card {
-                        EnumSelector(
-                            title = MLang.AppSettings.Interface.LanguageTitle,
-                            summary = MLang.AppSettings.Interface.LanguageSummary,
-                            currentValue = appLanguage,
-                            items =
-                                listOf(
-                                    MLang.AppSettings.Interface.LanguageSystem,
-                                    MLang.AppSettings.Interface.LanguageChinese,
-                                    MLang.AppSettings.Interface.LanguageEnglish,
-                                ),
-                            values = AppLanguage.entries,
-                            onValueChange = {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                ScreenLazyColumn(
+                    modifier = Modifier.fillMaxWidth().widthIn(max = AppSettingsMetrics.ContentMaxWidth),
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = innerPadding,
+                ) {
+                    item {
+                        AppSettingsContent(
+                            automaticRestart = automaticRestart,
+                            autoUpdateCurrentProfileOnStart = autoUpdateCurrentProfileOnStart,
+                            appLanguage = appLanguage,
+                            themeMode = themeMode,
+                            themeSeedColorArgb = themeSeedColorArgb,
+                            bottomBarAutoHide = bottomBarAutoHide,
+                            topBarBlurEnabled = topBarBlurEnabled,
+                            bottomBarLiquidGlassEnabled = bottomBarLiquidGlassEnabled,
+                            pageScaleLabel = pageScaleLabel,
+                            hideAppIcon = hideAppIcon,
+                            excludeFromRecents = excludeFromRecents,
+                            showTrafficNotification = showTrafficNotification,
+                            singleNodeTest = singleNodeTest,
+                            autoStartLogRecording = autoStartLogRecording,
+                            customUserAgent = customUserAgent,
+                            cleanupAutoEnabled = cleanupAutoEnabled,
+                            cleanupPolicy = cleanupPolicy,
+                            cleanupThresholdMb = cleanupThresholdMb,
+                            cleanupIntervalHours = cleanupIntervalHours,
+                            cleanupLastRunSummary = cleanupLastRunSummary,
+                            onAutomaticRestartChange = viewModel::onAutomaticRestartChange,
+                            onAutoUpdateCurrentProfileOnStartChange =
+                                viewModel::onAutoUpdateCurrentProfileOnStartChange,
+                            onAppLanguageChange = {
                                 viewModel.onAppLanguageChange(it)
                                 AppLanguageManager.apply(it)
                                 activity?.recreate()
                             },
-                        )
-                        EnumSelector(
-                            title = MLang.AppSettings.Interface.ThemeModeTitle,
-                            summary = MLang.AppSettings.Interface.ThemeModeSummary,
-                            currentValue = themeMode,
-                            items =
-                                listOf(
-                                    MLang.AppSettings.Interface.ThemeModeSystem,
-                                    MLang.AppSettings.Interface.ThemeModeLight,
-                                    MLang.AppSettings.Interface.ThemeModeDark,
-                                ),
-                            values = ThemeMode.entries,
-                            onValueChange = { viewModel.onThemeModeChange(it) },
-                        )
-                        ThemeColorPickerItem(
-                            themeSeedColorArgb = themeSeedColorArgb,
-                            onThemeSeedColorChange = { viewModel.onThemeSeedColorChange(it) },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Interface.AutoHideNavbarTitle,
-                            summary = MLang.AppSettings.Interface.AutoHideNavbarSummary,
-                            checked = bottomBarAutoHide,
-                            onCheckedChange = { viewModel.onBottomBarAutoHideChange(it) },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Interface.TopBarBlurTitle,
-                            summary = MLang.AppSettings.Interface.TopBarBlurSummary,
-                            checked = topBarBlurEnabled,
-                            onCheckedChange = { viewModel.onTopBarBlurEnabledChange(it) },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Interface.BottomBarLiquidGlassTitle,
-                            summary = MLang.AppSettings.Interface.BottomBarLiquidGlassSummary,
-                            checked = bottomBarLiquidGlassEnabled,
-                            onCheckedChange = { viewModel.onBottomBarLiquidGlassEnabledChange(it) },
-                        )
-                        SuperArrow(
-                            title = MLang.AppSettings.Interface.PageScaleTitle,
-                            summary = MLang.AppSettings.Interface.PageScaleSummary,
-                            endActions = {
-                                Text(
-                                    text = "${(pageScaleLocal * 100).toInt()}%",
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            onClick = { showPageScaleSheet.value = !showPageScaleSheet.value },
-                            holdDownState = showPageScaleSheet.value,
-                            bottomAction = {
-                                Slider(
-                                    value = pageScaleLocal,
-                                    onValueChange = { pageScaleLocal = it },
-                                    onValueChangeFinished = {
-                                        viewModel.onPageScaleChange(pageScaleLocal)
-                                    },
-                                    valueRange = 0.8f..1.2f,
-                                    magnetThreshold = 0.01f,
-                                    hapticEffect = SliderDefaults.SliderHapticEffect.Step,
-                                )
-                            },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Interface.HideIconTitle,
-                            summary = MLang.AppSettings.Interface.HideIconSummary,
-                            checked = hideAppIcon,
-                            onCheckedChange = { checked ->
+                            onThemeModeChange = viewModel::onThemeModeChange,
+                            onThemeSeedColorChange = viewModel::onThemeSeedColorChange,
+                            onBottomBarAutoHideChange = viewModel::onBottomBarAutoHideChange,
+                            onTopBarBlurEnabledChange = viewModel::onTopBarBlurEnabledChange,
+                            onBottomBarLiquidGlassEnabledChange =
+                                viewModel::onBottomBarLiquidGlassEnabledChange,
+                            onOpenPageScaleDialog = openPageScaleDialog,
+                            onHideAppIconChange = { checked ->
                                 if (checked) {
                                     showHideIconDialog.value = true
                                 } else {
@@ -254,21 +233,8 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                                     AppIconHelper.toggleIcon(context, false)
                                 }
                             },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.Interface.HideFromRecentsTitle,
-                            summary = MLang.AppSettings.Interface.HideFromRecentsSummary,
-                            checked = excludeFromRecents,
-                            onCheckedChange = { viewModel.onExcludeFromRecentsChange(it) },
-                        )
-                    }
-                    SmallTitle(MLang.AppSettings.Section.Service)
-                    Card {
-                        SuperSwitch(
-                            title = MLang.AppSettings.ServiceSection.TrafficNotificationTitle,
-                            summary = MLang.AppSettings.ServiceSection.TrafficNotificationSummary,
-                            checked = showTrafficNotification,
-                            onCheckedChange = { checked ->
+                            onExcludeFromRecentsChange = viewModel::onExcludeFromRecentsChange,
+                            onShowTrafficNotificationChange = { checked ->
                                 if (
                                     checked &&
                                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -281,90 +247,25 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                                     viewModel.onShowTrafficNotificationChange(checked)
                                 }
                             },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.ServiceSection.SingleNodeTestTitle,
-                            summary = MLang.AppSettings.ServiceSection.SingleNodeTestSummary,
-                            checked =
-                                viewModel.singleNodeTest.state.collectAsStateWithLifecycle().value,
-                            onCheckedChange = { viewModel.onSingleNodeTestChange(it) },
-                        )
-                        SuperSwitch(
-                            title = MLang.AppSettings.ServiceSection.AutoStartLogRecordingTitle,
-                            summary = MLang.AppSettings.ServiceSection.AutoStartLogRecordingSummary,
-                            checked = autoStartLogRecording,
-                            onCheckedChange = { viewModel.onAutoStartLogRecordingChange(it) },
-                        )
-                    }
-                    SmallTitle(MLang.AppSettings.Section.Network)
-                    Card {
-                        BasicComponent(
-                            title = MLang.AppSettings.Network.CustomUserAgentTitle,
-                            summary =
-                                customUserAgent.ifEmpty {
-                                    MLang.AppSettings.Network.CustomUserAgentSummaryDefault
-                                },
-                            onClick = {
+                            onSingleNodeTestChange = viewModel::onSingleNodeTestChange,
+                            onAutoStartLogRecordingChange =
+                                viewModel::onAutoStartLogRecordingChange,
+                            onEditCustomUserAgent = {
                                 customUserAgentTextFieldState.value =
                                     TextFieldValue(customUserAgent)
                                 showEditCustomUserAgentDialog.value = true
                             },
-                        )
-                    }
-                    SmallTitle(MLang.AppSettings.Section.Cleanup)
-                    Card {
-                        SuperSwitch(
-                            title = MLang.AppSettings.Cleanup.AutoEnabledTitle,
-                            summary = MLang.AppSettings.Cleanup.AutoEnabledSummary,
-                            checked = cleanupAutoEnabled,
-                            onCheckedChange = { viewModel.onCleanupAutoEnabledChange(it) },
-                        )
-                        EnumSelector(
-                            title = MLang.AppSettings.Cleanup.PolicyTitle,
-                            summary = MLang.AppSettings.Cleanup.PolicySummary,
-                            currentValue = cleanupPolicy,
-                            items =
-                                listOf(
-                                    MLang.AppSettings.Cleanup.PolicyAggressive,
-                                    MLang.AppSettings.Cleanup.PolicyBalanced,
-                                    MLang.AppSettings.Cleanup.PolicyConservative,
-                                ),
-                            values = CleanupPolicy.entries,
-                            onValueChange = { viewModel.onCleanupPolicyChange(it) },
-                        )
-                        SuperArrow(
-                            title = MLang.AppSettings.Cleanup.ThresholdTitle,
-                            summary =
-                                MLang.AppSettings.Cleanup.ThresholdSummary.format(
-                                    cleanupThresholdMb
-                                ),
-                            onClick = {
+                            onCleanupAutoEnabledChange = viewModel::onCleanupAutoEnabledChange,
+                            onCleanupPolicyChange = viewModel::onCleanupPolicyChange,
+                            onOpenCleanupThresholdDialog = {
                                 cleanupThresholdText = cleanupThresholdMb.toString()
                                 showCleanupThresholdDialog.value = true
                             },
-                        )
-                        SuperArrow(
-                            title = MLang.AppSettings.Cleanup.IntervalTitle,
-                            summary =
-                                MLang.AppSettings.Cleanup.IntervalSummary.format(
-                                    cleanupIntervalHours
-                                ),
-                            onClick = {
+                            onOpenCleanupIntervalDialog = {
                                 cleanupIntervalText = cleanupIntervalHours.toString()
                                 showCleanupIntervalDialog.value = true
                             },
-                        )
-                        BasicComponent(
-                            title = MLang.AppSettings.Cleanup.CleanupNowTitle,
-                            summary =
-                                if (cleanupLastRunAt > 0L) {
-                                    MLang.AppSettings.Cleanup.LastRunSummary.format(
-                                        dateTimeFormatter.format(Date(cleanupLastRunAt))
-                                    )
-                                } else {
-                                    MLang.AppSettings.Cleanup.LastRunNever
-                                },
-                            onClick = {
+                            onRunCleanupNow = {
                                 scope.launch {
                                     val result = viewModel.runCleanupNow()
                                     if (result.executed) {
@@ -385,7 +286,6 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                             },
                         )
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
 
@@ -418,13 +318,9 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                 onDismissRequest = { showPageScaleSheet.value = false },
                 renderInRootScaffold = true,
                 content = {
-                    var scaleText by
-                        remember(showPageScaleSheet.value) {
-                            mutableStateOf((pageScaleLocal * 100).toInt().toString())
-                        }
                     TextField(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        value = scaleText,
+                        value = pageScaleDialogText,
                         maxLines = 1,
                         trailingIcon = {
                             Text(
@@ -434,32 +330,36 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                             )
                         },
                         onValueChange = { v ->
-                            if (v.isEmpty() || v.all { it.isDigit() }) scaleText = v
+                            if (v.isEmpty() || v.all { it.isDigit() }) {
+                                pageScaleDialogText = v
+                            }
                         },
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        TextButton(
-                            text = MLang.AppSettings.Button.Cancel,
-                            onClick = { showPageScaleSheet.value = false },
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            text = MLang.AppSettings.Button.Apply,
-                            onClick = {
-                                val parsed = scaleText.toFloatOrNull()
-                                val clamped =
-                                    (parsed?.coerceIn(80f, 120f) ?: (pageScaleLocal * 100)) / 100f
-                                pageScaleLocal = clamped
-                                viewModel.onPageScaleChange(clamped)
-                                showPageScaleSheet.value = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.textButtonColorsPrimary(),
-                        )
-                    }
+                    Slider(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        value = pageScaleLocal,
+                        onValueChange = {
+                            pageScaleLocal = it
+                            pageScaleDialogText = (it * 100).roundToInt().toString()
+                        },
+                        valueRange = 0.8f..1.2f,
+                        magnetThreshold = 0.01f,
+                        hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                    )
+                    DialogButtonRow(
+                        onCancel = { showPageScaleSheet.value = false },
+                        onConfirm = {
+                            val parsed = pageScaleDialogText.toFloatOrNull()
+                            val clamped =
+                                (parsed?.coerceIn(80f, 120f) ?: (pageScaleLocal * 100)) / 100f
+                            pageScaleLocal = clamped
+                            pageScaleDialogText = (clamped * 100).roundToInt().toString()
+                            viewModel.onPageScaleChange(clamped)
+                            showPageScaleSheet.value = false
+                        },
+                        cancelText = MLang.AppSettings.Button.Cancel,
+                        confirmText = MLang.AppSettings.Button.Apply,
+                    )
                 },
             )
 
@@ -488,27 +388,16 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                             }
                         },
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        TextButton(
-                            text = MLang.AppSettings.Button.Cancel,
-                            onClick = { showCleanupThresholdDialog.value = false },
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            text = MLang.AppSettings.Button.Apply,
-                            onClick = {
-                                val parsed =
-                                    cleanupThresholdText.toIntOrNull() ?: cleanupThresholdMb
-                                viewModel.onCleanupThresholdMbChange(parsed)
-                                showCleanupThresholdDialog.value = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.textButtonColorsPrimary(),
-                        )
-                    }
+                    DialogButtonRow(
+                        onCancel = { showCleanupThresholdDialog.value = false },
+                        onConfirm = {
+                            val parsed = cleanupThresholdText.toIntOrNull() ?: cleanupThresholdMb
+                            viewModel.onCleanupThresholdMbChange(parsed)
+                            showCleanupThresholdDialog.value = false
+                        },
+                        cancelText = MLang.AppSettings.Button.Cancel,
+                        confirmText = MLang.AppSettings.Button.Apply,
+                    )
                 },
             )
 
@@ -537,29 +426,420 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
                             }
                         },
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        TextButton(
-                            text = MLang.AppSettings.Button.Cancel,
-                            onClick = { showCleanupIntervalDialog.value = false },
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            text = MLang.AppSettings.Button.Apply,
-                            onClick = {
-                                val parsed =
-                                    cleanupIntervalText.toIntOrNull() ?: cleanupIntervalHours
-                                viewModel.onCleanupIntervalHoursChange(parsed)
-                                showCleanupIntervalDialog.value = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.textButtonColorsPrimary(),
-                        )
-                    }
+                    DialogButtonRow(
+                        onCancel = { showCleanupIntervalDialog.value = false },
+                        onConfirm = {
+                            val parsed = cleanupIntervalText.toIntOrNull() ?: cleanupIntervalHours
+                            viewModel.onCleanupIntervalHoursChange(parsed)
+                            showCleanupIntervalDialog.value = false
+                        },
+                        cancelText = MLang.AppSettings.Button.Cancel,
+                        confirmText = MLang.AppSettings.Button.Apply,
+                    )
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun AppSettingsContent(
+    automaticRestart: Boolean,
+    autoUpdateCurrentProfileOnStart: Boolean,
+    appLanguage: AppLanguage,
+    themeMode: ThemeMode,
+    themeSeedColorArgb: Long,
+    bottomBarAutoHide: Boolean,
+    topBarBlurEnabled: Boolean,
+    bottomBarLiquidGlassEnabled: Boolean,
+    pageScaleLabel: String,
+    hideAppIcon: Boolean,
+    excludeFromRecents: Boolean,
+    showTrafficNotification: Boolean,
+    singleNodeTest: Boolean,
+    autoStartLogRecording: Boolean,
+    customUserAgent: String,
+    cleanupAutoEnabled: Boolean,
+    cleanupPolicy: CleanupPolicy,
+    cleanupThresholdMb: Int,
+    cleanupIntervalHours: Int,
+    cleanupLastRunSummary: String,
+    onAutomaticRestartChange: (Boolean) -> Unit,
+    onAutoUpdateCurrentProfileOnStartChange: (Boolean) -> Unit,
+    onAppLanguageChange: (AppLanguage) -> Unit,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onThemeSeedColorChange: (Long) -> Unit,
+    onBottomBarAutoHideChange: (Boolean) -> Unit,
+    onTopBarBlurEnabledChange: (Boolean) -> Unit,
+    onBottomBarLiquidGlassEnabledChange: (Boolean) -> Unit,
+    onOpenPageScaleDialog: () -> Unit,
+    onHideAppIconChange: (Boolean) -> Unit,
+    onExcludeFromRecentsChange: (Boolean) -> Unit,
+    onShowTrafficNotificationChange: (Boolean) -> Unit,
+    onSingleNodeTestChange: (Boolean) -> Unit,
+    onAutoStartLogRecordingChange: (Boolean) -> Unit,
+    onEditCustomUserAgent: () -> Unit,
+    onCleanupAutoEnabledChange: (Boolean) -> Unit,
+    onCleanupPolicyChange: (CleanupPolicy) -> Unit,
+    onOpenCleanupThresholdDialog: () -> Unit,
+    onOpenCleanupIntervalDialog: () -> Unit,
+    onRunCleanupNow: () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+        val isWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
+        val sectionSpacing = 16.dp
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+        ) {
+            if (isWideLayout) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(sectionSpacing),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                    ) {
+                        BehaviorSettingsSection(
+                            automaticRestart = automaticRestart,
+                            autoUpdateCurrentProfileOnStart = autoUpdateCurrentProfileOnStart,
+                            onAutomaticRestartChange = onAutomaticRestartChange,
+                            onAutoUpdateCurrentProfileOnStartChange =
+                                onAutoUpdateCurrentProfileOnStartChange,
+                        )
+                        InterfaceSettingsSection(
+                            appLanguage = appLanguage,
+                            themeMode = themeMode,
+                            themeSeedColorArgb = themeSeedColorArgb,
+                            bottomBarAutoHide = bottomBarAutoHide,
+                            topBarBlurEnabled = topBarBlurEnabled,
+                            bottomBarLiquidGlassEnabled = bottomBarLiquidGlassEnabled,
+                            pageScaleLabel = pageScaleLabel,
+                            hideAppIcon = hideAppIcon,
+                            excludeFromRecents = excludeFromRecents,
+                            onAppLanguageChange = onAppLanguageChange,
+                            onThemeModeChange = onThemeModeChange,
+                            onThemeSeedColorChange = onThemeSeedColorChange,
+                            onBottomBarAutoHideChange = onBottomBarAutoHideChange,
+                            onTopBarBlurEnabledChange = onTopBarBlurEnabledChange,
+                            onBottomBarLiquidGlassEnabledChange =
+                                onBottomBarLiquidGlassEnabledChange,
+                            onOpenPageScaleDialog = onOpenPageScaleDialog,
+                            onHideAppIconChange = onHideAppIconChange,
+                            onExcludeFromRecentsChange = onExcludeFromRecentsChange,
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                    ) {
+                        ServiceSettingsSection(
+                            showTrafficNotification = showTrafficNotification,
+                            singleNodeTest = singleNodeTest,
+                            autoStartLogRecording = autoStartLogRecording,
+                            onShowTrafficNotificationChange = onShowTrafficNotificationChange,
+                            onSingleNodeTestChange = onSingleNodeTestChange,
+                            onAutoStartLogRecordingChange = onAutoStartLogRecordingChange,
+                        )
+                        NetworkSettingsSection(
+                            customUserAgent = customUserAgent,
+                            onEditCustomUserAgent = onEditCustomUserAgent,
+                        )
+                        CleanupSettingsSection(
+                            cleanupAutoEnabled = cleanupAutoEnabled,
+                            cleanupPolicy = cleanupPolicy,
+                            cleanupThresholdMb = cleanupThresholdMb,
+                            cleanupIntervalHours = cleanupIntervalHours,
+                            cleanupLastRunSummary = cleanupLastRunSummary,
+                            onCleanupAutoEnabledChange = onCleanupAutoEnabledChange,
+                            onCleanupPolicyChange = onCleanupPolicyChange,
+                            onOpenCleanupThresholdDialog = onOpenCleanupThresholdDialog,
+                            onOpenCleanupIntervalDialog = onOpenCleanupIntervalDialog,
+                            onRunCleanupNow = onRunCleanupNow,
+                        )
+                    }
+                }
+            } else {
+                BehaviorSettingsSection(
+                    automaticRestart = automaticRestart,
+                    autoUpdateCurrentProfileOnStart = autoUpdateCurrentProfileOnStart,
+                    onAutomaticRestartChange = onAutomaticRestartChange,
+                    onAutoUpdateCurrentProfileOnStartChange =
+                        onAutoUpdateCurrentProfileOnStartChange,
+                )
+                InterfaceSettingsSection(
+                    appLanguage = appLanguage,
+                    themeMode = themeMode,
+                    themeSeedColorArgb = themeSeedColorArgb,
+                    bottomBarAutoHide = bottomBarAutoHide,
+                    topBarBlurEnabled = topBarBlurEnabled,
+                    bottomBarLiquidGlassEnabled = bottomBarLiquidGlassEnabled,
+                    pageScaleLabel = pageScaleLabel,
+                    hideAppIcon = hideAppIcon,
+                    excludeFromRecents = excludeFromRecents,
+                    onAppLanguageChange = onAppLanguageChange,
+                    onThemeModeChange = onThemeModeChange,
+                    onThemeSeedColorChange = onThemeSeedColorChange,
+                    onBottomBarAutoHideChange = onBottomBarAutoHideChange,
+                    onTopBarBlurEnabledChange = onTopBarBlurEnabledChange,
+                    onBottomBarLiquidGlassEnabledChange = onBottomBarLiquidGlassEnabledChange,
+                    onOpenPageScaleDialog = onOpenPageScaleDialog,
+                    onHideAppIconChange = onHideAppIconChange,
+                    onExcludeFromRecentsChange = onExcludeFromRecentsChange,
+                )
+                ServiceSettingsSection(
+                    showTrafficNotification = showTrafficNotification,
+                    singleNodeTest = singleNodeTest,
+                    autoStartLogRecording = autoStartLogRecording,
+                    onShowTrafficNotificationChange = onShowTrafficNotificationChange,
+                    onSingleNodeTestChange = onSingleNodeTestChange,
+                    onAutoStartLogRecordingChange = onAutoStartLogRecordingChange,
+                )
+                NetworkSettingsSection(
+                    customUserAgent = customUserAgent,
+                    onEditCustomUserAgent = onEditCustomUserAgent,
+                )
+                CleanupSettingsSection(
+                    cleanupAutoEnabled = cleanupAutoEnabled,
+                    cleanupPolicy = cleanupPolicy,
+                    cleanupThresholdMb = cleanupThresholdMb,
+                    cleanupIntervalHours = cleanupIntervalHours,
+                    cleanupLastRunSummary = cleanupLastRunSummary,
+                    onCleanupAutoEnabledChange = onCleanupAutoEnabledChange,
+                    onCleanupPolicyChange = onCleanupPolicyChange,
+                    onOpenCleanupThresholdDialog = onOpenCleanupThresholdDialog,
+                    onOpenCleanupIntervalDialog = onOpenCleanupIntervalDialog,
+                    onRunCleanupNow = onRunCleanupNow,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun BehaviorSettingsSection(
+    automaticRestart: Boolean,
+    autoUpdateCurrentProfileOnStart: Boolean,
+    onAutomaticRestartChange: (Boolean) -> Unit,
+    onAutoUpdateCurrentProfileOnStartChange: (Boolean) -> Unit,
+) {
+    SmallTitle(MLang.AppSettings.Section.Behavior)
+    Card {
+        SuperSwitch(
+            title = MLang.AppSettings.Behavior.AutoStartTitle,
+            summary = MLang.AppSettings.Behavior.AutoStartSummary,
+            checked = automaticRestart,
+            onCheckedChange = onAutomaticRestartChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Behavior.AutoUpdateOnStartTitle,
+            summary = MLang.AppSettings.Behavior.AutoUpdateOnStartSummary,
+            checked = autoUpdateCurrentProfileOnStart,
+            onCheckedChange = onAutoUpdateCurrentProfileOnStartChange,
+        )
+    }
+}
+
+@Composable
+private fun InterfaceSettingsSection(
+    appLanguage: AppLanguage,
+    themeMode: ThemeMode,
+    themeSeedColorArgb: Long,
+    bottomBarAutoHide: Boolean,
+    topBarBlurEnabled: Boolean,
+    bottomBarLiquidGlassEnabled: Boolean,
+    pageScaleLabel: String,
+    hideAppIcon: Boolean,
+    excludeFromRecents: Boolean,
+    onAppLanguageChange: (AppLanguage) -> Unit,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onThemeSeedColorChange: (Long) -> Unit,
+    onBottomBarAutoHideChange: (Boolean) -> Unit,
+    onTopBarBlurEnabledChange: (Boolean) -> Unit,
+    onBottomBarLiquidGlassEnabledChange: (Boolean) -> Unit,
+    onOpenPageScaleDialog: () -> Unit,
+    onHideAppIconChange: (Boolean) -> Unit,
+    onExcludeFromRecentsChange: (Boolean) -> Unit,
+) {
+    SmallTitle(MLang.AppSettings.Section.Interface)
+    Card {
+        EnumSelector(
+            title = MLang.AppSettings.Interface.LanguageTitle,
+            summary = MLang.AppSettings.Interface.LanguageSummary,
+            currentValue = appLanguage,
+            items =
+                listOf(
+                    MLang.AppSettings.Interface.LanguageSystem,
+                    MLang.AppSettings.Interface.LanguageChinese,
+                    MLang.AppSettings.Interface.LanguageEnglish,
+                ),
+            values = AppLanguage.entries,
+            onValueChange = onAppLanguageChange,
+        )
+        EnumSelector(
+            title = MLang.AppSettings.Interface.ThemeModeTitle,
+            summary = MLang.AppSettings.Interface.ThemeModeSummary,
+            currentValue = themeMode,
+            items =
+                listOf(
+                    MLang.AppSettings.Interface.ThemeModeSystem,
+                    MLang.AppSettings.Interface.ThemeModeLight,
+                    MLang.AppSettings.Interface.ThemeModeDark,
+                ),
+            values = ThemeMode.entries,
+            onValueChange = onThemeModeChange,
+        )
+        ThemeColorPickerItem(
+            themeSeedColorArgb = themeSeedColorArgb,
+            onThemeSeedColorChange = onThemeSeedColorChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Interface.AutoHideNavbarTitle,
+            summary = MLang.AppSettings.Interface.AutoHideNavbarSummary,
+            checked = bottomBarAutoHide,
+            onCheckedChange = onBottomBarAutoHideChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Interface.TopBarBlurTitle,
+            summary = MLang.AppSettings.Interface.TopBarBlurSummary,
+            checked = topBarBlurEnabled,
+            onCheckedChange = onTopBarBlurEnabledChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Interface.BottomBarLiquidGlassTitle,
+            summary = MLang.AppSettings.Interface.BottomBarLiquidGlassSummary,
+            checked = bottomBarLiquidGlassEnabled,
+            onCheckedChange = onBottomBarLiquidGlassEnabledChange,
+        )
+        ConfigSettingRow(
+            title = MLang.AppSettings.Interface.PageScaleTitle,
+            summary = MLang.AppSettings.Interface.PageScaleSummary,
+            valueLabel = pageScaleLabel,
+            tone = SemanticTone.Info,
+            onClick = onOpenPageScaleDialog,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Interface.HideIconTitle,
+            summary = MLang.AppSettings.Interface.HideIconSummary,
+            checked = hideAppIcon,
+            onCheckedChange = onHideAppIconChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.Interface.HideFromRecentsTitle,
+            summary = MLang.AppSettings.Interface.HideFromRecentsSummary,
+            checked = excludeFromRecents,
+            onCheckedChange = onExcludeFromRecentsChange,
+        )
+    }
+}
+
+@Composable
+private fun ServiceSettingsSection(
+    showTrafficNotification: Boolean,
+    singleNodeTest: Boolean,
+    autoStartLogRecording: Boolean,
+    onShowTrafficNotificationChange: (Boolean) -> Unit,
+    onSingleNodeTestChange: (Boolean) -> Unit,
+    onAutoStartLogRecordingChange: (Boolean) -> Unit,
+) {
+    SmallTitle(MLang.AppSettings.Section.Service)
+    Card {
+        SuperSwitch(
+            title = MLang.AppSettings.ServiceSection.TrafficNotificationTitle,
+            summary = MLang.AppSettings.ServiceSection.TrafficNotificationSummary,
+            checked = showTrafficNotification,
+            onCheckedChange = onShowTrafficNotificationChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.ServiceSection.SingleNodeTestTitle,
+            summary = MLang.AppSettings.ServiceSection.SingleNodeTestSummary,
+            checked = singleNodeTest,
+            onCheckedChange = onSingleNodeTestChange,
+        )
+        SuperSwitch(
+            title = MLang.AppSettings.ServiceSection.AutoStartLogRecordingTitle,
+            summary = MLang.AppSettings.ServiceSection.AutoStartLogRecordingSummary,
+            checked = autoStartLogRecording,
+            onCheckedChange = onAutoStartLogRecordingChange,
+        )
+    }
+}
+
+@Composable
+private fun NetworkSettingsSection(
+    customUserAgent: String,
+    onEditCustomUserAgent: () -> Unit,
+) {
+    SmallTitle(MLang.AppSettings.Section.Network)
+    Card {
+        ConfigSettingRow(
+            title = MLang.AppSettings.Network.CustomUserAgentTitle,
+            summary =
+                customUserAgent.ifEmpty {
+                    MLang.AppSettings.Network.CustomUserAgentSummaryDefault
+                },
+            showDivider = false,
+            onClick = onEditCustomUserAgent,
+        )
+    }
+}
+
+@Composable
+private fun CleanupSettingsSection(
+    cleanupAutoEnabled: Boolean,
+    cleanupPolicy: CleanupPolicy,
+    cleanupThresholdMb: Int,
+    cleanupIntervalHours: Int,
+    cleanupLastRunSummary: String,
+    onCleanupAutoEnabledChange: (Boolean) -> Unit,
+    onCleanupPolicyChange: (CleanupPolicy) -> Unit,
+    onOpenCleanupThresholdDialog: () -> Unit,
+    onOpenCleanupIntervalDialog: () -> Unit,
+    onRunCleanupNow: () -> Unit,
+) {
+    SmallTitle(MLang.AppSettings.Section.Cleanup)
+    Card {
+        SuperSwitch(
+            title = MLang.AppSettings.Cleanup.AutoEnabledTitle,
+            summary = MLang.AppSettings.Cleanup.AutoEnabledSummary,
+            checked = cleanupAutoEnabled,
+            onCheckedChange = onCleanupAutoEnabledChange,
+        )
+        EnumSelector(
+            title = MLang.AppSettings.Cleanup.PolicyTitle,
+            summary = MLang.AppSettings.Cleanup.PolicySummary,
+            currentValue = cleanupPolicy,
+            items =
+                listOf(
+                    MLang.AppSettings.Cleanup.PolicyAggressive,
+                    MLang.AppSettings.Cleanup.PolicyBalanced,
+                    MLang.AppSettings.Cleanup.PolicyConservative,
+                ),
+            values = CleanupPolicy.entries,
+            onValueChange = onCleanupPolicyChange,
+        )
+        ConfigSettingRow(
+            title = MLang.AppSettings.Cleanup.ThresholdTitle,
+            summary = MLang.AppSettings.Cleanup.ThresholdSummary.format(cleanupThresholdMb),
+            onClick = onOpenCleanupThresholdDialog,
+        )
+        ConfigSettingRow(
+            title = MLang.AppSettings.Cleanup.IntervalTitle,
+            summary = MLang.AppSettings.Cleanup.IntervalSummary.format(cleanupIntervalHours),
+            onClick = onOpenCleanupIntervalDialog,
+        )
+        ConfigSettingRow(
+            title = MLang.AppSettings.Cleanup.CleanupNowTitle,
+            summary = cleanupLastRunSummary,
+            tone = SemanticTone.Warning,
+            showDivider = false,
+            onClick = onRunCleanupNow,
+        )
     }
 }

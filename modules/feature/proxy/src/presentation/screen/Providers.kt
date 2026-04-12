@@ -31,38 +31,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Provider
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
+import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
+import com.github.yumelira.yumebox.presentation.component.AppCommandButton
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.CenteredText
+import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.icon.yume.Folders
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.DropdownImpl
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
-import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.WindowListPopup
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private data class ProviderSection(val title: String, val providers: List<Provider>)
@@ -71,6 +67,10 @@ private data class RemoteOverrideSection(
     val title: String,
     val resources: List<RemoteOverrideResource>,
 )
+
+private object ProvidersScreenMetrics {
+    val ContentMaxWidth = 920.dp
+}
 
 @Composable
 fun ProvidersContent(navigator: DestinationsNavigator) {
@@ -143,20 +143,27 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
             TopBar(
                 title = MLang.Providers.Title,
                 scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
                 actions = {
                     if (
                         providers.any { it.vehicleType == Provider.VehicleType.HTTP } ||
                             remoteOverrides.isNotEmpty()
                     ) {
-                        IconButton(
+                        AppCircularIconAction(
+                            imageVector = Yume.`Circle-fading-arrow-up`,
+                            contentDescription = MLang.Providers.Action.UpdateAll,
                             onClick = { viewModel.updateAllProviders() },
+                            tone = SemanticTone.Info,
+                            highEmphasis = true,
+                            size = 44.dp,
+                            iconSize = 20.dp,
                             modifier = Modifier.padding(end = 24.dp),
-                        ) {
-                            Icon(
-                                imageVector = Yume.`Circle-fading-arrow-up`,
-                                contentDescription = MLang.Providers.Action.UpdateAll,
-                            )
-                        }
+                        )
                     }
                 },
             )
@@ -206,17 +213,12 @@ private fun RemoteOverrideCard(
     isUpdating: Boolean,
     onUpdate: () -> Unit,
 ) {
-    val colorScheme = MiuixTheme.colorScheme
-    val updateBg = remember(colorScheme) { colorScheme.primary.copy(alpha = 0.1f) }
-    val updateTint = remember(colorScheme) { colorScheme.primary }
-
     Card(modifier = Modifier.padding(vertical = 4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = resource.name,
                     style = MiuixTheme.textStyles.body1,
@@ -240,35 +242,14 @@ private fun RemoteOverrideCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(
-                backgroundColor = updateBg,
-                minHeight = 48.dp,
-                minWidth = 48.dp,
+            AppCommandButton(
+                title = MLang.Providers.Action.Update,
+                imageVector = Yume.`Circle-fading-arrow-up`,
                 enabled = !isUpdating,
                 onClick = onUpdate,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        imageVector = Yume.`Circle-fading-arrow-up`,
-                        tint = updateTint,
-                        contentDescription = MLang.Providers.Action.Update,
-                    )
-                    Text(
-                        modifier = Modifier.padding(end = 3.dp),
-                        text = MLang.Providers.Action.Update,
-                        color = updateTint,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 15.sp,
-                    )
-                }
-            }
+                tone = SemanticTone.Info,
+                highEmphasis = true,
+            )
         }
     }
 }
@@ -280,10 +261,7 @@ private fun ProviderCard(
     onUpdate: () -> Unit,
     onUpload: (Uri) -> Unit,
 ) {
-    val showPopup = remember { mutableStateOf(false) }
-    val colorScheme = MiuixTheme.colorScheme
-    val updateBg = remember(colorScheme) { colorScheme.primary.copy(alpha = 0.1f) }
-    val updateTint = remember(colorScheme) { colorScheme.primary }
+    var showActionsSheet by remember { mutableStateOf(false) }
 
     val filePicker =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
@@ -292,12 +270,11 @@ private fun ProviderCard(
         }
 
     Card(modifier = Modifier.padding(vertical = 4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = provider.name,
                     style = MiuixTheme.textStyles.body1,
@@ -328,67 +305,45 @@ private fun ProviderCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
             if (provider.path.isNotBlank()) {
-                Box {
-                    IconButton(
-                        backgroundColor = updateBg,
-                        minHeight = 48.dp,
-                        minWidth = 48.dp,
-                        enabled = !isUpdating,
-                        onClick = { showPopup.value = true },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = MiuixIcons.Edit,
-                                tint = updateTint,
-                                contentDescription = MLang.Providers.Action.Operation,
-                            )
-                            Text(
-                                modifier = Modifier.padding(end = 3.dp),
-                                text = MLang.Providers.Action.Operation,
-                                color = updateTint,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 15.sp,
-                            )
-                        }
-                    }
-
-                    val popupItems =
-                        listOf(MLang.Providers.Action.Update, MLang.Providers.Action.Upload)
-
-                    WindowListPopup(
-                        show = showPopup.value,
-                        popupPositionProvider = ListPopupDefaults.DropdownPositionProvider,
-                        alignment = PopupPositionProvider.Align.End,
-                        onDismissRequest = { showPopup.value = false },
-                    ) {
-                        ListPopupColumn {
-                            popupItems.forEachIndexed { index, item ->
-                                DropdownImpl(
-                                    text = item,
-                                    optionSize = popupItems.size,
-                                    isSelected = false,
-                                    onSelectedIndexChange = {
-                                        showPopup.value = false
-                                        when (index) {
-                                            0 -> onUpdate()
-                                            1 -> filePicker.launch("*/*")
-                                        }
-                                    },
-                                    index = index,
-                                )
-                            }
-                        }
-                    }
-                }
+                AppCommandButton(
+                    title = MLang.Providers.Action.Operation,
+                    imageVector = Yume.Edit,
+                    enabled = !isUpdating,
+                    onClick = { showActionsSheet = true },
+                    tone = SemanticTone.Info,
+                )
             }
+        }
+    }
+
+    AppActionBottomSheet(
+        show = showActionsSheet,
+        title = provider.name,
+        onDismissRequest = { showActionsSheet = false },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AppCommandButton(
+                title = MLang.Providers.Action.Update,
+                imageVector = Yume.`Circle-fading-arrow-up`,
+                enabled = !isUpdating,
+                onClick = {
+                    showActionsSheet = false
+                    onUpdate()
+                },
+                tone = SemanticTone.Info,
+                highEmphasis = true,
+            )
+            AppCommandButton(
+                title = MLang.Providers.Action.Upload,
+                imageVector = Yume.Folders,
+                enabled = !isUpdating,
+                onClick = {
+                    showActionsSheet = false
+                    filePicker.launch("*/*")
+                },
+                tone = SemanticTone.Neutral,
+            )
         }
     }
 }
@@ -399,19 +354,25 @@ private fun LazyListScope.providerSection(
     onUpdate: (Provider) -> Unit,
     onUpload: (Provider, Uri) -> Unit,
 ) {
-    item(key = "title_${section.title}") { SmallTitle(section.title) }
+    item(key = "title_${section.title}") {
+        ProvidersCenteredContent {
+            SmallTitle(section.title)
+        }
+    }
     items(
         items = section.providers,
         key = { provider -> "${provider.type}_${provider.name}" },
         contentType = { "ProviderCard" },
     ) { provider ->
         val providerKey = "${provider.type}_${provider.name}"
-        ProviderCard(
-            provider = provider,
-            isUpdating = isUpdating(providerKey),
-            onUpdate = { onUpdate(provider) },
-            onUpload = { uri -> onUpload(provider, uri) },
-        )
+        ProvidersCenteredContent {
+            ProviderCard(
+                provider = provider,
+                isUpdating = isUpdating(providerKey),
+                onUpdate = { onUpdate(provider) },
+                onUpload = { uri -> onUpload(provider, uri) },
+            )
+        }
     }
 }
 
@@ -420,17 +381,40 @@ private fun LazyListScope.remoteOverrideSection(
     isUpdating: (String) -> Boolean,
     onUpdate: (RemoteOverrideResource) -> Unit,
 ) {
-    item(key = "title_${section.title}") { SmallTitle(section.title) }
+    item(key = "title_${section.title}") {
+        ProvidersCenteredContent {
+            SmallTitle(section.title)
+        }
+    }
     items(
         items = section.resources,
         key = { resource -> "override_${resource.id}" },
         contentType = { "RemoteOverrideCard" },
     ) { resource ->
-        RemoteOverrideCard(
-            resource = resource,
-            isUpdating = isUpdating(resource.id),
-            onUpdate = { onUpdate(resource) },
-        )
+        ProvidersCenteredContent {
+            RemoteOverrideCard(
+                resource = resource,
+                isUpdating = isUpdating(resource.id),
+                onUpdate = { onUpdate(resource) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProvidersCenteredContent(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = ProvidersScreenMetrics.ContentMaxWidth)
+        ) {
+            content()
+        }
     }
 }
 

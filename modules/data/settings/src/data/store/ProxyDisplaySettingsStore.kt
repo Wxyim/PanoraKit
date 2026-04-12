@@ -31,7 +31,7 @@ class ProxyDisplaySettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmk
 
     val sortMode by enumFlow(ProxySortMode.DEFAULT)
     val displayMode by enumFlow(ProxyDisplayMode.SINGLE_DETAILED)
-    val groupStyle by enumFlow(ProxyGroupStyle.INLINE)
+    val groupStyle by enumFlow(ProxyGroupStyle.FLOATING)
     val proxyMode by enumFlow(TunnelState.Mode.Rule)
     val sheetHeightFraction by floatFlow(PROXY_SHEET_HEIGHT_FRACTION_DEFAULT)
     val showHiddenGroups by boolFlow(false)

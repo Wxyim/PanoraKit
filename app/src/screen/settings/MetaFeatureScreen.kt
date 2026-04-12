@@ -20,10 +20,13 @@
 
 package com.github.yumelira.yumebox.screen.settings
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.GeoFileType
 import com.github.yumelira.yumebox.core.model.GeoXItem
@@ -49,7 +52,10 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperArrow
+
+private object MetaFeatureMetrics {
+    val ContentMaxWidth = 920.dp
+}
 
 @Composable
 @Destination<RootGraph>
@@ -62,126 +68,149 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     var runtimeConfigLoading by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopBar(title = MLang.MetaFeature.Title, scrollBehavior = scrollBehavior) }
+        topBar = {
+            TopBar(
+                title = MLang.MetaFeature.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        }
     ) { innerPadding ->
-        ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
-            item {
-                SmallTitle(MLang.MetaFeature.Title)
-                Card {
-                    SuperArrow(
-                        title = MLang.Connection.Title,
-                        summary = MLang.Connection.Summary,
-                        onClick = {
-                            navigator.navigate(ConnectionScreenDestination) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
-                }
-            }
-            item {
-                SmallTitle(MLang.MetaFeature.RuntimeConfig.Title)
-                Card {
-                    SuperArrow(
-                        title = MLang.MetaFeature.RuntimeConfig.Title,
-                        summary = MLang.MetaFeature.RuntimeConfig.Summary,
-                        onClick = {
-                            if (runtimeConfigLoading) return@SuperArrow
-                            scope.launch {
-                                runtimeConfigLoading = true
-                                try {
-                                    ServiceClient.connect(context)
-                                    val activeProfile = ServiceClient.profile().queryActive()
-                                    val runtimeConfig = ServiceClient.clash().queryConfiguration()
-                                    if (activeProfile == null) {
-                                        context.toast(
-                                            MLang.MetaFeature.RuntimeConfig.NoActiveProfile
-                                        )
-                                        return@launch
-                                    }
-
-                                    val configPath = runtimeConfig.configPath?.trim().orEmpty()
-                                    if (configPath.isBlank()) {
-                                        context.toast(
-                                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning
-                                        )
-                                        return@launch
-                                    }
-
-                                    val runtimeYaml =
-                                        withContext(Dispatchers.IO) {
-                                            val file = File(configPath)
-                                            if (!file.exists() || !file.isFile) {
-                                                null
-                                            } else {
-                                                file.readText()
-                                            }
-                                        }
-
-                                    if (runtimeYaml.isNullOrBlank()) {
-                                        context.toast(
-                                            MLang.MetaFeature.RuntimeConfig.ConfigNotFound
-                                        )
-                                        return@launch
-                                    }
-
-                                    val previewTitle =
-                                        activeProfile.name
-                                            ?.takeIf { it.isNotBlank() }
-                                            ?.let {
-                                                MLang.MetaFeature.RuntimeConfig
-                                                    .PreviewTitleWithProfile
-                                                    .format(it)
-                                            } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
-
-                                    OverrideStructuredEditorStore.setupConfigPreview(
-                                        title = previewTitle,
-                                        content = decodeEscapedUnicode(runtimeYaml),
-                                        language = LanguageScope.Yaml,
-                                        callback = null,
-                                    )
-                                    navigator.navigate(OverrideConfigPreviewRouteDestination) {
-                                        launchSingleTop = true
-                                    }
-                                } catch (error: Throwable) {
-                                    val message =
-                                        when {
-                                            error.message?.contains(
-                                                "unauthorized",
-                                                ignoreCase = true,
-                                            ) == true -> {
-                                                MLang.MetaFeature.RuntimeConfig
-                                                    .RuntimeConfigUnauthorized
-                                            }
-
-                                            else -> {
-                                                MLang.MetaFeature.RuntimeConfig
-                                                    .RuntimeConfigFetchFailed
-                                                    .format(
-                                                        error.runtimeGatewayMessage(
-                                                            MLang.MetaFeature.RuntimeConfig
-                                                                .LoadFailed
-                                                        )
-                                                    )
-                                            }
-                                        }
-                                    context.toast(message)
-                                } finally {
-                                    runtimeConfigLoading = false
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            ScreenLazyColumn(
+                modifier = Modifier.fillMaxWidth().widthIn(max = MetaFeatureMetrics.ContentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+            ) {
+                item {
+                    SmallTitle(MLang.MetaFeature.Title)
+                    Card {
+                        ConfigSettingRow(
+                            title = MLang.Connection.Title,
+                            summary = MLang.Connection.Summary,
+                            showDivider = false,
+                            onClick = {
+                                navigator.navigate(ConnectionScreenDestination) {
+                                    launchSingleTop = true
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
-            }
-            item {
-                SmallTitle(MLang.MetaFeature.GeoX.OnlineUpdateTitle)
-                Card {
-                    SuperArrow(
-                        title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
-                        summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
-                        onClick = { showGeoXDownloadSheet.value = true },
-                    )
+                item {
+                    SmallTitle(MLang.MetaFeature.RuntimeConfig.Title)
+                    Card {
+                        ConfigSettingRow(
+                            title = MLang.MetaFeature.RuntimeConfig.Title,
+                            summary = MLang.MetaFeature.RuntimeConfig.Summary,
+                            tone = SemanticTone.Info,
+                            showDivider = false,
+                            onClick = {
+                                if (runtimeConfigLoading) return@ConfigSettingRow
+                                scope.launch {
+                                    runtimeConfigLoading = true
+                                    try {
+                                        ServiceClient.connect(context)
+                                        val activeProfile = ServiceClient.profile().queryActive()
+                                        val runtimeConfig = ServiceClient.clash().queryConfiguration()
+                                        if (activeProfile == null) {
+                                            context.toast(
+                                                MLang.MetaFeature.RuntimeConfig.NoActiveProfile
+                                            )
+                                            return@launch
+                                        }
+
+                                        val configPath = runtimeConfig.configPath?.trim().orEmpty()
+                                        if (configPath.isBlank()) {
+                                            context.toast(
+                                                MLang.MetaFeature.RuntimeConfig
+                                                    .RuntimeConfigNotRunning
+                                            )
+                                            return@launch
+                                        }
+
+                                        val runtimeYaml =
+                                            withContext(Dispatchers.IO) {
+                                                val file = File(configPath)
+                                                if (!file.exists() || !file.isFile) {
+                                                    null
+                                                } else {
+                                                    file.readText()
+                                                }
+                                            }
+
+                                        if (runtimeYaml.isNullOrBlank()) {
+                                            context.toast(
+                                                MLang.MetaFeature.RuntimeConfig.ConfigNotFound
+                                            )
+                                            return@launch
+                                        }
+
+                                        val previewTitle =
+                                            activeProfile.name
+                                                ?.takeIf { it.isNotBlank() }
+                                                ?.let {
+                                                    MLang.MetaFeature.RuntimeConfig
+                                                        .PreviewTitleWithProfile
+                                                        .format(it)
+                                                } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
+
+                                        OverrideStructuredEditorStore.setupConfigPreview(
+                                            title = previewTitle,
+                                            content = decodeEscapedUnicode(runtimeYaml),
+                                            language = LanguageScope.Yaml,
+                                            callback = null,
+                                        )
+                                        navigator.navigate(OverrideConfigPreviewRouteDestination) {
+                                            launchSingleTop = true
+                                        }
+                                    } catch (error: Throwable) {
+                                        val message =
+                                            when {
+                                                error.message?.contains(
+                                                    "unauthorized",
+                                                    ignoreCase = true,
+                                                ) == true -> {
+                                                    MLang.MetaFeature.RuntimeConfig
+                                                        .RuntimeConfigUnauthorized
+                                                }
+
+                                                else -> {
+                                                    MLang.MetaFeature.RuntimeConfig
+                                                        .RuntimeConfigFetchFailed
+                                                        .format(
+                                                            error.runtimeGatewayMessage(
+                                                                MLang.MetaFeature.RuntimeConfig
+                                                                    .LoadFailed
+                                                            )
+                                                        )
+                                                }
+                                            }
+                                        context.toast(message)
+                                    } finally {
+                                        runtimeConfigLoading = false
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+                item {
+                    SmallTitle(MLang.MetaFeature.GeoX.OnlineUpdateTitle)
+                    Card {
+                        ConfigSettingRow(
+                            title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
+                            summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
+                            tone = SemanticTone.Info,
+                            showDivider = false,
+                            onClick = { showGeoXDownloadSheet.value = true },
+                        )
+                    }
                 }
             }
         }
