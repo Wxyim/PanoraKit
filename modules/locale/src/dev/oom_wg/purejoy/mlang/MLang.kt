@@ -13103,14 +13103,26 @@ fun`TestDelay`(vararg args:Any?)=FYTxtConfig.observe{`TestDelay`.fmt(args)}
 */
 val`SortMode`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Sort Mode"""
-`MLangTags`.ZH->"""排序方式"""
+`MLangTags`.EN->"""Group Item Order"""
+`MLangTags`.ZH->"""组内排序"""
 else -> null}
-}?:"""排序方式"""
-/**排序方式
+}?:"""组内排序"""
+/**组内排序
 */
 @Composable
 fun`SortMode`(vararg args:Any?)=FYTxtConfig.observe{`SortMode`.fmt(args)}
+/**调整组内条目顺序
+*/
+val`SortModeSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Adjust item order inside each group"""
+`MLangTags`.ZH->"""调整组内条目顺序"""
+else -> null}
+}?:"""调整组内条目顺序"""
+/**调整组内条目顺序
+*/
+@Composable
+fun`SortModeSummary`(vararg args:Any?)=FYTxtConfig.observe{`SortModeSummary`.fmt(args)}
 /**添加订阅
 */
 val`AddProfile`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
@@ -13239,11 +13251,11 @@ fun`Failed`(vararg args:Any?)=FYTxtConfig.observe{`Failed`.fmt(args)}
 */
 val`InProgress`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Testing the node"""
-`MLangTags`.ZH->"""正在测试节点"""
+`MLangTags`.EN->"""Checking"""
+`MLangTags`.ZH->"""检测中"""
 else -> null}
-}?:"""正在测试节点"""
-/**正在测试节点
+}?:"""检测中"""
+/**检测中
 */
 @Composable
 fun`InProgress`(vararg args:Any?)=FYTxtConfig.observe{`InProgress`.fmt(args)}
@@ -13333,15 +13345,27 @@ else -> null}
 */
 @Composable
 fun`Latency`(vararg args:Any?)=FYTxtConfig.observe{`Latency`.fmt(args)}
-/**未测速
+/**超时
+*/
+val`Timeout`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Timed out"""
+`MLangTags`.ZH->"""检测超时"""
+else -> null}
+}?:"""检测超时"""
+/**检测超时
+*/
+@Composable
+fun`Timeout`(vararg args:Any?)=FYTxtConfig.observe{`Timeout`.fmt(args)}
+/**待检测
 */
 val`UnknownLatency`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Not Tested"""
-`MLangTags`.ZH->"""未测速"""
+`MLangTags`.EN->"""Pending"""
+`MLangTags`.ZH->"""待检测"""
 else -> null}
-}?:"""未测速"""
-/**未测速
+}?:"""待检测"""
+/**待检测
 */
 @Composable
 fun`UnknownLatency`(vararg args:Any?)=FYTxtConfig.observe{`UnknownLatency`.fmt(args)}

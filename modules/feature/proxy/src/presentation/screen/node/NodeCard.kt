@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,9 +54,9 @@ import com.github.yumelira.yumebox.presentation.icon.yume.ArrowRight
 import com.github.yumelira.yumebox.presentation.icon.yume.BadgeDollarSign
 import com.github.yumelira.yumebox.presentation.icon.yume.Cancel
 import com.github.yumelira.yumebox.presentation.icon.yume.CircleGauge
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
 import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
 import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
+import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import com.github.yumelira.yumebox.presentation.util.extractNodeTags
 import dev.oom_wg.purejoy.mlang.MLang
@@ -89,17 +88,6 @@ private data class BuiltInNodeVisual(
     val iconTint: Color,
     val containerColor: Color,
 )
-
-internal fun nodeLatencyLabel(delay: Int?): Pair<String, Color>? =
-    when {
-        delay == null -> null
-        delay < 0 -> "TIMEOUT" to Color(0xFF9E9E9E)
-        delay == 0 -> null
-        delay in 1..300 -> "${delay}ms" to Color(0xFF007906)
-        delay in 301..1000 -> "${delay}ms" to Color(0xFFFFB300)
-        delay in 1001..3000 -> "${delay}ms" to Color(0xFFE53935)
-        else -> null
-    }
 
 @Composable
 internal fun RotatingCircleGauge(
@@ -215,7 +203,7 @@ internal fun NodeCard(
     ) {
         val flagged = remember(proxy.name) { extractFlaggedName(proxy.name) }
         val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
-        val delayLabel = remember(proxy.delay) { nodeLatencyLabel(proxy.delay) }
+        val latencyVisual = proxyLatencyVisual(delay = proxy.delay, isTesting = isThisProxyTesting)
         val primary = MiuixTheme.colorScheme.primary
         val iconUri =
             remember(proxy.icon) {
@@ -267,46 +255,33 @@ internal fun NodeCard(
                         tags.keywords.forEach { kw -> NodeTagChip(label = kw) }
                         tags.multiplier?.let { m -> if (m > 0f) NodeMultiplierChip(multiplier = m) }
                     }
-                    when {
-                        delayLabel != null -> {
-                            val (delayText, delayColor) = delayLabel
-                            Text(
-                                text = delayText,
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = delayColor,
-                                maxLines = 1,
-                                textAlign = TextAlign.End,
-                                modifier =
-                                    Modifier.padding(start = 8.dp).let { m ->
-                                        if (onSingleNodeTestClick != null && singleNodeTestEnabled)
-                                            m.clickable(
-                                                interactionSource =
-                                                    remember { MutableInteractionSource() },
-                                                indication = null,
-                                                onClick = onSingleNodeTestClick,
-                                            )
-                                        else m
-                                    },
-                            )
-                        }
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = latencyVisual.label,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = latencyVisual.color,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
-                        onSingleNodeTestClick != null && singleNodeTestEnabled -> {
+                        if (onSingleNodeTestClick != null && singleNodeTestEnabled) {
                             if (isThisProxyTesting) {
                                 RotatingCircleGauge(
                                     isRotating = true,
-                                    modifier =
-                                        Modifier.padding(start = 8.dp)
-                                            .size(NodeCardDefaults.ActionIconSize),
+                                    modifier = Modifier.size(NodeCardDefaults.ActionIconSize),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Yume.Cloud,
-                                    contentDescription = MLang.Proxy.Action.Test,
+                                    imageVector = Yume.Speed,
+                                    contentDescription = MLang.Proxy.Action.TestDelay,
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     modifier =
-                                        Modifier.padding(start = 8.dp)
-                                            .size(NodeCardDefaults.ActionIconSize)
+                                        Modifier.size(NodeCardDefaults.ActionIconSize)
                                             .clickable(
                                                 interactionSource =
                                                     remember { MutableInteractionSource() },
@@ -449,11 +424,7 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
 }
 
 @Composable
-private fun NodeTagChip(
-    label: String,
-    textColor: Color? = null,
-    backgroundColor: Color? = null,
-) {
+private fun NodeTagChip(label: String, textColor: Color? = null, backgroundColor: Color? = null) {
     val primary = MiuixTheme.colorScheme.primary
     val resolvedTextColor = textColor ?: primary
     val resolvedBackgroundColor = backgroundColor ?: primary.copy(alpha = 0.1f)

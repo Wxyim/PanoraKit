@@ -287,6 +287,13 @@ class ProxyViewModel(
             if (testingTargets.isNotEmpty()) {
                 _testingGroupNames.update { it + testingTargets }
             }
+            showMessage(
+                if (groupName != null) {
+                    MLang.Proxy.Testing.Group.format(groupName)
+                } else {
+                    MLang.Proxy.Testing.All
+                }
+            )
 
             val result = runCatching {
                 if (groupName != null) {
@@ -312,7 +319,13 @@ class ProxyViewModel(
                 _testingGroupNames.update { it - testingTargets }
             }
 
-            result.exceptionOrNull()
+            result.exceptionOrNull()?.let { error ->
+                showError(
+                    MLang.Proxy.Testing.Failed.format(
+                        error.localizedMessage ?: error.javaClass.simpleName
+                    )
+                )
+            }
         }
     }
 
@@ -359,9 +372,16 @@ class ProxyViewModel(
                 return@launch
             }
             _testingProxyNames.update { it + proxyName }
-            runCatching { proxyFacade.healthCheckProxy(proxyName) }
+            val result = runCatching { proxyFacade.healthCheckProxy(proxyName) }
             delay(500.milliseconds)
             _testingProxyNames.update { it - proxyName }
+            result.exceptionOrNull()?.let { error ->
+                showError(
+                    MLang.Proxy.Testing.Failed.format(
+                        error.localizedMessage ?: error.javaClass.simpleName
+                    )
+                )
+            }
         }
     }
 
@@ -387,20 +407,8 @@ class ProxyViewModel(
                     originalOrder.withIndex().associate { (index, name) -> name to index }
                 proxies.sortedWith(
                     compareBy<Proxy>(
-                        { proxy ->
-                            when {
-                                proxy.delay > 0 -> 0
-                                proxy.delay < 0 -> 2
-                                else -> 1
-                            }
-                        },
-                        { proxy ->
-                            when {
-                                proxy.delay > 0 -> proxy.delay
-                                proxy.delay < 0 -> Int.MAX_VALUE - 1
-                                else -> Int.MAX_VALUE
-                            }
-                        },
+                        { proxy -> proxy.delay.toProxyLatencyState().sortBucket },
+                        { proxy -> proxy.delay.toProxyLatencyState().sortValue },
                         { proxy -> originalIndex[proxy.name] ?: Int.MAX_VALUE },
                     )
                 )

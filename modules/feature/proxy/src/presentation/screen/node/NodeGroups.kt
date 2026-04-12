@@ -168,7 +168,9 @@ internal fun LazyListScope.adaptiveNodeGroupItems(
     val rows = groups.chunked(columns)
     items(
         items = rows,
-        key = { row -> row.joinToString(separator = "|") { group -> "${group.type.name}:${group.name}" } },
+        key = { row ->
+            row.joinToString(separator = "|") { group -> "${group.type.name}:${group.name}" }
+        },
         contentType = { "AdaptiveNodeGroupRow" },
     ) { rowGroups ->
         Row(
@@ -207,9 +209,7 @@ internal fun LazyListScope.adaptiveNodeGroupItems(
                         },
                 )
             }
-            repeat(columns - rowGroups.size) {
-                Spacer(modifier = Modifier.weight(1f))
-            }
+            repeat(columns - rowGroups.size) { Spacer(modifier = Modifier.weight(1f)) }
         }
     }
 }
@@ -241,7 +241,7 @@ internal fun NodeGroupCard(
             group.proxies.firstOrNull { it.name == group.now }?.delay
         }
     val badge = remember(group.type) { groupBadge(group.type) }
-    val delayLabel = remember(currentDelay) { nodeLatencyLabel(currentDelay) }
+    val latencyVisual = proxyLatencyVisual(delay = currentDelay, isTesting = isDelayTesting)
     val leadingShape = RoundedCornerShape(NodeCardDefaults.LeadingContainerCornerRadius)
 
     Column(
@@ -346,39 +346,36 @@ internal fun NodeGroupCard(
                         )
                     }
 
-                    Box(
+                    Row(
                         modifier = Modifier.padding(start = 8.dp),
-                        contentAlignment = Alignment.CenterEnd,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        when {
-                            delayLabel != null -> {
-                                val (delayText, delayColor) = delayLabel
-                                Text(
-                                    text = delayText,
-                                    style = MiuixTheme.textStyles.footnote1,
-                                    color = delayColor,
-                                )
-                            }
-
-                            isDelayTesting -> {
-                                RotatingCircleGauge(
-                                    isRotating = true,
-                                    modifier = Modifier.size(NodeCardDefaults.ActionIconSize),
-                                    tint = MiuixTheme.colorScheme.primary,
-                                    contentDescription = null,
-                                )
-                            }
-
-                            else ->
-                                Icon(
-                                    Yume.chevron,
-                                    contentDescription = null,
-                                    modifier =
-                                        Modifier.size(NodeCardDefaults.ChevronIconSize)
-                                            .rotate(if (isExpanded) 90f else 0f),
-                                    tint = Color(0xFFC7C7CC),
-                                )
+                        if (isDelayTesting) {
+                            RotatingCircleGauge(
+                                isRotating = true,
+                                modifier = Modifier.size(NodeCardDefaults.ActionIconSize),
+                                tint = MiuixTheme.colorScheme.primary,
+                                contentDescription = null,
+                            )
                         }
+
+                        Text(
+                            text = latencyVisual.label,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = latencyVisual.color,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        Icon(
+                            Yume.chevron,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(NodeCardDefaults.ChevronIconSize)
+                                    .rotate(if (isExpanded) 90f else 0f),
+                            tint = Color(0xFFC7C7CC),
+                        )
                     }
                 }
             }
@@ -442,9 +439,14 @@ private fun ExpandedProxyGroupContent(
     val onNodeClick: ((String) -> Unit)? =
         when {
             isSelectorGroup ->
-                onSelectProxy?.let { selectProxy -> { proxyName -> selectProxy(group.name, proxyName) } }
+                onSelectProxy?.let { selectProxy ->
+                    { proxyName -> selectProxy(group.name, proxyName) }
+                }
 
-            else -> onTestProxyDelay?.let { testProxyDelay -> { proxyName -> testProxyDelay(proxyName) } }
+            else ->
+                onTestProxyDelay?.let { testProxyDelay ->
+                    { proxyName -> testProxyDelay(proxyName) }
+                }
         }
 
     if (maxHeight != null) {

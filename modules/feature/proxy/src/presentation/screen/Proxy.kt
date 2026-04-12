@@ -30,7 +30,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -46,10 +45,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -64,8 +64,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -77,10 +77,10 @@ import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.ProxyGroupStyle
 import com.github.yumelira.yumebox.domain.model.ProxySortMode
-import com.github.yumelira.yumebox.presentation.component.CenteredText
 import com.github.yumelira.yumebox.presentation.component.AppActionTile
 import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
 import com.github.yumelira.yumebox.presentation.component.AppDialog
+import com.github.yumelira.yumebox.presentation.component.CenteredText
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticActionDefaults
@@ -98,8 +98,7 @@ import com.github.yumelira.yumebox.presentation.screen.node.NodeCard
 import com.github.yumelira.yumebox.presentation.screen.node.NodeCardDefaults
 import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
 import com.github.yumelira.yumebox.presentation.screen.node.adaptiveNodeGroupItems
-import com.github.yumelira.yumebox.presentation.screen.node.nodeGroupItems
-import com.github.yumelira.yumebox.presentation.screen.node.nodeLatencyLabel
+import com.github.yumelira.yumebox.presentation.screen.node.proxyLatencyVisual
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
@@ -474,8 +473,7 @@ private fun ProxyContent(
                 item(key = "runtime_preview_notice", contentType = { "RuntimePreviewNotice" }) {
                     ProxyRuntimePreviewNotice(
                         modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(bottom = ProxyPageSpacing.ItemVertical),
+                            Modifier.fillMaxWidth().padding(bottom = ProxyPageSpacing.ItemVertical)
                     )
                 }
             }
@@ -517,11 +515,7 @@ private fun ProxyDisplaySettingsDialog(
     val sectionSpacing = if (configuration.screenHeightDp < 560) 8.dp else 10.dp
     val dialogContentMaxHeight = (configuration.screenHeightDp.dp * 0.7f).coerceAtMost(520.dp)
 
-    AppDialog(
-        show = show,
-        title = MLang.Proxy.Action.More,
-        onDismissRequest = onDismiss,
-    ) {
+    AppDialog(show = show, title = MLang.Proxy.Action.More, onDismissRequest = onDismiss) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
@@ -554,7 +548,10 @@ private fun ProxyDisplaySettingsDialog(
                 }
             }
 
-            ProxyDialogSection(title = MLang.Proxy.Action.SortMode)
+            ProxyDialogSection(
+                title = MLang.Proxy.Action.SortMode,
+                summary = MLang.Proxy.Action.SortModeSummary,
+            )
             Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
                 ProxySortMode.entries.forEach { mode ->
                     ProxyChoiceTile(
@@ -577,13 +574,24 @@ private fun ProxyDisplaySettingsDialog(
 }
 
 @Composable
-private fun ProxyDialogSection(title: String) {
-    Text(
-        text = title,
-        style = MiuixTheme.textStyles.footnote1,
-        color = MiuixTheme.colorScheme.primary,
+private fun ProxyDialogSection(title: String, summary: String? = null) {
+    Column(
         modifier = Modifier.padding(start = 4.dp),
-    )
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title,
+            style = MiuixTheme.textStyles.footnote1,
+            color = MiuixTheme.colorScheme.primary,
+        )
+        if (!summary.isNullOrBlank()) {
+            Text(
+                text = summary,
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+    }
 }
 
 @Composable
@@ -608,10 +616,7 @@ private fun ProxyChoiceTile(
 }
 
 @Composable
-private fun ProxyHiddenGroupsToggle(
-    showHiddenGroups: Boolean,
-    onClick: () -> Unit,
-) {
+private fun ProxyHiddenGroupsToggle(showHiddenGroups: Boolean, onClick: () -> Unit) {
     val tone = if (showHiddenGroups) SemanticTone.Info else SemanticTone.Neutral
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = showHiddenGroups)
     val shape = RoundedCornerShape(24.dp)
@@ -636,7 +641,11 @@ private fun ProxyHiddenGroupsToggle(
                 Modifier.size(38.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(style.iconContainerColor)
-                    .border(0.8.dp, style.contentColor.copy(alpha = 0.18f), RoundedCornerShape(14.dp)),
+                    .border(
+                        0.8.dp,
+                        style.contentColor.copy(alpha = 0.18f),
+                        RoundedCornerShape(14.dp),
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -647,10 +656,7 @@ private fun ProxyHiddenGroupsToggle(
             )
         }
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = MLang.Proxy.Action.ShowHiddenGroups,
                 style = MiuixTheme.textStyles.body2,
@@ -928,10 +934,11 @@ private fun FloatingGroupHeader(
         remember(currentNode.displayName) {
             currentNode.displayName.ifBlank { MLang.Proxy.Mode.Direct }
         }
-    val delayLabel =
+    val currentDelay =
         remember(group.proxies, group.now) {
-            nodeLatencyLabel(group.proxies.firstOrNull { it.name == group.now }?.delay)
+            group.proxies.firstOrNull { it.name == group.now }?.delay
         }
+    val latencyVisual = proxyLatencyVisual(delay = currentDelay, isTesting = isDelayTesting)
     val primary = MiuixTheme.colorScheme.primary
 
     Column(
@@ -1066,35 +1073,12 @@ private fun FloatingGroupHeader(
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                when {
-                    delayLabel != null -> {
-                        val (delayText, delayColor) = delayLabel
-                        Text(
-                            text = delayText,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = delayColor,
-                            modifier = Modifier.padding(start = 12.dp),
-                        )
-                    }
-
-                    isDelayTesting -> {
-                        Text(
-                            text = MLang.Proxy.Testing.InProgress,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            modifier = Modifier.padding(start = 12.dp),
-                        )
-                    }
-
-                    else -> {
-                        Text(
-                            text = MLang.Proxy.Selection.UnknownLatency,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            modifier = Modifier.padding(start = 12.dp),
-                        )
-                    }
-                }
+                Text(
+                    text = latencyVisual.label,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = latencyVisual.color,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
             }
         }
     }
