@@ -1,6 +1,6 @@
 # 隐私说明
 
-[简体中文](PRIVACY_ZH_HANS.md) | [English](PRIVACY_POLICY.md)
+[简体中文](PRIVACY_POLICY_ZH_HANS.md) | [English](PRIVACY_POLICY.md)
 
 MonadBox 是一个开源 Android 客户端。本应用按原样提供，不会故意收集个人身份信息。
 

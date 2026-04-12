@@ -15,7 +15,7 @@ MonadBox 是一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的定制
 
 - 开发指南：[DEVELOP_ZH_HANS.md](DEVELOP_ZH_HANS.md)
 - 许可策略：[LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md)
-- 隐私说明：[PRIVACY_ZH_HANS.md](PRIVACY_ZH_HANS.md)
+- 隐私说明：[PRIVACY_POLICY_ZH_HANS.md](PRIVACY_POLICY_ZH_HANS.md)
 
 ## 快速开始
 

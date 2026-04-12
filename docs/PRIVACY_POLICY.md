@@ -1,6 +1,6 @@
 # Privacy Notice
 
-[English](PRIVACY_POLICY.md) | [简体中文](PRIVACY_ZH_HANS.md)
+[English](PRIVACY_POLICY.md) | [简体中文](PRIVACY_POLICY_ZH_HANS.md)
 
 MonadBox is an open-source Android client. The app is provided as-is and does not intentionally collect personally identifiable information.
 

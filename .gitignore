@@ -89,3 +89,4 @@ sentry.properties
 # Copilot workspace instruction file (local)
 /.github/copilot-instructions.md
 /docs/REFACTOR_2026_BASELINE.md
+.github/instructions/
