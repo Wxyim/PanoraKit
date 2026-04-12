@@ -52,8 +52,14 @@ android {
             }
         }
         getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
+            kotlin.directories.apply {
+                clear()
+                add("test")
+            }
+            resources.directories.apply {
+                clear()
+                add("test/resources")
+            }
             assets.directories.clear()
         }
         getByName("androidTest") {
@@ -90,4 +96,6 @@ dependencies {
     implementation("com.tencent:mmkv:$mmkvVersion")
 
     implementation(libs.koin.core)
+
+    testImplementation("junit:junit:4.13.2")
 }
