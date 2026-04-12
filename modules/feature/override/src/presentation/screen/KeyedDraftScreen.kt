@@ -28,13 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.util.*
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.*
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val ProviderKnownKeys =
     setOf(
@@ -78,6 +79,11 @@ private val ProviderOverrideKnownKeys =
         "additional-prefix",
         "additional-suffix",
     )
+
+private val ProviderTypePresets = listOf("http", "file", "inline")
+private val ProviderVehiclePresets = listOf("http", "file")
+private val ProviderBehaviorPresets = listOf("domain", "ipcidr", "classical")
+private val ProviderFormatPresets = listOf("yaml", "text", "mrs")
 
 @Composable
 fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
@@ -173,6 +179,10 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     var showExtraFieldDialog by remember { mutableStateOf(false) }
     var showHealthCheckExtraFieldDialog by remember { mutableStateOf(false) }
     var showOverrideExtraFieldDialog by remember { mutableStateOf(false) }
+    var showTypeSelector by remember { mutableStateOf(false) }
+    var showVehicleSelector by remember { mutableStateOf(false) }
+    var showBehaviorSelector by remember { mutableStateOf(false) }
+    var showFormatSelector by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
     val keyLabel = MLang.Override.Draft.Name
 
@@ -185,8 +195,9 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
             OverrideAnimatedFab(
                 controller = saveFabController,
                 visible = true,
-                imageVector = Yume.Save,
+                imageVector = Yume.Check,
                 contentDescription = MLang.Override.Draft.Save + editorType.itemLabel,
+                label = MLang.Override.Draft.Save,
                 onClick = {
                     if (key.trim().isBlank()) {
                         errorText = MLang.Override.Draft.NameRequired
@@ -270,98 +281,164 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             lazyListState = listState,
-            onScrollDirectionChanged = saveFabController::onScrollDirectionChanged,
         ) {
             item {
-                OverridePlainFormSection(MLang.Override.Draft.BasicIdentity) {
-                    OverrideFormField(
-                        value = key,
-                        onValueChange = {
-                            key = it
+                OverrideCardSection(MLang.Override.Draft.BasicIdentity) {
+                    ConfigSettingRow(
+                        title = MLang.Override.Draft.Type,
+                        valueLabel = type.ifBlank { MLang.Component.Selector.UseDefault },
+                        tone = SemanticTone.Info,
+                        badgeTone = SemanticTone.Info,
+                        onClick = {
+                            showTypeSelector = true
                             errorText = null
                         },
-                        label = keyLabel,
-                        errorText = errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
                     )
-                    OverrideFormField(value = type, onValueChange = { type = it }, label = "type")
-                    OverrideFormField(
-                        value = vehicle,
-                        onValueChange = { vehicle = it },
-                        label = "vehicle",
+                    ConfigSettingRow(
+                        title = MLang.Override.Draft.Vehicle,
+                        valueLabel = vehicle.ifBlank { MLang.Component.Selector.UseDefault },
+                        tone = SemanticTone.Info,
+                        badgeTone = SemanticTone.Info,
+                        onClick = {
+                            showVehicleSelector = true
+                            errorText = null
+                        },
+                    )
+                    StringInputContent(
+                        title = keyLabel,
+                        value = key.takeIf(String::isNotBlank),
+                        placeholder = keyLabel,
+                        unsetLabel = "",
+                        onValueChange = {
+                            key = it.orEmpty()
+                            errorText = null
+                        },
+                    )
+                    errorText
+                        ?.takeIf { it.contains(MLang.Override.Draft.Name) }
+                        ?.let { message ->
+                            OverrideFieldAssistText(
+                                text = message,
+                                color = MiuixTheme.colorScheme.error,
+                            )
+                        }
+                }
+            }
+            item {
+                OverrideCardSection(MLang.Override.Draft.CoreSource) {
+                    StringInputContent(
+                        title = "path",
+                        value = path.takeIf(String::isNotBlank),
+                        placeholder = "path",
+                        unsetLabel = "",
+                        onValueChange = { path = it.orEmpty() },
+                    )
+                    StringInputContent(
+                        title = "url",
+                        value = url.takeIf(String::isNotBlank),
+                        placeholder = "url",
+                        unsetLabel = "",
+                        onValueChange = { url = it.orEmpty() },
+                    )
+                    StringInputContent(
+                        title = "proxy",
+                        value = proxy.takeIf(String::isNotBlank),
+                        placeholder = "proxy",
+                        unsetLabel = "",
+                        onValueChange = { proxy = it.orEmpty() },
+                    )
+                    StringInputContent(
+                        title = "interval",
+                        value = intervalText.takeIf(String::isNotBlank),
+                        placeholder = "interval",
+                        unsetLabel = "",
+                        onValueChange = {
+                            intervalText = it?.filter(Char::isDigit).orEmpty()
+                        },
+                    )
+                    StringInputContent(
+                        title = "size-limit",
+                        value = sizeLimitText.takeIf(String::isNotBlank),
+                        placeholder = "size-limit",
+                        unsetLabel = "",
+                        onValueChange = {
+                            sizeLimitText = it?.filter(Char::isDigit).orEmpty()
+                        },
                     )
                 }
             }
             item {
-                OverridePlainFormSection(MLang.Override.Draft.CoreSource) {
-                    OverrideFormField(value = path, onValueChange = { path = it }, label = "path")
-                    OverrideFormField(value = url, onValueChange = { url = it }, label = "url")
-                    OverrideFormField(
-                        value = proxy,
-                        onValueChange = { proxy = it },
-                        label = "proxy",
+                OverrideCardSection(MLang.Override.Draft.NetworkAuth) {
+                    ConfigSettingRow(
+                        title = MLang.Override.Draft.Behavior,
+                        valueLabel = behavior.ifBlank { MLang.Component.Selector.UseDefault },
+                        tone = SemanticTone.Info,
+                        badgeTone = SemanticTone.Info,
+                        onClick = { showBehaviorSelector = true },
                     )
-                    OverrideFormField(
-                        value = intervalText,
-                        onValueChange = { intervalText = it.filter(Char::isDigit) },
-                        label = "interval",
+                    ConfigSettingRow(
+                        title = MLang.Override.Draft.Format,
+                        valueLabel = format.ifBlank { MLang.Component.Selector.UseDefault },
+                        tone = SemanticTone.Info,
+                        badgeTone = SemanticTone.Info,
+                        onClick = { showFormatSelector = true },
                     )
-                    OverrideFormField(
-                        value = sizeLimitText,
-                        onValueChange = { sizeLimitText = it.filter(Char::isDigit) },
-                        label = "size-limit",
+                    StringInputContent(
+                        title = "filter",
+                        value = filter.takeIf(String::isNotBlank),
+                        placeholder = "filter",
+                        unsetLabel = "",
+                        onValueChange = { filter = it.orEmpty() },
                     )
-                }
-            }
-            item {
-                OverridePlainFormSection(MLang.Override.Draft.NetworkAuth) {
-                    OverrideFormField(
-                        value = behavior,
-                        onValueChange = { behavior = it },
-                        label = "behavior",
+                    StringInputContent(
+                        title = "header",
+                        value = headerText.takeIf(String::isNotBlank),
+                        placeholder = "header",
+                        unsetLabel = "",
+                        onValueChange = { headerText = it.orEmpty() },
                     )
-                    OverrideFormField(
-                        value = format,
-                        onValueChange = { format = it },
-                        label = "format",
-                    )
-                    OverrideFormField(
-                        value = filter,
-                        onValueChange = { filter = it },
-                        label = "filter",
-                    )
-                    OverrideFormField(
-                        value = headerText,
-                        onValueChange = { headerText = it },
-                        label = "header",
-                        supportText = MLang.Override.Draft.HeaderHint,
-                        modifier = Modifier.height(OverrideDraftMetrics.HeaderFieldHeight),
-                        maxLines = 8,
+                    OverrideFieldAssistText(
+                        text = MLang.Override.Draft.HeaderHint,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                 }
             }
             if (editorType == OverrideStructuredMapType.ProxyProviders) {
                 item {
-                    OverridePlainFormSection("Health Check") {
-                        OverrideFormField(
-                            value = healthCheckUrl,
-                            onValueChange = { healthCheckUrl = it },
-                            label = "health-check.url",
+                    OverrideCardSection(MLang.Override.Draft.HealthCheck) {
+                        StringInputContent(
+                            title = "health-check.url",
+                            value = healthCheckUrl.takeIf(String::isNotBlank),
+                            placeholder = "health-check.url",
+                            unsetLabel = "",
+                            onValueChange = { healthCheckUrl = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = healthCheckIntervalText,
-                            onValueChange = { healthCheckIntervalText = it.filter(Char::isDigit) },
-                            label = "health-check.interval",
+                        StringInputContent(
+                            title = "health-check.interval",
+                            value = healthCheckIntervalText.takeIf(String::isNotBlank),
+                            placeholder = "health-check.interval",
+                            unsetLabel = "",
+                            onValueChange = {
+                                healthCheckIntervalText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = healthCheckTimeoutText,
-                            onValueChange = { healthCheckTimeoutText = it.filter(Char::isDigit) },
-                            label = "health-check.timeout",
+                        StringInputContent(
+                            title = "health-check.timeout",
+                            value = healthCheckTimeoutText.takeIf(String::isNotBlank),
+                            placeholder = "health-check.timeout",
+                            unsetLabel = "",
+                            onValueChange = {
+                                healthCheckTimeoutText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = healthCheckExpectedStatus,
-                            onValueChange = { healthCheckExpectedStatus = it },
-                            label = "health-check.expected-status",
+                        StringInputContent(
+                            title = "health-check.expected-status",
+                            value = healthCheckExpectedStatus.takeIf(String::isNotBlank),
+                            placeholder = "health-check.expected-status",
+                            unsetLabel = "",
+                            onValueChange = { healthCheckExpectedStatus = it.orEmpty() },
                         )
                     }
                 }
@@ -399,46 +476,64 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
                     }
                 }
                 item {
-                    OverridePlainFormSection("Override") {
-                        OverrideFormField(
-                            value = overrideDown,
-                            onValueChange = { overrideDown = it },
-                            label = "override.down",
+                    OverrideCardSection(MLang.Override.Draft.Override) {
+                        StringInputContent(
+                            title = "override.down",
+                            value = overrideDown.takeIf(String::isNotBlank),
+                            placeholder = "override.down",
+                            unsetLabel = "",
+                            onValueChange = { overrideDown = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = overrideUp,
-                            onValueChange = { overrideUp = it },
-                            label = "override.up",
+                        StringInputContent(
+                            title = "override.up",
+                            value = overrideUp.takeIf(String::isNotBlank),
+                            placeholder = "override.up",
+                            unsetLabel = "",
+                            onValueChange = { overrideUp = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = overrideDialerProxy,
-                            onValueChange = { overrideDialerProxy = it },
-                            label = "override.dialer-proxy",
+                        StringInputContent(
+                            title = "override.dialer-proxy",
+                            value = overrideDialerProxy.takeIf(String::isNotBlank),
+                            placeholder = "override.dialer-proxy",
+                            unsetLabel = "",
+                            onValueChange = { overrideDialerProxy = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = overrideInterfaceName,
-                            onValueChange = { overrideInterfaceName = it },
-                            label = "override.interface-name",
+                        StringInputContent(
+                            title = "override.interface-name",
+                            value = overrideInterfaceName.takeIf(String::isNotBlank),
+                            placeholder = "override.interface-name",
+                            unsetLabel = "",
+                            onValueChange = { overrideInterfaceName = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = overrideRoutingMarkText,
-                            onValueChange = { overrideRoutingMarkText = it.filter(Char::isDigit) },
-                            label = "override.routing-mark",
+                        StringInputContent(
+                            title = "override.routing-mark",
+                            value = overrideRoutingMarkText.takeIf(String::isNotBlank),
+                            placeholder = "override.routing-mark",
+                            unsetLabel = "",
+                            onValueChange = {
+                                overrideRoutingMarkText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = overrideIpVersion,
-                            onValueChange = { overrideIpVersion = it },
-                            label = "override.ip-version",
+                        StringInputContent(
+                            title = "override.ip-version",
+                            value = overrideIpVersion.takeIf(String::isNotBlank),
+                            placeholder = "override.ip-version",
+                            unsetLabel = "",
+                            onValueChange = { overrideIpVersion = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = additionalPrefix,
-                            onValueChange = { additionalPrefix = it },
-                            label = "override.additional-prefix",
+                        StringInputContent(
+                            title = "override.additional-prefix",
+                            value = additionalPrefix.takeIf(String::isNotBlank),
+                            placeholder = "override.additional-prefix",
+                            unsetLabel = "",
+                            onValueChange = { additionalPrefix = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = additionalSuffix,
-                            onValueChange = { additionalSuffix = it },
-                            label = "override.additional-suffix",
+                        StringInputContent(
+                            title = "override.additional-suffix",
+                            value = additionalSuffix.takeIf(String::isNotBlank),
+                            placeholder = "override.additional-suffix",
+                            unsetLabel = "",
+                            onValueChange = { additionalSuffix = it.orEmpty() },
                         )
                     }
                 }
@@ -492,26 +587,38 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
                 }
             } else {
                 item {
-                    OverridePlainFormSection("Health Check") {
-                        OverrideFormField(
-                            value = healthCheckUrl,
-                            onValueChange = { healthCheckUrl = it },
-                            label = "health-check.url",
+                    OverrideCardSection(MLang.Override.Draft.HealthCheck) {
+                        StringInputContent(
+                            title = "health-check.url",
+                            value = healthCheckUrl.takeIf(String::isNotBlank),
+                            placeholder = "health-check.url",
+                            unsetLabel = "",
+                            onValueChange = { healthCheckUrl = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = healthCheckIntervalText,
-                            onValueChange = { healthCheckIntervalText = it.filter(Char::isDigit) },
-                            label = "health-check.interval",
+                        StringInputContent(
+                            title = "health-check.interval",
+                            value = healthCheckIntervalText.takeIf(String::isNotBlank),
+                            placeholder = "health-check.interval",
+                            unsetLabel = "",
+                            onValueChange = {
+                                healthCheckIntervalText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = healthCheckTimeoutText,
-                            onValueChange = { healthCheckTimeoutText = it.filter(Char::isDigit) },
-                            label = "health-check.timeout",
+                        StringInputContent(
+                            title = "health-check.timeout",
+                            value = healthCheckTimeoutText.takeIf(String::isNotBlank),
+                            placeholder = "health-check.timeout",
+                            unsetLabel = "",
+                            onValueChange = {
+                                healthCheckTimeoutText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = healthCheckExpectedStatus,
-                            onValueChange = { healthCheckExpectedStatus = it },
-                            label = "health-check.expected-status",
+                        StringInputContent(
+                            title = "health-check.expected-status",
+                            value = healthCheckExpectedStatus.takeIf(String::isNotBlank),
+                            placeholder = "health-check.expected-status",
+                            unsetLabel = "",
+                            onValueChange = { healthCheckExpectedStatus = it.orEmpty() },
                         )
                     }
                 }
@@ -577,6 +684,82 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
             onDismiss = {
                 editingExtraKey = null
                 showExtraFieldDialog = false
+            },
+        )
+        OverrideSingleValueSelectionSheet(
+            show = showTypeSelector,
+            title = MLang.Override.Draft.Type,
+            value = type,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Draft.Type,
+                        items = ProviderTypePresets,
+                    )
+                ),
+            customInputLabel = MLang.Override.Draft.Type,
+            allowCustomValue = true,
+            onDismiss = { showTypeSelector = false },
+            onConfirm = { selectedValue ->
+                type = selectedValue.trim()
+                showTypeSelector = false
+            },
+        )
+        OverrideSingleValueSelectionSheet(
+            show = showVehicleSelector,
+            title = MLang.Override.Draft.Vehicle,
+            value = vehicle,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Draft.Vehicle,
+                        items = ProviderVehiclePresets,
+                    )
+                ),
+            customInputLabel = MLang.Override.Draft.Vehicle,
+            allowCustomValue = true,
+            onDismiss = { showVehicleSelector = false },
+            onConfirm = { selectedValue ->
+                vehicle = selectedValue.trim()
+                showVehicleSelector = false
+            },
+        )
+        OverrideSingleValueSelectionSheet(
+            show = showBehaviorSelector,
+            title = MLang.Override.Draft.Behavior,
+            value = behavior,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Draft.Behavior,
+                        items = ProviderBehaviorPresets,
+                    )
+                ),
+            customInputLabel = MLang.Override.Draft.Behavior,
+            allowCustomValue = true,
+            onDismiss = { showBehaviorSelector = false },
+            onConfirm = { selectedValue ->
+                behavior = selectedValue.trim()
+                showBehaviorSelector = false
+            },
+        )
+        OverrideSingleValueSelectionSheet(
+            show = showFormatSelector,
+            title = MLang.Override.Draft.Format,
+            value = format,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Draft.Format,
+                        items = ProviderFormatPresets,
+                    )
+                ),
+            customInputLabel = MLang.Override.Draft.Format,
+            allowCustomValue = true,
+            onDismiss = { showFormatSelector = false },
+            onConfirm = { selectedValue ->
+                format = selectedValue.trim()
+                showFormatSelector = false
             },
         )
         OverrideExtraFieldDialog(

@@ -46,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val KeyedMapSectionGap = 12.dp
@@ -68,6 +67,7 @@ fun OverrideKeyedObjectMapEditorScreen(
     val editorType = OverrideStructuredEditorStore.keyedObjectMapEditorType
     val title = OverrideStructuredEditorStore.keyedObjectMapEditorTitle.ifBlank { editorType.title }
     val availableModes = OverrideStructuredEditorStore.keyedObjectMapEditorAvailableModes
+    val editorSemantics = OverrideStructuredEditorStore.keyedObjectMapEditorSemantics
     var showResetDialog by remember { mutableStateOf(false) }
     val addFabController = rememberOverrideFabController()
     var isDeleteMode by rememberSaveable { mutableStateOf(false) }
@@ -77,15 +77,37 @@ fun OverrideKeyedObjectMapEditorScreen(
 
     val selectedModeIndex = availableModes.indexOf(selectedMode).coerceAtLeast(0)
     val currentDrafts = editorValues.valueFor(selectedMode).orEmpty()
+    val showModeSelector = availableModes.size > 1
+    val reorderHeaderCount = if (showModeSelector) KeyedMapReorderHeaderCount else 0
+    val addFabLabel = MLang.Override.Editor.AddNamedItem.format(editorType.itemLabel)
 
     fun applyKeyedValues(values: OverrideListModeValues<List<OverrideKeyedObjectDraft>>) {
         OverrideStructuredEditorStore.applyKeyedObjectDraftValues(values)
     }
 
+    val handleAddClick: () -> Unit = {
+        onOpenDraftEditor(editorType, addFabLabel, null) { createdDraft ->
+            val mode = OverrideStructuredEditorStore.keyedObjectMapEditorSelectedMode
+            val latestValues = OverrideStructuredEditorStore.keyedObjectMapEditorDraftValues
+            val updatedValues =
+                latestValues.update(
+                    mode,
+                    latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                        if (editorSemantics == OverrideEditorSemantics.LocalConfig) {
+                            it.add(0, createdDraft)
+                        } else {
+                            it.add(createdDraft)
+                        }
+                    },
+                )
+            applyKeyedValues(updatedValues)
+        }
+    }
+
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
-            val fromIndex = (from.index - KeyedMapReorderHeaderCount).coerceAtLeast(0)
-            val toIndex = (to.index - KeyedMapReorderHeaderCount).coerceAtLeast(0)
+            val fromIndex = (from.index - reorderHeaderCount).coerceAtLeast(0)
+            val toIndex = (to.index - reorderHeaderCount).coerceAtLeast(0)
             val mode = OverrideStructuredEditorStore.keyedObjectMapEditorSelectedMode
             val latestValues = OverrideStructuredEditorStore.keyedObjectMapEditorDraftValues
             val updatedValues =
@@ -104,26 +126,9 @@ fun OverrideKeyedObjectMapEditorScreen(
                 controller = addFabController,
                 visible = showAddFab,
                 imageVector = Yume.`Badge-plus`,
-                contentDescription = MLang.Override.Editor.New + editorType.itemLabel,
-                onClick = {
-                    onOpenDraftEditor(
-                        editorType,
-                        MLang.Override.Editor.New + editorType.itemLabel,
-                        null,
-                    ) { createdDraft ->
-                        val mode = OverrideStructuredEditorStore.keyedObjectMapEditorSelectedMode
-                        val latestValues =
-                            OverrideStructuredEditorStore.keyedObjectMapEditorDraftValues
-                        val updatedValues =
-                            latestValues.update(
-                                mode,
-                                latestValues.valueFor(mode).orEmpty().toMutableList().also {
-                                    it.add(createdDraft)
-                                },
-                            )
-                        applyKeyedValues(updatedValues)
-                    }
-                },
+                contentDescription = addFabLabel,
+                label = addFabLabel,
+                onClick = handleAddClick,
             )
         },
         topBar = {
@@ -134,36 +139,20 @@ fun OverrideKeyedObjectMapEditorScreen(
                     if (isDeleteMode) {
                         IconButton(
                             onClick = {
-                                isDeleteMode = false
+                                val mode =
+                                    OverrideStructuredEditorStore.keyedObjectMapEditorSelectedMode
+                                val latestValues =
+                                    OverrideStructuredEditorStore.keyedObjectMapEditorDraftValues
+                                val updatedValues =
+                                    latestValues.update(
+                                        mode,
+                                        latestValues.valueFor(mode).orEmpty().filterNot {
+                                            it.uiId in selectedUiIds
+                                        },
+                                    )
                                 selectedUiIds = emptySet()
-                            },
-                            modifier = Modifier.padding(end = 8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Yume.Cancel,
-                                contentDescription = MLang.Override.Editor.CancelDelete,
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                if (selectedUiIds.isNotEmpty()) {
-                                    val mode =
-                                        OverrideStructuredEditorStore
-                                            .keyedObjectMapEditorSelectedMode
-                                    val latestValues =
-                                        OverrideStructuredEditorStore
-                                            .keyedObjectMapEditorDraftValues
-                                    val updatedValues =
-                                        latestValues.update(
-                                            mode,
-                                            latestValues.valueFor(mode).orEmpty().filterNot {
-                                                it.uiId in selectedUiIds
-                                            },
-                                        )
-                                    selectedUiIds = emptySet()
-                                    isDeleteMode = false
-                                    applyKeyedValues(updatedValues)
-                                }
+                                isDeleteMode = false
+                                applyKeyedValues(updatedValues)
                             },
                             modifier = Modifier.padding(end = 24.dp),
                         ) {
@@ -202,31 +191,35 @@ fun OverrideKeyedObjectMapEditorScreen(
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             modifier = Modifier.fillMaxWidth(),
             topPadding = 20.dp,
             lazyListState = listState,
             onScrollDirectionChanged = addFabController::onScrollDirectionChanged,
         ) {
-            item(key = "modifier-card") {
-                Card {
-                    WindowDropdown(
-                        title = MLang.Override.Editor.Mode.Title,
-                        items = availableModes.map(OverrideListEditorMode::label),
-                        selectedIndex = selectedModeIndex,
-                        onSelectedIndexChange = { index ->
-                            val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateKeyedObjectMapEditorSession(
-                                selectedMode = newMode
-                            )
-                            isDeleteMode = false
-                            selectedUiIds = emptySet()
-                        },
-                    )
+            if (showModeSelector) {
+                item(key = "modifier-card") {
+                    Card {
+                        EnumSelector(
+                            title = editorSemantics.modeTitle(),
+                            currentValue = selectedMode,
+                            items = availableModes.map { it.resolveLabel(editorSemantics) },
+                            values = availableModes,
+                            showDivider = false,
+                            onValueChange = { newMode ->
+                                OverrideStructuredEditorStore.updateKeyedObjectMapEditorSession(
+                                    selectedMode = newMode
+                                )
+                                isDeleteMode = false
+                                selectedUiIds = emptySet()
+                            },
+                        )
+                    }
                 }
-            }
 
-            item(key = "modifier-card-gap") {
-                Spacer(modifier = Modifier.height(KeyedMapSectionGap))
+                item(key = "modifier-card-gap") {
+                    Spacer(modifier = Modifier.height(KeyedMapSectionGap))
+                }
             }
 
             if (currentDrafts.isNotEmpty()) {
@@ -282,6 +275,15 @@ fun OverrideKeyedObjectMapEditorScreen(
                             },
                         )
                     }
+                }
+            } else {
+                item(key = "keyed-map-empty") {
+                    OverrideEmptyStateCard(
+                        title = MLang.Override.Empty.Title,
+                        hint = MLang.Override.Empty.Hint,
+                        actionLabel = addFabLabel,
+                        onAction = handleAddClick,
+                    )
                 }
             }
 

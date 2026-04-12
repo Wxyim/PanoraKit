@@ -24,15 +24,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.util.*
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperArrow
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideSubRuleDraftEditorScreen(
@@ -93,8 +94,9 @@ fun OverrideSubRuleDraftEditorScreen(
             OverrideAnimatedFab(
                 controller = saveFabController,
                 visible = true,
-                imageVector = Yume.Save,
+                imageVector = Yume.Check,
                 contentDescription = MLang.Override.Draft.Save + MLang.Override.Draft.SubRuleGroup,
+                label = MLang.Override.Draft.Save,
                 onClick = {
                     if (name.trim().isBlank()) {
                         errorText = MLang.Override.Draft.NameRequired
@@ -118,36 +120,46 @@ fun OverrideSubRuleDraftEditorScreen(
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             modifier = Modifier.fillMaxSize(),
             lazyListState = listState,
-            onScrollDirectionChanged = saveFabController::onScrollDirectionChanged,
         ) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
                 ) {
-                    OverridePlainFormSection(MLang.Override.Draft.BasicInfo) {
-                        OverrideFormField(
-                            value = name,
+                    OverrideCardSection(MLang.Override.Draft.BasicInfo) {
+                        StringInputContent(
+                            title = MLang.Override.Draft.Name,
+                            value = name.takeIf(String::isNotBlank),
+                            placeholder = MLang.Override.Draft.Name,
+                            unsetLabel = "",
                             onValueChange = {
-                                name = it
+                                val updatedValue = it.orEmpty()
+                                name = updatedValue
                                 errorText = null
-                                syncDraftSession(updatedName = it)
+                                syncDraftSession(updatedName = updatedValue)
                             },
-                            label = MLang.Override.Draft.Name,
-                            errorText = errorText,
                         )
+                        errorText?.let { message ->
+                            OverrideFieldAssistText(
+                                text = message,
+                                color = MiuixTheme.colorScheme.error,
+                            )
+                        }
                     }
                     OverrideCardSection(MLang.Override.Draft.RuleList) {
-                        SuperArrow(
+                        ConfigSettingRow(
                             title = MLang.Override.Draft.RuleList,
-                            summary =
+                            valueLabel =
                                 if (rules.isEmpty()) {
                                     MLang.Override.Draft.NoRules
                                 } else {
                                     MLang.Override.Draft.RulesConfigured.format(rules.size)
                                 },
+                            tone = SemanticTone.Info,
+                            badgeTone = SemanticTone.Info,
                             onClick = {
                                 syncDraftSession()
                                 onOpenRuleListEditor(

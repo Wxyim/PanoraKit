@@ -2068,6 +2068,18 @@ else -> null}
 */
 @Composable
 fun`NotModify`(vararg args:Any?)=FYTxtConfig.observe{`NotModify`.fmt(args)}
+/**使用默认
+*/
+val`UseDefault`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Use Default"""
+`MLangTags`.ZH->"""使用默认"""
+else -> null}
+}?:"""使用默认"""
+/**使用默认
+*/
+@Composable
+fun`UseDefault`(vararg args:Any?)=FYTxtConfig.observe{`UseDefault`.fmt(args)}
 /**启用
 */
 val`Enable`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
@@ -2592,11 +2604,11 @@ fun`CountItems`(vararg args:Any?)=FYTxtConfig.observe{`CountItems`.fmt(args)}
 */
 val`ReplaceHelper`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Replace entire dictionary"""
-`MLangTags`.ZH->"""替换整个字典"""
+`MLangTags`.EN->"""After saving, this field is replaced by the complete dictionary edited here. Existing keys not listed here will be removed."""
+`MLangTags`.ZH->"""保存后会用这里编辑的完整字典替换当前字段；这里未填写的旧键不会保留。"""
 else -> null}
-}?:"""替换整个字典"""
-/**替换整个字典
+}?:"""保存后会用这里编辑的完整字典替换当前字段；这里未填写的旧键不会保留。"""
+/**保存后会用这里编辑的完整字典替换当前字段；这里未填写的旧键不会保留。
 */
 @Composable
 fun`ReplaceHelper`(vararg args:Any?)=FYTxtConfig.observe{`ReplaceHelper`.fmt(args)}
@@ -2604,11 +2616,11 @@ fun`ReplaceHelper`(vararg args:Any?)=FYTxtConfig.observe{`ReplaceHelper`.fmt(arg
 */
 val`MergeHelper`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Overwrite values for matching keys"""
-`MLangTags`.ZH->"""覆盖匹配键对应的值"""
+`MLangTags`.EN->"""After saving, only the keys edited here are merged into the current dictionary"""
+`MLangTags`.ZH->"""保存后只会把这里编辑的键合并到当前字典。"""
 else -> null}
-}?:"""覆盖匹配键对应的值"""
-/**覆盖匹配键对应的值
+}?:"""保存后只会把这里编辑的键合并到当前字典。"""
+/**保存后只会把这里编辑的键合并到当前字典。
 */
 @Composable
 fun`MergeHelper`(vararg args:Any?)=FYTxtConfig.observe{`MergeHelper`.fmt(args)}
@@ -2616,11 +2628,11 @@ fun`MergeHelper`(vararg args:Any?)=FYTxtConfig.observe{`MergeHelper`.fmt(args)}
 */
 val`MergeNotice`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Merge mode only modifies specified keys; unmodified keys remain unchanged."""
-`MLangTags`.ZH->"""合并模式仅修改指定键，未指定键保持不变。"""
+`MLangTags`.EN->"""In merge mode, keys with the same name are overwritten, and keys not provided here keep their current values."""
+`MLangTags`.ZH->"""合并模式下，同名键会被覆盖；这里未填写的键保持当前值。"""
 else -> null}
-}?:"""合并模式仅修改指定键，未指定键保持不变。"""
-/**合并模式仅修改指定键，未指定键保持不变。
+}?:"""合并模式下，同名键会被覆盖；这里未填写的键保持当前值。"""
+/**合并模式下，同名键会被覆盖；这里未填写的键保持当前值。
 */
 @Composable
 fun`MergeNotice`(vararg args:Any?)=FYTxtConfig.observe{`MergeNotice`.fmt(args)}
@@ -2889,11 +2901,11 @@ fun`ResetTitle`(vararg args:Any?)=FYTxtConfig.observe{`ResetTitle`.fmt(args)}
 */
 val`ResetMessage`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Clear all entries and restore to unmodified state?"""
-`MLangTags`.ZH->"""清空所有条目并恢复为不修改状态？"""
+`MLangTags`.EN->"""Clear all entries in this editor and restore this field to the unmodified state?"""
+`MLangTags`.ZH->"""清空这个编辑器中的全部条目，并将该字段恢复为不修改状态？"""
 else -> null}
-}?:"""清空所有条目并恢复为不修改状态？"""
-/**清空所有条目并恢复为不修改状态？
+}?:"""清空这个编辑器中的全部条目，并将该字段恢复为不修改状态？"""
+/**清空这个编辑器中的全部条目，并将该字段恢复为不修改状态？
 */
 @Composable
 fun`ResetMessage`(vararg args:Any?)=FYTxtConfig.observe{`ResetMessage`.fmt(args)}
@@ -2913,11 +2925,11 @@ fun`DiscardTitle`(vararg args:Any?)=FYTxtConfig.observe{`DiscardTitle`.fmt(args)
 */
 val`DiscardMessage`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""You have unsaved changes. What would you like to do?"""
-`MLangTags`.ZH->"""当前有未保存的修改，你想怎么处理？"""
+`MLangTags`.EN->"""Leave without saving? Current changes in the editor will be lost."""
+`MLangTags`.ZH->"""要不保存直接离开吗？当前编辑器中的修改会丢失。"""
 else -> null}
-}?:"""当前有未保存的修改，你想怎么处理？"""
-/**当前有未保存的修改，你想怎么处理？
+}?:"""要不保存直接离开吗？当前编辑器中的修改会丢失。"""
+/**要不保存直接离开吗？当前编辑器中的修改会丢失。
 */
 @Composable
 fun`DiscardMessage`(vararg args:Any?)=FYTxtConfig.observe{`DiscardMessage`.fmt(args)}
@@ -2925,11 +2937,11 @@ fun`DiscardMessage`(vararg args:Any?)=FYTxtConfig.observe{`DiscardMessage`.fmt(a
 */
 val`JsonSubtitle`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Edit using JSON format"""
-`MLangTags`.ZH->"""使用 JSON 格式编辑"""
+`MLangTags`.EN->"""Edit the raw JSON content directly"""
+`MLangTags`.ZH->"""直接编辑原始 JSON 内容"""
 else -> null}
-}?:"""使用 JSON 格式编辑"""
-/**使用 JSON 格式编辑
+}?:"""直接编辑原始 JSON 内容"""
+/**直接编辑原始 JSON 内容
 */
 @Composable
 fun`JsonSubtitle`(vararg args:Any?)=FYTxtConfig.observe{`JsonSubtitle`.fmt(args)}
@@ -2949,11 +2961,11 @@ fun`ConfigPreviewTitle`(vararg args:Any?)=FYTxtConfig.observe{`ConfigPreviewTitl
 */
 val`LocalSaving`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Saving locally..."""
-`MLangTags`.ZH->"""正在保存到本地..."""
+`MLangTags`.EN->"""Writing the edited result to the local config file..."""
+`MLangTags`.ZH->"""正在把编辑结果写入本地配置文件..."""
 else -> null}
-}?:"""正在保存到本地..."""
-/**正在保存到本地...
+}?:"""正在把编辑结果写入本地配置文件..."""
+/**正在把编辑结果写入本地配置文件...
 */
 @Composable
 fun`LocalSaving`(vararg args:Any?)=FYTxtConfig.observe{`LocalSaving`.fmt(args)}
@@ -2961,11 +2973,11 @@ fun`LocalSaving`(vararg args:Any?)=FYTxtConfig.observe{`LocalSaving`.fmt(args)}
 */
 val`ValidatingConfig`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Validating configuration..."""
-`MLangTags`.ZH->"""正在校验配置..."""
+`MLangTags`.EN->"""Validating the edited configuration..."""
+`MLangTags`.ZH->"""正在校验编辑后的配置内容..."""
 else -> null}
-}?:"""正在校验配置..."""
-/**正在校验配置...
+}?:"""正在校验编辑后的配置内容..."""
+/**正在校验编辑后的配置内容...
 */
 @Composable
 fun`ValidatingConfig`(vararg args:Any?)=FYTxtConfig.observe{`ValidatingConfig`.fmt(args)}
@@ -2973,14 +2985,26 @@ fun`ValidatingConfig`(vararg args:Any?)=FYTxtConfig.observe{`ValidatingConfig`.f
 */
 val`FetchingRemoteResources`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Fetching remote resources..."""
-`MLangTags`.ZH->"""正在获取远程资源..."""
+`MLangTags`.EN->"""Fetching remote resources referenced by the configuration and finishing final validation..."""
+`MLangTags`.ZH->"""正在拉取配置引用的远程资源，并完成最终校验..."""
 else -> null}
-}?:"""正在获取远程资源..."""
-/**正在获取远程资源...
+}?:"""正在拉取配置引用的远程资源，并完成最终校验..."""
+/**正在拉取配置引用的远程资源，并完成最终校验...
 */
 @Composable
 fun`FetchingRemoteResources`(vararg args:Any?)=FYTxtConfig.observe{`FetchingRemoteResources`.fmt(args)}
+/**已中断远程资源获取并直接保存。当前选中配置正在运行，mihomo 已停止，请按需重新启动。
+*/
+val`DirectSaveStoppedRuntimeSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Remote resource fetching was interrupted and the current file was saved locally. Because the selected profile was running, mihomo has been stopped. Restart it if you still want the profile to take effect."""
+`MLangTags`.ZH->"""已中断远程资源获取，并把当前文件直接保存到本地。由于当前选中的配置当时正在运行，mihomo 已停止；如需继续生效，请重新启动。"""
+else -> null}
+}?:"""已中断远程资源获取，并把当前文件直接保存到本地。由于当前选中的配置当时正在运行，mihomo 已停止；如需继续生效，请重新启动。"""
+/**已中断远程资源获取，并把当前文件直接保存到本地。由于当前选中的配置当时正在运行，mihomo 已停止；如需继续生效，请重新启动。
+*/
+@Composable
+fun`DirectSaveStoppedRuntimeSummary`(vararg args:Any?)=FYTxtConfig.observe{`DirectSaveStoppedRuntimeSummary`.fmt(args)}
 }
 object`Empty`{init{`MLangGroups`}
 /**暂无条目
@@ -2999,11 +3023,11 @@ fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
 */
 val`Hint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Click top-right button to add"""
-`MLangTags`.ZH->"""点击右上角按钮添加"""
+`MLangTags`.EN->"""Use the add action in the top-right corner to create the first entry"""
+`MLangTags`.ZH->"""使用右上角的新增按钮创建第一条条目"""
 else -> null}
-}?:"""点击右上角按钮添加"""
-/**点击右上角按钮添加
+}?:"""使用右上角的新增按钮创建第一条条目"""
+/**使用右上角的新增按钮创建第一条条目
 */
 @Composable
 fun`Hint`(vararg args:Any?)=FYTxtConfig.observe{`Hint`.fmt(args)}
@@ -6349,11 +6373,11 @@ fun`Description`(vararg args:Any?)=FYTxtConfig.observe{`Description`.fmt(args)}
 */
 val`ImportHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Auto-detect JSON config or [Rule] rules from Surge/Loon plugin"""
-`MLangTags`.ZH->"""自动识别 JSON 配置，或 Surge/Loon 插件中的 [Rule] 规则"""
+`MLangTags`.EN->"""Auto-detect a JSON config, or extract [Rule] entries from a Surge/Loon plugin"""
+`MLangTags`.ZH->"""自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则"""
 else -> null}
-}?:"""自动识别 JSON 配置，或 Surge/Loon 插件中的 [Rule] 规则"""
-/**自动识别 JSON 配置，或 Surge/Loon 插件中的 [Rule] 规则
+}?:"""自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则"""
+/**自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则
 */
 @Composable
 fun`ImportHint`(vararg args:Any?)=FYTxtConfig.observe{`ImportHint`.fmt(args)}
@@ -6361,11 +6385,11 @@ fun`ImportHint`(vararg args:Any?)=FYTxtConfig.observe{`ImportHint`.fmt(args)}
 */
 val`ImportFromUrlHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Enter a remote URL to auto-detect JSON or Surge/Loon plugin rules"""
-`MLangTags`.ZH->"""输入远程 URL，自动识别 JSON 或 Surge/Loon 插件规则"""
+`MLangTags`.EN->"""Enter a remote URL to auto-detect a JSON config, or extract [Rule] entries from a Surge/Loon plugin"""
+`MLangTags`.ZH->"""输入远程 URL；可自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则"""
 else -> null}
-}?:"""输入远程 URL，自动识别 JSON 或 Surge/Loon 插件规则"""
-/**输入远程 URL，自动识别 JSON 或 Surge/Loon 插件规则
+}?:"""输入远程 URL；可自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则"""
+/**输入远程 URL；可自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则
 */
 @Composable
 fun`ImportFromUrlHint`(vararg args:Any?)=FYTxtConfig.observe{`ImportFromUrlHint`.fmt(args)}
@@ -6526,11 +6550,11 @@ fun`TitleNew`(vararg args:Any?)=FYTxtConfig.observe{`TitleNew`.fmt(args)}
 */
 val`JsonEditHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Use JSON format for advanced editing"""
-`MLangTags`.ZH->"""使用 JSON 格式进行高级编辑"""
+`MLangTags`.EN->"""Edit the raw JSON directly for fields not covered by the structured form"""
+`MLangTags`.ZH->"""直接编辑原始 JSON，适合补充结构化表单未覆盖的字段"""
 else -> null}
-}?:"""使用 JSON 格式进行高级编辑"""
-/**使用 JSON 格式进行高级编辑
+}?:"""直接编辑原始 JSON，适合补充结构化表单未覆盖的字段"""
+/**直接编辑原始 JSON，适合补充结构化表单未覆盖的字段
 */
 @Composable
 fun`JsonEditHint`(vararg args:Any?)=FYTxtConfig.observe{`JsonEditHint`.fmt(args)}
@@ -6538,11 +6562,11 @@ fun`JsonEditHint`(vararg args:Any?)=FYTxtConfig.observe{`JsonEditHint`.fmt(args)
 */
 val`StructuredObjectListHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Use structured object list editing"""
-`MLangTags`.ZH->"""使用结构化对象列表编辑"""
+`MLangTags`.EN->"""Edit the object list item by item with the structured form"""
+`MLangTags`.ZH->"""使用结构化表单逐项编辑对象列表"""
 else -> null}
-}?:"""使用结构化对象列表编辑"""
-/**使用结构化对象列表编辑
+}?:"""使用结构化表单逐项编辑对象列表"""
+/**使用结构化表单逐项编辑对象列表
 */
 @Composable
 fun`StructuredObjectListHint`(vararg args:Any?)=FYTxtConfig.observe{`StructuredObjectListHint`.fmt(args)}
@@ -6550,11 +6574,11 @@ fun`StructuredObjectListHint`(vararg args:Any?)=FYTxtConfig.observe{`StructuredO
 */
 val`StructuredProviderDictHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Use structured provider dictionary editing"""
-`MLangTags`.ZH->"""使用结构化提供者字典编辑"""
+`MLangTags`.EN->"""Edit the provider dictionary with the structured form; each key maps to one provider"""
+`MLangTags`.ZH->"""使用结构化表单编辑 provider 字典；每个键对应一个 provider"""
 else -> null}
-}?:"""使用结构化提供者字典编辑"""
-/**使用结构化提供者字典编辑
+}?:"""使用结构化表单编辑 provider 字典；每个键对应一个 provider"""
+/**使用结构化表单编辑 provider 字典；每个键对应一个 provider
 */
 @Composable
 fun`StructuredProviderDictHint`(vararg args:Any?)=FYTxtConfig.observe{`StructuredProviderDictHint`.fmt(args)}
@@ -6562,11 +6586,11 @@ fun`StructuredProviderDictHint`(vararg args:Any?)=FYTxtConfig.observe{`Structure
 */
 val`SubRuleGroupHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Rule groups can be defined in this section"""
-`MLangTags`.ZH->"""可在此部分定义规则组"""
+`MLangTags`.EN->"""Manage sub-rule groups here; each group can contain multiple rules"""
+`MLangTags`.ZH->"""在这里维护子规则组；每个分组可包含多条规则"""
 else -> null}
-}?:"""可在此部分定义规则组"""
-/**可在此部分定义规则组
+}?:"""在这里维护子规则组；每个分组可包含多条规则"""
+/**在这里维护子规则组；每个分组可包含多条规则
 */
 @Composable
 fun`SubRuleGroupHint`(vararg args:Any?)=FYTxtConfig.observe{`SubRuleGroupHint`.fmt(args)}
@@ -6574,11 +6598,11 @@ fun`SubRuleGroupHint`(vararg args:Any?)=FYTxtConfig.observe{`SubRuleGroupHint`.f
 */
 val`JsonKeyValueHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""JSON object fields should be key-value pairs"""
-`MLangTags`.ZH->"""JSON 对象字段需为键值对格式"""
+`MLangTags`.EN->"""Fields must be valid JSON key-value pairs, for example { \"name\": \"proxy\" }"""
+`MLangTags`.ZH->"""字段必须写成合法的 JSON 键值对，例如 { \"name\": \"proxy\" }"""
 else -> null}
-}?:"""JSON 对象字段需为键值对格式"""
-/**JSON 对象字段需为键值对格式
+}?:"""字段必须写成合法的 JSON 键值对，例如 { \"name\": \"proxy\" }"""
+/**字段必须写成合法的 JSON 键值对，例如 { "name": "proxy" }
 */
 @Composable
 fun`JsonKeyValueHint`(vararg args:Any?)=FYTxtConfig.observe{`JsonKeyValueHint`.fmt(args)}
@@ -6586,11 +6610,11 @@ fun`JsonKeyValueHint`(vararg args:Any?)=FYTxtConfig.observe{`JsonKeyValueHint`.f
 */
 val`OneProviderPerLineHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""One provider name per line"""
-`MLangTags`.ZH->"""每行一个提供者名称"""
+`MLangTags`.EN->"""Enter one provider name per line; each name must match an existing provider"""
+`MLangTags`.ZH->"""每行填写一个提供者名称；名称需与已定义的 provider 一致"""
 else -> null}
-}?:"""每行一个提供者名称"""
-/**每行一个提供者名称
+}?:"""每行填写一个提供者名称；名称需与已定义的 provider 一致"""
+/**每行填写一个提供者名称；名称需与已定义的 provider 一致
 */
 @Composable
 fun`OneProviderPerLineHint`(vararg args:Any?)=FYTxtConfig.observe{`OneProviderPerLineHint`.fmt(args)}
@@ -6662,11 +6686,11 @@ fun`Discard`(vararg args:Any?)=FYTxtConfig.observe{`Discard`.fmt(args)}
 */
 val`PresetApplied`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Preset routing template updated"""
-`MLangTags`.ZH->"""已更新预设分流模板"""
+`MLangTags`.EN->"""Preset routing template applied and routing sections rebuilt"""
+`MLangTags`.ZH->"""已应用预设分流模板，并重建相关分流配置"""
 else -> null}
-}?:"""已更新预设分流模板"""
-/**已更新预设分流模板
+}?:"""已应用预设分流模板，并重建相关分流配置"""
+/**已应用预设分流模板，并重建相关分流配置
 */
 @Composable
 fun`PresetApplied`(vararg args:Any?)=FYTxtConfig.observe{`PresetApplied`.fmt(args)}
@@ -6867,15 +6891,15 @@ else -> null}
 */
 @Composable
 fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
-/**Proxy Providers 合并与覆盖
+/**提供者来源、路径与更新配置
 */
 val`Summary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Proxy Providers merge & override"""
-`MLangTags`.ZH->"""Proxy Providers 合并与覆盖"""
+`MLangTags`.EN->"""Provider sources, paths & update settings"""
+`MLangTags`.ZH->"""提供者来源、路径与更新配置"""
 else -> null}
-}?:"""Proxy Providers 合并与覆盖"""
-/**Proxy Providers 合并与覆盖
+}?:"""提供者来源、路径与更新配置"""
+/**提供者来源、路径与更新配置
 */
 @Composable
 fun`Summary`(vararg args:Any?)=FYTxtConfig.observe{`Summary`.fmt(args)}
@@ -6893,15 +6917,15 @@ else -> null}
 */
 @Composable
 fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
-/**Proxy Groups 前置、覆盖、后置
+/**分组策略、成员与顺序
 */
 val`Summary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Proxy Groups prepend, override, append"""
-`MLangTags`.ZH->"""Proxy Groups 前置、覆盖、后置"""
+`MLangTags`.EN->"""Group strategy, members & order"""
+`MLangTags`.ZH->"""分组策略、成员与顺序"""
 else -> null}
-}?:"""Proxy Groups 前置、覆盖、后置"""
-/**Proxy Groups 前置、覆盖、后置
+}?:"""分组策略、成员与顺序"""
+/**分组策略、成员与顺序
 */
 @Composable
 fun`Summary`(vararg args:Any?)=FYTxtConfig.observe{`Summary`.fmt(args)}
@@ -6919,15 +6943,15 @@ else -> null}
 */
 @Composable
 fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
-/**Rule Providers 合并与覆盖
+/**规则来源、路径与更新配置
 */
 val`Summary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Rule Providers merge & override"""
-`MLangTags`.ZH->"""Rule Providers 合并与覆盖"""
+`MLangTags`.EN->"""Rule sources, paths & update settings"""
+`MLangTags`.ZH->"""规则来源、路径与更新配置"""
 else -> null}
-}?:"""Rule Providers 合并与覆盖"""
-/**Rule Providers 合并与覆盖
+}?:"""规则来源、路径与更新配置"""
+/**规则来源、路径与更新配置
 */
 @Composable
 fun`Summary`(vararg args:Any?)=FYTxtConfig.observe{`Summary`.fmt(args)}
@@ -6945,15 +6969,15 @@ else -> null}
 */
 @Composable
 fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
-/**Sub Rules 分组与合并
+/**规则分组与引用关系
 */
 val`Summary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Sub Rules grouping & merging"""
-`MLangTags`.ZH->"""Sub Rules 分组与合并"""
+`MLangTags`.EN->"""Rule groups & references"""
+`MLangTags`.ZH->"""规则分组与引用关系"""
 else -> null}
-}?:"""Sub Rules 分组与合并"""
-/**Sub Rules 分组与合并
+}?:"""规则分组与引用关系"""
+/**规则分组与引用关系
 */
 @Composable
 fun`Summary`(vararg args:Any?)=FYTxtConfig.observe{`Summary`.fmt(args)}
@@ -7227,6 +7251,30 @@ else -> null}
 */
 @Composable
 fun`Title`(vararg args:Any?)=FYTxtConfig.observe{`Title`.fmt(args)}
+/**修改方式
+*/
+val`EditTitle`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Edit Mode"""
+`MLangTags`.ZH->"""修改方式"""
+else -> null}
+}?:"""修改方式"""
+/**修改方式
+*/
+@Composable
+fun`EditTitle`(vararg args:Any?)=FYTxtConfig.observe{`EditTitle`.fmt(args)}
+/**直接修改
+*/
+val`DirectEdit`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Direct Edit"""
+`MLangTags`.ZH->"""直接修改"""
+else -> null}
+}?:"""直接修改"""
+/**直接修改
+*/
+@Composable
+fun`DirectEdit`(vararg args:Any?)=FYTxtConfig.observe{`DirectEdit`.fmt(args)}
 }
 object`ClearDialog`{init{`MLangGroups`}
 /**清空%s
@@ -7462,11 +7510,11 @@ fun`ClearMode`(vararg args:Any?)=FYTxtConfig.observe{`ClearMode`.fmt(args)}
 */
 val`EnterDeleteMode`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Enter Delete ModeEnter Delete Mode"""
-`MLangTags`.ZH->"""进入删除模式进入删除模式"""
+`MLangTags`.EN->"""Enter Delete Mode"""
+`MLangTags`.ZH->"""进入删除模式"""
 else -> null}
-}?:"""进入删除模式进入删除模式"""
-/**进入删除模式进入删除模式
+}?:"""进入删除模式"""
+/**进入删除模式
 */
 @Composable
 fun`EnterDeleteMode`(vararg args:Any?)=FYTxtConfig.observe{`EnterDeleteMode`.fmt(args)}
@@ -7570,23 +7618,23 @@ fun`Confirm`(vararg args:Any?)=FYTxtConfig.observe{`Confirm`.fmt(args)}
 */
 val`OneItemPerLine`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""One item per line"""
-`MLangTags`.ZH->"""每行一个条目"""
+`MLangTags`.EN->"""Enter one item per line; blank lines are ignored"""
+`MLangTags`.ZH->"""每行填写一个条目；空行会被忽略"""
 else -> null}
-}?:"""每行一个条目"""
-/**每行一个条目
+}?:"""每行填写一个条目；空行会被忽略"""
+/**每行填写一个条目；空行会被忽略
 */
 @Composable
 fun`OneItemPerLine`(vararg args:Any?)=FYTxtConfig.observe{`OneItemPerLine`.fmt(args)}
-/**新增一项新增条目
+/**新增一项
 */
 val`AddItem`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Add ItemAdd Item"""
-`MLangTags`.ZH->"""新增一项新增条目"""
+`MLangTags`.EN->"""Add Item"""
+`MLangTags`.ZH->"""新增一项"""
 else -> null}
-}?:"""新增一项新增条目"""
-/**新增一项新增条目
+}?:"""新增一项"""
+/**新增一项
 */
 @Composable
 fun`AddItem`(vararg args:Any?)=FYTxtConfig.observe{`AddItem`.fmt(args)}
@@ -8218,11 +8266,11 @@ fun`SaveRule`(vararg args:Any?)=FYTxtConfig.observe{`SaveRule`.fmt(args)}
 */
 val`RuleProviderInputHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Custom content in input field; uses selected rule provider when empty"""
-`MLangTags`.ZH->"""输入框是自定义内容；留空时使用下面选中的规则提供者"""
+`MLangTags`.EN->"""This field accepts a custom payload. Leave it empty to use the selected rule provider below"""
+`MLangTags`.ZH->"""这里填写的是自定义 payload；留空时改为使用下方选中的规则提供者"""
 else -> null}
-}?:"""输入框是自定义内容；留空时使用下面选中的规则提供者"""
-/**输入框是自定义内容；留空时使用下面选中的规则提供者
+}?:"""这里填写的是自定义 payload；留空时改为使用下方选中的规则提供者"""
+/**这里填写的是自定义 payload；留空时改为使用下方选中的规则提供者
 */
 @Composable
 fun`RuleProviderInputHint`(vararg args:Any?)=FYTxtConfig.observe{`RuleProviderInputHint`.fmt(args)}
@@ -8230,11 +8278,11 @@ fun`RuleProviderInputHint`(vararg args:Any?)=FYTxtConfig.observe{`RuleProviderIn
 */
 val`LogicalRuleHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Logical rules can have full payload directly"""
-`MLangTags`.ZH->"""逻辑规则可直接填写完整 payload"""
+`MLangTags`.EN->"""Logical rules should fill in the complete payload directly"""
+`MLangTags`.ZH->"""逻辑规则需要直接填写完整 payload"""
 else -> null}
-}?:"""逻辑规则可直接填写完整 payload"""
-/**逻辑规则可直接填写完整 payload
+}?:"""逻辑规则需要直接填写完整 payload"""
+/**逻辑规则需要直接填写完整 payload
 */
 @Composable
 fun`LogicalRuleHint`(vararg args:Any?)=FYTxtConfig.observe{`LogicalRuleHint`.fmt(args)}
@@ -8255,15 +8303,15 @@ fun`OtherExtraParams`(vararg args:Any?)=FYTxtConfig.observe{`OtherExtraParams`.f
 */
 val`ExtraParamsHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Extra params beyond src,no-resolve
-For logical rules, enter full payload directly, e.g. ((DOMAIN,google.com),(NETWORK,udp))."""
-`MLangTags`.ZH->"""例如 src,no-resolve 之外的额外参数
-逻辑规则请直接填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。"""
+`MLangTags`.EN->"""Extra parameters other than src and no-resolve.
+For logical rules, enter the complete payload here, e.g. ((DOMAIN,google.com),(NETWORK,udp))."""
+`MLangTags`.ZH->"""这里填写除 src、no-resolve 之外的附加参数。
+逻辑规则请直接在这里填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。"""
 else -> null}
-}?:"""例如 src,no-resolve 之外的额外参数
-逻辑规则请直接填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。"""
-/**例如 src,no-resolve 之外的额外参数
-*逻辑规则请直接填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。
+}?:"""这里填写除 src、no-resolve 之外的附加参数。
+逻辑规则请直接在这里填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。"""
+/**这里填写除 src、no-resolve 之外的附加参数。
+*逻辑规则请直接在这里填写完整 payload，例如 ((DOMAIN,google.com),(NETWORK,udp))。
 */
 @Composable
 fun`ExtraParamsHint`(vararg args:Any?)=FYTxtConfig.observe{`ExtraParamsHint`.fmt(args)}
@@ -8377,6 +8425,78 @@ else -> null}
 */
 @Composable
 fun`NetworkAuth`(vararg args:Any?)=FYTxtConfig.observe{`NetworkAuth`.fmt(args)}
+/**类型
+*/
+val`Type`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Type"""
+`MLangTags`.ZH->"""类型"""
+else -> null}
+}?:"""类型"""
+/**类型
+*/
+@Composable
+fun`Type`(vararg args:Any?)=FYTxtConfig.observe{`Type`.fmt(args)}
+/**载体
+*/
+val`Vehicle`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Vehicle"""
+`MLangTags`.ZH->"""载体"""
+else -> null}
+}?:"""载体"""
+/**载体
+*/
+@Composable
+fun`Vehicle`(vararg args:Any?)=FYTxtConfig.observe{`Vehicle`.fmt(args)}
+/**行为
+*/
+val`Behavior`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Behavior"""
+`MLangTags`.ZH->"""行为"""
+else -> null}
+}?:"""行为"""
+/**行为
+*/
+@Composable
+fun`Behavior`(vararg args:Any?)=FYTxtConfig.observe{`Behavior`.fmt(args)}
+/**格式
+*/
+val`Format`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Format"""
+`MLangTags`.ZH->"""格式"""
+else -> null}
+}?:"""格式"""
+/**格式
+*/
+@Composable
+fun`Format`(vararg args:Any?)=FYTxtConfig.observe{`Format`.fmt(args)}
+/**健康检查
+*/
+val`HealthCheck`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Health Check"""
+`MLangTags`.ZH->"""健康检查"""
+else -> null}
+}?:"""健康检查"""
+/**健康检查
+*/
+@Composable
+fun`HealthCheck`(vararg args:Any?)=FYTxtConfig.observe{`HealthCheck`.fmt(args)}
+/**覆写
+*/
+val`Override`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Override"""
+`MLangTags`.ZH->"""覆写"""
+else -> null}
+}?:"""覆写"""
+/**覆写
+*/
+@Composable
+fun`Override`(vararg args:Any?)=FYTxtConfig.observe{`Override`.fmt(args)}
 /**规则列表
 */
 val`RuleList`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
@@ -8573,11 +8693,11 @@ fun`BooleanOptions`(vararg args:Any?)=FYTxtConfig.observe{`BooleanOptions`.fmt(a
 */
 val`HeaderHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""One header per line, format: Key: value1 | value2"""
-`MLangTags`.ZH->"""每行一个 header，格式：Key: value1 | value2"""
+`MLangTags`.EN->"""Enter one header per line in the form Key: value. If a header has multiple values, separate them with |"""
+`MLangTags`.ZH->"""每行填写一个 header，写法为 Key: value。一个 header 有多个值时，用 | 分隔"""
 else -> null}
-}?:"""每行一个 header，格式：Key: value1 | value2"""
-/**每行一个 header，格式：Key: value1 | value2
+}?:"""每行填写一个 header，写法为 Key: value。一个 header 有多个值时，用 | 分隔"""
+/**每行填写一个 header，写法为 Key: value。一个 header 有多个值时，用 | 分隔
 */
 @Composable
 fun`HeaderHint`(vararg args:Any?)=FYTxtConfig.observe{`HeaderHint`.fmt(args)}
@@ -8633,11 +8753,11 @@ fun`OfficialMrs`(vararg args:Any?)=FYTxtConfig.observe{`OfficialMrs`.fmt(args)}
 */
 val`OfficialMrsSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Top template editor with regional auto-groups and individual switches; applies by rebuilding rule sections in current override."""
-`MLangTags`.ZH->"""顶部模板编辑器，支持地区自动组和每个分流项单独开关；应用时会重建当前覆写里的规则三块。"""
+`MLangTags`.EN->"""Use Mihomo's official meta/geo mrs rulesets. Supports regional auto-groups and per-item switches. Applying it rebuilds the rule providers, proxy groups, and rules in the current override."""
+`MLangTags`.ZH->"""使用 Mihomo 官方 meta/geo mrs 规则集，支持地区自动分组和逐项开关。应用后会重建当前覆写中的规则提供者、策略组和规则。"""
 else -> null}
-}?:"""顶部模板编辑器，支持地区自动组和每个分流项单独开关；应用时会重建当前覆写里的规则三块。"""
-/**顶部模板编辑器，支持地区自动组和每个分流项单独开关；应用时会重建当前覆写里的规则三块。
+}?:"""使用 Mihomo 官方 meta/geo mrs 规则集，支持地区自动分组和逐项开关。应用后会重建当前覆写中的规则提供者、策略组和规则。"""
+/**使用 Mihomo 官方 meta/geo mrs 规则集，支持地区自动分组和逐项开关。应用后会重建当前覆写中的规则提供者、策略组和规则。
 */
 @Composable
 fun`OfficialMrsSummary`(vararg args:Any?)=FYTxtConfig.observe{`OfficialMrsSummary`.fmt(args)}
@@ -9139,11 +9259,11 @@ fun`SubRules`(vararg args:Any?)=FYTxtConfig.observe{`SubRules`.fmt(args)}
 */
 val`SubRulesHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Structured rule groups"""
-`MLangTags`.ZH->"""结构化规则组"""
+`MLangTags`.EN->"""Use the structured form to manage sub-rule groups"""
+`MLangTags`.ZH->"""使用结构化表单管理子规则组"""
 else -> null}
-}?:"""结构化规则组"""
-/**结构化规则组
+}?:"""使用结构化表单管理子规则组"""
+/**使用结构化表单管理子规则组
 */
 @Composable
 fun`SubRulesHint`(vararg args:Any?)=FYTxtConfig.observe{`SubRulesHint`.fmt(args)}
@@ -9175,11 +9295,11 @@ fun`RuleProviders`(vararg args:Any?)=FYTxtConfig.observe{`RuleProviders`.fmt(arg
 */
 val`RuleProvidersHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Structured Providers"""
-`MLangTags`.ZH->"""结构化 Provider"""
+`MLangTags`.EN->"""Use the structured form to manage rule providers"""
+`MLangTags`.ZH->"""使用结构化表单管理规则提供者"""
 else -> null}
-}?:"""结构化 Provider"""
-/**结构化 Provider
+}?:"""使用结构化表单管理规则提供者"""
+/**使用结构化表单管理规则提供者
 */
 @Composable
 fun`RuleProvidersHint`(vararg args:Any?)=FYTxtConfig.observe{`RuleProvidersHint`.fmt(args)}
@@ -9211,11 +9331,11 @@ fun`ProxyNodes`(vararg args:Any?)=FYTxtConfig.observe{`ProxyNodes`.fmt(args)}
 */
 val`ProxyNodesHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Structured proxy entries"""
-`MLangTags`.ZH->"""结构化代理条目"""
+`MLangTags`.EN->"""Use the structured form to manage proxy nodes"""
+`MLangTags`.ZH->"""使用结构化表单管理代理节点"""
 else -> null}
-}?:"""结构化代理条目"""
-/**结构化代理条目
+}?:"""使用结构化表单管理代理节点"""
+/**使用结构化表单管理代理节点
 */
 @Composable
 fun`ProxyNodesHint`(vararg args:Any?)=FYTxtConfig.observe{`ProxyNodesHint`.fmt(args)}
@@ -9235,11 +9355,11 @@ fun`ProxyProviders`(vararg args:Any?)=FYTxtConfig.observe{`ProxyProviders`.fmt(a
 */
 val`ProxyProvidersHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Structured Providers"""
-`MLangTags`.ZH->"""结构化 Provider"""
+`MLangTags`.EN->"""Use the structured form to manage proxy providers"""
+`MLangTags`.ZH->"""使用结构化表单管理代理提供者"""
 else -> null}
-}?:"""结构化 Provider"""
-/**结构化 Provider
+}?:"""使用结构化表单管理代理提供者"""
+/**使用结构化表单管理代理提供者
 */
 @Composable
 fun`ProxyProvidersHint`(vararg args:Any?)=FYTxtConfig.observe{`ProxyProvidersHint`.fmt(args)}
@@ -9271,11 +9391,11 @@ fun`ProxyGroups`(vararg args:Any?)=FYTxtConfig.observe{`ProxyGroups`.fmt(args)}
 */
 val`ProxyGroupsHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Structured proxy groups"""
-`MLangTags`.ZH->"""结构化策略组"""
+`MLangTags`.EN->"""Use the structured form to manage proxy groups"""
+`MLangTags`.ZH->"""使用结构化表单管理策略组"""
 else -> null}
-}?:"""结构化策略组"""
-/**结构化策略组
+}?:"""使用结构化表单管理策略组"""
+/**使用结构化表单管理策略组
 */
 @Composable
 fun`ProxyGroupsHint`(vararg args:Any?)=FYTxtConfig.observe{`ProxyGroupsHint`.fmt(args)}
@@ -9319,11 +9439,11 @@ fun`OpenAdvancedEdit`(vararg args:Any?)=FYTxtConfig.observe{`OpenAdvancedEdit`.f
 */
 val`OpenAdvancedEditSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Edit raw object directly, for fields not covered by structured form"""
-`MLangTags`.ZH->"""直接编辑原始对象，用于补充结构化表单未覆盖的字段"""
+`MLangTags`.EN->"""Edit the raw JSON of the current object directly for fields not covered by the structured form"""
+`MLangTags`.ZH->"""直接编辑当前对象的原始 JSON，适合补充结构化表单未覆盖的字段"""
 else -> null}
-}?:"""直接编辑原始对象，用于补充结构化表单未覆盖的字段"""
-/**直接编辑原始对象，用于补充结构化表单未覆盖的字段
+}?:"""直接编辑当前对象的原始 JSON，适合补充结构化表单未覆盖的字段"""
+/**直接编辑当前对象的原始 JSON，适合补充结构化表单未覆盖的字段
 */
 @Composable
 fun`OpenAdvancedEditSummary`(vararg args:Any?)=FYTxtConfig.observe{`OpenAdvancedEditSummary`.fmt(args)}
@@ -9332,9 +9452,9 @@ fun`OpenAdvancedEditSummary`(vararg args:Any?)=FYTxtConfig.observe{`OpenAdvanced
 val`ItemsConfigured`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
 `MLangTags`.EN->"""%d items configured"""
-`MLangTags`.ZH->"""已配置 %d 项"""
+`MLangTags`.ZH->"""已配置%d项"""
 else -> null}
-}?:"""已配置 %d 项"""
+}?:"""已配置%d项"""
 /**已配置 %d 项
 */
 @Composable
@@ -11585,11 +11705,11 @@ fun`NewProfile`(vararg args:Any?)=FYTxtConfig.observe{`NewProfile`.fmt(args)}
 */
 val`BlankConfigHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Create a local config template and open it in the editor."""
-`MLangTags`.ZH->"""创建一个本地配置模板，并立即在编辑器中打开。"""
+`MLangTags`.EN->"""Create a local profile from the built-in basic template and open it in the editor immediately."""
+`MLangTags`.ZH->"""基于内置基础模板创建本地配置，并立即在编辑器中打开。"""
 else -> null}
-}?:"""创建一个本地配置模板，并立即在编辑器中打开。"""
-/**创建一个本地配置模板，并立即在编辑器中打开。
+}?:"""基于内置基础模板创建本地配置，并立即在编辑器中打开。"""
+/**基于内置基础模板创建本地配置，并立即在编辑器中打开。
 */
 @Composable
 fun`BlankConfigHint`(vararg args:Any?)=FYTxtConfig.observe{`BlankConfigHint`.fmt(args)}
@@ -12149,11 +12269,11 @@ fun`SystemPreset`(vararg args:Any?)=FYTxtConfig.observe{`SystemPreset`.fmt(args)
 */
 val`SystemPresetSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""If you don't know what routing is, recommend enabling this"""
-`MLangTags`.ZH->"""如果不知道什么是分流，推荐打开"""
+`MLangTags`.EN->"""Enable the built-in default override preset if you want a usable routing baseline without configuring rules yourself"""
+`MLangTags`.ZH->"""如果想先得到一套可用的默认分流基础、又不打算自己配置规则，可以直接开启"""
 else -> null}
-}?:"""如果不知道什么是分流，推荐打开"""
-/**如果不知道什么是分流，推荐打开
+}?:"""如果想先得到一套可用的默认分流基础、又不打算自己配置规则，可以直接开启"""
+/**如果想先得到一套可用的默认分流基础、又不打算自己配置规则，可以直接开启
 */
 @Composable
 fun`SystemPresetSummary`(vararg args:Any?)=FYTxtConfig.observe{`SystemPresetSummary`.fmt(args)}
@@ -12169,6 +12289,54 @@ else -> null}
 */
 @Composable
 fun`NoDescription`(vararg args:Any?)=FYTxtConfig.observe{`NoDescription`.fmt(args)}
+/**本地配置编辑器
+*/
+val`LocalConfigEditorSummary`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Open the raw YAML content of the current local config for direct editing"""
+`MLangTags`.ZH->"""打开当前本地配置的原始 YAML 内容进行直接编辑"""
+else -> null}
+}?:"""打开当前本地配置的原始 YAML 内容进行直接编辑"""
+/**打开当前本地配置的原始 YAML 内容进行直接编辑
+*/
+@Composable
+fun`LocalConfigEditorSummary`(vararg args:Any?)=FYTxtConfig.observe{`LocalConfigEditorSummary`.fmt(args)}
+/**配置来源
+*/
+val`LocalSource`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Config Source"""
+`MLangTags`.ZH->"""配置来源"""
+else -> null}
+}?:"""配置来源"""
+/**配置来源
+*/
+@Composable
+fun`LocalSource`(vararg args:Any?)=FYTxtConfig.observe{`LocalSource`.fmt(args)}
+/**空白配置
+*/
+val`LocalSourceBlank`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Built-in Basic Template"""
+`MLangTags`.ZH->"""内置基础模板"""
+else -> null}
+}?:"""内置基础模板"""
+/**内置基础模板
+*/
+@Composable
+fun`LocalSourceBlank`(vararg args:Any?)=FYTxtConfig.observe{`LocalSourceBlank`.fmt(args)}
+/**导入文件
+*/
+val`LocalSourceImported`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Imported Local File"""
+`MLangTags`.ZH->"""已导入本地文件"""
+else -> null}
+}?:"""已导入本地文件"""
+/**已导入本地文件
+*/
+@Composable
+fun`LocalSourceImported`(vararg args:Any?)=FYTxtConfig.observe{`LocalSourceImported`.fmt(args)}
 /**编辑配置
 */
 val`EditProfile`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
@@ -12185,10 +12353,10 @@ fun`EditProfile`(vararg args:Any?)=FYTxtConfig.observe{`EditProfile`.fmt(args)}
 */
 val`OpenConfig`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Open Config"""
-`MLangTags`.ZH->"""打开配置"""
+`MLangTags`.EN->"""Edit Text"""
+`MLangTags`.ZH->"""编辑文本"""
 else -> null}
-}?:"""打开配置"""
+}?:"""编辑文本"""
 /**打开配置
 */
 @Composable
@@ -12197,10 +12365,10 @@ fun`OpenConfig`(vararg args:Any?)=FYTxtConfig.observe{`OpenConfig`.fmt(args)}
 */
 val`EditSettings`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
 when(it){
-`MLangTags`.EN->"""Edit Settings"""
-`MLangTags`.ZH->"""编辑设置"""
+`MLangTags`.EN->"""Profile Options"""
+`MLangTags`.ZH->"""配置选项"""
 else -> null}
-}?:"""编辑设置"""
+}?:"""配置选项"""
 /**编辑设置
 */
 @Composable
@@ -12217,6 +12385,34 @@ else -> null}
 */
 @Composable
 fun`SaveFailed`(vararg args:Any?)=FYTxtConfig.observe{`SaveFailed`.fmt(args)}
+/**规则复写
+*/
+val`RuleOverrides`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Rule Overrides"""
+`MLangTags`.ZH->"""规则复写"""
+else -> null}
+}?:"""规则复写"""
+/**规则复写
+*/
+@Composable
+fun`RuleOverrides`(vararg args:Any?)=FYTxtConfig.observe{`RuleOverrides`.fmt(args)}
+/**越靠上优先级越高，新增项会插入最前
+*/
+val`RuleOverridesPriorityHint`get()=FYTxtConfig.activeTags.value.firstNotNullOfOrNull{it as`MLangTags`
+when(it){
+`MLangTags`.EN->"""Overrides are applied from top to bottom.
+Higher items take precedence, and new items are inserted at the top."""
+`MLangTags`.ZH->"""规则复写会按从上到下的顺序应用。
+越靠上优先级越高，新项会插入最前。"""
+else -> null}
+}?:"""规则复写会按从上到下的顺序应用。
+越靠上优先级越高，新项会插入最前。"""
+/**规则复写会按从上到下的顺序应用。
+*越靠上优先级越高，新项会插入最前。
+*/
+@Composable
+fun`RuleOverridesPriorityHint`(vararg args:Any?)=FYTxtConfig.observe{`RuleOverridesPriorityHint`.fmt(args)}
 }
 }
 object`ProfilesVM`{init{`MLangGroups`}

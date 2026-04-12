@@ -99,6 +99,26 @@ enum class OverrideListEditorMode {
     abstract val label: String
 }
 
+fun OverrideEditorSemantics.modeTitle(): String {
+    return when (this) {
+        OverrideEditorSemantics.Override -> MLang.Override.Editor.Mode.Title
+        OverrideEditorSemantics.LocalConfig -> MLang.Override.Editor.Mode.EditTitle
+    }
+}
+
+fun OverrideListEditorMode.resolveLabel(semantics: OverrideEditorSemantics): String {
+    return when (semantics) {
+        OverrideEditorSemantics.Override -> label
+        OverrideEditorSemantics.LocalConfig ->
+            when (this) {
+                OverrideListEditorMode.Replace -> MLang.Override.Editor.Mode.DirectEdit
+                OverrideListEditorMode.Merge -> MLang.Override.Modifier.Merge
+                OverrideListEditorMode.Start -> MLang.Override.Modifier.Start
+                OverrideListEditorMode.End -> MLang.Override.Modifier.End
+            }
+    }
+}
+
 data class OverrideListModeValues<T>(
     val replaceValue: T? = null,
     val mergeValue: T? = null,

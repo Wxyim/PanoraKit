@@ -34,11 +34,32 @@ import com.github.yumelira.yumebox.presentation.util.jsonElementToEditorValue
 import com.github.yumelira.yumebox.presentation.util.toOrderedJsonElementMap
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.JsonElement
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
+import com.github.yumelira.yumebox.presentation.icon.yume.Copy
+import com.github.yumelira.yumebox.presentation.icon.yume.Delete
+import com.github.yumelira.yumebox.presentation.icon.yume.Edit
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+enum class StringMapValidationMode {
+    None,
+    DnsPolicy,
+    Hosts,
+}
+
+fun resolveStringMapValidationMode(title: String): StringMapValidationMode {
+    return when (title) {
+        MLang.Override.Dns.NameserverPolicy,
+        MLang.Override.Dns.ProxyServerNameserverPolicy,
+        -> StringMapValidationMode.DnsPolicy
+
+        MLang.Override.Dns.Hosts -> StringMapValidationMode.Hosts
+        else -> StringMapValidationMode.None
+    }
+}
 
 @Composable
 fun StringListEditorDialog(
@@ -106,9 +127,11 @@ fun StringMapEditorDialog(
     keyPlaceholder: String,
     valuePlaceholder: String,
     value: Map<String, String>?,
+    validationMode: StringMapValidationMode = StringMapValidationMode.None,
     onValueChange: (Map<String, String>?) -> Unit,
 ) {
     val entries = remember { mutableStateListOf<Pair<String, String>>() }
+    var validationError by remember(title, value, validationMode) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(value) {
         entries.clear()
@@ -116,6 +139,7 @@ fun StringMapEditorDialog(
         if (entries.isEmpty()) {
             entries.add("" to "")
         }
+        validationError = null
     }
 
     AppDialog(show = show.value, title = title, onDismissRequest = { show.value = false }) {
@@ -130,6 +154,7 @@ fun StringMapEditorDialog(
                             value = entry.first,
                             onValueChange = { updatedKey ->
                                 entries[index] = updatedKey to entry.second
+                                validationError = null
                             },
                             label = keyPlaceholder,
                             modifier = Modifier.weight(1f),
@@ -138,6 +163,7 @@ fun StringMapEditorDialog(
                             value = entry.second,
                             onValueChange = { updatedValue ->
                                 entries[index] = entry.first to updatedValue
+                                validationError = null
                             },
                             label = valuePlaceholder,
                             modifier = Modifier.weight(1f),
@@ -146,29 +172,59 @@ fun StringMapEditorDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(modifier = Modifier.weight(1f), onClick = { entries.add("" to "") }) {
-                    Text(MLang.Override.Editor.AddItem)
-                }
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        if (entries.size > 1) {
-                            entries.removeLast()
-                        } else {
-                            entries[0] = "" to ""
-                        }
-                    },
-                ) {
-                    Text(MLang.Override.Editor.DeleteLastItem)
-                }
+            AppCommandButton(
+                title = MLang.Override.Editor.AddItem,
+                imageVector = Yume.`Badge-plus`,
+                tone = SemanticTone.Brand,
+                onClick = {
+                    entries.add("" to "")
+                    validationError = null
+                },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            AppCommandButton(
+                title = MLang.Override.Editor.DeleteLastItem,
+                imageVector = Yume.Delete,
+                tone = SemanticTone.Danger,
+                onClick = {
+                    if (entries.size > 1) {
+                        entries.removeLast()
+                    } else {
+                        entries[0] = "" to ""
+                    }
+                    validationError = null
+                },
+            )
+            validationError?.let { errorMessage ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = errorMessage,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.error,
+                )
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },
                 onConfirm = {
+                    val normalizedEntries =
+                        entries.map { (rawKey, rawValue) -> rawKey.trim() to rawValue.trim() }
+                    val message =
+                        validateStringMapEntries(
+                            entries = normalizedEntries,
+                            validationMode = validationMode,
+                            keyPlaceholder = keyPlaceholder,
+                            valuePlaceholder = valuePlaceholder,
+                        )
+                    if (message != null) {
+                        validationError = message
+                        return@DialogButtonRow
+                    }
+
                     val map =
-                        entries.filter { it.first.isNotBlank() }.associate { it.first to it.second }
+                        normalizedEntries
+                            .filter { it.first.isNotBlank() }
+                            .associate { it.first to it.second }
                     onValueChange(map.ifEmpty { null })
                     show.value = false
                 },
@@ -177,6 +233,69 @@ fun StringMapEditorDialog(
             )
         }
     }
+}
+
+private fun validateStringMapEntries(
+    entries: List<Pair<String, String>>,
+    validationMode: StringMapValidationMode,
+    keyPlaceholder: String,
+    valuePlaceholder: String,
+): String? {
+    val seenKeys = mutableSetOf<String>()
+    entries.forEach { (key, value) ->
+        if (key.isBlank() && value.isBlank()) {
+            return@forEach
+        }
+        if (key.isBlank()) {
+            return MLang.Component.Editor.Error.KeyEmpty
+        }
+        if (value.isBlank()) {
+            return MLang.Component.Editor.Error.MissingValue
+        }
+        if (!seenKeys.add(key)) {
+            return MLang.Component.Editor.Error.DuplicateKey
+        }
+
+        when (validationMode) {
+            StringMapValidationMode.None -> Unit
+            StringMapValidationMode.DnsPolicy -> {
+                if (key.any(Char::isWhitespace) || value.any(Char::isWhitespace)) {
+                    return MLang.Component.Editor.Error.Expected.format("$keyPlaceholder / $valuePlaceholder")
+                }
+            }
+
+            StringMapValidationMode.Hosts -> {
+                if (!isLikelyDomainLikeKey(key) || !isLikelyIpOrHostTarget(value)) {
+                    return MLang.Component.Editor.Error.Expected.format("$keyPlaceholder / $valuePlaceholder")
+                }
+            }
+        }
+    }
+    return null
+}
+
+private val HostKeyRegex = Regex("^[A-Za-z0-9*._:-]+$")
+private val Ipv4Regex =
+    Regex("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)$")
+private val HostTargetRegex =
+    Regex("^(?=.{1,253}$)([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$")
+
+private fun isLikelyDomainLikeKey(value: String): Boolean {
+    return value.isNotBlank() && !value.contains(' ') && HostKeyRegex.matches(value)
+}
+
+private fun isLikelyIpOrHostTarget(value: String): Boolean {
+    if (value.isBlank() || value.any(Char::isWhitespace)) {
+        return false
+    }
+    if (Ipv4Regex.matches(value)) {
+        return true
+    }
+    if (value.contains(':')) {
+        // Accept IPv6-like targets and host:port forms without being over-restrictive.
+        return true
+    }
+    return HostTargetRegex.matches(value)
 }
 
 @Composable
@@ -226,63 +345,68 @@ fun JsonObjectListEditorDialog(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            AppActionTile(
+                                title = MLang.Override.Editor.Edit,
+                                imageVector = Yume.Edit,
+                                compact = true,
+                                tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     editingIndex = index
                                     showItemEditor.value = true
                                 },
-                            ) {
-                                Text(MLang.Override.Editor.Edit)
-                            }
-                            Button(
+                            )
+                            AppActionTile(
+                                title = MLang.Override.Editor.Copy,
+                                imageVector = Yume.Copy,
+                                compact = true,
+                                tone = SemanticTone.Info,
                                 modifier = Modifier.weight(1f),
                                 onClick = { drafts.add(index + 1, toOrderedJsonElementMap(fields)) },
-                            ) {
-                                Text(MLang.Override.Editor.Copy)
-                            }
-                            Button(
+                            )
+                            AppActionTile(
+                                title = MLang.Override.Card.Delete,
+                                imageVector = Yume.Delete,
+                                compact = true,
+                                tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
                                 onClick = { drafts.removeAt(index) },
-                            ) {
-                                Text(MLang.Override.Card.Delete)
-                            }
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                modifier = Modifier.weight(1f),
+                            AppActionTile(
+                                title = MLang.Override.Editor.MoveUp,
+                                imageVector = Yume.`Arrow-down-up`,
+                                compact = true,
                                 enabled = index > 0,
-                                onClick = { moveItem(drafts, index, index - 1) },
-                            ) {
-                                Text(MLang.Override.Editor.MoveUp)
-                            }
-                            Button(
                                 modifier = Modifier.weight(1f),
+                                onClick = { moveItem(drafts, index, index - 1) },
+                            )
+                            AppActionTile(
+                                title = MLang.Override.Editor.MoveDown,
+                                imageVector = Yume.`Arrow-down-up`,
+                                compact = true,
                                 enabled = index < drafts.lastIndex,
+                                modifier = Modifier.weight(1f),
                                 onClick = { moveItem(drafts, index, index + 1) },
-                            ) {
-                                Text(MLang.Override.Editor.MoveDown)
-                            }
+                            )
                         }
                     }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
+            AppCommandButton(
+                title = MLang.Override.Editor.AddObject,
+                imageVector = Yume.`Badge-plus`,
+                tone = SemanticTone.Brand,
+                highEmphasis = true,
                 onClick = {
                     drafts.add(emptyMap())
                     editingIndex = drafts.lastIndex
                     showItemEditor.value = true
                 },
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = MLang.Override.Editor.AddObject,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
+            )
             Spacer(modifier = Modifier.height(24.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },
@@ -357,40 +481,41 @@ fun JsonObjectMapEditorDialog(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            AppActionTile(
+                                title = MLang.Override.Editor.Edit,
+                                imageVector = Yume.Edit,
+                                compact = true,
+                                tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     editingIndex = index
                                     showItemEditor.value = true
                                 },
-                            ) {
-                                Text(MLang.Override.Editor.Edit)
-                            }
-                            Button(
+                            )
+                            AppActionTile(
+                                title = MLang.Override.Card.Delete,
+                                imageVector = Yume.Delete,
+                                compact = true,
+                                tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
                                 onClick = { drafts.removeAt(index) },
-                            ) {
-                                Text(MLang.Override.Card.Delete)
-                            }
+                            )
                         }
                     }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
+            AppCommandButton(
+                title = MLang.Proxy.Action.AddProvider,
+                imageVector = Yume.`Badge-plus`,
+                tone = SemanticTone.Brand,
+                highEmphasis = true,
                 onClick = {
                     drafts.add("" to emptyMap())
                     editingIndex = drafts.lastIndex
                     showItemEditor.value = true
                 },
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = MLang.Proxy.Action.AddProvider,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
+            )
             Spacer(modifier = Modifier.height(24.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },
@@ -473,16 +598,22 @@ fun SubRulesEditorDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            AppActionTile(
+                                title = MLang.Override.Editor.EditRule,
+                                imageVector = Yume.Edit,
+                                compact = true,
+                                tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     editingIndex = index
                                     showRulesEditor.value = true
                                 },
-                            ) {
-                                Text(MLang.Override.Editor.EditRule)
-                            }
-                            Button(
+                            )
+                            AppActionTile(
+                                title = MLang.Override.Card.Delete,
+                                imageVector = Yume.Delete,
+                                compact = true,
+                                tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     if (drafts.size > 1) {
@@ -491,24 +622,19 @@ fun SubRulesEditorDialog(
                                         drafts[0] = "" to emptyList()
                                     }
                                 },
-                            ) {
-                                Text(MLang.Override.Card.Delete)
-                            }
+                            )
                         }
                     }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
+            AppCommandButton(
+                title = MLang.Override.Editor.AddSubRuleGroup,
+                imageVector = Yume.`Badge-plus`,
+                tone = SemanticTone.Brand,
+                highEmphasis = true,
                 onClick = { drafts.add("" to emptyList()) },
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = MLang.Override.Editor.AddSubRuleGroup,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
+            )
             Spacer(modifier = Modifier.height(24.dp))
             DialogButtonRow(
                 onCancel = { show.value = false },

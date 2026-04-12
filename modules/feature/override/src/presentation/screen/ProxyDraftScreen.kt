@@ -24,9 +24,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.util.OverrideExtraFieldDraft
 import com.github.yumelira.yumebox.presentation.util.OverrideProxyDraft
 import com.github.yumelira.yumebox.presentation.util.OverrideProxyTypePresets
@@ -35,7 +36,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.WindowDropdown
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
@@ -66,9 +67,7 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
     var editingExtraKey by remember { mutableStateOf<String?>(null) }
     var showExtraFieldDialog by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
-    val selectedPresetIndex =
-        OverrideProxyTypePresets.indexOfFirst { it.equals(type, ignoreCase = true) }
-            .coerceAtLeast(0)
+    var showTypeSelector by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) { onDispose { OverrideStructuredEditorStore.clearProxyDraftEditor() } }
 
@@ -77,8 +76,9 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
             OverrideAnimatedFab(
                 controller = saveFabController,
                 visible = true,
-                imageVector = Yume.Save,
+                imageVector = Yume.Check,
                 contentDescription = MLang.Override.Editor.SaveProxyNode,
+                label = MLang.Override.Draft.Save,
                 onClick = {
                     if (name.trim().isBlank()) {
                         errorText = MLang.Override.Draft.NameRequired
@@ -114,72 +114,88 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             lazyListState = listState,
-            onScrollDirectionChanged = saveFabController::onScrollDirectionChanged,
         ) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
                 ) {
-                    OverrideSection(MLang.Override.Editor.BasicConnection) {
-                        OverrideSelectorCard {
-                            WindowDropdown(
-                                title = MLang.Override.Editor.RuleType,
-                                items = OverrideProxyTypePresets,
-                                selectedIndex = selectedPresetIndex,
-                                onSelectedIndexChange = { index ->
-                                    if (index in OverrideProxyTypePresets.indices) {
-                                        type = OverrideProxyTypePresets[index]
-                                        errorText = null
-                                    }
-                                },
-                            )
-                        }
-                        OverrideFormFieldColumn {
-                            OverrideFormField(
-                                value = name,
-                                onValueChange = {
-                                    name = it
-                                    errorText = null
-                                },
-                                label = MLang.Override.Draft.Name,
-                                errorText =
-                                    errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
-                            )
-                            OverrideFormField(
-                                value = server,
-                                onValueChange = { server = it },
-                                label = "server",
-                            )
-                            OverrideFormField(
-                                value = portText,
-                                onValueChange = { portText = it.filter(Char::isDigit) },
-                                label = "port",
-                                supportText = MLang.Override.Editor.PortEmptyHint,
-                            )
-                        }
+                    OverrideCardSection(MLang.Override.Editor.BasicConnection) {
+                        ConfigSettingRow(
+                            title = MLang.Override.Editor.RuleType,
+                            valueLabel = type.ifBlank { MLang.Component.Selector.UseDefault },
+                            tone = SemanticTone.Info,
+                            badgeTone = SemanticTone.Info,
+                            onClick = {
+                                showTypeSelector = true
+                                errorText = null
+                            },
+                        )
+                        StringInputContent(
+                            title = MLang.Override.Draft.Name,
+                            value = name.takeIf(String::isNotBlank),
+                            placeholder = MLang.Override.Draft.Name,
+                            unsetLabel = "",
+                            onValueChange = {
+                                name = it.orEmpty()
+                                errorText = null
+                            },
+                        )
+                        errorText
+                            ?.takeIf { it.contains(MLang.Override.Draft.Name) }
+                            ?.let { message ->
+                                OverrideFieldAssistText(
+                                    text = message,
+                                    color = MiuixTheme.colorScheme.error,
+                                )
+                            }
+                        StringInputContent(
+                            title = "server",
+                            value = server.takeIf(String::isNotBlank),
+                            placeholder = "server",
+                            unsetLabel = "",
+                            onValueChange = { server = it.orEmpty() },
+                        )
+                        StringInputContent(
+                            title = "port",
+                            value = portText.takeIf(String::isNotBlank),
+                            placeholder = "port",
+                            unsetLabel = "",
+                            onValueChange = { portText = it?.filter(Char::isDigit).orEmpty() },
+                        )
                     }
-                    OverridePlainFormSection(MLang.Override.Editor.NetworkAndRoute) {
-                        OverrideFormField(
-                            value = ipVersion,
-                            onValueChange = { ipVersion = it },
-                            label = "ip-version",
+                    OverrideCardSection(MLang.Override.Editor.NetworkAndRoute) {
+                        StringInputContent(
+                            title = "ip-version",
+                            value = ipVersion.takeIf(String::isNotBlank),
+                            placeholder = "ip-version",
+                            unsetLabel = "",
+                            onValueChange = { ipVersion = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = interfaceName,
-                            onValueChange = { interfaceName = it },
-                            label = "interface-name",
+                        StringInputContent(
+                            title = "interface-name",
+                            value = interfaceName.takeIf(String::isNotBlank),
+                            placeholder = "interface-name",
+                            unsetLabel = "",
+                            onValueChange = { interfaceName = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = routingMarkText,
-                            onValueChange = { routingMarkText = it.filter(Char::isDigit) },
-                            label = "routing-mark",
+                        StringInputContent(
+                            title = "routing-mark",
+                            value = routingMarkText.takeIf(String::isNotBlank),
+                            placeholder = "routing-mark",
+                            unsetLabel = "",
+                            onValueChange = {
+                                routingMarkText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = dialerProxy,
-                            onValueChange = { dialerProxy = it },
-                            label = "dialer-proxy",
+                        StringInputContent(
+                            title = "dialer-proxy",
+                            value = dialerProxy.takeIf(String::isNotBlank),
+                            placeholder = "dialer-proxy",
+                            unsetLabel = "",
+                            onValueChange = { dialerProxy = it.orEmpty() },
                         )
                     }
                     OverrideCardSection(MLang.Override.Structured.Proxies.Title) {
@@ -218,6 +234,26 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
+        OverrideSingleValueSelectionSheet(
+            show = showTypeSelector,
+            title = MLang.Override.Editor.RuleType,
+            value = type,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Editor.RuleType,
+                        items = OverrideProxyTypePresets,
+                    )
+                ),
+            customInputLabel = "",
+            allowCustomValue = false,
+            onDismiss = { showTypeSelector = false },
+            onConfirm = { selectedValue ->
+                type = selectedValue.trim().ifBlank { type }
+                errorText = null
+                showTypeSelector = false
+            },
+        )
         OverrideExtraFieldDialog(
             show = showExtraFieldDialog,
             title =

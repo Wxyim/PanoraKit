@@ -24,9 +24,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.util.OverrideRuleDraft
 import com.github.yumelira.yumebox.presentation.util.OverrideRuleTypePresets
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
@@ -35,9 +36,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperSwitch
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -78,11 +77,9 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
         )
     }
     var errorText by remember { mutableStateOf<String?>(null) }
+    var showTypeSelector by remember { mutableStateOf(false) }
     var showTargetSelector by remember { mutableStateOf(false) }
     var showRuleProviderSelector by remember { mutableStateOf(false) }
-    val selectedPresetIndex =
-        OverrideRuleTypePresets.indexOfFirst { it.equals(ruleType, ignoreCase = true) }
-            .coerceAtLeast(0)
     val canUseExtraSwitches = supportsRuleExtra(ruleType)
     val referenceCatalog = OverrideStructuredEditorStore.currentReferenceCatalog()
     val isSubRuleTarget = ruleType.equals("SUB-RULE", ignoreCase = true)
@@ -127,8 +124,9 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
             OverrideAnimatedFab(
                 controller = saveFabController,
                 visible = true,
-                imageVector = Yume.Save,
+                imageVector = Yume.Check,
                 contentDescription = MLang.Override.Editor.SaveRule,
+                label = MLang.Override.Draft.Save,
                 onClick = {
                     val normalizedType = ruleType.trim().uppercase()
                     val normalizedPayload = payload.trim()
@@ -188,72 +186,80 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             lazyListState = listState,
-            onScrollDirectionChanged = saveFabController::onScrollDirectionChanged,
         ) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
                 ) {
-                    OverrideSection(MLang.Override.Editor.RuleBody) {
-                        OverrideSelectorCard {
-                            WindowDropdown(
-                                title = MLang.Override.Editor.RuleType,
-                                items = OverrideRuleTypePresets,
-                                selectedIndex = selectedPresetIndex,
-                                onSelectedIndexChange = { index ->
-                                    if (index in OverrideRuleTypePresets.indices) {
-                                        ruleType = OverrideRuleTypePresets[index]
-                                        errorText = null
-                                    }
-                                },
-                            )
-                        }
+                    OverrideCardSection(MLang.Override.Editor.RuleBody) {
+                        ConfigSettingRow(
+                            title = MLang.Override.Editor.RuleType,
+                            valueLabel = ruleType.ifBlank { MLang.Component.Selector.UseDefault },
+                            tone = SemanticTone.Info,
+                            badgeTone = SemanticTone.Info,
+                            onClick = {
+                                showTypeSelector = true
+                                errorText = null
+                            },
+                        )
                         if (isRuleSetType) {
-                            OverrideSelectorCard {
-                                SuperArrow(
-                                    title = MLang.Override.Form.RuleProviders,
-                                    onClick = {
-                                        showRuleProviderSelector = true
-                                        errorText = null
+                            ConfigSettingRow(
+                                title = MLang.Override.Form.RuleProviders,
+                                valueLabel =
+                                    selectedRuleProviderValue.ifBlank {
+                                        MLang.Component.Selector.UseDefault
                                     },
-                                    holdDownState = showRuleProviderSelector,
-                                )
-                            }
-                        }
-                        OverrideFormFieldColumn {
-                            if (!ruleType.equals("MATCH", ignoreCase = true)) {
-                                OverrideFormField(
-                                    value = payload,
-                                    onValueChange = {
-                                        payload = it
-                                        errorText = null
-                                    },
-                                    label = MLang.Override.Editor.Payload,
-                                    supportText =
-                                        if (isRuleSetType) {
-                                            MLang.Override.Editor.RuleProviderInputHint
-                                        } else {
-                                            MLang.Override.Editor.LogicalRuleHint
-                                        },
-                                    errorText = payloadErrorText,
-                                )
-                            }
-                        }
-                        OverrideSelectorCard {
-                            SuperArrow(
-                                title =
-                                    if (ruleType.equals("MATCH", ignoreCase = true))
-                                        MLang.Override.Editor.MatchResult
-                                    else targetLabel,
+                                tone = SemanticTone.Info,
+                                badgeTone = SemanticTone.Info,
                                 onClick = {
-                                    showTargetSelector = true
+                                    showRuleProviderSelector = true
                                     errorText = null
                                 },
-                                holdDownState = showTargetSelector,
                             )
                         }
+                        if (!ruleType.equals("MATCH", ignoreCase = true)) {
+                            StringInputContent(
+                                title = MLang.Override.Editor.Payload,
+                                value = payload.takeIf(String::isNotBlank),
+                                placeholder = MLang.Override.Editor.Payload,
+                                unsetLabel = "",
+                                onValueChange = {
+                                    payload = it.orEmpty()
+                                    errorText = null
+                                },
+                            )
+                            OverrideFieldAssistText(
+                                text =
+                                    if (isRuleSetType) {
+                                        MLang.Override.Editor.RuleProviderInputHint
+                                    } else {
+                                        MLang.Override.Editor.LogicalRuleHint
+                                    },
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                            payloadErrorText?.let { message ->
+                                OverrideFieldAssistText(
+                                    text = message,
+                                    color = MiuixTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                        ConfigSettingRow(
+                            title =
+                                if (ruleType.equals("MATCH", ignoreCase = true))
+                                    MLang.Override.Editor.MatchResult
+                                else targetLabel,
+                            valueLabel = target.ifBlank { MLang.Component.Selector.UseDefault },
+                            tone = SemanticTone.Info,
+                            badgeTone = SemanticTone.Info,
+                            onClick = {
+                                showTargetSelector = true
+                                errorText = null
+                            },
+                        )
                         targetErrorText?.let { message ->
                             OverrideFieldAssistText(
                                 text = message,
@@ -275,21 +281,46 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
                             )
                         }
                     }
-                    OverridePlainFormSection(MLang.Override.Editor.AdditionalParams) {
-                        OverrideFormField(
-                            value = extraText,
+                    OverrideCardSection(MLang.Override.Editor.AdditionalParams) {
+                        StringInputContent(
+                            title = MLang.Override.Editor.OtherExtraParams,
+                            value = extraText.takeIf(String::isNotBlank),
+                            placeholder = MLang.Override.Editor.OtherExtraParams,
+                            unsetLabel = "",
                             onValueChange = {
-                                extraText = it
+                                extraText = it.orEmpty()
                                 errorText = null
                             },
-                            label = MLang.Override.Editor.OtherExtraParams,
-                            supportText = MLang.Override.Editor.ExtraParamsHint,
+                        )
+                        OverrideFieldAssistText(
+                            text = MLang.Override.Editor.ExtraParamsHint,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                     Spacer(modifier = Modifier.height(OverrideSectionBottomSpacing))
                 }
             }
         }
+        OverrideSingleValueSelectionSheet(
+            show = showTypeSelector,
+            title = MLang.Override.Editor.RuleType,
+            value = ruleType,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Editor.RuleType,
+                        items = OverrideRuleTypePresets,
+                    )
+                ),
+            customInputLabel = "",
+            allowCustomValue = false,
+            onDismiss = { showTypeSelector = false },
+            onConfirm = { selectedValue ->
+                ruleType = selectedValue.trim().ifBlank { ruleType }
+                errorText = null
+                showTypeSelector = false
+            },
+        )
         OverrideSingleValueSelectionSheet(
             show = showTargetSelector,
             title =

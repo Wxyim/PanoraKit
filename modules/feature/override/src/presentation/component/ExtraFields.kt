@@ -38,7 +38,6 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -112,21 +111,20 @@ fun OverrideExtraFieldDialog(
         }
     var errorText by remember(show, initialValue) { mutableStateOf<String?>(null) }
     val valueTypeItems = OverrideExtraFieldValueType.entries.map(::resolveValueTypeLabel)
-    val selectedTypeIndex =
-        OverrideExtraFieldValueType.entries.indexOf(selectedType).coerceAtLeast(0)
 
     AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            WindowDropdown(
+            EnumSelector(
                 title = MLang.Override.Draft.ValueType,
+                currentValue = selectedType,
                 items = valueTypeItems,
-                selectedIndex = selectedTypeIndex,
-                onSelectedIndexChange = { index ->
-                    selectedType =
-                        OverrideExtraFieldValueType.entries.getOrElse(index) { selectedType }
+                values = OverrideExtraFieldValueType.entries.toList(),
+                showDivider = false,
+                onValueChange = {
+                    selectedType = it
                     errorText = null
                 },
             )

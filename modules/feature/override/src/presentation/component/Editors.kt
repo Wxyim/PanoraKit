@@ -23,13 +23,52 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.core.model.TunnelState
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.Atom
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
+import com.github.yumelira.yumebox.presentation.icon.yume.CircleGauge
+import com.github.yumelira.yumebox.presentation.icon.yume.ClipboardCopy
+import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
+import com.github.yumelira.yumebox.presentation.icon.yume.Delete
+import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.icon.yume.Folders
+import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
+import com.github.yumelira.yumebox.presentation.icon.yume.House
+import com.github.yumelira.yumebox.presentation.icon.yume.`LayoutPanelLeft`
+import com.github.yumelira.yumebox.presentation.icon.yume.Link
+import com.github.yumelira.yumebox.presentation.icon.yume.List
+import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
+import com.github.yumelira.yumebox.presentation.icon.yume.Message
+import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
+import com.github.yumelira.yumebox.presentation.icon.yume.PlaneTakeoff
+import com.github.yumelira.yumebox.presentation.icon.yume.`Redo-dot`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
+import com.github.yumelira.yumebox.presentation.icon.yume.ShieldCheck
+import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
+import com.github.yumelira.yumebox.presentation.icon.yume.Speed
+import com.github.yumelira.yumebox.presentation.icon.yume.Sparkles
+import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
+import com.github.yumelira.yumebox.presentation.icon.yume.Tun
+import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
+import com.github.yumelira.yumebox.presentation.icon.yume.Wifi
+import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
+import com.github.yumelira.yumebox.presentation.icon.yume.Zap
+import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import com.github.yumelira.yumebox.presentation.component.NullableBooleanSelector as BaseNullableBooleanSelector
+import com.github.yumelira.yumebox.presentation.component.NullableEnumSelector as BaseNullableEnumSelector
+import com.github.yumelira.yumebox.presentation.component.StringListWithModifiersInput as BaseStringListWithModifiersInput
+import com.github.yumelira.yumebox.presentation.component.StringMapWithModifiersInput as BaseStringMapWithModifiersInput
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 
@@ -53,17 +92,251 @@ typealias OpenStringMapEditor =
 typealias OpenJsonEditor =
     (title: String, placeholder: String, value: String?, onValueChange: (String?) -> Unit) -> Unit
 
+private fun overrideFieldIcon(title: String, defaultIcon: ImageVector): ImageVector =
+    when (title) {
+        MLang.Override.General.ProxyMode,
+        MLang.Override.Dns.Policy,
+        MLang.Override.Dns.EnhancedMode -> Yume.Zashboard
+
+        MLang.Override.General.Ipv6,
+        MLang.Override.Dns.Ipv6,
+        MLang.Override.Label.ParsePureIp,
+        MLang.Override.Label.FakeIpRange,
+        MLang.Override.Dns.FakeipRange6 -> Yume.Atom
+
+        MLang.Override.General.LogLevel,
+        MLang.Override.General.HttpPort -> Yume.Message
+
+        MLang.Override.Form.ProcessMode,
+        MLang.Override.Dns.FakeipFilterMode,
+        MLang.Override.Dns.FakeipFilter,
+        MLang.Override.Label.SkipDomain,
+        MLang.Override.Form.ExcludePackage -> Yume.`Squares-exclude`
+
+        MLang.Override.Form.UnifiedDelay,
+        MLang.Override.Dns.PreferH3 -> Yume.Speed
+
+        MLang.Override.Form.TcpConcurrent,
+        MLang.Override.Form.AutoRoute,
+        MLang.Override.Form.RoutingMark,
+        MLang.Override.Form.CorsAllowOrigins,
+        MLang.Override.General.MixedPort -> Yume.`Arrow-down-up`
+
+        MLang.Override.Form.GeodataMode,
+        MLang.Override.Dns.FallbackGeosite -> Yume.Folders
+
+        MLang.Override.Label.KeepAliveInterval,
+        MLang.Override.Label.KeepAliveIdle,
+        MLang.Override.Dns.Ipv6Timeout,
+        MLang.Override.Form.GeoUpdateInterval,
+        MLang.Override.Dns.FakeipTtl -> Yume.`Circle-fading-arrow-up`
+
+        MLang.Override.Form.OutboundInterface,
+        MLang.Override.Dns.Listen,
+        MLang.Override.General.SocksPort,
+        MLang.Override.Form.EndpointIndependentNat -> Yume.Wifi
+
+        MLang.Override.Form.GeositeMatcher,
+        MLang.Override.Label.ForceDomain,
+        MLang.Override.Dns.FallbackDomain,
+        MLang.Override.Dns.FallbackGeoipCode,
+        MLang.Override.Label.RespectRules -> Yume.`Scroll-text`
+
+        MLang.Override.Form.GlobalClientFingerprint -> Yume.`Scan-eye`
+
+        MLang.Override.General.AllowLan,
+        MLang.Override.Form.AutoDetectInterface,
+        MLang.Override.General.TproxyPort -> Yume.`Wifi-cog`
+
+        MLang.Override.Form.AllowedIPs,
+        MLang.Override.Form.RouteAddress,
+        MLang.Override.Dns.FallbackGeoip,
+        MLang.Override.Form.StrictRoute,
+        MLang.Override.General.TlsPort,
+        MLang.Override.Form.ExternalControllerHttps,
+        MLang.Override.Form.AllowPrivateNetwork -> Yume.ShieldCheck
+
+        MLang.Override.Form.DisallowedIPs,
+        MLang.Override.Form.SkipAuthIPs,
+        MLang.Override.Form.RouteExcludeAddress,
+        MLang.Override.Dns.FallbackIpcidr,
+        MLang.Override.Form.DisableIcmpForward,
+        MLang.Override.Form.SkipSrcAddress,
+        MLang.Override.Form.SkipDstAddress -> Yume.ShieldMinus
+
+        MLang.Override.Form.BindAddress,
+        MLang.Override.Dns.Hosts,
+        MLang.Override.Dns.UseHosts,
+        MLang.Override.Label.UseSystemHosts -> Yume.House
+
+        MLang.Override.Form.UserAuth,
+        MLang.Override.Form.ApiSecret -> Yume.UserKey
+
+        MLang.Override.Form.ExternalController -> Yume.`Settings-2`
+
+        MLang.Override.Form.ExternalDoH,
+        MLang.Override.Dns.Servers,
+        MLang.Override.Dns.Fallback,
+        MLang.Override.Dns.Default,
+        MLang.Override.Dns.ProxyServerNameserver,
+        MLang.Override.Dns.DirectNameserver,
+        MLang.Override.Form.GeoipUrl,
+        MLang.Override.Form.GeositeUrl,
+        MLang.Override.Form.MmdbUrl,
+        MLang.Override.Form.DnsHijack -> Yume.Cloud
+
+        MLang.Override.Form.SaveGroupSelection,
+        MLang.Override.Form.CacheLimit -> Yume.`Package-check`
+
+        MLang.Override.Form.SaveFakeIpMapping -> Yume.ClipboardCopy
+
+        MLang.Override.Form.AutoUpdateGeo,
+        MLang.Override.Form.AutoRedirect,
+        MLang.Override.General.RedirectPort -> Yume.`Redo-dot`
+
+        MLang.Override.Dns.NameserverPolicy,
+        MLang.Override.Dns.ProxyServerNameserverPolicy -> Yume.`Git-merge`
+
+        MLang.Override.Label.ForceDnsMapping,
+        MLang.Override.Dns.AppendSystem -> Yume.Link
+
+        MLang.Override.Form.Stack -> Yume.`LayoutPanelLeft`
+
+        MLang.Override.Dns.DirectFollowPolicy,
+        MLang.Override.Label.OverrideDestination,
+        MLang.Override.Label.HttpOverride,
+        MLang.Override.Label.TlsOverride,
+        MLang.Override.Label.QuicOverride -> Yume.PlaneTakeoff
+
+        MLang.Override.Label.CacheAlgorithm -> Yume.Sparkles
+
+        MLang.Override.Form.EnableGso,
+        MLang.Override.Form.GsoMaxSize,
+        MLang.Override.General.QuicPort -> Yume.Zap
+
+        else -> defaultIcon
+    }
+
+@Composable
+private fun OverrideBooleanSelector(
+    title: String,
+    summary: String? = null,
+    value: Boolean?,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
+    onValueChange: (Boolean?) -> Unit,
+    imageVector: ImageVector = overrideFieldIcon(title, Yume.CircleCheckBig),
+) {
+    BaseNullableBooleanSelector(
+        title = title,
+        summary = summary,
+        value = value,
+        imageVector = imageVector,
+        unsetLabel = unsetLabel,
+        onValueChange = onValueChange,
+    )
+}
+
+@Composable
+private fun <T> OverrideEnumSelector(
+    title: String,
+    summary: String? = null,
+    value: T?,
+    items: List<String>,
+    values: List<T?>,
+    onValueChange: (T?) -> Unit,
+    imageVector: ImageVector = overrideFieldIcon(title, Yume.`List-chevrons-up-down`),
+) {
+    BaseNullableEnumSelector(
+        title = title,
+        summary = summary,
+        value = value,
+        items = items,
+        values = values,
+        imageVector = imageVector,
+        onValueChange = onValueChange,
+    )
+}
+
+@Composable
+private fun OverrideStringListWithModifiersInput(
+    title: String,
+    replaceValue: List<String>?,
+    startValue: List<String>?,
+    endValue: List<String>?,
+    placeholder: String = "",
+    unsetLabel: String = MLang.Component.Selector.NotModify,
+    onReplaceChange: (List<String>?) -> Unit,
+    onStartChange: (List<String>?) -> Unit,
+    onEndChange: (List<String>?) -> Unit,
+    onEditListGroup: OpenStringListModifiersEditor,
+    imageVector: ImageVector = overrideFieldIcon(title, Yume.List),
+) {
+    BaseStringListWithModifiersInput(
+        title = title,
+        replaceValue = replaceValue,
+        startValue = startValue,
+        endValue = endValue,
+        placeholder = placeholder,
+        imageVector = imageVector,
+        unsetLabel = unsetLabel,
+        onReplaceChange = onReplaceChange,
+        onStartChange = onStartChange,
+        onEndChange = onEndChange,
+        onEditListGroup = onEditListGroup,
+    )
+}
+
+@Composable
+private fun OverrideStringMapWithModifiersInput(
+    title: String,
+    replaceValue: Map<String, String>?,
+    mergeValue: Map<String, String>?,
+    keyPlaceholder: String = "",
+    valuePlaceholder: String = "",
+    unsetLabel: String = MLang.Component.Selector.NotModify,
+    localConfigMode: Boolean = false,
+    onReplaceChange: (Map<String, String>?) -> Unit,
+    onMergeChange: (Map<String, String>?) -> Unit,
+    onEditMap:
+        (
+            mode: MapMergeStrategy,
+            title: String,
+            keyPlaceholder: String,
+            valuePlaceholder: String,
+            value: Map<String, String>?,
+            onValueChange: (Map<String, String>?) -> Unit,
+        ) -> Unit,
+    imageVector: ImageVector = overrideFieldIcon(title, Yume.`Git-merge`),
+) {
+    BaseStringMapWithModifiersInput(
+        title = title,
+        replaceValue = replaceValue,
+        mergeValue = mergeValue,
+        keyPlaceholder = keyPlaceholder,
+        valuePlaceholder = valuePlaceholder,
+        imageVector = imageVector,
+        unsetLabel = unsetLabel,
+        compactSingleMode = localConfigMode,
+        onReplaceChange = onReplaceChange,
+        onMergeChange = onMergeChange,
+        onEditMap = onEditMap,
+    )
+}
+
 @Composable
 private fun OverrideTextInputContent(
     title: String,
     value: String?,
     placeholder: String = "",
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
     onValueChange: (String?) -> Unit,
 ) {
     StringInputContent(
         title = title,
         value = value,
         placeholder = placeholder,
+        imageVector = overrideFieldIcon(title, Yume.Edit),
+        unsetLabel = unsetLabel,
         onValueChange = onValueChange,
     )
 }
@@ -73,14 +346,18 @@ private fun OverrideIntInputContent(
     title: String,
     value: Int?,
     placeholder: String,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
     onValueChange: (Int?) -> Unit,
 ) {
     val showDialog = remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(value?.toString().orEmpty()) }
 
-    top.yukonga.miuix.kmp.extra.SuperArrow(
+    ConfigSettingRow(
         title = title,
-        summary = value?.toString() ?: MLang.Component.Selector.NotModify,
+        valueLabel = value?.toString() ?: unsetLabel,
+        imageVector = overrideFieldIcon(title, Yume.CircleGauge),
+        tone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
+        badgeTone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
         onClick = {
             textValue = value?.toString().orEmpty()
             showDialog.value = true
@@ -105,33 +382,46 @@ private fun OverrideIntInputContent(
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
+                AppCommandButton(
+                    title = MLang.Component.Button.Clear,
+                    imageVector = Yume.Delete,
                     onClick = {
                         onValueChange(null)
                         showDialog.value = false
                     },
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text(MLang.Component.Button.Clear)
-                }
-                Button(
+                    tone = SemanticTone.Danger,
+                )
+                AppCommandButton(
+                    title = MLang.Component.Button.Confirm,
+                    imageVector = Yume.Check,
                     onClick = {
                         onValueChange(textValue.takeIf(String::isNotBlank)?.toIntOrNull())
                         showDialog.value = false
                     },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary(),
-                ) {
-                    Text(text = MLang.Component.Button.Confirm)
-                }
+                    tone = SemanticTone.Brand,
+                    highEmphasis = true,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun OverridePortInputContent(title: String, value: Int?, onValueChange: (Int?) -> Unit) {
-    PortInputContent(title = title, value = value, onValueChange = onValueChange)
+private fun OverridePortInputContent(
+    title: String,
+    value: Int?,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
+    onValueChange: (Int?) -> Unit,
+) {
+    PortInputContent(
+        title = title,
+        value = value,
+        onValueChange = onValueChange,
+        imageVector = overrideFieldIcon(title, Yume.`Wifi-cog`),
+        unsetLabel = unsetLabel,
+    )
 }
 
 @Composable
@@ -139,32 +429,38 @@ fun InboundEditor(
     config: ConfigurationOverride,
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideFormSection(MLang.Override.Form.ProxyPorts) {
             OverridePortInputContent(
                 title = MLang.Override.General.HttpPort,
                 value = config.httpPort,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(httpPort = it)) },
             )
             OverridePortInputContent(
                 title = MLang.Override.General.SocksPort,
                 value = config.socksPort,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(socksPort = it)) },
             )
             OverridePortInputContent(
                 title = MLang.Override.General.MixedPort,
                 value = config.mixedPort,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(mixedPort = it)) },
             )
             OverridePortInputContent(
                 title = MLang.Override.General.RedirectPort,
                 value = config.redirectPort,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(redirectPort = it)) },
             )
             OverridePortInputContent(
                 title = MLang.Override.General.TproxyPort,
                 value = config.tproxyPort,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(tproxyPort = it)) },
             )
         }
@@ -176,15 +472,16 @@ fun GeneralEditor(
     config: ConfigurationOverride,
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.RunAndLog) {
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.General.ProxyMode,
                 value = config.mode,
                 items =
                     listOf(
-                        MLang.Component.Selector.NotModify,
+                        unsetLabel,
                         MLang.Proxy.Mode.Direct,
                         MLang.Proxy.Mode.Global,
                         MLang.Proxy.Mode.Rule,
@@ -198,17 +495,18 @@ fun GeneralEditor(
                     ),
                 onValueChange = { onConfigChange(config.copy(mode = it)) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.General.Ipv6,
                 value = config.ipv6,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(ipv6 = it)) },
             )
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.General.LogLevel,
                 value = config.logLevel,
                 items =
                     listOf(
-                        MLang.Component.Selector.NotModify,
+                        unsetLabel,
                         "Info",
                         "Warning",
                         "Error",
@@ -226,10 +524,10 @@ fun GeneralEditor(
                     ),
                 onValueChange = { onConfigChange(config.copy(logLevel = it)) },
             )
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.Form.ProcessMode,
                 value = config.findProcessMode,
-                items = listOf(MLang.Override.Form.NotModify, "Always", "Strict", "Off"),
+                items = listOf(unsetLabel, "Always", "Strict", "Off"),
                 values =
                     listOf(
                         null,
@@ -239,17 +537,18 @@ fun GeneralEditor(
                     ),
                 onValueChange = { onConfigChange(config.copy(findProcessMode = it)) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.UnifiedDelay,
                 value = config.unifiedDelay,
+                unsetLabel = unsetLabel,
                 onValueChange = { onConfigChange(config.copy(unifiedDelay = it)) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.TcpConcurrent,
                 value = config.tcpConcurrent,
                 onValueChange = { onConfigChange(config.copy(tcpConcurrent = it)) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.GeodataMode,
                 value = config.geodataMode,
                 onValueChange = { onConfigChange(config.copy(geodataMode = it)) },
@@ -299,12 +598,12 @@ fun GeneralEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.LanAccess) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.General.AllowLan,
                 value = config.allowLan,
                 onValueChange = { onConfigChange(config.copy(allowLan = it)) },
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.AllowedIPs,
                 replaceValue = config.lanAllowedIps,
                 startValue = config.lanAllowedIpsStart,
@@ -314,8 +613,9 @@ fun GeneralEditor(
                 onStartChange = { onConfigChange(config.copy(lanAllowedIpsStart = it)) },
                 onEndChange = { onConfigChange(config.copy(lanAllowedIpsEnd = it)) },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.DisallowedIPs,
                 replaceValue = config.lanDisallowedIps,
                 startValue = config.lanDisallowedIpsStart,
@@ -325,6 +625,7 @@ fun GeneralEditor(
                 onStartChange = { onConfigChange(config.copy(lanDisallowedIpsStart = it)) },
                 onEndChange = { onConfigChange(config.copy(lanDisallowedIpsEnd = it)) },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
 
@@ -338,7 +639,7 @@ fun GeneralEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.UserAuth) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.UserAuth,
                 replaceValue = config.authentication,
                 startValue = config.authenticationStart,
@@ -348,8 +649,9 @@ fun GeneralEditor(
                 onStartChange = { onConfigChange(config.copy(authenticationStart = it)) },
                 onEndChange = { onConfigChange(config.copy(authenticationEnd = it)) },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.SkipAuthIPs,
                 replaceValue = config.skipAuthPrefixes,
                 startValue = config.skipAuthPrefixesStart,
@@ -359,6 +661,7 @@ fun GeneralEditor(
                 onStartChange = { onConfigChange(config.copy(skipAuthPrefixesStart = it)) },
                 onEndChange = { onConfigChange(config.copy(skipAuthPrefixesEnd = it)) },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
 
@@ -390,7 +693,7 @@ fun GeneralEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.ControllerCors) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.CorsAllowOrigins,
                 replaceValue = config.externalControllerCors.allowOrigins,
                 startValue = config.externalControllerCors.allowOriginsStart,
@@ -421,8 +724,9 @@ fun GeneralEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.AllowPrivateNetwork,
                 value = config.externalControllerCors.allowPrivateNetwork,
                 onValueChange = {
@@ -437,14 +741,14 @@ fun GeneralEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.ConfigPersistence) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.SaveGroupSelection,
                 value = config.profile.storeSelected,
                 onValueChange = {
                     onConfigChange(config.copy(profile = config.profile.copy(storeSelected = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.SaveFakeIpMapping,
                 value = config.profile.storeFakeIp,
                 onValueChange = {
@@ -454,7 +758,7 @@ fun GeneralEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.GeoResources) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.AutoUpdateGeo,
                 value = config.geoAutoUpdate,
                 onValueChange = { onConfigChange(config.copy(geoAutoUpdate = it)) },
@@ -501,50 +805,52 @@ fun TunEditor(
     config: ConfigurationOverride,
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.TunBasicSwitch) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.Enable,
                 value = config.tun.enable,
+                imageVector = Yume.Tun,
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(enable = it))) },
             )
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.Form.Stack,
                 value = config.tun.stack,
-                items = listOf(MLang.Override.Form.NotModify, "system", "gvisor", "mixed"),
+                items = listOf(unsetLabel, "system", "gvisor", "mixed"),
                 values = listOf(null, "system", "gvisor", "mixed"),
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(stack = it))) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.AutoRoute,
                 value = config.tun.autoRoute,
                 onValueChange = {
                     onConfigChange(config.copy(tun = config.tun.copy(autoRoute = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.AutoRedirect,
                 value = config.tun.autoRedirect,
                 onValueChange = {
                     onConfigChange(config.copy(tun = config.tun.copy(autoRedirect = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.AutoDetectInterface,
                 value = config.tun.autoDetectInterface,
                 onValueChange = {
                     onConfigChange(config.copy(tun = config.tun.copy(autoDetectInterface = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.StrictRoute,
                 value = config.tun.strictRoute,
                 onValueChange = {
                     onConfigChange(config.copy(tun = config.tun.copy(strictRoute = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.EndpointIndependentNat,
                 value = config.tun.endpointIndependentNat,
                 onValueChange = {
@@ -554,12 +860,12 @@ fun TunEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.NetworkPerfSwitch) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.EnableGso,
                 value = config.tun.gso,
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(gso = it))) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Form.DisableIcmpForward,
                 value = config.tun.disableIcmpForwarding,
                 onValueChange = {
@@ -586,7 +892,7 @@ fun TunEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.TunRouteAndApps) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.DnsHijack,
                 replaceValue = config.tun.dnsHijack,
                 startValue = config.tun.dnsHijackStart,
@@ -602,8 +908,9 @@ fun TunEditor(
                     onConfigChange(config.copy(tun = config.tun.copy(dnsHijackEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.RouteAddress,
                 replaceValue = config.tun.routeAddress,
                 startValue = config.tun.routeAddressStart,
@@ -619,8 +926,9 @@ fun TunEditor(
                     onConfigChange(config.copy(tun = config.tun.copy(routeAddressEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.RouteExcludeAddress,
                 replaceValue = config.tun.routeExcludeAddress,
                 startValue = config.tun.routeExcludeAddressStart,
@@ -638,8 +946,9 @@ fun TunEditor(
                     onConfigChange(config.copy(tun = config.tun.copy(routeExcludeAddressEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.IncludePackage,
                 replaceValue = config.tun.includePackage,
                 startValue = config.tun.includePackageStart,
@@ -655,8 +964,9 @@ fun TunEditor(
                     onConfigChange(config.copy(tun = config.tun.copy(includePackageEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.ExcludePackage,
                 replaceValue = config.tun.excludePackage,
                 startValue = config.tun.excludePackageStart,
@@ -672,6 +982,7 @@ fun TunEditor(
                     onConfigChange(config.copy(tun = config.tun.copy(excludePackageEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
     }
@@ -683,67 +994,68 @@ fun DnsEditor(
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
     onEditStringMap: OpenStringMapEditor,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.DnsBasicSwitch) {
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.Dns.Policy,
                 value = config.dns.enable,
                 items =
                     listOf(
-                        MLang.Override.Dns.PolicyNotModify,
+                        unsetLabel,
                         MLang.Override.Dns.PolicyForceEnable,
                         MLang.Override.Dns.PolicyUseBuiltin,
                     ),
                 values = listOf(null, true, false),
                 onValueChange = { onConfigChange(config.copy(dns = config.dns.copy(enable = it))) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.PreferH3,
                 value = config.dns.preferH3,
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(preferH3 = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.Ipv6,
                 value = config.dns.ipv6,
                 onValueChange = { onConfigChange(config.copy(dns = config.dns.copy(ipv6 = it))) },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.UseHosts,
                 value = config.dns.useHosts,
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(useHosts = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.UseSystemHosts,
                 value = config.dns.useSystemHosts,
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(useSystemHosts = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.AppendSystem,
                 value = config.app.appendSystemDns,
                 onValueChange = {
                     onConfigChange(config.copy(app = config.app.copy(appendSystemDns = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.RespectRules,
                 value = config.dns.respectRules,
                 onValueChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(respectRules = it)))
                 },
             )
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.Dns.EnhancedMode,
                 value = config.dns.enhancedMode,
                 items =
                     listOf(
-                        MLang.Override.Dns.EnhancedNotModify,
+                        unsetLabel,
                         MLang.Override.Dns.EnhancedDisable,
                         MLang.Override.Dns.EnhancedFakeip,
                         MLang.Override.Dns.EnhancedMapping,
@@ -759,7 +1071,7 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(enhancedMode = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.DirectFollowPolicy,
                 value = config.dns.directFollowPolicy,
                 onValueChange = {
@@ -802,12 +1114,12 @@ fun DnsEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.FakeIpMode) {
-            NullableEnumSelector(
+            OverrideEnumSelector(
                 title = MLang.Override.Dns.FakeipFilterMode,
                 value = config.dns.fakeIPFilterMode,
                 items =
                     listOf(
-                        MLang.Override.Dns.EnhancedNotModify,
+                        unsetLabel,
                         MLang.Override.Dns.FakeipBlacklist,
                         MLang.Override.Dns.FakeipWhitelist,
                         "Rule",
@@ -853,7 +1165,7 @@ fun DnsEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.DnsUpstream) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.Servers,
                 replaceValue = config.dns.nameServer,
                 startValue = config.dns.nameServerStart,
@@ -869,8 +1181,9 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(nameServerEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.Fallback,
                 replaceValue = config.dns.fallback,
                 startValue = config.dns.fallbackStart,
@@ -886,8 +1199,9 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(fallbackEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.Default,
                 replaceValue = config.dns.defaultServer,
                 startValue = config.dns.defaultServerStart,
@@ -903,8 +1217,9 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(defaultServerEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.ProxyServerNameserver,
                 replaceValue = config.dns.proxyServerNameserver,
                 startValue = config.dns.proxyServerNameserverStart,
@@ -924,8 +1239,9 @@ fun DnsEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.DirectNameserver,
                 replaceValue = config.dns.directNameserver,
                 startValue = config.dns.directNameserverStart,
@@ -941,16 +1257,19 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(directNameserverEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
 
         OverrideCardSection(MLang.Override.Form.NameserverPolicySection) {
-            StringMapWithModifiersInput(
+            OverrideStringMapWithModifiersInput(
                 title = MLang.Override.Dns.NameserverPolicy,
                 replaceValue = config.dns.nameserverPolicy,
                 mergeValue = config.dns.nameserverPolicyMerge,
                 keyPlaceholder = MLang.Override.Dns.NameserverPolicyKey,
                 valuePlaceholder = MLang.Override.Dns.NameserverPolicyValue,
+                unsetLabel = unsetLabel,
+                localConfigMode = unsetLabel == MLang.Component.Selector.UseDefault,
                 onReplaceChange = {
                     onConfigChange(config.copy(dns = config.dns.copy(nameserverPolicy = it)))
                 },
@@ -961,12 +1280,14 @@ fun DnsEditor(
                     onEditStringMap(title, keyPlaceholder, valuePlaceholder, value, callback)
                 },
             )
-            StringMapWithModifiersInput(
+            OverrideStringMapWithModifiersInput(
                 title = MLang.Override.Dns.ProxyServerNameserverPolicy,
                 replaceValue = config.dns.proxyServerNameserverPolicy,
                 mergeValue = config.dns.proxyServerNameserverPolicyMerge,
                 keyPlaceholder = MLang.Override.Dns.ProxyServerNameserverPolicyKey,
                 valuePlaceholder = MLang.Override.Dns.ProxyServerNameserverPolicyValue,
+                unsetLabel = unsetLabel,
+                localConfigMode = unsetLabel == MLang.Component.Selector.UseDefault,
                 onReplaceChange = {
                     onConfigChange(
                         config.copy(dns = config.dns.copy(proxyServerNameserverPolicy = it))
@@ -981,12 +1302,14 @@ fun DnsEditor(
                     onEditStringMap(title, keyPlaceholder, valuePlaceholder, value, callback)
                 },
             )
-            StringMapWithModifiersInput(
+            OverrideStringMapWithModifiersInput(
                 title = MLang.Override.Dns.Hosts,
                 replaceValue = config.hosts,
                 mergeValue = config.hostsMerge,
                 keyPlaceholder = MLang.Override.Dns.HostsKey,
                 valuePlaceholder = MLang.Override.Dns.HostsValue,
+                unsetLabel = unsetLabel,
+                localConfigMode = unsetLabel == MLang.Component.Selector.UseDefault,
                 onReplaceChange = { onConfigChange(config.copy(hosts = it)) },
                 onMergeChange = { onConfigChange(config.copy(hostsMerge = it)) },
                 onEditMap = { _, title, keyPlaceholder, valuePlaceholder, value, callback ->
@@ -996,7 +1319,7 @@ fun DnsEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.FilterList) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.FakeipFilter,
                 replaceValue = config.dns.fakeIpFilter,
                 startValue = config.dns.fakeIpFilterStart,
@@ -1012,11 +1335,12 @@ fun DnsEditor(
                     onConfigChange(config.copy(dns = config.dns.copy(fakeIpFilterEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
 
         OverrideCardSection(MLang.Override.Form.FallbackSwitch) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Dns.FallbackGeoip,
                 value = config.dns.fallbackFilter.geoIp,
                 onValueChange = {
@@ -1051,7 +1375,7 @@ fun DnsEditor(
         }
 
         OverrideCardSection(MLang.Override.Form.FallbackFilter) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.FallbackDomain,
                 replaceValue = config.dns.fallbackFilter.domain,
                 startValue = config.dns.fallbackFilter.domainStart,
@@ -1089,8 +1413,9 @@ fun DnsEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.FallbackIpcidr,
                 replaceValue = config.dns.fallbackFilter.ipcidr,
                 startValue = config.dns.fallbackFilter.ipcidrStart,
@@ -1128,8 +1453,9 @@ fun DnsEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Dns.FallbackGeosite,
                 replaceValue = config.dns.fallbackFilter.geosite,
                 startValue = config.dns.fallbackFilter.geositeStart,
@@ -1167,6 +1493,7 @@ fun DnsEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
     }
@@ -1177,31 +1504,33 @@ fun SnifferEditor(
     config: ConfigurationOverride,
     onConfigChange: (ConfigurationOverride) -> Unit,
     onEditStringList: OpenStringListModifiersEditor,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing)) {
         OverrideCardSection(MLang.Override.Form.BasicPolicy) {
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.Enable,
                 value = config.sniffer.enable,
+                imageVector = Yume.`Scan-eye`,
                 onValueChange = {
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(enable = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.ForceDnsMapping,
                 value = config.sniffer.forceDnsMapping,
                 onValueChange = {
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(forceDnsMapping = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.ParsePureIp,
                 value = config.sniffer.parsePureIp,
                 onValueChange = {
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(parsePureIp = it)))
                 },
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.OverrideDestination,
                 value = config.sniffer.overrideDestination,
                 onValueChange = {
@@ -1212,7 +1541,7 @@ fun SnifferEditor(
             )
         }
         OverrideCardSection("HTTP") {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.General.HttpPort,
                 replaceValue = config.sniffer.sniff.http.ports,
                 startValue = config.sniffer.sniff.http.portsStart,
@@ -1258,8 +1587,9 @@ fun SnifferEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.HttpOverride,
                 value = config.sniffer.sniff.http.overrideDestination,
                 onValueChange = {
@@ -1281,7 +1611,7 @@ fun SnifferEditor(
             )
         }
         OverrideCardSection("TLS") {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.General.TlsPort,
                 replaceValue = config.sniffer.sniff.tls.ports,
                 startValue = config.sniffer.sniff.tls.portsStart,
@@ -1327,8 +1657,9 @@ fun SnifferEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.TlsOverride,
                 value = config.sniffer.sniff.tls.overrideDestination,
                 onValueChange = {
@@ -1350,7 +1681,7 @@ fun SnifferEditor(
             )
         }
         OverrideCardSection("QUIC") {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.General.QuicPort,
                 replaceValue = config.sniffer.sniff.quic.ports,
                 startValue = config.sniffer.sniff.quic.portsStart,
@@ -1396,8 +1727,9 @@ fun SnifferEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            NullableBooleanSelector(
+            OverrideBooleanSelector(
                 title = MLang.Override.Label.QuicOverride,
                 value = config.sniffer.sniff.quic.overrideDestination,
                 onValueChange = {
@@ -1419,7 +1751,7 @@ fun SnifferEditor(
             )
         }
         OverrideCardSection(MLang.Override.Form.SkipAndForce) {
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Label.ForceDomain,
                 replaceValue = config.sniffer.forceDomain,
                 startValue = config.sniffer.forceDomainStart,
@@ -1437,8 +1769,9 @@ fun SnifferEditor(
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(forceDomainEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Label.SkipDomain,
                 replaceValue = config.sniffer.skipDomain,
                 startValue = config.sniffer.skipDomainStart,
@@ -1454,8 +1787,9 @@ fun SnifferEditor(
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(skipDomainEnd = it)))
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.SkipSrcAddress,
                 replaceValue = config.sniffer.skipSrcAddress,
                 startValue = config.sniffer.skipSrcAddressStart,
@@ -1475,8 +1809,9 @@ fun SnifferEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
-            StringListWithModifiersInput(
+            OverrideStringListWithModifiersInput(
                 title = MLang.Override.Form.SkipDstAddress,
                 replaceValue = config.sniffer.skipDstAddress,
                 startValue = config.sniffer.skipDstAddressStart,
@@ -1496,6 +1831,7 @@ fun SnifferEditor(
                     )
                 },
                 onEditListGroup = onEditStringList,
+                unsetLabel = unsetLabel,
             )
         }
     }

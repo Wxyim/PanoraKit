@@ -46,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val ObjectListSectionGap = 12.dp
@@ -73,6 +72,7 @@ fun OverrideObjectListEditorScreen(
     val editorType = OverrideStructuredEditorStore.objectEditorType
     val title = OverrideStructuredEditorStore.objectEditorTitle.ifBlank { editorType.title }
     val availableModes = OverrideStructuredEditorStore.objectEditorAvailableModes
+    val editorSemantics = OverrideStructuredEditorStore.objectEditorSemantics
     var showResetDialog by remember { mutableStateOf(false) }
     val addFabController = rememberOverrideFabController()
     var isDeleteMode by rememberSaveable { mutableStateOf(false) }
@@ -92,6 +92,13 @@ fun OverrideObjectListEditorScreen(
             OverrideStructuredObjectType.Proxies -> currentProxyDrafts.size
             OverrideStructuredObjectType.ProxyGroups -> currentProxyGroupDrafts.size
         }
+    val showModeSelector = availableModes.size > 1
+    val reorderHeaderCount = if (showModeSelector) ObjectListReorderHeaderCount else 0
+    val addFabLabel =
+        when (editorType) {
+            OverrideStructuredObjectType.Proxies -> MLang.Override.Editor.NewProxyNode
+            OverrideStructuredObjectType.ProxyGroups -> MLang.Override.Editor.NewProxyGroup
+        }
 
     fun applyProxyValues(values: OverrideListModeValues<List<OverrideProxyDraft>>) {
         OverrideStructuredEditorStore.applyProxyDraftValues(values)
@@ -101,10 +108,54 @@ fun OverrideObjectListEditorScreen(
         OverrideStructuredEditorStore.applyProxyGroupDraftValues(values)
     }
 
+    val handleAddClick: () -> Unit = {
+        when (editorType) {
+            OverrideStructuredObjectType.Proxies -> {
+                onOpenProxyDraftEditor(MLang.Override.Editor.NewProxyNode, null) { createdDraft ->
+                    val mode = OverrideStructuredEditorStore.objectEditorSelectedMode
+                    val latestValues = OverrideStructuredEditorStore.objectEditorProxyDraftValues
+                    val updatedValues =
+                        latestValues.update(
+                            mode,
+                            latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                                if (editorSemantics == OverrideEditorSemantics.LocalConfig) {
+                                    it.add(0, createdDraft)
+                                } else {
+                                    it.add(createdDraft)
+                                }
+                            },
+                        )
+                    applyProxyValues(updatedValues)
+                }
+            }
+
+            OverrideStructuredObjectType.ProxyGroups -> {
+                onOpenProxyGroupDraftEditor(MLang.Override.Editor.NewProxyGroup, null) {
+                    createdDraft ->
+                    val mode = OverrideStructuredEditorStore.objectEditorSelectedMode
+                    val latestValues =
+                        OverrideStructuredEditorStore.objectEditorProxyGroupDraftValues
+                    val updatedValues =
+                        latestValues.update(
+                            mode,
+                            latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                                if (editorSemantics == OverrideEditorSemantics.LocalConfig) {
+                                    it.add(0, createdDraft)
+                                } else {
+                                    it.add(createdDraft)
+                                }
+                            },
+                        )
+                    applyProxyGroupValues(updatedValues)
+                }
+            }
+        }
+    }
+
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
-            val fromIndex = (from.index - ObjectListReorderHeaderCount).coerceAtLeast(0)
-            val toIndex = (to.index - ObjectListReorderHeaderCount).coerceAtLeast(0)
+            val fromIndex = (from.index - reorderHeaderCount).coerceAtLeast(0)
+            val toIndex = (to.index - reorderHeaderCount).coerceAtLeast(0)
             when (editorType) {
                 OverrideStructuredObjectType.Proxies -> {
                     val mode = OverrideStructuredEditorStore.objectEditorSelectedMode
@@ -147,47 +198,9 @@ fun OverrideObjectListEditorScreen(
                 controller = addFabController,
                 visible = showAddFab,
                 imageVector = Yume.`Badge-plus`,
-                contentDescription =
-                    MLang.Override.Editor.AddNamedItem.format(editorType.itemLabel),
-                onClick = {
-                    when (editorType) {
-                        OverrideStructuredObjectType.Proxies -> {
-                            onOpenProxyDraftEditor(MLang.Override.Editor.NewProxyNode, null) {
-                                createdDraft ->
-                                val mode = OverrideStructuredEditorStore.objectEditorSelectedMode
-                                val latestValues =
-                                    OverrideStructuredEditorStore.objectEditorProxyDraftValues
-                                val updatedValues =
-                                    latestValues.update(
-                                        mode,
-                                        latestValues.valueFor(mode).orEmpty().toMutableList().also {
-                                            it.add(createdDraft)
-                                        },
-                                    )
-                                applyProxyValues(updatedValues)
-                            }
-                        }
-
-                        OverrideStructuredObjectType.ProxyGroups -> {
-                            onOpenProxyGroupDraftEditor(
-                                MLang.Override.Editor.NewProxyGroup,
-                                null,
-                            ) { createdDraft ->
-                                val mode = OverrideStructuredEditorStore.objectEditorSelectedMode
-                                val latestValues =
-                                    OverrideStructuredEditorStore.objectEditorProxyGroupDraftValues
-                                val updatedValues =
-                                    latestValues.update(
-                                        mode,
-                                        latestValues.valueFor(mode).orEmpty().toMutableList().also {
-                                            it.add(createdDraft)
-                                        },
-                                    )
-                                applyProxyGroupValues(updatedValues)
-                            }
-                        }
-                    }
-                },
+                contentDescription = addFabLabel,
+                label = addFabLabel,
+                onClick = handleAddClick,
             )
         },
         topBar = {
@@ -198,59 +211,40 @@ fun OverrideObjectListEditorScreen(
                     if (isDeleteMode) {
                         IconButton(
                             onClick = {
-                                isDeleteMode = false
-                                selectedUiIds = emptySet()
-                            },
-                            modifier = Modifier.padding(end = 8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Yume.Cancel,
-                                contentDescription = MLang.Override.Editor.CancelDelete,
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                if (selectedUiIds.isNotEmpty()) {
-                                    when (editorType) {
-                                        OverrideStructuredObjectType.Proxies -> {
-                                            val mode =
-                                                OverrideStructuredEditorStore
-                                                    .objectEditorSelectedMode
-                                            val latestValues =
-                                                OverrideStructuredEditorStore
-                                                    .objectEditorProxyDraftValues
-                                            val updatedValues =
-                                                latestValues.update(
-                                                    mode,
-                                                    latestValues
-                                                        .valueFor(mode)
-                                                        .orEmpty()
-                                                        .filterNot { it.uiId in selectedUiIds },
-                                                )
-                                            applyProxyValues(updatedValues)
-                                        }
-
-                                        OverrideStructuredObjectType.ProxyGroups -> {
-                                            val mode =
-                                                OverrideStructuredEditorStore
-                                                    .objectEditorSelectedMode
-                                            val latestValues =
-                                                OverrideStructuredEditorStore
-                                                    .objectEditorProxyGroupDraftValues
-                                            val updatedValues =
-                                                latestValues.update(
-                                                    mode,
-                                                    latestValues
-                                                        .valueFor(mode)
-                                                        .orEmpty()
-                                                        .filterNot { it.uiId in selectedUiIds },
-                                                )
-                                            applyProxyGroupValues(updatedValues)
-                                        }
+                                when (editorType) {
+                                    OverrideStructuredObjectType.Proxies -> {
+                                        val mode =
+                                            OverrideStructuredEditorStore.objectEditorSelectedMode
+                                        val latestValues =
+                                            OverrideStructuredEditorStore.objectEditorProxyDraftValues
+                                        val updatedValues =
+                                            latestValues.update(
+                                                mode,
+                                                latestValues.valueFor(mode).orEmpty().filterNot {
+                                                    it.uiId in selectedUiIds
+                                                },
+                                            )
+                                        applyProxyValues(updatedValues)
                                     }
-                                    selectedUiIds = emptySet()
-                                    isDeleteMode = false
+
+                                    OverrideStructuredObjectType.ProxyGroups -> {
+                                        val mode =
+                                            OverrideStructuredEditorStore.objectEditorSelectedMode
+                                        val latestValues =
+                                            OverrideStructuredEditorStore
+                                                .objectEditorProxyGroupDraftValues
+                                        val updatedValues =
+                                            latestValues.update(
+                                                mode,
+                                                latestValues.valueFor(mode).orEmpty().filterNot {
+                                                    it.uiId in selectedUiIds
+                                                },
+                                            )
+                                        applyProxyGroupValues(updatedValues)
+                                    }
                                 }
+                                selectedUiIds = emptySet()
+                                isDeleteMode = false
                             },
                             modifier = Modifier.padding(end = 24.dp),
                         ) {
@@ -292,31 +286,35 @@ fun OverrideObjectListEditorScreen(
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             modifier = Modifier.fillMaxWidth(),
             topPadding = 20.dp,
             lazyListState = listState,
             onScrollDirectionChanged = addFabController::onScrollDirectionChanged,
         ) {
-            item(key = "modifier-card") {
-                Card {
-                    WindowDropdown(
-                        title = MLang.Override.Editor.Mode.Title,
-                        items = availableModes.map(OverrideListEditorMode::label),
-                        selectedIndex = selectedModeIndex,
-                        onSelectedIndexChange = { index ->
-                            val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateObjectEditorSession(
-                                selectedMode = newMode
-                            )
-                            isDeleteMode = false
-                            selectedUiIds = emptySet()
-                        },
-                    )
+            if (showModeSelector) {
+                item(key = "modifier-card") {
+                    Card {
+                        EnumSelector(
+                            title = editorSemantics.modeTitle(),
+                            currentValue = selectedMode,
+                            items = availableModes.map { it.resolveLabel(editorSemantics) },
+                            values = availableModes,
+                            showDivider = false,
+                            onValueChange = { newMode ->
+                                OverrideStructuredEditorStore.updateObjectEditorSession(
+                                    selectedMode = newMode
+                                )
+                                isDeleteMode = false
+                                selectedUiIds = emptySet()
+                            },
+                        )
+                    }
                 }
-            }
 
-            item(key = "modifier-card-gap") {
-                Spacer(modifier = Modifier.height(ObjectListSectionGap))
+                item(key = "modifier-card-gap") {
+                    Spacer(modifier = Modifier.height(ObjectListSectionGap))
+                }
             }
 
             if (currentItemCount > 0) {
@@ -446,6 +444,15 @@ fun OverrideObjectListEditorScreen(
                             }
                         }
                     }
+                }
+            } else {
+                item(key = "object-list-empty") {
+                    OverrideEmptyStateCard(
+                        title = MLang.Override.Empty.Title,
+                        hint = MLang.Override.Empty.Hint,
+                        actionLabel = addFabLabel,
+                        onAction = handleAddClick,
+                    )
                 }
             }
 

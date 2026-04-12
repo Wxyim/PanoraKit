@@ -46,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val SubRuleSectionGap = 12.dp
@@ -69,6 +68,7 @@ fun OverrideSubRuleMapEditorScreen(
             MLang.Override.Structured.SubRules.Title
         }
     val availableModes = OverrideStructuredEditorStore.subRuleGroupEditorAvailableModes
+    val editorSemantics = OverrideStructuredEditorStore.subRuleGroupEditorSemantics
     var showResetDialog by remember { mutableStateOf(false) }
     val addFabController = rememberOverrideFabController()
     var isDeleteMode by rememberSaveable { mutableStateOf(false) }
@@ -78,15 +78,37 @@ fun OverrideSubRuleMapEditorScreen(
 
     val selectedModeIndex = availableModes.indexOf(selectedMode).coerceAtLeast(0)
     val currentDrafts = editorValues.valueFor(selectedMode).orEmpty()
+    val showModeSelector = availableModes.size > 1
+    val reorderHeaderCount = if (showModeSelector) SubRuleReorderHeaderCount else 0
+    val addFabLabel = MLang.Override.Editor.NewSubRuleGroup
 
     fun applySubRuleValues(values: OverrideListModeValues<List<OverrideSubRuleGroupDraft>>) {
         OverrideStructuredEditorStore.applySubRuleDraftValues(values)
     }
 
+    val handleAddClick: () -> Unit = {
+        onOpenDraftEditor(MLang.Override.Editor.NewSubRuleGroup, null) { createdDraft ->
+            val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
+            val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
+            val updatedValues =
+                latestValues.update(
+                    mode,
+                    latestValues.valueFor(mode).orEmpty().toMutableList().also {
+                        if (editorSemantics == OverrideEditorSemantics.LocalConfig) {
+                            it.add(0, createdDraft)
+                        } else {
+                            it.add(createdDraft)
+                        }
+                    },
+                )
+            applySubRuleValues(updatedValues)
+        }
+    }
+
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
-            val fromIndex = (from.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
-            val toIndex = (to.index - SubRuleReorderHeaderCount).coerceAtLeast(0)
+            val fromIndex = (from.index - reorderHeaderCount).coerceAtLeast(0)
+            val toIndex = (to.index - reorderHeaderCount).coerceAtLeast(0)
             val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
             val latestValues = OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
             val updatedValues =
@@ -106,21 +128,8 @@ fun OverrideSubRuleMapEditorScreen(
                 visible = showAddFab,
                 imageVector = Yume.`Badge-plus`,
                 contentDescription = MLang.Override.Editor.NewSubRuleGroup,
-                onClick = {
-                    onOpenDraftEditor(MLang.Override.Editor.NewSubRuleGroup, null) { createdDraft ->
-                        val mode = OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-                        val latestValues =
-                            OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-                        val updatedValues =
-                            latestValues.update(
-                                mode,
-                                latestValues.valueFor(mode).orEmpty().toMutableList().also {
-                                    it.add(createdDraft)
-                                },
-                            )
-                        applySubRuleValues(updatedValues)
-                    }
-                },
+                label = addFabLabel,
+                onClick = handleAddClick,
             )
         },
         topBar = {
@@ -131,34 +140,20 @@ fun OverrideSubRuleMapEditorScreen(
                     if (isDeleteMode) {
                         IconButton(
                             onClick = {
-                                isDeleteMode = false
+                                val mode =
+                                    OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
+                                val latestValues =
+                                    OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
+                                val updatedValues =
+                                    latestValues.update(
+                                        mode,
+                                        latestValues.valueFor(mode).orEmpty().filterNot {
+                                            it.uiId in selectedUiIds
+                                        },
+                                    )
                                 selectedUiIds = emptySet()
-                            },
-                            modifier = Modifier.padding(end = 8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Yume.Cancel,
-                                contentDescription = MLang.Override.Editor.CancelDelete,
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                if (selectedUiIds.isNotEmpty()) {
-                                    val mode =
-                                        OverrideStructuredEditorStore.subRuleGroupEditorSelectedMode
-                                    val latestValues =
-                                        OverrideStructuredEditorStore.subRuleGroupEditorDraftValues
-                                    val updatedValues =
-                                        latestValues.update(
-                                            mode,
-                                            latestValues.valueFor(mode).orEmpty().filterNot {
-                                                it.uiId in selectedUiIds
-                                            },
-                                        )
-                                    selectedUiIds = emptySet()
-                                    isDeleteMode = false
-                                    applySubRuleValues(updatedValues)
-                                }
+                                isDeleteMode = false
+                                applySubRuleValues(updatedValues)
                             },
                             modifier = Modifier.padding(end = 24.dp),
                         ) {
@@ -197,31 +192,35 @@ fun OverrideSubRuleMapEditorScreen(
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             modifier = Modifier.fillMaxWidth(),
             topPadding = 20.dp,
             lazyListState = listState,
             onScrollDirectionChanged = addFabController::onScrollDirectionChanged,
         ) {
-            item(key = "modifier-card") {
-                Card {
-                    WindowDropdown(
-                        title = MLang.Override.Editor.Mode.Title,
-                        items = availableModes.map(OverrideListEditorMode::label),
-                        selectedIndex = selectedModeIndex,
-                        onSelectedIndexChange = { index ->
-                            val newMode = availableModes.getOrElse(index) { selectedMode }
-                            OverrideStructuredEditorStore.updateSubRuleGroupEditorSession(
-                                selectedMode = newMode
-                            )
-                            isDeleteMode = false
-                            selectedUiIds = emptySet()
-                        },
-                    )
+            if (showModeSelector) {
+                item(key = "modifier-card") {
+                    Card {
+                        EnumSelector(
+                            title = editorSemantics.modeTitle(),
+                            currentValue = selectedMode,
+                            items = availableModes.map { it.resolveLabel(editorSemantics) },
+                            values = availableModes,
+                            showDivider = false,
+                            onValueChange = { newMode ->
+                                OverrideStructuredEditorStore.updateSubRuleGroupEditorSession(
+                                    selectedMode = newMode
+                                )
+                                isDeleteMode = false
+                                selectedUiIds = emptySet()
+                            },
+                        )
+                    }
                 }
-            }
 
-            item(key = "modifier-card-gap") {
-                Spacer(modifier = Modifier.height(SubRuleSectionGap))
+                item(key = "modifier-card-gap") {
+                    Spacer(modifier = Modifier.height(SubRuleSectionGap))
+                }
             }
 
             if (currentDrafts.isNotEmpty()) {
@@ -274,6 +273,15 @@ fun OverrideSubRuleMapEditorScreen(
                             },
                         )
                     }
+                }
+            } else {
+                item(key = "sub-rule-empty") {
+                    OverrideEmptyStateCard(
+                        title = MLang.Override.Empty.Title,
+                        hint = MLang.Override.Empty.Hint,
+                        actionLabel = addFabLabel,
+                        onAction = handleAddClick,
+                    )
                 }
             }
 

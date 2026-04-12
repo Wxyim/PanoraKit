@@ -119,7 +119,7 @@ private fun createCodeEditor(
         typefaceText = font
         typefaceLineNumber = font
 
-        setScrollBarEnabled(false)
+        setScrollBarEnabled(true)
 
         nonPrintablePaintingFlags = CodeEditor.FLAG_DRAW_LINE_SEPARATOR
 

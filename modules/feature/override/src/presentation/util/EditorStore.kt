@@ -39,6 +39,8 @@ object OverrideStructuredEditorStore {
 
     var stringListEditorTitle: String by mutableStateOf("")
     var stringListEditorPlaceholder: String by mutableStateOf("")
+    var stringListEditorSemantics: OverrideEditorSemantics by
+        mutableStateOf(OverrideEditorSemantics.Override)
     var stringListEditorAvailableModes: List<OverrideListEditorMode> by
         mutableStateOf(listOf(OverrideListEditorMode.Replace))
     var stringListEditorSelectedMode: OverrideListEditorMode by
@@ -48,6 +50,8 @@ object OverrideStructuredEditorStore {
     var stringListEditorCallback: ((OverrideListModeValues<List<String>>) -> Unit)? = null
 
     var ruleEditorTitle: String by mutableStateOf("")
+    var ruleEditorSemantics: OverrideEditorSemantics by
+        mutableStateOf(OverrideEditorSemantics.Override)
     var ruleEditorAvailableModes: List<OverrideListEditorMode> by
         mutableStateOf(listOf(OverrideListEditorMode.Replace))
     var ruleEditorSelectedMode: OverrideListEditorMode by
@@ -61,6 +65,8 @@ object OverrideStructuredEditorStore {
     var objectEditorTitle: String by mutableStateOf("")
     var objectEditorType: OverrideStructuredObjectType by
         mutableStateOf(OverrideStructuredObjectType.Proxies)
+    var objectEditorSemantics: OverrideEditorSemantics by
+        mutableStateOf(OverrideEditorSemantics.Override)
     var objectEditorAvailableModes: List<OverrideListEditorMode> by
         mutableStateOf(listOf(OverrideListEditorMode.Replace))
     var objectEditorSelectedMode: OverrideListEditorMode by
@@ -77,6 +83,8 @@ object OverrideStructuredEditorStore {
     var keyedObjectMapEditorTitle: String by mutableStateOf("")
     var keyedObjectMapEditorType: OverrideStructuredMapType by
         mutableStateOf(OverrideStructuredMapType.RuleProviders)
+    var keyedObjectMapEditorSemantics: OverrideEditorSemantics by
+        mutableStateOf(OverrideEditorSemantics.Override)
     var keyedObjectMapEditorAvailableModes: List<OverrideListEditorMode> by
         mutableStateOf(listOf(OverrideListEditorMode.Replace))
     var keyedObjectMapEditorSelectedMode: OverrideListEditorMode by
@@ -90,6 +98,8 @@ object OverrideStructuredEditorStore {
         null
 
     var subRuleGroupEditorTitle: String by mutableStateOf("")
+    var subRuleGroupEditorSemantics: OverrideEditorSemantics by
+        mutableStateOf(OverrideEditorSemantics.Override)
     var subRuleGroupEditorAvailableModes: List<OverrideListEditorMode> by
         mutableStateOf(listOf(OverrideListEditorMode.Replace))
     var subRuleGroupEditorSelectedMode: OverrideListEditorMode by
@@ -380,10 +390,12 @@ object OverrideStructuredEditorStore {
         availableModes: List<OverrideListEditorMode>,
         selectedMode: OverrideListEditorMode,
         values: OverrideListModeValues<List<String>>,
+        semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
         callback: (OverrideListModeValues<List<String>>) -> Unit,
     ) {
         stringListEditorTitle = title
         stringListEditorPlaceholder = placeholder
+        stringListEditorSemantics = semantics
         stringListEditorAvailableModes = availableModes
         stringListEditorSelectedMode = selectedMode
         stringListEditorValues =
@@ -416,10 +428,12 @@ object OverrideStructuredEditorStore {
         selectedMode: OverrideListEditorMode,
         values: OverrideListModeValues<List<String>>,
         referenceCatalog: OverrideReferenceCatalog,
+        semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
         callback: (OverrideListModeValues<List<String>>) -> Unit,
     ) {
         this.referenceCatalog = referenceCatalog
         ruleEditorTitle = title
+        ruleEditorSemantics = semantics
         ruleEditorAvailableModes = availableModes
         ruleEditorSelectedMode = selectedMode
         ruleEditorValues =
@@ -454,11 +468,13 @@ object OverrideStructuredEditorStore {
         selectedMode: OverrideListEditorMode,
         values: OverrideListModeValues<List<Map<String, JsonElement>>>,
         referenceCatalog: OverrideReferenceCatalog,
+        semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
         callback: (OverrideListModeValues<List<Map<String, JsonElement>>>) -> Unit,
     ) {
         this.referenceCatalog = referenceCatalog
         objectEditorTitle = title
         objectEditorType = type
+        objectEditorSemantics = semantics
         objectEditorAvailableModes = availableModes
         objectEditorSelectedMode = selectedMode
         objectEditorValues =
@@ -503,10 +519,12 @@ object OverrideStructuredEditorStore {
         availableModes: List<OverrideListEditorMode>,
         selectedMode: OverrideListEditorMode,
         values: OverrideListModeValues<Map<String, Map<String, JsonElement>>>,
+        semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
         callback: (OverrideListModeValues<Map<String, Map<String, JsonElement>>>) -> Unit,
     ) {
         keyedObjectMapEditorTitle = title
         keyedObjectMapEditorType = type
+        keyedObjectMapEditorSemantics = semantics
         keyedObjectMapEditorAvailableModes = availableModes
         keyedObjectMapEditorSelectedMode = selectedMode
         keyedObjectMapEditorValues =
@@ -541,10 +559,12 @@ object OverrideStructuredEditorStore {
         selectedMode: OverrideListEditorMode,
         values: OverrideListModeValues<Map<String, List<String>>>,
         referenceCatalog: OverrideReferenceCatalog,
+        semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
         callback: (OverrideListModeValues<Map<String, List<String>>>) -> Unit,
     ) {
         this.referenceCatalog = referenceCatalog
         subRuleGroupEditorTitle = title
+        subRuleGroupEditorSemantics = semantics
         subRuleGroupEditorAvailableModes = availableModes
         subRuleGroupEditorSelectedMode = selectedMode
         subRuleGroupEditorValues =

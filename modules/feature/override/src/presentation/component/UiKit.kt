@@ -23,17 +23,27 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.chevron
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -41,12 +51,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 val OverrideSectionSpacing = 12.dp
 val OverrideSectionTitleSpacing = 8.dp
 val OverrideSectionBottomSpacing = 32.dp
+val OverrideFloatingActionContentBottomPadding = 112.dp
 private val OverrideFieldAssistIndent = 14.dp
 private val OverrideFieldAssistVerticalPadding = 8.dp
 private val OverrideActionButtonSize = 35.dp
 private val OverrideActionIconSize = 18.dp
 private val OverrideStatusBadgeSize = 32.dp
 private val OverrideStatusBadgeIconSize = 18.dp
+
+val LocalOverrideCardHorizontalPadding = staticCompositionLocalOf { true }
 
 enum class OverrideActionTone {
     Neutral,
@@ -164,7 +177,57 @@ fun OverrideFieldAssistText(text: String, color: Color, modifier: Modifier = Mod
 
 @Composable
 fun OverrideSelectorCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Card(modifier = modifier, insideMargin = PaddingValues(0.dp), content = content)
+    Card(
+        modifier = modifier,
+        insideMargin = PaddingValues(vertical = 6.dp),
+        applyHorizontalPadding = LocalOverrideCardHorizontalPadding.current,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(), content = { content() })
+    }
+}
+
+@Composable
+fun OverrideEmptyStateCard(
+    title: String,
+    hint: String,
+    actionLabel: String? = null,
+    actionIcon: ImageVector = Yume.`Badge-plus`,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
+) {
+    Card(
+        modifier = modifier,
+        insideMargin = PaddingValues(horizontal = 18.dp, vertical = 20.dp),
+        applyHorizontalPadding = LocalOverrideCardHorizontalPadding.current,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = hint,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+            if (onAction != null && !actionLabel.isNullOrBlank()) {
+                AppCommandButton(
+                    title = actionLabel,
+                    imageVector = actionIcon,
+                    tone = SemanticTone.Brand,
+                    highEmphasis = true,
+                    modifier = Modifier.widthIn(max = 240.dp),
+                    onClick = onAction,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -174,6 +237,9 @@ fun OverrideSectionCardHeader(
     expanded: Boolean,
     onClick: () -> Unit,
     showIndicator: Boolean = true,
+    imageVector: ImageVector = Yume.`Settings-2`,
+    tone: SemanticTone = SemanticTone.Neutral,
+    active: Boolean = false,
 ) {
     val indicatorRotation =
         animateFloatAsState(
@@ -181,23 +247,87 @@ fun OverrideSectionCardHeader(
             animationSpec = tween(durationMillis = 180),
             label = "override_section_indicator_rotation",
         )
+    val emphasized = active || expanded
+    val style = SemanticActionDefaults.style(tone = tone, highEmphasis = emphasized)
+    val shape = RoundedCornerShape(26.dp)
+    val containerColor =
+        if (emphasized) {
+            lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.16f)
+        } else {
+            lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.28f)
+        }
+    val borderColor =
+        if (emphasized) {
+            lerp(
+                MiuixTheme.colorScheme.outline.copy(alpha = 0.18f),
+                style.contentColor.copy(alpha = 0.12f),
+                0.22f,
+            )
+        } else {
+            MiuixTheme.colorScheme.outline.copy(alpha = 0.10f)
+        }
+    val iconTint = style.contentColor
 
-    BasicComponent(
-        title = title,
-        summary = summary.orEmpty(),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
-        endActions = {
-            if (showIndicator) {
-                Icon(
-                    imageVector = Yume.chevron,
-                    contentDescription = null,
-                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                    modifier = Modifier.rotate(indicatorRotation.value),
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(horizontal = 10.dp)
+                .background(color = containerColor, shape = shape)
+                .border(width = 0.8.dp, color = borderColor, shape = shape)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OverrideStatusBadge(
+            imageVector = imageVector,
+            contentDescription = title,
+            tint = iconTint,
+            backgroundColor = style.iconContainerColor,
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                color = MiuixTheme.colorScheme.onSurface,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!summary.isNullOrBlank()) {
+                Text(
+                    text = summary,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        },
-        onClick = onClick,
-    )
+        }
+
+        if (showIndicator) {
+            Icon(
+                imageVector = Yume.chevron,
+                contentDescription = null,
+                tint =
+                    if (emphasized) {
+                        lerp(
+                            MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            style.contentColor,
+                            0.72f,
+                        )
+                    } else {
+                        MiuixTheme.colorScheme.onSurfaceVariantActions
+                    },
+                modifier = Modifier.rotate(indicatorRotation.value),
+            )
+        }
+    }
 }
 
 @Composable
@@ -257,40 +387,24 @@ fun OverrideCardActionIconButton(
     tone: OverrideActionTone = OverrideActionTone.Neutral,
     enabled: Boolean = true,
 ) {
-    val colorScheme = MiuixTheme.colorScheme
-    val (backgroundColor, iconTint) =
+    val semanticTone =
         when (tone) {
-            OverrideActionTone.Neutral -> {
-                colorScheme.secondaryContainer.copy(alpha = 0.78f) to
-                    colorScheme.onSurface.copy(alpha = if (enabled) 0.85f else 0.45f)
-            }
-
-            OverrideActionTone.Primary -> {
-                colorScheme.primary.copy(alpha = 0.1f) to
-                    colorScheme.primary.copy(alpha = if (enabled) 1f else 0.45f)
-            }
-
-            OverrideActionTone.Danger -> {
-                colorScheme.error.copy(alpha = 0.1f) to
-                    colorScheme.error.copy(alpha = if (enabled) 1f else 0.45f)
-            }
+            OverrideActionTone.Neutral -> SemanticTone.Neutral
+            OverrideActionTone.Primary -> SemanticTone.Brand
+            OverrideActionTone.Danger -> SemanticTone.Danger
         }
 
-    IconButton(
-        modifier = modifier,
-        backgroundColor = backgroundColor,
-        minHeight = OverrideActionButtonSize,
-        minWidth = OverrideActionButtonSize,
-        enabled = enabled,
+    AppCircularIconAction(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
         onClick = onClick,
-    ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = iconTint,
-            modifier = Modifier.size(OverrideActionIconSize),
-        )
-    }
+        modifier = modifier,
+        tone = semanticTone,
+        highEmphasis = tone != OverrideActionTone.Neutral,
+        size = OverrideActionButtonSize,
+        iconSize = OverrideActionIconSize,
+        enabled = enabled,
+    )
 }
 
 @Composable

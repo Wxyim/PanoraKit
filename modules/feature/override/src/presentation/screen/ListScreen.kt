@@ -56,8 +56,6 @@ import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -276,6 +274,7 @@ fun OverrideListScreen(
                 visible = !showCreateDialog.value,
                 imageVector = Yume.`Badge-plus`,
                 contentDescription = MLang.Override.Action.Create,
+                label = MLang.Override.Action.Create,
                 onClick = { showCreateDialog.value = true },
             )
         },
@@ -284,6 +283,7 @@ fun OverrideListScreen(
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = paddingValues,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             topPadding = 20.dp,
             lazyListState = listState,
             onScrollDirectionChanged = createFabController::onScrollDirectionChanged,
@@ -310,24 +310,26 @@ fun OverrideListScreen(
                                     firstLine = MLang.Override.Empty.Title,
                                     secondLine = MLang.Override.Empty.Hint,
                                 )
-                                Row(
-                                    horizontalArrangement =
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement =
                                         Arrangement.spacedBy(
                                             OverrideListMetrics.DialogButtonSpacing
                                         )
                                 ) {
-                                    Button(onClick = { showCreateDialog.value = true }) {
-                                        Text(MLang.Override.Action.New)
-                                    }
-                                    Button(
+                                    AppCommandButton(
+                                        title = MLang.Override.Action.New,
+                                        imageVector = Yume.`Badge-plus`,
+                                        onClick = { showCreateDialog.value = true },
+                                        tone = SemanticTone.Brand,
+                                        highEmphasis = true,
+                                    )
+                                    AppCommandButton(
+                                        title = MLang.Override.Action.Import,
+                                        imageVector = Yume.List,
                                         onClick = { importAutoLauncher.launch("*/*") },
-                                        colors = ButtonDefaults.buttonColorsPrimary(),
-                                    ) {
-                                        Text(
-                                            text = MLang.Override.Action.Import,
-                                            color = colorScheme.background,
-                                        )
-                                    }
+                                        tone = SemanticTone.Info,
+                                    )
                                 }
                             }
                         }
@@ -756,22 +758,12 @@ private fun DeleteConfirmDialog(
         summary = summary,
         onDismissRequest = onDismiss,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(OverrideListMetrics.DialogButtonSpacing)) {
-            Button(modifier = Modifier.weight(1f), onClick = onDismiss) {
-                Text(MLang.Override.Dialog.Button.Cancel)
-            }
-
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = MLang.Override.Dialog.Button.Delete,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
-        }
+        DialogButtonRow(
+            onCancel = onDismiss,
+            onConfirm = onConfirm,
+            cancelText = MLang.Override.Dialog.Button.Cancel,
+            confirmText = MLang.Override.Dialog.Button.Delete,
+        )
     }
 }
 
@@ -792,19 +784,19 @@ private fun EditOptionsDialog(
         Column(
             verticalArrangement = Arrangement.spacedBy(OverrideListMetrics.DialogButtonSpacing)
         ) {
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onCodeEditor) {
-                Text(MLang.Override.Dialog.EditOptions.CodeEditor)
-            }
-            Button(
-                modifier = Modifier.fillMaxWidth(),
+            AppCommandButton(
+                title = MLang.Override.Dialog.EditOptions.CodeEditor,
+                imageVector = Yume.List,
+                onClick = onCodeEditor,
+                tone = SemanticTone.Neutral,
+            )
+            AppCommandButton(
+                title = MLang.Override.Dialog.EditOptions.VisualEditor,
+                imageVector = Yume.Edit,
                 onClick = onVisualEdit,
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(
-                    text = MLang.Override.Dialog.EditOptions.VisualEditor,
-                    color = colorScheme.onPrimary,
-                )
-            }
+                tone = SemanticTone.Brand,
+                highEmphasis = true,
+            )
         }
     }
 }

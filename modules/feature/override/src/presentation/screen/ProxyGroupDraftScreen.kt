@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.util.OverrideExtraFieldDraft
 import com.github.yumelira.yumebox.presentation.util.OverrideProxyGroupDraft
 import com.github.yumelira.yumebox.presentation.util.OverrideProxyGroupTypePresets
@@ -36,8 +36,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.extra.WindowDropdown
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
@@ -80,10 +79,8 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
     var editingExtraKey by remember { mutableStateOf<String?>(null) }
     var showExtraFieldDialog by remember { mutableStateOf(false) }
     var showProxySelector by remember { mutableStateOf(false) }
+    var showTypeSelector by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
-    val selectedPresetIndex =
-        OverrideProxyGroupTypePresets.indexOfFirst { it.equals(type, ignoreCase = true) }
-            .coerceAtLeast(0)
     val referenceCatalog = OverrideStructuredEditorStore.currentReferenceCatalog()
     val excludedGroupNames =
         remember(name, initialValue?.name) {
@@ -127,8 +124,9 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
             OverrideAnimatedFab(
                 controller = saveFabController,
                 visible = true,
-                imageVector = Yume.Save,
+                imageVector = Yume.Check,
                 contentDescription = MLang.Override.Editor.SaveProxyGroup,
+                label = MLang.Override.Draft.Save,
                 onClick = {
                     if (name.trim().isBlank()) {
                         errorText = MLang.Override.Draft.NameRequired
@@ -174,118 +172,149 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
+            bottomPadding = OverrideFloatingActionContentBottomPadding,
             lazyListState = listState,
-            onScrollDirectionChanged = saveFabController::onScrollDirectionChanged,
         ) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(OverrideSectionSpacing),
                 ) {
-                    OverrideSection(MLang.Override.Draft.BasicInfo) {
-                        OverrideSelectorCard {
-                            WindowDropdown(
-                                title = MLang.Override.Editor.RuleType,
-                                items = OverrideProxyGroupTypePresets,
-                                selectedIndex = selectedPresetIndex,
-                                onSelectedIndexChange = { index ->
-                                    if (index in OverrideProxyGroupTypePresets.indices) {
-                                        type = OverrideProxyGroupTypePresets[index]
-                                        errorText = null
-                                    }
-                                },
-                            )
-                        }
-                        OverrideFormFieldColumn {
-                            OverrideFormField(
-                                value = name,
-                                onValueChange = {
-                                    name = it
-                                    errorText = null
-                                },
-                                label = MLang.Override.Draft.Name,
-                                errorText =
-                                    errorText?.takeIf { it.contains(MLang.Override.Draft.Name) },
-                            )
-                            OverrideFormField(
-                                value = url,
-                                onValueChange = { url = it },
-                                label = "url",
-                            )
-                            OverrideFormField(
-                                value = intervalText,
-                                onValueChange = { intervalText = it.filter(Char::isDigit) },
-                                label = "interval",
-                            )
-                            OverrideFormField(
-                                value = timeoutText,
-                                onValueChange = { timeoutText = it.filter(Char::isDigit) },
-                                label = "timeout",
-                            )
-                            OverrideFormField(
-                                value = maxFailedTimesText,
-                                onValueChange = { maxFailedTimesText = it.filter(Char::isDigit) },
-                                label = "max-failed-times",
-                            )
-                        }
+                    OverrideCardSection(MLang.Override.Draft.BasicInfo) {
+                        ConfigSettingRow(
+                            title = MLang.Override.Editor.RuleType,
+                            valueLabel = type.ifBlank { MLang.Component.Selector.UseDefault },
+                            tone = SemanticTone.Info,
+                            badgeTone = SemanticTone.Info,
+                            onClick = {
+                                showTypeSelector = true
+                                errorText = null
+                            },
+                        )
+                        StringInputContent(
+                            title = MLang.Override.Draft.Name,
+                            value = name.takeIf(String::isNotBlank),
+                            placeholder = MLang.Override.Draft.Name,
+                            unsetLabel = "",
+                            onValueChange = {
+                                name = it.orEmpty()
+                                errorText = null
+                            },
+                        )
+                        errorText
+                            ?.takeIf { it.contains(MLang.Override.Draft.Name) }
+                            ?.let { message ->
+                                OverrideFieldAssistText(
+                                    text = message,
+                                    color = MiuixTheme.colorScheme.error,
+                                )
+                            }
+                        StringInputContent(
+                            title = "url",
+                            value = url.takeIf(String::isNotBlank),
+                            placeholder = "url",
+                            unsetLabel = "",
+                            onValueChange = { url = it.orEmpty() },
+                        )
+                        StringInputContent(
+                            title = "interval",
+                            value = intervalText.takeIf(String::isNotBlank),
+                            placeholder = "interval",
+                            unsetLabel = "",
+                            onValueChange = {
+                                intervalText = it?.filter(Char::isDigit).orEmpty()
+                            },
+                        )
+                        StringInputContent(
+                            title = "timeout",
+                            value = timeoutText.takeIf(String::isNotBlank),
+                            placeholder = "timeout",
+                            unsetLabel = "",
+                            onValueChange = {
+                                timeoutText = it?.filter(Char::isDigit).orEmpty()
+                            },
+                        )
+                        StringInputContent(
+                            title = "max-failed-times",
+                            value = maxFailedTimesText.takeIf(String::isNotBlank),
+                            placeholder = "max-failed-times",
+                            unsetLabel = "",
+                            onValueChange = {
+                                maxFailedTimesText = it?.filter(Char::isDigit).orEmpty()
+                            },
+                        )
                     }
-                    OverrideSection(MLang.Override.Editor.MemberSource) {
-                        OverrideSelectorCard {
-                            SuperArrow(
-                                title = "proxies",
-                                onClick = {
-                                    showProxySelector = true
-                                    errorText = null
-                                },
-                                holdDownState = showProxySelector,
-                            )
-                        }
-                        OverrideFormFieldColumn {
-                            OverrideFormField(
-                                value = useText,
-                                onValueChange = { useText = it },
-                                label = "use",
-                                supportText = MLang.Override.Edit.OneProviderPerLineHint,
-                                modifier = Modifier.heightIn(min = 100.dp),
-                                maxLines = 8,
-                            )
-                        }
+                    OverrideCardSection(MLang.Override.Editor.MemberSource) {
+                        ConfigSettingRow(
+                            title = "proxies",
+                            onClick = {
+                                showProxySelector = true
+                                errorText = null
+                            },
+                        )
+                        StringInputContent(
+                            title = "use",
+                            value = useText.takeIf(String::isNotBlank),
+                            placeholder = "use",
+                            unsetLabel = "",
+                            onValueChange = { useText = it.orEmpty() },
+                        )
+                        OverrideFieldAssistText(
+                            text = MLang.Override.Edit.OneProviderPerLineHint,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
                     }
-                    OverridePlainFormSection(MLang.Override.Editor.HealthCheckAndFilter) {
-                        OverrideFormField(
-                            value = interfaceName,
-                            onValueChange = { interfaceName = it },
-                            label = "interface-name",
+                    OverrideCardSection(MLang.Override.Editor.HealthCheckAndFilter) {
+                        StringInputContent(
+                            title = "interface-name",
+                            value = interfaceName.takeIf(String::isNotBlank),
+                            placeholder = "interface-name",
+                            unsetLabel = "",
+                            onValueChange = { interfaceName = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = routingMarkText,
-                            onValueChange = { routingMarkText = it.filter(Char::isDigit) },
-                            label = "routing-mark",
+                        StringInputContent(
+                            title = "routing-mark",
+                            value = routingMarkText.takeIf(String::isNotBlank),
+                            placeholder = "routing-mark",
+                            unsetLabel = "",
+                            onValueChange = {
+                                routingMarkText = it?.filter(Char::isDigit).orEmpty()
+                            },
                         )
-                        OverrideFormField(
-                            value = filter,
-                            onValueChange = { filter = it },
-                            label = "filter",
+                        StringInputContent(
+                            title = "filter",
+                            value = filter.takeIf(String::isNotBlank),
+                            placeholder = "filter",
+                            unsetLabel = "",
+                            onValueChange = { filter = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = excludeFilter,
-                            onValueChange = { excludeFilter = it },
-                            label = "exclude-filter",
+                        StringInputContent(
+                            title = "exclude-filter",
+                            value = excludeFilter.takeIf(String::isNotBlank),
+                            placeholder = "exclude-filter",
+                            unsetLabel = "",
+                            onValueChange = { excludeFilter = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = excludeType,
-                            onValueChange = { excludeType = it },
-                            label = "exclude-type",
+                        StringInputContent(
+                            title = "exclude-type",
+                            value = excludeType.takeIf(String::isNotBlank),
+                            placeholder = "exclude-type",
+                            unsetLabel = "",
+                            onValueChange = { excludeType = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = expectedStatus,
-                            onValueChange = { expectedStatus = it },
-                            label = "expected-status",
+                        StringInputContent(
+                            title = "expected-status",
+                            value = expectedStatus.takeIf(String::isNotBlank),
+                            placeholder = "expected-status",
+                            unsetLabel = "",
+                            onValueChange = { expectedStatus = it.orEmpty() },
                         )
-                        OverrideFormField(
-                            value = icon,
-                            onValueChange = { icon = it },
-                            label = "icon",
+                        StringInputContent(
+                            title = "icon",
+                            value = icon.takeIf(String::isNotBlank),
+                            placeholder = "icon",
+                            unsetLabel = "",
+                            onValueChange = { icon = it.orEmpty() },
                         )
                     }
                     OverrideCardSection(MLang.Override.Structured.Proxies.Title) {
@@ -339,6 +368,26 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
+        OverrideSingleValueSelectionSheet(
+            show = showTypeSelector,
+            title = MLang.Override.Editor.RuleType,
+            value = type,
+            groups =
+                listOf(
+                    OverrideSelectionGroup(
+                        title = MLang.Override.Editor.RuleType,
+                        items = OverrideProxyGroupTypePresets,
+                    )
+                ),
+            customInputLabel = "",
+            allowCustomValue = false,
+            onDismiss = { showTypeSelector = false },
+            onConfirm = { selectedValue ->
+                type = selectedValue.trim().ifBlank { type }
+                errorText = null
+                showTypeSelector = false
+            },
+        )
         OverrideExtraFieldDialog(
             show = showExtraFieldDialog,
             title =

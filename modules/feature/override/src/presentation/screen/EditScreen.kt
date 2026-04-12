@@ -69,6 +69,8 @@ fun OverrideEditScreen(
     var currentMapEditorKeyPlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValuePlaceholder by remember { mutableStateOf("") }
     var currentMapEditorValue by remember { mutableStateOf<Map<String, String>?>(null) }
+    var currentMapEditorValidationMode by
+        remember { mutableStateOf(StringMapValidationMode.None) }
 
     var currentJsonEditorTitle by remember { mutableStateOf("") }
     var currentJsonEditorPlaceholder by remember { mutableStateOf("") }
@@ -194,6 +196,7 @@ fun OverrideEditScreen(
                         currentMapEditorKeyPlaceholder = keyPlaceholder
                         currentMapEditorValuePlaceholder = valuePlaceholder
                         currentMapEditorValue = value
+                        currentMapEditorValidationMode = resolveStringMapValidationMode(title)
                         currentMapEditorCallback = callback
                         showStringMapEditor.value = true
                     },
@@ -276,6 +279,7 @@ fun OverrideEditScreen(
             keyPlaceholder = currentMapEditorKeyPlaceholder,
             valuePlaceholder = currentMapEditorValuePlaceholder,
             value = currentMapEditorValue,
+            validationMode = currentMapEditorValidationMode,
             onValueChange = currentMapEditorCallback,
         )
 

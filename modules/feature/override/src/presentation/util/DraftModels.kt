@@ -105,6 +105,15 @@ enum class OverrideEditorSection {
     abstract val summary: String
 }
 
+enum class OverrideEditorSemantics {
+    Override,
+    LocalConfig,
+}
+
+fun OverrideEditorSection.resolveSummary(semantics: OverrideEditorSemantics): String {
+    return summary
+}
+
 enum class OverrideModifierVisualMode {
     Replace {
         override val label: String
@@ -130,6 +139,20 @@ enum class OverrideModifierVisualMode {
     abstract val label: String
 }
 
+fun OverrideModifierVisualMode.resolveLabel(semantics: OverrideEditorSemantics): String {
+    return when (semantics) {
+        OverrideEditorSemantics.Override -> label
+        OverrideEditorSemantics.LocalConfig ->
+            when (this) {
+                OverrideModifierVisualMode.Replace -> MLang.Override.Editor.Mode.DirectEdit
+                OverrideModifierVisualMode.Start -> MLang.Override.Modifier.Start
+                OverrideModifierVisualMode.End -> MLang.Override.Modifier.End
+                OverrideModifierVisualMode.Merge -> MLang.Override.Modifier.Merge
+                OverrideModifierVisualMode.Force -> label
+            }
+    }
+}
+
 sealed interface OverrideSaveState {
     data object Idle : OverrideSaveState
 
@@ -146,20 +169,19 @@ data class OverrideSectionSummary(
     val modifiedCount: Int,
     val visualModes: Set<OverrideModifierVisualMode>,
 ) {
-    val summaryText: String
-        get() {
-            if (modifiedCount == 0) {
-                return MLang.Override.Modifier.NotModified
-            }
-            val modeSummary = visualModes.joinToString(" / ") { it.label }
-            return buildString {
-                append(MLang.Override.Modifier.ItemsCount.format(modifiedCount))
-                if (modeSummary.isNotEmpty()) {
-                    append(" · ")
-                    append(modeSummary)
-                }
-            }
+    fun summaryText(semantics: OverrideEditorSemantics = OverrideEditorSemantics.Override): String {
+        if (modifiedCount == 0) {
+            return MLang.Override.Modifier.NotModified
         }
+        val modeSummary = visualModes.joinToString(" / ") { it.resolveLabel(semantics) }
+        return buildString {
+            if (modeSummary.isNotEmpty()) {
+                append(modeSummary)
+                append(" · ")
+            }
+            append(MLang.Override.Modifier.ItemsCount.format(modifiedCount))
+        }
+    }
 }
 
 data class OverrideEditorOverview(
