@@ -133,17 +133,15 @@ class ProfileManager(private val context: Context) : IProfileManager {
     }
 
     override suspend fun queryAll(): List<Profile> {
-        val uuids = withContext(Dispatchers.IO) { ImportedDao.queryAllUUIDs() }
+        val importedUuids = withContext(Dispatchers.IO) { ImportedDao.queryAllUUIDs() }
+        val savedOrder = ProfileStore.loadProfileOrder()
+        val normalizedOrder = normalizeProfileOrder(importedUuids, savedOrder)
 
-        val orderIndex =
-            ProfileStore.loadProfileOrder().withIndex().associate { it.value to it.index }
+        if (normalizedOrder != savedOrder) {
+            ProfileStore.saveProfileOrder(normalizedOrder)
+        }
 
-        return uuids
-            .mapNotNull { resolveProfile(it) }
-            .sortedWith(
-                compareBy<Profile> { orderIndex[it.uuid] ?: Int.MAX_VALUE }
-                    .thenByDescending { it.updatedAt }
-            )
+        return normalizedOrder.mapNotNull { resolveProfile(it) }
     }
 
     override suspend fun queryActive(): Profile? {
@@ -171,12 +169,7 @@ class ProfileManager(private val context: Context) : IProfileManager {
 
     override suspend fun reorder(uuids: List<UUID>) {
         val existing = ImportedDao.queryAllUUIDs()
-        val existingSet = existing.toSet()
-
-        val normalized = buildList {
-            uuids.forEach { uuid -> if (uuid in existingSet && uuid !in this) add(uuid) }
-            existing.forEach { uuid -> if (uuid !in this) add(uuid) }
-        }
+        val normalized = normalizeProfileOrder(existing, uuids)
 
         ProfileStore.saveProfileOrder(normalized)
     }
@@ -204,5 +197,22 @@ class ProfileManager(private val context: Context) : IProfileManager {
 
     private fun resolveUpdatedAt(uuid: UUID): Long {
         return context.importedDir.resolve(uuid.toString()).directoryLastModified ?: -1
+    }
+}
+
+internal fun normalizeProfileOrder(existing: List<UUID>, savedOrder: List<UUID>): List<UUID> {
+    val existingSet = existing.toSet()
+
+    return buildList {
+        savedOrder.forEach { uuid ->
+            if (uuid in existingSet && uuid !in this) {
+                add(uuid)
+            }
+        }
+        existing.forEach { uuid ->
+            if (uuid !in this) {
+                add(uuid)
+            }
+        }
     }
 }
