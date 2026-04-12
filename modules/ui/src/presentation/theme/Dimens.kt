@@ -83,11 +83,31 @@ data class Radii(
     val sm: Dp = 4.dp,
     val md: Dp = 8.dp,
     val lg: Dp = 12.dp,
+    val xl: Dp = 16.dp,
+    val xxl: Dp = 24.dp,
     val pill: Dp = 999.dp,
+)
+
+data class Strokes(
+    val thin: Dp = 0.35.dp,
+    val default: Dp = 0.8.dp,
+    val medium: Dp = 1.dp,
+    val thick: Dp = 1.5.dp,
+)
+
+data class Elevations(
+    val none: Dp = 0.dp,
+    val low: Dp = 1.dp,
+    val medium: Dp = 3.dp,
+    val high: Dp = 6.dp,
+    val overlay: Dp = 12.dp,
+    val navigationBar: Dp = 22.dp,
 )
 
 val LocalSpacing = staticCompositionLocalOf { Spacing() }
 val LocalRadii = staticCompositionLocalOf { Radii() }
+val LocalStrokes = staticCompositionLocalOf { Strokes() }
+val LocalElevations = staticCompositionLocalOf { Elevations() }
 
 object AppTheme {
     val spacing: Spacing
@@ -95,6 +115,15 @@ object AppTheme {
 
     val radii: Radii
         @Composable get() = LocalRadii.current
+
+    val strokes: Strokes
+        @Composable get() = LocalStrokes.current
+
+    val elevations: Elevations
+        @Composable get() = LocalElevations.current
+
+    val typography: AppTypography
+        @Composable get() = LocalAppTypography.current
 }
 
 private fun Spacing.scaleBy(scale: Float): Spacing {

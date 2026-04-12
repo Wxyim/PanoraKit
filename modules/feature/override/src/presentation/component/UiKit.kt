@@ -25,7 +25,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -274,7 +273,7 @@ fun OverrideSectionCardHeader(
                 .padding(horizontal = 10.dp)
                 .background(color = containerColor, shape = shape)
                 .border(width = 0.8.dp, color = borderColor, shape = shape)
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,

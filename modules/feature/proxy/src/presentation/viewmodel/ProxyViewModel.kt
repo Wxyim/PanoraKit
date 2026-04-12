@@ -577,5 +577,6 @@ class ProxyViewModel(
         val isLoading: Boolean = false,
         val message: String? = null,
         val error: String? = null,
+        val structuredError: StructuredError? = null,
     )
 }

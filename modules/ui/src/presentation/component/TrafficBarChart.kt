@@ -23,7 +23,6 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -134,12 +133,11 @@ fun TrafficBarChart(
                                     }
                                     .then(
                                         if (onItemClick != null) {
-                                            Modifier.clickable(
+                                            Modifier.appClickable(
                                                 role = Role.Button,
                                                 onClickLabel = barLabel,
-                                            ) {
-                                                onItemClick(index)
-                                            }
+                                                onClick = { onItemClick(index) },
+                                            )
                                         } else {
                                             Modifier
                                         }

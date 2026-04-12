@@ -26,7 +26,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -42,16 +41,24 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.LogMessage
+import com.github.yumelira.yumebox.presentation.component.AppDialog
+import com.github.yumelira.yumebox.presentation.component.AppDialogDefaults
 import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.CenteredText
 import com.github.yumelira.yumebox.presentation.component.ConfigSettingRow
+import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumelira.yumebox.presentation.component.SemanticTone
+import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
+import com.github.yumelira.yumebox.presentation.icon.yume.Save
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -62,6 +69,7 @@ import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -74,7 +82,6 @@ private object LogScreenMetrics {
     val MessageFontSize = 12.sp
     val MetaSpacing = 8.dp
     val MessageTopSpacing = 6.dp
-    val ContentMaxWidth = 1120.dp
 }
 
 private enum class LogContentMode {
@@ -124,10 +131,44 @@ fun LogScreen(navigator: DestinationsNavigator) {
             }
         }
 
+    val debugBundleLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/zip")
+        ) { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val success =
+                    viewModel.exportDebugBundle(
+                        targetUri = uri,
+                        appVersionName = com.github.nomadboxlab.monadbox.BuildConfig.VERSION_NAME,
+                        appVersionCode = com.github.nomadboxlab.monadbox.BuildConfig.VERSION_CODE,
+                        buildType = com.github.nomadboxlab.monadbox.BuildConfig.BUILD_TYPE,
+                    )
+                launch(Dispatchers.Main) {
+                    if (success) {
+                        context.toast(MLang.Log.Action.ExportDone)
+                    } else {
+                        context.toast(MLang.Util.Error.UnknownError)
+                    }
+                }
+            }
+        }
+
+    val showExportConfirmDialog = remember { mutableStateOf(false) }
+
     DisposableEffect(Unit) {
         viewModel.startAutoRefresh()
         onDispose { viewModel.stopAutoRefresh() }
     }
+
+    DebugBundleExportConfirmDialog(
+        show = showExportConfirmDialog.value,
+        onConfirm = {
+            showExportConfirmDialog.value = false
+            debugBundleLauncher.launch(viewModel.suggestDebugBundleFileName())
+        },
+        onDismiss = { showExportConfirmDialog.value = false },
+    )
 
     Scaffold(
         topBar = {
@@ -158,6 +199,12 @@ fun LogScreen(navigator: DestinationsNavigator) {
                             contentDescription = MLang.Log.Action.Cleanup,
                         )
                     }
+                    IconButton(onClick = { showExportConfirmDialog.value = true }) {
+                        Icon(
+                            imageVector = Yume.Save,
+                            contentDescription = MLang.Log.Action.ExportDebugBundle,
+                        )
+                    }
                     if (displayEntries.isNotEmpty()) {
                         IconButton(
                             onClick = {
@@ -186,24 +233,26 @@ fun LogScreen(navigator: DestinationsNavigator) {
         floatingActionButton = {},
     ) { innerPadding ->
         val hasSavedLogs = historyFiles.isNotEmpty() || startupFiles.isNotEmpty()
-        if (
+        val showNoLogsEmptyState =
             !viewingSavedFile &&
                 logEntries.isEmpty() &&
-                isRecording.not() &&
+                !isRecording &&
                 historyFiles.isEmpty() &&
                 startupFiles.isEmpty()
-        ) {
-            CenteredText(
-                firstLine = MLang.Log.Empty.NoLogs,
-                secondLine = MLang.Log.Empty.AutoRecordHint,
-            )
-            return@Scaffold
-        }
+        val showWaitingEmptyState =
+            !viewingSavedFile && logEntries.isEmpty() && isRecording && !hasSavedLogs
 
-        if (!viewingSavedFile && logEntries.isEmpty() && isRecording && !hasSavedLogs) {
-            CenteredText(
-                firstLine = MLang.Log.Detail.WaitingLog,
-                secondLine = MLang.Log.Detail.WillShowWhenGenerated,
+        if (showNoLogsEmptyState || showWaitingEmptyState) {
+            LogEmptyStateContent(
+                firstLine = MLang.Log.Empty.NoLogs,
+                secondLine =
+                    if (showWaitingEmptyState) {
+                        MLang.Log.Detail.WillShowWhenGenerated
+                    } else {
+                        MLang.Log.Empty.AutoRecordHint
+                    },
+                innerPadding = innerPadding,
+                onExportDebugBundle = { showExportConfirmDialog.value = true },
             )
             return@Scaffold
         }
@@ -234,15 +283,32 @@ fun LogScreen(navigator: DestinationsNavigator) {
             label = "log_content_switch_animation",
         ) { contentMode ->
             val isDetailMode = contentMode == LogContentMode.Detail
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                val logContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
                 ScreenLazyColumn(
-                    modifier =
-                        Modifier.fillMaxWidth().widthIn(max = LogScreenMetrics.ContentMaxWidth),
+                    modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = 20.dp,
                     lazyListState = listState,
                 ) {
+                    if (!isDetailMode) {
+                        item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
+                        item(key = "diagnostic_export") {
+                            DiagnosticExportRow(
+                                modifier =
+                                    Modifier.padding(
+                                        vertical = LogScreenMetrics.CardVerticalPadding
+                                    ),
+                                onClick = { showExportConfirmDialog.value = true },
+                            )
+                        }
+                    }
+
                     if (isDetailMode) {
                         item(key = "history_header") {
                             Card(
@@ -254,7 +320,9 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                 Row(
                                     modifier =
                                         Modifier.fillMaxWidth()
-                                            .clickable { viewModel.closeHistoryViewer() }
+                                            .appClickable(
+                                                onClick = { viewModel.closeHistoryViewer() }
+                                            )
                                             .padding(
                                                 horizontal = LogScreenMetrics.CardHorizontalPadding,
                                                 vertical = LogScreenMetrics.CardVerticalInnerPadding,
@@ -370,15 +438,74 @@ fun LogScreen(navigator: DestinationsNavigator) {
                     }
 
                     val reversed = displayEntries.asReversed()
-                    itemsIndexed(
-                        items = reversed,
-                        key = { index, item -> "${item.time}_${item.level}_${item.message}_$index" },
-                    ) { _, entry ->
+                    itemsIndexed(items = reversed, key = { index, _ -> index }) { _, entry ->
                         LogEntryRow(entry = entry)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LogEmptyStateContent(
+    firstLine: String,
+    secondLine: String,
+    innerPadding: PaddingValues,
+    onExportDebugBundle: () -> Unit,
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+        val logContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+        ScreenLazyColumn(
+            modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
+            scrollBehavior = scrollBehavior,
+            innerPadding = innerPadding,
+            topPadding = 20.dp,
+        ) {
+            item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
+            item(key = "diagnostic_export") {
+                DiagnosticExportRow(
+                    modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding),
+                    onClick = onExportDebugBundle,
+                )
+            }
+            item(key = "empty_state") {
+                Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = firstLine,
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = secondLine,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticExportRow(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(modifier = modifier) {
+        ConfigSettingRow(
+            title = MLang.Log.Action.ExportDebugBundle,
+            summary = MLang.Log.Action.ExportDebugBundleWarning,
+            imageVector = Yume.Save,
+            tone = SemanticTone.Info,
+            showDivider = false,
+            onClick = onClick,
+        )
     }
 }
 
@@ -443,10 +570,42 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
                     MiuixTheme.textStyles.body2.copy(
                         fontSize = LogScreenMetrics.MessageFontSize,
                         fontFamily = FontFamily.Monospace,
-                    ),
+                ),
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
+                maxLines = 8,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
+}
+
+@Composable
+private fun DebugBundleExportConfirmDialog(
+    show: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AppDialog(
+        show = show,
+        modifier = Modifier,
+        title = MLang.Log.Action.ExportDebugBundle,
+        titleColor = AppDialogDefaults.titleColor(),
+        summary = MLang.Log.Action.ExportDebugBundleWarning,
+        summaryColor = AppDialogDefaults.summaryColor(),
+        backgroundColor = AppDialogDefaults.backgroundColor(),
+        enableWindowDim = true,
+        onDismissRequest = onDismiss,
+        outsideMargin = AppDialogDefaults.outsideMargin,
+        insideMargin = AppDialogDefaults.insideMargin,
+        defaultWindowInsetsPadding = true,
+        content = {
+            DialogButtonRow(
+                onCancel = onDismiss,
+                onConfirm = onConfirm,
+                cancelText = MLang.Log.Action.Cancel,
+                confirmText = MLang.Log.Action.Export,
+            )
+        },
+    )
 }

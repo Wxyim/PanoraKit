@@ -53,6 +53,7 @@ import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.StatusBadge
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
+import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
 import com.github.yumelira.yumebox.presentation.icon.yume.Save
 import com.github.yumelira.yumebox.presentation.icon.yume.Sparkles
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
@@ -156,6 +157,21 @@ fun ConfigPreviewScreen(
         }
     }
 
+    fun validateContent() {
+        if (isSaving) return
+        editorState.syncContentFromEditor()
+        editorState.updateDiagnostics()
+        if (!editorState.validate()) {
+            context.toast(
+                if (language == LanguageScope.Json) {
+                    MLang.Component.Editor.Error.JsonSyntaxError
+                } else {
+                    MLang.Component.Editor.Error.Unknown
+                }
+            )
+        }
+    }
+
     fun formatContent() {
         if (isSaving || isReadOnly) return
         editorState.syncContentFromEditor()
@@ -218,6 +234,7 @@ fun ConfigPreviewScreen(
                         isModified = editorState.isModified,
                         isSaving = isSaving,
                         isWideLayout = isWideLayout,
+                        onValidate = ::validateContent,
                         onFormat = ::formatContent,
                         onSave = ::saveAndExit,
                     )
@@ -292,6 +309,7 @@ private fun EditorCommandBar(
     isModified: Boolean,
     isSaving: Boolean,
     isWideLayout: Boolean,
+    onValidate: () -> Unit,
     onFormat: () -> Unit,
     onSave: () -> Unit,
 ) {
@@ -327,7 +345,7 @@ private fun EditorCommandBar(
                 )
 
                 Row(
-                    modifier = Modifier.widthIn(max = 420.dp),
+                    modifier = Modifier.widthIn(max = 560.dp),
                     horizontalArrangement = Arrangement.spacedBy(spacing.md),
                 ) {
                     AppCommandButton(
@@ -336,6 +354,15 @@ private fun EditorCommandBar(
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onFormat,
+                        tone = SemanticTone.Neutral,
+                    )
+
+                    AppCommandButton(
+                        title = MLang.Component.Editor.Action.Check,
+                        imageVector = Yume.CircleCheckBig,
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                        enabled = !isSaving,
+                        onClick = onValidate,
                         tone = SemanticTone.Neutral,
                     )
 
@@ -370,6 +397,15 @@ private fun EditorCommandBar(
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onFormat,
+                        tone = SemanticTone.Neutral,
+                    )
+
+                    AppCommandButton(
+                        title = MLang.Component.Editor.Action.Check,
+                        imageVector = Yume.CircleCheckBig,
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                        enabled = !isSaving,
+                        onClick = onValidate,
                         tone = SemanticTone.Neutral,
                     )
 

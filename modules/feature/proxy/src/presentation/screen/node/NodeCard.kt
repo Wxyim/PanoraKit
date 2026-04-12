@@ -286,6 +286,7 @@ internal fun NodeCard(
                                                 interactionSource =
                                                     remember { MutableInteractionSource() },
                                                 indication = null,
+                                                role = Role.Button,
                                                 onClick = onSingleNodeTestClick,
                                             ),
                                 )

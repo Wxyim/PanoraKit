@@ -20,7 +20,6 @@
 
 package com.github.yumelira.yumebox.presentation.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -348,7 +347,7 @@ private fun ReorderableCollectionItemScope.StringListEntryCard(
         Row(
             modifier =
                 Modifier.fillMaxWidth()
-                    .clickable(onClick = onEdit)
+                    .appClickable(onClick = onEdit)
                     .padding(
                         horizontal = OverrideStringListMetrics.RowHorizontalPadding,
                         vertical = OverrideStringListMetrics.RowVerticalPadding,

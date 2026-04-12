@@ -23,6 +23,7 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -48,7 +49,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 fun ScreenLazyColumn(
     scrollBehavior: ScrollBehavior,
     innerPadding: PaddingValues,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.fillMaxSize(),
     contentPadding: PaddingValues? = null,
     bottomPadding: Dp = 0.dp,
     topPadding: Dp = 0.dp,
@@ -119,7 +120,7 @@ fun ScreenLazyColumn(
         state = lazyListState,
         modifier =
             modifier
-                .fillMaxSize()
+                .fillMaxHeight()
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .let { mod ->

@@ -29,6 +29,7 @@ import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.ProvidersRepository
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -338,5 +339,6 @@ class ProvidersViewModel(
         val updatingProviders: Set<String> = emptySet(),
         val message: String? = null,
         val error: String? = null,
+        val structuredError: StructuredError? = null,
     )
 }

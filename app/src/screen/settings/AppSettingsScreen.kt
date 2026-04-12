@@ -47,6 +47,7 @@ import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.screen.onboarding.isNotificationGranted
 import com.github.yumelira.yumebox.screen.onboarding.openAppNotificationSettings
@@ -70,10 +71,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object AppSettingsMetrics {
-    val ContentMaxWidth = 1120.dp
-}
 
 @Composable
 @Destination<RootGraph>
@@ -180,10 +177,14 @@ fun AppSettingsScreen(navigator: DestinationsNavigator) {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                val contentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
                 ScreenLazyColumn(
-                    modifier =
-                        Modifier.fillMaxWidth().widthIn(max = AppSettingsMetrics.ContentMaxWidth),
+                    modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                 ) {

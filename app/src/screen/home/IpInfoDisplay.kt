@@ -20,7 +20,6 @@
 
 package com.github.yumelira.yumebox.screen.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.common.util.LocaleUtil
 import com.github.yumelira.yumebox.data.repository.IpMonitoringState
 import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -115,7 +115,7 @@ private fun IpInfoRow(
                         Modifier.fillMaxWidth()
                             .heightIn(min = IP_VALUE_MIN_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
-                            .clickable(role = Role.Button, onClick = onToggleVisibility)
+                            .appClickable(role = Role.Button, onClick = onToggleVisibility)
                             .padding(
                                 horizontal = IP_VALUE_HORIZONTAL_PADDING,
                                 vertical = IP_VALUE_VERTICAL_PADDING,

@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.screen.navigation
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -663,7 +662,7 @@ private fun ListItem(index: Int, text: String, onClick: () -> Unit, onDelete: ()
         Row(
             modifier =
                 Modifier.fillMaxWidth()
-                    .clickable(onClick = onClick)
+                    .appClickable(onClick = onClick)
                     .padding(
                         horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
                         vertical = KeyValueEditorMetrics.RowVerticalPadding,
@@ -709,7 +708,7 @@ private fun KeyValueItem(
         Row(
             modifier =
                 Modifier.fillMaxWidth()
-                    .clickable(onClick = onClick)
+                    .appClickable(onClick = onClick)
                     .padding(
                         horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
                         vertical = KeyValueEditorMetrics.RowVerticalPadding,

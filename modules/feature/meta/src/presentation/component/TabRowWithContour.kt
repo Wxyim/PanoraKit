@@ -21,17 +21,17 @@
 package com.github.yumelira.yumebox.feature.meta.presentation.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.presentation.component.AppInteractionFeedbackDefaults
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -72,9 +72,9 @@ fun TabRowWithContour(
                     Modifier.weight(1f)
                         .clip(tabShape)
                         .background(tabBgColor)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
+                        .appClickable(
+                            role = Role.Tab,
+                            pressedAlpha = AppInteractionFeedbackDefaults.NavigationPressedAlpha,
                             onClick = { onTabSelected(index) },
                         )
                         .padding(vertical = 10.dp),

@@ -54,6 +54,7 @@ import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmAction
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
@@ -671,13 +672,12 @@ internal fun AddProfileSheet(
                                                 readOnly = true,
                                                 enabled = false,
                                                 modifier =
-                                                    Modifier.fillMaxWidth().clickable(
-                                                        indication = null,
-                                                        interactionSource =
-                                                            remember { MutableInteractionSource() },
-                                                    ) {
-                                                        launcher.launch("*/*")
-                                                    },
+                                                    Modifier.fillMaxWidth()
+                                                        .appClickable(
+                                                            onClickLabel =
+                                                                MLang.ProfilesPage.Input.SelectFile,
+                                                            onClick = { launcher.launch("*/*") },
+                                                        ),
                                             )
                                         }
 

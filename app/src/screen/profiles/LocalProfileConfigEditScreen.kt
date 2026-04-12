@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -59,8 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
 import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
@@ -81,6 +78,7 @@ import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.StringMapEditorDialog
 import com.github.yumelira.yumebox.presentation.component.StringMapValidationMode
+import com.github.yumelira.yumebox.presentation.component.StructuredErrorSection
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.resolveStringMapValidationMode
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -89,6 +87,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
@@ -98,7 +97,6 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -114,8 +112,6 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object LocalProfileConfigEditMetrics {
-    val MediumMaxWidth = 920.dp
-    val ExpandedMaxWidth = 1220.dp
     val OverrideBindingListMaxHeight = 420.dp
 }
 
@@ -132,8 +128,6 @@ fun LocalProfileConfigEditScreen(
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
-    val bindingProvider: ProfileBindingProvider = koinInject()
-    val activeProfileOverrideReloader: ActiveProfileOverrideReloader = koinInject()
     val isRuntimeRunning by homeViewModel.isRunning.collectAsStateWithLifecycle()
     val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
     val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
@@ -143,14 +137,8 @@ fun LocalProfileConfigEditScreen(
     val editorListState = rememberLazyListState()
     val profileId = remember(profileUuid) { UUID.fromString(profileUuid) }
 
-    var originalConfig by remember(profileUuid) { mutableStateOf<ConfigurationOverride?>(null) }
-    var currentConfig by remember(profileUuid) { mutableStateOf<ConfigurationOverride?>(null) }
-    var loadError by remember(profileUuid) { mutableStateOf<String?>(null) }
-    var isLoading by remember(profileUuid) { mutableStateOf(true) }
-    var isSaving by remember { mutableStateOf(false) }
-    var savePhase by remember { mutableStateOf<ConfigPreviewSavePhase?>(null) }
-    var saveDecision by remember { mutableStateOf(ConfigPreviewSaveDecision.Continue) }
-    var showRuntimeStoppedDialog by remember { mutableStateOf(false) }
+    val editState = remember(profileUuid) { ProfileConfigEditState(profileUuid) }
+
     val showStringMapEditor = remember { mutableStateOf(false) }
     val showJsonEditor = remember { mutableStateOf(false) }
     var expandedSectionNames by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -164,8 +152,6 @@ fun LocalProfileConfigEditScreen(
     var currentJsonEditorTitle by remember { mutableStateOf("") }
     var currentJsonEditorPlaceholder by remember { mutableStateOf("") }
     var currentJsonEditorValue by remember { mutableStateOf<String?>(null) }
-    var bindingSystemPresetEnabled by remember(profileUuid) { mutableStateOf(false) }
-    var bindingSelectedOverrideIds by remember(profileUuid) { mutableStateOf(emptyList<String>()) }
 
     val expandedSections =
         remember(expandedSectionNames) {
@@ -177,29 +163,30 @@ fun LocalProfileConfigEditScreen(
         }
 
     LaunchedEffect(profileUuid) {
-        isLoading = true
-        loadError = null
+        editState.isLoading = true
+        editState.loadError = null
         runCatching { profilesViewModel.loadProfileConfigForGui(profileId) }
-            .onSuccess { loadedConfig ->
-                originalConfig = loadedConfig
-                currentConfig = loadedConfig
-            }
+            .onSuccess { loadedConfig -> editState.onConfigLoaded(loadedConfig) }
             .onFailure { error ->
-                loadError = error.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
+                editState.onLoadFailed(
+                    error.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
+                )
             }
-        runCatching { bindingProvider.getBinding(profileUuid) }
+        runCatching { profilesViewModel.loadProfileBinding(profileUuid) }
             .onSuccess { binding ->
-                bindingSystemPresetEnabled = binding?.enabled ?: false
-                bindingSelectedOverrideIds =
-                    binding?.overrideIds.orEmpty().filterNot { it.startsWith("preset-") }
+                editState.onBindingLoaded(
+                    enabled = binding?.enabled ?: false,
+                    overrideIds =
+                        binding?.overrideIds.orEmpty().filterNot { it.startsWith("preset-") },
+                )
             }
-        isLoading = false
+        editState.onLoadingComplete()
     }
 
     fun applyBindingChange(newSelectedIds: List<String>, newSystemPresetEnabled: Boolean) {
         scope.launch {
             val normalizedIds = newSelectedIds.distinct()
-            val currentBinding = bindingProvider.getBinding(profileUuid)
+            val currentBinding = profilesViewModel.loadProfileBinding(profileUuid)
             val updatedBinding =
                 currentBinding?.copy(overrideIds = normalizedIds, enabled = newSystemPresetEnabled)
                     ?: ProfileBinding(
@@ -207,8 +194,9 @@ fun LocalProfileConfigEditScreen(
                         overrideIds = normalizedIds,
                         enabled = newSystemPresetEnabled,
                     )
-            bindingProvider.setBinding(updatedBinding)
-            activeProfileOverrideReloader.reapplyIfActiveProfile(profileUuid)
+            profilesViewModel.saveProfileBinding(updatedBinding)
+            editState.updateBindingState(newSystemPresetEnabled, normalizedIds)
+            profilesViewModel.reapplyOverrideIfActiveProfile(profileUuid)
         }
     }
 
@@ -216,15 +204,15 @@ fun LocalProfileConfigEditScreen(
         when {
             showStringMapEditor.value -> showStringMapEditor.value = false
             showJsonEditor.value -> showJsonEditor.value = false
-            isLoading || isSaving -> Unit
+            editState.isLoading || editState.isSaving -> Unit
             else -> navigator.navigateUp()
         }
     }
 
     fun applyConfigChange(updated: ConfigurationOverride) {
-        val savedConfig = originalConfig
-        currentConfig = updated
-        if (isSaving) return
+        val savedConfig = editState.originalConfig
+        editState.updateConfig(updated)
+        if (editState.isSaving) return
         if (savedConfig == null) {
             return
         }
@@ -232,9 +220,7 @@ fun LocalProfileConfigEditScreen(
             return
         }
 
-        isSaving = true
-        savePhase = ConfigPreviewSavePhase.LocalSaving
-        saveDecision = ConfigPreviewSaveDecision.Continue
+        editState.beginSave()
         scope.launch {
             var lastPhase: ConfigPreviewSavePhase? = ConfigPreviewSavePhase.LocalSaving
             var stoppedRunningProfile = false
@@ -248,9 +234,9 @@ fun LocalProfileConfigEditScreen(
                     updatedConfig = updated,
                     onPhaseChanged = { phase ->
                         lastPhase = phase
-                        savePhase = phase
+                        editState.onSavePhaseChanged(phase)
                     },
-                    decisionProvider = { fixedDecision ?: saveDecision },
+                    decisionProvider = { fixedDecision ?: editState.saveDecision },
                     stopRuntime = {
                         if (isActiveRunningProfile) {
                             stoppedRunningProfile = true
@@ -269,35 +255,29 @@ fun LocalProfileConfigEditScreen(
                 .onSuccess { outcome ->
                     when (outcome) {
                         ConfigPreviewSaveOutcome.Saved -> {
-                            originalConfig = updated
-                            currentConfig = updated
+                            editState.onSaveSucceeded(updated)
                         }
 
                         ConfigPreviewSaveOutcome.SavedLocally -> {
-                            originalConfig = updated
-                            currentConfig = updated
+                            editState.onSaveSucceeded(updated)
                             if (stoppedRunningProfile) {
-                                showRuntimeStoppedDialog = true
+                                editState.showRuntimeStoppedDialog = true
                             } else {
                                 context.toast(MLang.Component.Editor.Action.SaveLocally)
                             }
                         }
 
-                        ConfigPreviewSaveOutcome.ResumeEditing -> Unit
+                        ConfigPreviewSaveOutcome.ResumeEditing -> editState.endSave()
                     }
                 }
                 .onFailure { error ->
-                    currentConfig = savedConfig
+                    editState.onSaveFailed(savedConfig)
                     context.toast(error.message ?: MLang.Component.Editor.Error.SaveFailed)
                 }
-
-            isSaving = false
-            savePhase = null
-            saveDecision = ConfigPreviewSaveDecision.Continue
         }
     }
 
-    BackHandler(enabled = !isSaving) { requestExit() }
+    BackHandler(enabled = !editState.isSaving) { requestExit() }
 
     Scaffold(
         topBar = {
@@ -307,7 +287,7 @@ fun LocalProfileConfigEditScreen(
                 navigationIcon = {
                     IconButton(
                         modifier = Modifier.padding(start = 24.dp),
-                        enabled = !isSaving,
+                        enabled = !editState.isSaving,
                         onClick = { requestExit() },
                     ) {
                         Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
@@ -342,36 +322,33 @@ fun LocalProfileConfigEditScreen(
                     .imePadding()
         ) {
             when {
-                isLoading -> {
+                editState.isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
 
-                loadError != null -> {
+                editState.loadError != null -> {
                     Box(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = loadError.orEmpty(),
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            style = MiuixTheme.textStyles.body2,
-                        )
+                        if (editState.loadStructuredError != null) {
+                            StructuredErrorSection(error = editState.loadStructuredError!!)
+                        } else {
+                            Text(
+                                text = editState.loadError.orEmpty(),
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                style = MiuixTheme.textStyles.body2,
+                            )
+                        }
                     }
                 }
 
-                currentConfig != null -> {
+                editState.currentConfig != null -> {
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-                        val contentMaxWidth =
-                            when {
-                                adaptiveInfo.isExpandedWidth ->
-                                    LocalProfileConfigEditMetrics.ExpandedMaxWidth
-                                adaptiveInfo.isMediumWidth ->
-                                    LocalProfileConfigEditMetrics.MediumMaxWidth
-                                else -> Dp.Unspecified
-                            }
+                        val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
                         val useWideLayout =
                             adaptiveInfo.isMediumWidth || adaptiveInfo.isExpandedWidth
 
@@ -387,41 +364,67 @@ fun LocalProfileConfigEditScreen(
                                     LocalProfileOverrideBindingSection(
                                         systemPreset = systemPresets.firstOrNull(),
                                         userConfigs = userConfigs,
-                                        systemPresetEnabled = bindingSystemPresetEnabled,
-                                        selectedOverrideIds = bindingSelectedOverrideIds,
+                                        systemPresetEnabled = editState.bindingSystemPresetEnabled,
+                                        selectedOverrideIds = editState.bindingSelectedOverrideIds,
                                         contentMaxWidth = contentMaxWidth,
                                         onSystemPresetToggle = { enabled ->
-                                            bindingSystemPresetEnabled = enabled
-                                            applyBindingChange(bindingSelectedOverrideIds, enabled)
+                                            editState.updateBindingState(
+                                                enabled,
+                                                editState.bindingSelectedOverrideIds,
+                                            )
+                                            applyBindingChange(
+                                                editState.bindingSelectedOverrideIds,
+                                                enabled,
+                                            )
                                         },
                                         onOverrideAdded = { id ->
                                             val newIds =
                                                 listOf(id) +
-                                                    bindingSelectedOverrideIds.filterNot {
+                                                    editState.bindingSelectedOverrideIds.filterNot {
                                                         it == id
                                                     }
-                                            bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
+                                            editState.updateBindingState(
+                                                editState.bindingSystemPresetEnabled,
+                                                newIds,
+                                            )
+                                            applyBindingChange(
+                                                newIds,
+                                                editState.bindingSystemPresetEnabled,
+                                            )
                                         },
                                         onOverrideRemoved = { id ->
-                                            val newIds = bindingSelectedOverrideIds - id
-                                            bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
+                                            val newIds = editState.bindingSelectedOverrideIds - id
+                                            editState.updateBindingState(
+                                                editState.bindingSystemPresetEnabled,
+                                                newIds,
+                                            )
+                                            applyBindingChange(
+                                                newIds,
+                                                editState.bindingSystemPresetEnabled,
+                                            )
                                         },
                                         onOverrideMoved = { fromIndex, toIndex ->
                                             val newIds =
-                                                bindingSelectedOverrideIds.toMutableList().apply {
-                                                    add(toIndex, removeAt(fromIndex))
-                                                }
-                                            bindingSelectedOverrideIds = newIds
-                                            applyBindingChange(newIds, bindingSystemPresetEnabled)
+                                                editState.bindingSelectedOverrideIds
+                                                    .toMutableList()
+                                                    .apply { add(toIndex, removeAt(fromIndex)) }
+                                            editState.updateBindingState(
+                                                editState.bindingSystemPresetEnabled,
+                                                newIds,
+                                            )
+                                            applyBindingChange(
+                                                newIds,
+                                                editState.bindingSystemPresetEnabled,
+                                            )
                                         },
                                     )
                                 }
                                 LocalProfileConfigEditContent(
-                                    config = currentConfig ?: ConfigurationOverride(),
+                                    config = editState.currentConfig ?: ConfigurationOverride(),
                                     currentConfigProvider = {
-                                        currentConfig ?: originalConfig ?: ConfigurationOverride()
+                                        editState.currentConfig
+                                            ?: editState.originalConfig
+                                            ?: ConfigurationOverride()
                                     },
                                     expandedSections = expandedSections,
                                     contentMaxWidth = contentMaxWidth,
@@ -469,10 +472,10 @@ fun LocalProfileConfigEditScreen(
             }
 
             AppDialog(
-                show = isSaving,
+                show = editState.isSaving,
                 title = MLang.Component.Editor.Action.Save,
                 summary =
-                    when (savePhase) {
+                    when (editState.savePhase) {
                         ConfigPreviewSavePhase.LocalSaving ->
                             MLang.Component.Editor.Dialog.LocalSaving
                         ConfigPreviewSavePhase.Validating ->
@@ -494,7 +497,7 @@ fun LocalProfileConfigEditScreen(
                         CircularProgressIndicator()
                     }
 
-                    if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
+                    if (editState.savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
                         val isActiveRunning =
                             isRuntimeRunning && homeViewModel.isCurrentProfile(profileId)
                         AppCommandButton(
@@ -505,8 +508,10 @@ fun LocalProfileConfigEditScreen(
                                     MLang.Component.Editor.Action.SaveLocally
                                 },
                             imageVector = Yume.Check,
-                            onClick = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
-                            enabled = saveDecision == ConfigPreviewSaveDecision.Continue,
+                            onClick = {
+                                editState.saveDecision = ConfigPreviewSaveDecision.SaveLocally
+                            },
+                            enabled = editState.saveDecision == ConfigPreviewSaveDecision.Continue,
                             tone = if (isActiveRunning) SemanticTone.Danger else SemanticTone.Brand,
                             highEmphasis = true,
                         )
@@ -515,15 +520,15 @@ fun LocalProfileConfigEditScreen(
             }
 
             AppDialog(
-                show = showRuntimeStoppedDialog,
+                show = editState.showRuntimeStoppedDialog,
                 title = MLang.Component.Message.Hint,
                 summary = MLang.Component.Editor.Dialog.DirectSaveStoppedRuntimeSummary,
-                onDismissRequest = { showRuntimeStoppedDialog = false },
+                onDismissRequest = { editState.showRuntimeStoppedDialog = false },
             ) {
                 AppCommandButton(
                     title = MLang.Component.Button.Confirm,
                     imageVector = Yume.Check,
-                    onClick = { showRuntimeStoppedDialog = false },
+                    onClick = { editState.showRuntimeStoppedDialog = false },
                     tone = SemanticTone.Brand,
                     highEmphasis = true,
                 )
@@ -567,10 +572,7 @@ private fun LocalProfileOverrideBindingSection(
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier =
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp).let { mod ->
-                    if (contentMaxWidth != Dp.Unspecified) mod.widthIn(max = contentMaxWidth)
-                    else mod
-                },
+                Modifier.adaptiveContentWidth(contentMaxWidth).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Spacer(Modifier.height(8.dp))

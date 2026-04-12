@@ -54,8 +54,15 @@ data class WindowAdaptiveInfo(
     val prefersDockedPrimaryAction: Boolean
         get() = !isCompactWidth
 
+    /**
+     * Whether the available width supports comfortable two-pane content (two equal columns).
+     *
+     * Requires at least 1080dp so each column gets ≥520dp of usable width. This prevents cramped
+     * two-column layouts on phones in landscape (~840-1000dp) where settings-style content with
+     * titles, summaries, and controls would truncate or wrap excessively.
+     */
     val prefersTwoPaneContent: Boolean
-        get() = isExpandedWidth
+        get() = windowWidth >= 1080.dp
 
     val preferredBottomSheetMaxWidth: Dp
         get() =
@@ -64,6 +71,34 @@ data class WindowAdaptiveInfo(
                 WindowWidthSizeClass.Medium -> 720.dp
                 WindowWidthSizeClass.Expanded -> 840.dp
                 else -> 720.dp
+            }
+
+    /**
+     * Preferred max width for single-pane scrolling content (settings, logs, detail pages).
+     *
+     * Returns [Dp.Unspecified] for compact widths where content should fill available space.
+     */
+    val preferredSinglePaneMaxWidth: Dp
+        get() =
+            when (widthSizeClass) {
+                WindowWidthSizeClass.Compact -> Dp.Unspecified
+                WindowWidthSizeClass.Medium -> 720.dp
+                WindowWidthSizeClass.Expanded -> 840.dp
+                else -> Dp.Unspecified
+            }
+
+    /**
+     * Preferred max width for two-pane content containers (settings hub, dashboards).
+     *
+     * Returns [Dp.Unspecified] for compact widths where content should fill available space.
+     */
+    val preferredTwoPaneMaxWidth: Dp
+        get() =
+            when (widthSizeClass) {
+                WindowWidthSizeClass.Compact -> Dp.Unspecified
+                WindowWidthSizeClass.Medium -> 760.dp
+                WindowWidthSizeClass.Expanded -> 1280.dp
+                else -> Dp.Unspecified
             }
 }
 

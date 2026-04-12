@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.screen.home
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.theme.TrafficChartConfig
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -115,7 +115,7 @@ fun SpeedChart(
                 .height(chartHeight)
                 .clip(RoundedCornerShape(AppConstants.UI.CARD_CORNER_RADIUS))
                 .semantics { contentDescription = chartAccessibilityLabel }
-                .clickable(
+                .appClickable(
                     role = Role.Button,
                     onClickLabel = chartAccessibilityLabel,
                     onClick = onClick,

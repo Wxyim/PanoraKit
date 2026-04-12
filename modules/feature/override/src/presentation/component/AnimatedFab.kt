@@ -26,7 +26,6 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -171,7 +170,7 @@ fun OverrideAnimatedFab(
                         .clip(shape)
                         .background(containerColor, shape)
                         .border(width = 0.8.dp, color = borderColor, shape = shape)
-                        .clickable(onClick = onClick)
+                        .appClickable(onClick = onClick)
                         .padding(horizontal = 14.dp, vertical = 11.dp)
                         .widthIn(min = 176.dp, max = 232.dp)
                         .heightIn(min = 58.dp)

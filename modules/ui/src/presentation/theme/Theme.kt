@@ -36,6 +36,9 @@ fun YumeTheme(
     themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
     spacing: Spacing = Spacing(),
     radii: Radii = Radii(),
+    strokes: Strokes = Strokes(),
+    elevations: Elevations = Elevations(),
+    typography: AppTypography = AppTypography(),
     windowAdaptiveInfo: WindowAdaptiveInfo = WindowAdaptiveInfo(),
     content: @Composable () -> Unit,
 ) {
@@ -66,6 +69,9 @@ fun YumeTheme(
     CompositionLocalProvider(
         LocalSpacing provides spacing,
         LocalRadii provides radii,
+        LocalStrokes provides strokes,
+        LocalElevations provides elevations,
+        LocalAppTypography provides typography,
         LocalSemanticColors provides semanticColors,
         LocalWindowAdaptiveInfo provides windowAdaptiveInfo,
     ) {

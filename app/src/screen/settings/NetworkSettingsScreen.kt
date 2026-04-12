@@ -49,6 +49,7 @@ import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -59,12 +60,10 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperSwitch
-
-private object NetworkSettingsMetrics {
-    val ContentMaxWidth = 1120.dp
-}
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 @Destination<RootGraph>
@@ -124,11 +123,14 @@ fun NetworkSettingsScreen(navigator: DestinationsNavigator) {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                val contentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
                 ScreenLazyColumn(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .widthIn(max = NetworkSettingsMetrics.ContentMaxWidth),
+                    modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                 ) {
@@ -242,7 +244,7 @@ private fun HighRiskProxyModeDialog(
         show = targetMode != null,
         title = "Confirm traffic routing change",
         summary =
-            "This changes how MonadBox captures and routes device traffic. If the service is running, MonadBox will apply it with rollback on failure.",
+            "This changes how MonadBox routes device traffic through the VPN tunnel. If the service is running, MonadBox will apply it with rollback on failure.",
         onDismissRequest = onDismiss,
     ) {
         DialogButtonRow(
@@ -537,7 +539,7 @@ private fun VpnServiceSection(
                     label = "network_service_options",
                 ) { mode ->
                     when (mode) {
-                        ProxyMode.Http -> Spacer(modifier = Modifier.height(0.dp))
+                        ProxyMode.Http -> HttpProxyInfo()
                         ProxyMode.Tun ->
                             TunServiceOptions(
                                 bypassPrivateNetwork = bypassPrivateNetwork,
@@ -630,6 +632,23 @@ private fun ProxyOptionsSection(
             tone = SemanticTone.Info,
             showDivider = false,
             onClick = onManageAccessControl,
+        )
+    }
+}
+
+@Composable
+private fun HttpProxyInfo() {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            text = MLang.NetworkSettings.HttpMode.InfoTitle,
+            style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = MLang.NetworkSettings.HttpMode.InfoSummary,
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }
 }
@@ -787,87 +806,115 @@ private fun RootTunAdvancedOptions(
     commitRootTunFakeIpRange6: () -> Unit,
 ) {
     var editDialog by rememberSaveable { mutableStateOf<RootTunEditDialogState?>(null) }
+    var advancedExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         ConfigSettingRow(
-            title = MLang.NetworkSettings.RootTun.IfNameTitle,
-            summary = rootTunIfNameDraft.ifBlank { MLang.NetworkSettings.RootTun.IfNameSummary },
-            onClick = { editDialog = RootTunEditDialogState.IfName },
-        )
-        ConfigSettingRow(
-            title = MLang.NetworkSettings.RootTun.MtuTitle,
-            summary = rootTunMtuDraft.ifBlank { MLang.NetworkSettings.RootTun.MtuSummary },
-            onClick = { editDialog = RootTunEditDialogState.Mtu },
-        )
-        ConfigSettingRow(
-            title = MLang.NetworkSettings.RootTun.AndroidUsersTitle,
+            title = MLang.NetworkSettings.Section.RootTunAdvanced,
             summary =
-                rootTunIncludeAndroidUserDraft.ifBlank {
-                    MLang.NetworkSettings.RootTun.AndroidUsersPlaceholder
-                },
-            onClick = { editDialog = RootTunEditDialogState.AndroidUsers },
-        )
-        ConfigSettingRow(
-            title = MLang.NetworkSettings.RootTun.RouteExcludesTitle,
-            summary =
-                rootTunRouteExcludeAddressDraft.ifBlank {
-                    MLang.NetworkSettings.RootTun.RouteExcludesPlaceholder
-                },
-            onClick = { editDialog = RootTunEditDialogState.RouteExcludeAddress },
-        )
-        SuperSwitch(
-            title = MLang.NetworkSettings.RootTun.AutoRouteTitle,
-            summary = MLang.NetworkSettings.RootTun.AutoRouteSummary,
-            checked = rootTunAutoRoute,
-            onCheckedChange = onRootTunAutoRouteChange,
-        )
-        SuperSwitch(
-            title = MLang.NetworkSettings.RootTun.StrictRouteTitle,
-            summary = MLang.NetworkSettings.RootTun.StrictRouteSummary,
-            checked = rootTunStrictRoute,
-            onCheckedChange = onRootTunStrictRouteChange,
-        )
-        SuperSwitch(
-            title = MLang.NetworkSettings.RootTun.AutoRedirectTitle,
-            summary = MLang.NetworkSettings.RootTun.AutoRedirectSummary,
-            checked = rootTunAutoRedirect,
-            onCheckedChange = onRootTunAutoRedirectChange,
-        )
-        EnumSelector(
-            title = MLang.NetworkSettings.RootTun.DnsModeTitle,
-            summary = MLang.NetworkSettings.RootTun.DnsModeSummary,
-            currentValue = rootTunDnsMode,
-            items =
-                listOf(
-                    MLang.NetworkSettings.RootTun.DnsModeRedirHost,
-                    MLang.NetworkSettings.RootTun.DnsModeFakeIp,
-                ),
-            values = RootTunDnsMode.entries,
-            onValueChange = onRootTunDnsModeChange,
+                if (advancedExpanded)
+                    MLang.NetworkSettings.RootTun.IfNameTitle +
+                        " · " +
+                        MLang.NetworkSettings.RootTun.MtuTitle +
+                        " …"
+                else
+                    MLang.NetworkSettings.RootTun.IfNameTitle +
+                        " · " +
+                        MLang.NetworkSettings.RootTun.MtuTitle +
+                        " · " +
+                        MLang.NetworkSettings.RootTun.AutoRouteTitle +
+                        " …",
+            tone = SemanticTone.Warning,
+            onClick = { advancedExpanded = !advancedExpanded },
         )
         AnimatedVisibility(
-            visible = showFakeIpRange,
+            visible = advancedExpanded,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically(),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 ConfigSettingRow(
-                    title = MLang.NetworkSettings.RootTun.FakeIpRangeTitle,
+                    title = MLang.NetworkSettings.RootTun.IfNameTitle,
                     summary =
-                        rootTunFakeIpRangeDraft.ifBlank {
-                            MLang.NetworkSettings.RootTun.FakeIpRangeSummary
-                        },
-                    onClick = { editDialog = RootTunEditDialogState.FakeIpRange },
+                        rootTunIfNameDraft.ifBlank { MLang.NetworkSettings.RootTun.IfNameSummary },
+                    onClick = { editDialog = RootTunEditDialogState.IfName },
                 )
                 ConfigSettingRow(
-                    title = MLang.NetworkSettings.RootTun.FakeIpRange6Title,
-                    summary =
-                        rootTunFakeIpRange6Draft.ifBlank {
-                            MLang.NetworkSettings.RootTun.FakeIpRange6Summary
-                        },
-                    showDivider = false,
-                    onClick = { editDialog = RootTunEditDialogState.FakeIpRange6 },
+                    title = MLang.NetworkSettings.RootTun.MtuTitle,
+                    summary = rootTunMtuDraft.ifBlank { MLang.NetworkSettings.RootTun.MtuSummary },
+                    onClick = { editDialog = RootTunEditDialogState.Mtu },
                 )
+                ConfigSettingRow(
+                    title = MLang.NetworkSettings.RootTun.AndroidUsersTitle,
+                    summary =
+                        rootTunIncludeAndroidUserDraft.ifBlank {
+                            MLang.NetworkSettings.RootTun.AndroidUsersPlaceholder
+                        },
+                    onClick = { editDialog = RootTunEditDialogState.AndroidUsers },
+                )
+                ConfigSettingRow(
+                    title = MLang.NetworkSettings.RootTun.RouteExcludesTitle,
+                    summary =
+                        rootTunRouteExcludeAddressDraft.ifBlank {
+                            MLang.NetworkSettings.RootTun.RouteExcludesPlaceholder
+                        },
+                    onClick = { editDialog = RootTunEditDialogState.RouteExcludeAddress },
+                )
+                SuperSwitch(
+                    title = MLang.NetworkSettings.RootTun.AutoRouteTitle,
+                    summary = MLang.NetworkSettings.RootTun.AutoRouteSummary,
+                    checked = rootTunAutoRoute,
+                    onCheckedChange = onRootTunAutoRouteChange,
+                )
+                SuperSwitch(
+                    title = MLang.NetworkSettings.RootTun.StrictRouteTitle,
+                    summary = MLang.NetworkSettings.RootTun.StrictRouteSummary,
+                    checked = rootTunStrictRoute,
+                    onCheckedChange = onRootTunStrictRouteChange,
+                )
+                SuperSwitch(
+                    title = MLang.NetworkSettings.RootTun.AutoRedirectTitle,
+                    summary = MLang.NetworkSettings.RootTun.AutoRedirectSummary,
+                    checked = rootTunAutoRedirect,
+                    onCheckedChange = onRootTunAutoRedirectChange,
+                )
+                EnumSelector(
+                    title = MLang.NetworkSettings.RootTun.DnsModeTitle,
+                    summary = MLang.NetworkSettings.RootTun.DnsModeSummary,
+                    currentValue = rootTunDnsMode,
+                    items =
+                        listOf(
+                            MLang.NetworkSettings.RootTun.DnsModeRedirHost,
+                            MLang.NetworkSettings.RootTun.DnsModeFakeIp,
+                        ),
+                    values = RootTunDnsMode.entries,
+                    onValueChange = onRootTunDnsModeChange,
+                )
+                AnimatedVisibility(
+                    visible = showFakeIpRange,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        ConfigSettingRow(
+                            title = MLang.NetworkSettings.RootTun.FakeIpRangeTitle,
+                            summary =
+                                rootTunFakeIpRangeDraft.ifBlank {
+                                    MLang.NetworkSettings.RootTun.FakeIpRangeSummary
+                                },
+                            onClick = { editDialog = RootTunEditDialogState.FakeIpRange },
+                        )
+                        ConfigSettingRow(
+                            title = MLang.NetworkSettings.RootTun.FakeIpRange6Title,
+                            summary =
+                                rootTunFakeIpRange6Draft.ifBlank {
+                                    MLang.NetworkSettings.RootTun.FakeIpRange6Summary
+                                },
+                            showDivider = false,
+                            onClick = { editDialog = RootTunEditDialogState.FakeIpRange6 },
+                        )
+                    }
+                }
             }
         }
     }

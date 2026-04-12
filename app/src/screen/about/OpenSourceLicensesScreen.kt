@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.screen.about
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +38,8 @@ import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.util.strippedLicenseContent
@@ -52,7 +53,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object OpenSourceLicensesMetrics {
-    val ContentMaxWidth = 920.dp
+    val ContentMaxWidth = 840.dp
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -85,8 +86,7 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 ScreenLazyColumn(
                     modifier =
-                        Modifier.fillMaxWidth()
-                            .widthIn(max = OpenSourceLicensesMetrics.ContentMaxWidth),
+                        Modifier.adaptiveContentWidth(OpenSourceLicensesMetrics.ContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = 20.dp,
@@ -124,7 +124,7 @@ fun OpenSourceLicensesScreen(navigator: DestinationsNavigator) {
 private fun LibraryItem(library: Library, onClick: () -> Unit) {
     Card(modifier = Modifier.padding(bottom = 12.dp), insideMargin = PaddingValues(0.dp)) {
         Column(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+            modifier = Modifier.fillMaxWidth().appClickable(onClick = onClick).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(

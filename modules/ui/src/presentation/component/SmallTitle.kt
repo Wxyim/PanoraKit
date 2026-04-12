@@ -22,10 +22,15 @@ package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.github.yumelira.yumebox.presentation.theme.topPadding
 import top.yukonga.miuix.kmp.basic.SmallTitle
 
 @Composable
 fun SmallTitle(text: String) {
-    SmallTitle(modifier = Modifier.topPadding(), text = text)
+    SmallTitle(
+        modifier = Modifier.topPadding().semantics { heading() },
+        text = text,
+    )
 }

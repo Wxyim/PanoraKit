@@ -38,6 +38,7 @@ import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OpenSourceLicensesScreenDestination
@@ -54,7 +55,7 @@ private object AboutPageMetrics {
     val HeroMetaSpacing = 8.dp
     val FooterTopPadding = 32.dp
     val FooterBottomSpacing = 32.dp
-    val ContentMaxWidth = 920.dp
+    val ContentMaxWidth = 840.dp
 }
 
 private object AboutProjectLinks {
@@ -85,7 +86,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             ScreenLazyColumn(
-                modifier = Modifier.fillMaxWidth().widthIn(max = AboutPageMetrics.ContentMaxWidth),
+                modifier = Modifier.adaptiveContentWidth(AboutPageMetrics.ContentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
             ) {

@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.theme.horizontalPadding
+import com.github.yumelira.yumebox.presentation.theme.sectionHPadding
 import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
@@ -38,7 +38,7 @@ fun Card(
     Card(
         modifier =
             if (applyHorizontalPadding) {
-                modifier.horizontalPadding()
+                modifier.sectionHPadding()
             } else {
                 modifier
             },

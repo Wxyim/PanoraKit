@@ -4060,6 +4060,22 @@ object `MLang` {
                 /** 放弃修改 */
                 @Composable
                 fun `Discard`(vararg args: Any?) = FYTxtConfig.observe { `Discard`.fmt(args) }
+
+                /** 校验 */
+                val `Check`
+                    get() =
+                        FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                            it as `MLangTags`
+                            when (it) {
+                                `MLangTags`.EN -> """Check"""
+                                `MLangTags`.ZH -> """校验"""
+                                else -> null
+                            }
+                        } ?: """校验"""
+
+                /** 校验 */
+                @Composable
+                fun `Check`(vararg args: Any?) = FYTxtConfig.observe { `Check`.fmt(args) }
             }
 
             object `Dialog` {
@@ -5149,6 +5165,75 @@ object `MLang` {
             @Composable
             fun `Content`(vararg args: Any?) = FYTxtConfig.observe { `Content`.fmt(args) }
         }
+
+        object `Capture` {
+            init {
+                `MLangGroups`
+            }
+
+            /** 开始捕获 */
+            val `Start`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Start Capture"""
+                            `MLangTags`.ZH -> """开始捕获"""
+                            else -> null
+                        }
+                    } ?: """开始捕获"""
+
+            /** 开始捕获 */
+            @Composable fun `Start`(vararg args: Any?) = FYTxtConfig.observe { `Start`.fmt(args) }
+
+            /** 停止捕获 */
+            val `Stop`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Stop Capture"""
+                            `MLangTags`.ZH -> """停止捕获"""
+                            else -> null
+                        }
+                    } ?: """停止捕获"""
+
+            /** 停止捕获 */
+            @Composable fun `Stop`(vararg args: Any?) = FYTxtConfig.observe { `Stop`.fmt(args) }
+
+            /** 导出成功 */
+            val `ExportSuccess`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """PCAP exported successfully"""
+                            `MLangTags`.ZH -> """PCAP 导出成功"""
+                            else -> null
+                        }
+                    } ?: """PCAP 导出成功"""
+
+            /** 导出成功 */
+            @Composable
+            fun `ExportSuccess`(vararg args: Any?) =
+                FYTxtConfig.observe { `ExportSuccess`.fmt(args) }
+
+            /** 导出失败 */
+            val `ExportFailed`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """PCAP export failed"""
+                            `MLangTags`.ZH -> """PCAP 导出失败"""
+                            else -> null
+                        }
+                    } ?: """PCAP 导出失败"""
+
+            /** 导出失败 */
+            @Composable
+            fun `ExportFailed`(vararg args: Any?) = FYTxtConfig.observe { `ExportFailed`.fmt(args) }
+        }
     }
 
     object `Home` {
@@ -5815,6 +5900,93 @@ object `MLang` {
             /** 日志清理完成 */
             @Composable
             fun `CleanupDone`(vararg args: Any?) = FYTxtConfig.observe { `CleanupDone`.fmt(args) }
+
+            /** 导出诊断包 */
+            val `ExportDebugBundle`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Export Debug Bundle"""
+                            `MLangTags`.ZH -> """导出诊断包"""
+                            else -> null
+                        }
+                    } ?: """导出诊断包"""
+
+            /** 导出诊断包 */
+            @Composable
+            fun `ExportDebugBundle`(vararg args: Any?) =
+                FYTxtConfig.observe { `ExportDebugBundle`.fmt(args) }
+
+            /**
+             * 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。
+             */
+            val `ExportDebugBundleWarning`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN ->
+                                """Includes runtime state and sanitized logs. May still contain server/context details; share only with trusted recipients."""
+                            `MLangTags`.ZH ->
+                                """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
+                            else -> null
+                        }
+                    }
+                        ?: """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
+
+            /**
+             * 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。
+             */
+            @Composable
+            fun `ExportDebugBundleWarning`(vararg args: Any?) =
+                FYTxtConfig.observe { `ExportDebugBundleWarning`.fmt(args) }
+
+            /** 导出 */
+            val `Export`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Export"""
+                            `MLangTags`.ZH -> """导出"""
+                            else -> null
+                        }
+                    } ?: """导出"""
+
+            /** 导出 */
+            @Composable fun `Export`(vararg args: Any?) = FYTxtConfig.observe { `Export`.fmt(args) }
+
+            /** 取消 */
+            val `Cancel`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Cancel"""
+                            `MLangTags`.ZH -> """取消"""
+                            else -> null
+                        }
+                    } ?: """取消"""
+
+            /** 取消 */
+            @Composable fun `Cancel`(vararg args: Any?) = FYTxtConfig.observe { `Cancel`.fmt(args) }
+
+            /** 导出成功 */
+            val `ExportDone`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Export completed"""
+                            `MLangTags`.ZH -> """导出成功"""
+                            else -> null
+                        }
+                    } ?: """导出成功"""
+
+            /** 导出成功 */
+            @Composable
+            fun `ExportDone`(vararg args: Any?) = FYTxtConfig.observe { `ExportDone`.fmt(args) }
         }
 
         object `Empty` {
@@ -6651,6 +6823,23 @@ object `MLang` {
             /** 访问控制 */
             @Composable
             fun `ProxyOptions`(vararg args: Any?) = FYTxtConfig.observe { `ProxyOptions`.fmt(args) }
+
+            /** 高级参数 */
+            val `RootTunAdvanced`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Advanced Parameters"""
+                            `MLangTags`.ZH -> """高级参数"""
+                            else -> null
+                        }
+                    } ?: """高级参数"""
+
+            /** 高级参数 */
+            @Composable
+            fun `RootTunAdvanced`(vararg args: Any?) =
+                FYTxtConfig.observe { `RootTunAdvanced`.fmt(args) }
         }
 
         object `VpnService` {
@@ -6774,6 +6963,47 @@ object `MLang` {
             /** HTTP 系统代理 */
             @Composable
             fun `SystemProxy`(vararg args: Any?) = FYTxtConfig.observe { `SystemProxy`.fmt(args) }
+        }
+
+        object `HttpMode` {
+            init {
+                `MLangGroups`
+            }
+
+            /** 本地 HTTP 代理 */
+            val `InfoTitle`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Local HTTP Proxy"""
+                            `MLangTags`.ZH -> """本地 HTTP 代理"""
+                            else -> null
+                        }
+                    } ?: """本地 HTTP 代理"""
+
+            /** 本地 HTTP 代理 */
+            @Composable
+            fun `InfoTitle`(vararg args: Any?) = FYTxtConfig.observe { `InfoTitle`.fmt(args) }
+
+            /** 启动后在本机随机端口监听 HTTP 代理请求，需手动配置系统或应用代理地址。不创建 VPN 隧道，不拦截全局流量，仅为主动指向该端口的连接提供代理。 */
+            val `InfoSummary`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN ->
+                                """Listens on a random local port for HTTP proxy requests after startup. Requires manual proxy configuration in system or app settings. Does not create a VPN tunnel or intercept global traffic — only proxies connections explicitly directed to the listening port."""
+                            `MLangTags`.ZH ->
+                                """启动后在本机随机端口监听 HTTP 代理请求，需手动配置系统或应用代理地址。不创建 VPN 隧道，不拦截全局流量，仅为主动指向该端口的连接提供代理。"""
+                            else -> null
+                        }
+                    }
+                        ?: """启动后在本机随机端口监听 HTTP 代理请求，需手动配置系统或应用代理地址。不创建 VPN 隧道，不拦截全局流量，仅为主动指向该端口的连接提供代理。"""
+
+            /** 启动后在本机随机端口监听 HTTP 代理请求，需手动配置系统或应用代理地址。不创建 VPN 隧道，不拦截全局流量，仅为主动指向该端口的连接提供代理。 */
+            @Composable
+            fun `InfoSummary`(vararg args: Any?) = FYTxtConfig.observe { `InfoSummary`.fmt(args) }
         }
 
         object `VpnOptions` {
@@ -19300,6 +19530,22 @@ Higher items take precedence, and new items are inserted at the top."""
 
             /** 更多 */
             @Composable fun `More`(vararg args: Any?) = FYTxtConfig.observe { `More`.fmt(args) }
+
+            /** 高级 */
+            val `Advanced`
+                get() =
+                    FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                        it as `MLangTags`
+                        when (it) {
+                            `MLangTags`.EN -> """Advanced"""
+                            `MLangTags`.ZH -> """高级"""
+                            else -> null
+                        }
+                    } ?: """高级"""
+
+            /** 高级 */
+            @Composable
+            fun `Advanced`(vararg args: Any?) = FYTxtConfig.observe { `Advanced`.fmt(args) }
         }
 
         object `UiSettings` {
@@ -19508,34 +19754,35 @@ Higher items take precedence, and new items are inserted at the top."""
             fun `TrafficStatisticsSummary`(vararg args: Any?) =
                 FYTxtConfig.observe { `TrafficStatisticsSummary`.fmt(args) }
 
-            /** 日志 */
+            /** 日志与诊断 */
             val `Logs`
                 get() =
                     FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
                         it as `MLangTags`
                         when (it) {
-                            `MLangTags`.EN -> """Logs"""
-                            `MLangTags`.ZH -> """日志"""
+                            `MLangTags`.EN -> """Logs & Diagnostics"""
+                            `MLangTags`.ZH -> """日志与诊断"""
                             else -> null
                         }
-                    } ?: """日志"""
+                    } ?: """日志与诊断"""
 
-            /** 日志 */
+            /** 日志与诊断 */
             @Composable fun `Logs`(vararg args: Any?) = FYTxtConfig.observe { `Logs`.fmt(args) }
 
-            /** 运行日志 */
+            /** 运行日志、启动诊断与故障排查 */
             val `LogsSummary`
                 get() =
                     FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
                         it as `MLangTags`
                         when (it) {
-                            `MLangTags`.EN -> """Runtime Logs"""
-                            `MLangTags`.ZH -> """运行日志"""
+                            `MLangTags`.EN ->
+                                """Runtime logs, startup diagnostics & troubleshooting"""
+                            `MLangTags`.ZH -> """运行日志、启动诊断与故障排查"""
                             else -> null
                         }
-                    } ?: """运行日志"""
+                    } ?: """运行日志、启动诊断与故障排查"""
 
-            /** 运行日志 */
+            /** 运行日志、启动诊断与故障排查 */
             @Composable
             fun `LogsSummary`(vararg args: Any?) = FYTxtConfig.observe { `LogsSummary`.fmt(args) }
 

@@ -20,7 +20,6 @@
 
 package com.github.yumelira.yumebox.presentation.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -338,7 +337,7 @@ private fun ReorderableCollectionItemScope.SubRuleGroupCard(
             Row(
                 modifier =
                     Modifier.fillMaxWidth()
-                        .clickable(onClick = onClick)
+                        .appClickable(onClick = onClick)
                         .padding(horizontal = 14.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,

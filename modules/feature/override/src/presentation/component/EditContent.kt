@@ -47,6 +47,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.Tun
 import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.util.*
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -235,13 +236,8 @@ private fun LazyListScope.OverrideSectionListContent(
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             val contentModifier =
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp).let { modifier ->
-                    if (sectionListContentMaxWidth != Dp.Unspecified) {
-                        modifier.widthIn(max = sectionListContentMaxWidth)
-                    } else {
-                        modifier
-                    }
-                }
+                Modifier.adaptiveContentWidth(sectionListContentMaxWidth)
+                    .padding(horizontal = 20.dp)
 
             val content: @Composable () -> Unit = {
                 Column(

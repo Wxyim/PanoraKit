@@ -94,6 +94,8 @@ class OverrideConfigViewModel(
     private val resolver: OverrideResolver,
     private val bindingProvider: ProfileBindingProvider,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
+    private val structuredLogCollector:
+        com.github.yumelira.yumebox.domain.model.StructuredLogCollector,
 ) : ViewModel() {
 
     companion object {
@@ -326,7 +328,25 @@ class OverrideConfigViewModel(
                 if (updateSaveState) {
                     _saveState.value = OverrideSaveState.Idle
                 }
-                _events.tryEmit(OverrideSaveEvent.Failed(MLang.Override.Save.PresetNotModifiable))
+                val error =
+                    com.github.yumelira.yumebox.domain.model.StructuredError.configuration(
+                        phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Saving,
+                        userVisibleMessage = MLang.Override.Save.PresetNotModifiable,
+                        impact =
+                            com.github.yumelira.yumebox.domain.model.ErrorImpact.FeatureUnavailable,
+                        retryability =
+                            com.github.yumelira.yumebox.domain.model.ErrorRetryability.NonRetryable,
+                    )
+                structuredLogCollector.append(
+                    com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                        action = "override.save",
+                        message = error.userVisibleMessage,
+                        objectId = config.id,
+                        phase = "Saving",
+                        errorCategory = "Configuration",
+                    )
+                )
+                _events.tryEmit(OverrideSaveEvent.Failed(error))
                 return
             }
             configRepo.save(config)
@@ -343,12 +363,46 @@ class OverrideConfigViewModel(
                 if (runtimeSynced) {
                     _events.emit(OverrideSaveEvent.Saved(config.id))
                 } else {
-                    _events.emit(OverrideSaveEvent.Failed(MLang.Override.Save.ApplyFailed))
+                    val error =
+                        com.github.yumelira.yumebox.domain.model.StructuredError.runtime(
+                            phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Reloading,
+                            userVisibleMessage = MLang.Override.Save.ApplyFailed,
+                            impact = com.github.yumelira.yumebox.domain.model.ErrorImpact.Degraded,
+                        )
+                    structuredLogCollector.append(
+                        com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                            action = "override.save.apply",
+                            message = error.userVisibleMessage,
+                            objectId = config.id,
+                            phase = "Reloading",
+                            errorCategory = "Runtime",
+                        )
+                    )
+                    _events.emit(OverrideSaveEvent.Failed(error))
                 }
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to update config")
-            _events.emit(OverrideSaveEvent.Failed(e.message ?: MLang.Override.Save.Failed))
+            val error =
+                com.github.yumelira.yumebox.domain.model.StructuredError.fromThrowable(
+                    throwable = e,
+                    phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Saving,
+                    category = com.github.yumelira.yumebox.domain.model.ErrorCategory.Storage,
+                    impact =
+                        com.github.yumelira.yumebox.domain.model.ErrorImpact.FeatureUnavailable,
+                    userVisibleMessage = e.message ?: MLang.Override.Save.Failed,
+                )
+            structuredLogCollector.append(
+                com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                    action = "override.save",
+                    message = error.userVisibleMessage,
+                    objectId = config.id,
+                    phase = "Saving",
+                    errorCategory = "Storage",
+                    detail = e.message,
+                )
+            )
+            _events.emit(OverrideSaveEvent.Failed(error))
         } finally {
             if (updateSaveState) {
                 _saveState.value = OverrideSaveState.Idle

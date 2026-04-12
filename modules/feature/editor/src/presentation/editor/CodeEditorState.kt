@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.github.yumelira.yumebox.feature.editor.diagnostic.JsonDiagnosticsProvider
+import com.github.yumelira.yumebox.feature.editor.diagnostic.YamlDiagnosticsProvider
 import com.github.yumelira.yumebox.feature.editor.format.CodeFormatter
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import io.github.rosemoe.sora.widget.CodeEditor
@@ -77,7 +78,9 @@ class CodeEditorState(
             LanguageScope.Json -> {
                 editor.diagnostics = JsonDiagnosticsProvider.analyze(content)
             }
-            LanguageScope.Yaml,
+            LanguageScope.Yaml -> {
+                editor.diagnostics = YamlDiagnosticsProvider.analyze(content)
+            }
             LanguageScope.Text -> {
 
                 editor.diagnostics = null

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.data.model.ThemeMode
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerItem
@@ -776,7 +777,7 @@ private fun PermissionRow(
     Row(
         modifier =
             Modifier.fillMaxWidth()
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -831,7 +832,7 @@ private fun ProjectLinkRow(icon: ImageVector, title: String, summary: String, on
     Row(
         modifier =
             Modifier.fillMaxWidth()
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -877,8 +878,7 @@ private fun PrimaryFooterAction(
             modifier
                 .clip(RoundedCornerShape(24.dp))
                 .background(MiuixTheme.colorScheme.primary)
-                .graphicsLayer(alpha = if (enabled) 1f else 0.45f)
-                .clickable(enabled = enabled, onClick = onClick)
+                .appClickable(enabled = enabled, disabledAlpha = 0.45f, onClick = onClick)
                 .padding(horizontal = 20.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -901,7 +901,7 @@ private fun SecondaryFooterAction(
             modifier
                 .clip(RoundedCornerShape(24.dp))
                 .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f))
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 20.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -918,7 +918,7 @@ private fun SecondaryLinkAction(text: String, onClick: () -> Unit) {
     Box(
         modifier =
             Modifier.clip(RoundedCornerShape(18.dp))
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {

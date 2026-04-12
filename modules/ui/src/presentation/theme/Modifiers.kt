@@ -21,7 +21,9 @@
 package com.github.yumelira.yumebox.presentation.theme
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -62,4 +64,12 @@ fun Modifier.horizontalPadding(
     right: Dp = AppTheme.spacing.screenH,
 ): Modifier {
     return this.padding(start = left, end = right)
+}
+
+fun Modifier.adaptiveContentWidth(maxWidth: Dp): Modifier {
+    return if (maxWidth != Dp.Unspecified) {
+        this.widthIn(max = maxWidth).fillMaxWidth()
+    } else {
+        this.fillMaxWidth()
+    }
 }

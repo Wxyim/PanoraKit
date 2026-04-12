@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
@@ -74,6 +75,8 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -86,7 +89,6 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object AccessControlMetrics {
-    val ContentMaxWidth = 960.dp
     val SearchOverlayMaxWidth = 760.dp
     val SearchHorizontalPadding = 16.dp
     val SearchTopPadding = 12.dp
@@ -111,6 +113,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
 
     val showSettingsSheet = rememberSaveable { mutableStateOf(false) }
     val searchExpanded = rememberSaveable { mutableStateOf(false) }
+    val sortedSelectedPackages =
+        remember(uiState.selectedPackages) { uiState.selectedPackages.toList().sorted() }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -161,11 +165,14 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     )
                 }
             } else {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                    val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
                     ScreenLazyColumn(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .widthIn(max = AccessControlMetrics.ContentMaxWidth),
+                        modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                         scrollBehavior = scrollBehavior,
                         innerPadding = innerPadding,
                         topPadding = 20.dp,
@@ -328,7 +335,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                 )
                             }
 
-                            if (uiState.selectedPackages.isEmpty()) {
+                            if (sortedSelectedPackages.isEmpty()) {
                                 item {
                                     Card {
                                         Column(
@@ -344,10 +351,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     }
                                 }
                             } else {
-                                items(
-                                    items = uiState.selectedPackages.toList().sorted(),
-                                    key = { it },
-                                ) { packageName ->
+                                items(items = sortedSelectedPackages, key = { it }) { packageName ->
                                     Card(
                                         modifier =
                                             Modifier.padding(

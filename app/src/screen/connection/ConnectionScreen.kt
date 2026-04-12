@@ -20,14 +20,20 @@
 
 package com.github.yumelira.yumebox.screen.connection
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
@@ -40,10 +46,16 @@ import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.Connectio
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperListPopup
@@ -60,7 +72,6 @@ private object ConnectionPageSpacing {
     val TopBarActionOuter = 24.dp
     val SearchVerticalPadding = 8.dp
     val EmptyStatePadding = 32.dp
-    val ContentMaxWidth = 1080.dp
 }
 
 private val SortModes =
@@ -91,6 +102,32 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
 
     val tabs = listOf(MLang.Connection.Tab.Active, MLang.Connection.Tab.Closed)
     var selectedTabIndex by remember { mutableStateOf(0) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val pcapExportLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/vnd.tcpdump.pcap")
+        ) { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                if (outputStream != null) {
+                    val success = viewModel.exportCaptureToPcap(outputStream)
+                    outputStream.close()
+                    launch(Dispatchers.Main) {
+                        android.widget.Toast.makeText(
+                                context,
+                                if (success) MLang.Connection.Capture.ExportSuccess
+                                else MLang.Connection.Capture.ExportFailed,
+                                android.widget.Toast.LENGTH_SHORT,
+                            )
+                            .show()
+                    }
+                }
+            }
+        }
 
     LaunchedEffect(selectedTabIndex) {
         val tab = if (selectedTabIndex == 0) ConnectionTab.ACTIVE else ConnectionTab.CLOSED
@@ -150,6 +187,40 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                         }
                     }
                     IconButton(
+                        modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
+                        onClick = {
+                            if (state.isCapturing) {
+                                viewModel.stopCapture()
+                                if (viewModel.hasCapturedData()) {
+                                    pcapExportLauncher.launch(viewModel.suggestPcapFileName())
+                                }
+                            } else {
+                                viewModel.startCapture()
+                            }
+                        },
+                    ) {
+                        Box {
+                            Icon(
+                                imageVector = Yume.`Scan-eye`,
+                                contentDescription =
+                                    if (state.isCapturing) MLang.Connection.Capture.Stop
+                                    else MLang.Connection.Capture.Start,
+                                tint =
+                                    if (state.isCapturing) MiuixTheme.colorScheme.primary
+                                    else MiuixTheme.colorScheme.onSurface,
+                            )
+                            if (state.isCapturing) {
+                                Box(
+                                    modifier =
+                                        Modifier.align(Alignment.TopEnd)
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(MiuixTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
                         modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionOuter),
                         onClick = { showSearchBar = !showSearchBar },
                     ) {
@@ -163,10 +234,14 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
             )
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+            val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
             ScreenLazyColumn(
-                modifier =
-                    Modifier.fillMaxWidth().widthIn(max = ConnectionPageSpacing.ContentMaxWidth),
+                modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
                 contentPadding =

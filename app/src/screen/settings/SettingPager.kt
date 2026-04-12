@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.BuildConfig
 import com.github.yumelira.yumebox.presentation.component.*
@@ -34,9 +33,12 @@ import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.MetaFeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsScreenDestination
@@ -47,11 +49,6 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object SettingsPageMetrics {
-    val SinglePaneMaxWidth = 760.dp
-    val TwoPaneMaxWidth = 1280.dp
-}
 
 @SuppressLint("LocalContextResourcesRead")
 @Composable
@@ -68,10 +65,10 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
             val useTwoPaneLayout = availableAdaptiveInfo.prefersTwoPaneContent
             val sectionSpacing = LocalSpacing.current.xl
             val contentMaxWidth =
-                when {
-                    availableAdaptiveInfo.isExpandedWidth -> SettingsPageMetrics.TwoPaneMaxWidth
-                    availableAdaptiveInfo.isMediumWidth -> SettingsPageMetrics.SinglePaneMaxWidth
-                    else -> Dp.Unspecified
+                if (useTwoPaneLayout) {
+                    availableAdaptiveInfo.preferredTwoPaneMaxWidth
+                } else {
+                    availableAdaptiveInfo.preferredSinglePaneMaxWidth
                 }
 
             ScreenLazyColumn(
@@ -84,15 +81,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         contentAlignment = Alignment.TopCenter,
                     ) {
                         val contentModifier =
-                            Modifier.fillMaxWidth()
+                            Modifier.adaptiveContentWidth(contentMaxWidth)
                                 .padding(horizontal = LocalSpacing.current.gutter)
-                                .let { modifier ->
-                                    if (contentMaxWidth != Dp.Unspecified) {
-                                        modifier.widthIn(max = contentMaxWidth)
-                                    } else {
-                                        modifier
-                                    }
-                                }
 
                         if (useTwoPaneLayout) {
                             Row(
@@ -100,15 +90,24 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                                 horizontalArrangement = Arrangement.spacedBy(sectionSpacing),
                                 verticalAlignment = Alignment.Top,
                             ) {
-                                SettingsSection(
-                                    title = MLang.Settings.Section.UiSettings,
+                                Column(
                                     modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                                 ) {
-                                    UiSettingsCard(
-                                        navigator = navigator,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        applyHorizontalPadding = false,
-                                    )
+                                    SettingsSection(title = MLang.Settings.Section.UiSettings) {
+                                        UiSettingsCard(
+                                            navigator = navigator,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            applyHorizontalPadding = false,
+                                        )
+                                    }
+                                    SettingsSection(title = MLang.Settings.Section.Advanced) {
+                                        AdvancedSettingsCard(
+                                            navigator = navigator,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            applyHorizontalPadding = false,
+                                        )
+                                    }
                                 }
                                 SettingsSection(
                                     title = MLang.Settings.Section.More,
@@ -129,6 +128,14 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                             ) {
                                 SettingsSection(title = MLang.Settings.Section.UiSettings) {
                                     UiSettingsCard(
+                                        navigator = navigator,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        applyHorizontalPadding = false,
+                                    )
+                                }
+
+                                SettingsSection(title = MLang.Settings.Section.Advanced) {
+                                    AdvancedSettingsCard(
                                         navigator = navigator,
                                         modifier = Modifier.fillMaxWidth(),
                                         applyHorizontalPadding = false,
@@ -193,7 +200,16 @@ private fun UiSettingsCard(
                 navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true }
             },
         )
-        SettingsDivider()
+    }
+}
+
+@Composable
+private fun AdvancedSettingsCard(
+    navigator: com.ramcosta.composedestinations.navigation.DestinationsNavigator,
+    modifier: Modifier = Modifier,
+    applyHorizontalPadding: Boolean = true,
+) {
+    Card(modifier = modifier, applyHorizontalPadding = applyHorizontalPadding) {
         SettingsRow(
             title = MLang.Settings.UiSettings.Override,
             summary = MLang.Settings.UiSettings.OverrideSummary,
@@ -209,6 +225,16 @@ private fun UiSettingsCard(
             tone = SemanticTone.Brand,
             onClick = {
                 navigator.navigate(MetaFeatureScreenDestination) { launchSingleTop = true }
+            },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.NetworkSettings.ProxyOptions.ManageAccessControlTitle,
+            summary = MLang.NetworkSettings.ProxyOptions.ManageAccessControlSummary,
+            imageVector = Yume.UserKey,
+            tone = SemanticTone.Info,
+            onClick = {
+                navigator.navigate(AccessControlScreenDestination) { launchSingleTop = true }
             },
         )
     }
@@ -229,6 +255,16 @@ private fun MoreSettingsCard(
             tone = SemanticTone.Info,
             onClick = {
                 navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true }
+            },
+        )
+        SettingsDivider()
+        SettingsRow(
+            title = MLang.Connection.Title,
+            summary = MLang.Connection.Summary,
+            imageVector = Yume.`Scan-eye`,
+            tone = SemanticTone.Info,
+            onClick = {
+                navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true }
             },
         )
         SettingsDivider()

@@ -50,6 +50,7 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.Edit
 import com.github.yumelira.yumebox.presentation.icon.yume.Folders
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -69,7 +70,7 @@ private data class RemoteOverrideSection(
 )
 
 private object ProvidersScreenMetrics {
-    val ContentMaxWidth = 920.dp
+    val ContentMaxWidth = 840.dp
 }
 
 @Composable
@@ -396,9 +397,7 @@ private fun LazyListScope.remoteOverrideSection(
 @Composable
 private fun ProvidersCenteredContent(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Box(
-            modifier = Modifier.fillMaxWidth().widthIn(max = ProvidersScreenMetrics.ContentMaxWidth)
-        ) {
+        Box(modifier = Modifier.adaptiveContentWidth(ProvidersScreenMetrics.ContentMaxWidth)) {
             content()
         }
     }

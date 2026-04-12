@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,12 +37,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
@@ -55,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.chevron
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.LocalSemanticColors
 import com.github.yumelira.yumebox.presentation.theme.SemanticColorToken
 import top.yukonga.miuix.kmp.basic.Icon
@@ -144,7 +142,6 @@ fun AppCircularIconAction(
         modifier =
             modifier
                 .size(size)
-                .alpha(if (enabled) 1f else 0.48f)
                 .semantics {
                     this.contentDescription =
                         buildSemanticDescription(contentDescription, toneDescription)
@@ -159,8 +156,12 @@ fun AppCircularIconAction(
                 )
                 .clip(CircleShape)
                 .background(resolvedContainer, CircleShape)
-                .border(0.8.dp, resolvedBorder, CircleShape)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+                .border(AppTheme.strokes.default, resolvedBorder, CircleShape)
+                .appClickable(
+                    enabled = enabled,
+                    pressedAlpha = 0.78f,
+                    onClick = onClick,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -226,7 +227,6 @@ fun AppActionTile(
                 modifier
                     .fillMaxWidth()
                     .heightIn(min = minHeight)
-                    .alpha(if (enabled) 1f else 0.48f)
                     .semantics(mergeDescendants = true) {
                         contentDescription = semanticDescription
                         stateDescription = if (enabled) "enabled" else "disabled"
@@ -234,8 +234,11 @@ fun AppActionTile(
                     }
                     .clip(shape)
                     .background(resolvedContainer, shape)
-                    .border(0.8.dp, resolvedBorder, shape)
-                    .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    .border(AppTheme.strokes.default, resolvedBorder, shape)
+                    .appClickable(
+                        enabled = enabled,
+                        onClick = onClick,
+                    )
                     .padding(horizontal = 12.dp, vertical = 13.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterVertically),
@@ -263,7 +266,6 @@ fun AppActionTile(
                 modifier
                     .fillMaxWidth()
                     .heightIn(min = minHeight)
-                    .alpha(if (enabled) 1f else 0.48f)
                     .semantics(mergeDescendants = true) {
                         contentDescription = semanticDescription
                         stateDescription = if (enabled) "enabled" else "disabled"
@@ -271,8 +273,11 @@ fun AppActionTile(
                     }
                     .clip(shape)
                     .background(resolvedContainer, shape)
-                    .border(0.8.dp, resolvedBorder, shape)
-                    .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    .border(AppTheme.strokes.default, resolvedBorder, shape)
+                    .appClickable(
+                        enabled = enabled,
+                        onClick = onClick,
+                    )
                     .padding(horizontal = 15.dp, vertical = 13.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -333,7 +338,6 @@ fun AppCommandButton(
             modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
-                .alpha(if (enabled) 1f else 0.48f)
                 .semantics(mergeDescendants = true) {
                     contentDescription = semanticDescription
                     stateDescription = if (enabled) "enabled" else "disabled"
@@ -341,8 +345,11 @@ fun AppCommandButton(
                 }
                 .clip(shape)
                 .background(actionStyle.containerColor, shape)
-                .border(0.8.dp, actionStyle.borderColor, shape)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .border(AppTheme.strokes.default, actionStyle.borderColor, shape)
+                .appClickable(
+                    enabled = enabled,
+                    onClick = onClick,
+                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -386,7 +393,7 @@ fun StatusBadge(
                 }
                 .clip(shape)
                 .background(style.containerColor, shape)
-                .border(0.7.dp, style.borderColor, shape)
+                .border(AppTheme.strokes.thin, style.borderColor, shape)
                 .padding(
                     horizontal = if (compact) 9.dp else 11.dp,
                     vertical = if (compact) 4.dp else 6.dp,
@@ -433,7 +440,7 @@ fun SettingsRow(
                     stateDescription = tone.accessibilityDescription()
                 }
                 .clip(shape)
-                .clickable(role = Role.Button, onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -504,7 +511,7 @@ fun MetricCard(
                 }
                 .clip(shape)
                 .background(style.containerColor, shape)
-                .border(0.8.dp, style.borderColor, shape)
+                .border(AppTheme.strokes.default, style.borderColor, shape)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -566,7 +573,7 @@ private fun ActionTileIcon(
             Modifier.size(size)
                 .clip(CircleShape)
                 .background(containerColor, CircleShape)
-                .border(0.8.dp, contentColor.copy(alpha = 0.18f), CircleShape),
+                .border(AppTheme.strokes.default, contentColor.copy(alpha = 0.18f), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

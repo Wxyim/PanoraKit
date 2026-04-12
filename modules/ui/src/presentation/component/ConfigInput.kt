@@ -37,6 +37,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.Edit
 import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
 import com.github.yumelira.yumebox.presentation.icon.yume.List
 import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -529,7 +530,7 @@ private fun ModifierModeCard(
             modifier
                 .fillMaxWidth()
                 .background(style.containerColor, shape)
-                .border(0.8.dp, style.borderColor, shape)
+                .border(AppTheme.strokes.default, style.borderColor, shape)
                 .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {

@@ -33,6 +33,7 @@ enum class AccessControlSortMode {
             }
 }
 
+@androidx.compose.runtime.Stable
 data class AccessControlUiState(
     val isLoading: Boolean = true,
     val apps: List<AccessControlAppInfo> = emptyList(),

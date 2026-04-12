@@ -26,7 +26,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.selection.selectable
@@ -58,6 +57,8 @@ import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.TrafficBarChart
+import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -149,94 +150,103 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
             )
         }
     ) { innerPadding ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = innerPadding,
-            topPadding = TrafficStatisticsMetrics.TopPadding,
-            bottomPadding = TrafficStatisticsMetrics.BottomPadding,
+        BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            item {
-                BoxWithConstraints(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = TrafficStatisticsMetrics.CardHorizontalPadding)
-                ) {
-                    val availableAdaptiveInfo =
-                        rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-                    val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
-                    if (useWideLayout) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            OverviewCard(
-                                selectedTimeRange = selectedTimeRange,
-                                todaySummary = todaySummary.total,
-                                weekSummary = weekSummary,
-                                trafficDifference = trafficDifference,
-                                chartItems = chartItems,
-                                todayTimeContext = todayTimeContext,
-                                selectedBarIndex = selectedBarIndex,
-                                onRangeSelected = viewModel::setTimeRange,
-                                onBarSelected = { index ->
-                                    viewModel.setSelectedBarIndex(
-                                        if (selectedBarIndex == index) -1 else index
-                                    )
-                                },
-                                modifier = Modifier.weight(1f),
-                                selectorModifier = Modifier.widthIn(min = 200.dp, max = 248.dp),
-                            )
-                            DetailsCard(
-                                selectedDetailSection = selectedDetailSection,
-                                recentRequests = recentRequests,
-                                targetSites = targetSites,
-                                onSectionSelected = { selectedDetailSectionName = it.name },
-                                onRecentRequestClick = { request ->
-                                    selectedConnectionId = request.connection.id
-                                    showConnectionDetail = true
-                                },
-                                modifier = Modifier.weight(1f),
-                                selectorModifier = Modifier.widthIn(min = 240.dp, max = 320.dp),
-                            )
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement =
-                                Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
-                        ) {
-                            OverviewCard(
-                                selectedTimeRange = selectedTimeRange,
-                                todaySummary = todaySummary.total,
-                                weekSummary = weekSummary,
-                                trafficDifference = trafficDifference,
-                                chartItems = chartItems,
-                                todayTimeContext = todayTimeContext,
-                                selectedBarIndex = selectedBarIndex,
-                                onRangeSelected = viewModel::setTimeRange,
-                                onBarSelected = { index ->
-                                    viewModel.setSelectedBarIndex(
-                                        if (selectedBarIndex == index) -1 else index
-                                    )
-                                },
+            val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+            val contentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
+            ScreenLazyColumn(
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                topPadding = TrafficStatisticsMetrics.TopPadding,
+                bottomPadding = TrafficStatisticsMetrics.BottomPadding,
+                modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
+            ) {
+                item {
+                    BoxWithConstraints(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(
+                                    horizontal = TrafficStatisticsMetrics.CardHorizontalPadding
+                                )
+                    ) {
+                        val availableAdaptiveInfo =
+                            rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                        val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
+                        if (useWideLayout) {
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                selectorModifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
-                            )
-                            DetailsCard(
-                                selectedDetailSection = selectedDetailSection,
-                                recentRequests = recentRequests,
-                                targetSites = targetSites,
-                                onSectionSelected = { selectedDetailSectionName = it.name },
-                                onRecentRequestClick = { request ->
-                                    selectedConnectionId = request.connection.id
-                                    showConnectionDetail = true
-                                },
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                OverviewCard(
+                                    selectedTimeRange = selectedTimeRange,
+                                    todaySummary = todaySummary.total,
+                                    weekSummary = weekSummary,
+                                    trafficDifference = trafficDifference,
+                                    chartItems = chartItems,
+                                    todayTimeContext = todayTimeContext,
+                                    selectedBarIndex = selectedBarIndex,
+                                    onRangeSelected = viewModel::setTimeRange,
+                                    onBarSelected = { index ->
+                                        viewModel.setSelectedBarIndex(
+                                            if (selectedBarIndex == index) -1 else index
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    selectorModifier = Modifier.widthIn(min = 200.dp, max = 248.dp),
+                                )
+                                DetailsCard(
+                                    selectedDetailSection = selectedDetailSection,
+                                    recentRequests = recentRequests,
+                                    targetSites = targetSites,
+                                    onSectionSelected = { selectedDetailSectionName = it.name },
+                                    onRecentRequestClick = { request ->
+                                        selectedConnectionId = request.connection.id
+                                        showConnectionDetail = true
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    selectorModifier = Modifier.widthIn(min = 240.dp, max = 320.dp),
+                                )
+                            }
+                        } else {
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                selectorModifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
-                            )
+                                verticalArrangement =
+                                    Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                            ) {
+                                OverviewCard(
+                                    selectedTimeRange = selectedTimeRange,
+                                    todaySummary = todaySummary.total,
+                                    weekSummary = weekSummary,
+                                    trafficDifference = trafficDifference,
+                                    chartItems = chartItems,
+                                    todayTimeContext = todayTimeContext,
+                                    selectedBarIndex = selectedBarIndex,
+                                    onRangeSelected = viewModel::setTimeRange,
+                                    onBarSelected = { index ->
+                                        viewModel.setSelectedBarIndex(
+                                            if (selectedBarIndex == index) -1 else index
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    selectorModifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
+                                )
+                                DetailsCard(
+                                    selectedDetailSection = selectedDetailSection,
+                                    recentRequests = recentRequests,
+                                    targetSites = targetSites,
+                                    onSectionSelected = { selectedDetailSectionName = it.name },
+                                    onRecentRequestClick = { request ->
+                                        selectedConnectionId = request.connection.id
+                                        showConnectionDetail = true
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    selectorModifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -684,7 +694,7 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
 
     Surface(
         modifier =
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).appClickable(onClick = onClick),
         color = MiuixTheme.colorScheme.background,
     ) {
         Column(

@@ -24,7 +24,6 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,9 +41,6 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
-import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
@@ -57,6 +53,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
@@ -69,7 +66,6 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
@@ -98,13 +94,10 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val isRunning by homeViewModel.isRunning.collectAsStateWithLifecycle()
 
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
-    val activeProfileOverrideReloader: ActiveProfileOverrideReloader = koinInject()
-    val bindingProvider: ProfileBindingProvider = koinInject()
-    val appSettingsStorage: AppSettingsStorage = koinInject()
     val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
     val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
     val profileSwipeHintShown by
-        appSettingsStorage.profileSwipeHintShown.state.collectAsStateWithLifecycle()
+        profilesViewModel.profileSwipeHintShown.state.collectAsStateWithLifecycle()
 
     val showAddBottomSheet = rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogVisible by rememberSaveable { mutableStateOf(false) }
@@ -196,7 +189,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         if (profileSwipeHintShown || profiles.isEmpty()) return@LaunchedEffect
         val firstProfileId = profiles.first().uuid.toString()
         swipeHintTargetProfileId = firstProfileId
-        appSettingsStorage.profileSwipeHintShown.set(true)
+        profilesViewModel.dismissSwipeHint()
     }
 
     val scrollBehavior = MiuixScrollBehavior()
@@ -378,11 +371,15 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                         profilesViewModel.reorderProfiles(from.index, to.index)
                     }
 
+                val profileContentMaxWidth = availableAdaptiveInfo.preferredSinglePaneMaxWidth
                 ScreenLazyColumn(
                     lazyListState = lazyListState,
                     scrollBehavior = scrollBehavior,
                     innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
                     topPadding = 20.dp,
+                    modifier =
+                        Modifier.adaptiveContentWidth(profileContentMaxWidth)
+                            .align(Alignment.TopCenter),
                 ) {
                     items(items = profiles, key = { it.uuid.toString() }) { profile ->
                         ReorderableItem(reorderableLazyListState, key = profile.uuid.toString()) {
@@ -474,7 +471,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                             settingsProfileId = profile.uuid.toString()
                                             scope.launch {
                                                 profileBinding =
-                                                    bindingProvider.getBinding(
+                                                    profilesViewModel.loadProfileBinding(
                                                         profile.uuid.toString()
                                                     )
                                             }
@@ -585,7 +582,8 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     scope.launch {
                         val profileId = currentProfileToEdit.uuid.toString()
                         val normalizedOverrideIds = selectedOverrideIds.distinct()
-                        val currentBinding = profileBinding ?: bindingProvider.getBinding(profileId)
+                        val currentBinding =
+                            profileBinding ?: profilesViewModel.loadProfileBinding(profileId)
                         val updatedBinding =
                             currentBinding?.copy(
                                 overrideIds = normalizedOverrideIds,
@@ -597,10 +595,10 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                     enabled = systemPresetEnabled,
                                 )
 
-                        bindingProvider.setBinding(updatedBinding)
-                        profileBinding = bindingProvider.getBinding(profileId)
+                        profilesViewModel.saveProfileBinding(updatedBinding)
+                        profileBinding = profilesViewModel.loadProfileBinding(profileId)
 
-                        activeProfileOverrideReloader.reapplyIfActiveProfile(profileId)
+                        profilesViewModel.reapplyOverrideIfActiveProfile(profileId)
                     }
                 },
             )
@@ -710,11 +708,10 @@ private fun ProfileUpdateAllChip(
     Row(
         modifier =
             modifier
-                .alpha(if (enabled) 1f else 0.5f)
                 .clip(shape)
                 .background(style.containerColor, shape)
                 .border(0.8.dp, style.borderColor, shape)
-                .clickable(enabled = enabled, onClick = onClick)
+                .appClickable(enabled = enabled, disabledAlpha = 0.5f, onClick = onClick)
                 .padding(horizontal = 13.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -746,7 +743,7 @@ private fun ProfileAddTopBarChip(onClick: () -> Unit, modifier: Modifier = Modif
                 .clip(shape)
                 .background(style.containerColor, shape)
                 .border(0.8.dp, style.borderColor, shape)
-                .clickable(onClick = onClick)
+                .appClickable(onClick = onClick)
                 .padding(horizontal = 13.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -30,10 +30,13 @@ import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.FetchStatus
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
+import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
+import com.github.yumelira.yumebox.domain.model.ProfileBinding
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
@@ -88,6 +91,7 @@ class ProfilesViewModel(
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
     private val runtimeActionExecutor: RuntimeActionExecutor,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
+    private val appSettingsStorage: AppSettingsStorage,
 ) : AndroidViewModel(application) {
     companion object {
         private const val BLANK_PROFILE_SOURCE = "blank://local-config"
@@ -99,6 +103,12 @@ class ProfilesViewModel(
     val linkOpenMode: Preference<LinkOpenMode> = profileLinksStorage.linkOpenMode
     val links: Preference<List<ProfileLink>> = profileLinksStorage.links
     val defaultLinkId: Preference<String> = profileLinksStorage.defaultLinkId
+
+    val profileSwipeHintShown = appSettingsStorage.profileSwipeHintShown
+
+    fun dismissSwipeHint() {
+        appSettingsStorage.profileSwipeHintShown.set(true)
+    }
 
     private val profileGuiJson = Json {
         ignoreUnknownKeys = true
@@ -1204,11 +1214,29 @@ class ProfilesViewModel(
             }
         }
     }
+
+    // region Binding operations (delegated from Composable screens)
+
+    suspend fun loadProfileBinding(profileId: String): ProfileBinding? {
+        return bindingProvider.getBinding(profileId)
+    }
+
+    suspend fun saveProfileBinding(binding: ProfileBinding) {
+        bindingProvider.setBinding(binding)
+    }
+
+    suspend fun reapplyOverrideIfActiveProfile(profileId: String) {
+        activeProfileOverrideReloader.reapplyIfActiveProfile(profileId)
+    }
+
+    // endregion
 }
 
+@androidx.compose.runtime.Stable
 data class ProfilesUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+    val structuredError: StructuredError? = null,
     val message: String? = null,
 )
 

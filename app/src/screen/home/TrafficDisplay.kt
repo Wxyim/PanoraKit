@@ -40,9 +40,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +57,7 @@ import com.github.yumelira.yumebox.common.util.formatBytesForDisplay
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.domain.model.TrafficData
+import com.github.yumelira.yumebox.presentation.component.TestTags
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
@@ -236,6 +241,7 @@ private fun ProfileModeBadge(
                 Modifier.fillMaxWidth()
                     .scale(controlScale)
                     .heightIn(min = metrics.modeBadgeHeight)
+                    .testTag(TestTags.Home.ProfileModeBadge)
                     .semantics(mergeDescendants = true) { contentDescription = controlDescription }
                     .onGloballyPositioned { coordinates ->
                         onBoundsChanged(coordinates.boundsInRoot())
@@ -372,6 +378,7 @@ private fun ProxyStatusCapsule(
             primary
         }
     val controlDescription = listOf(proxyMode.toTransportLabel(), statusHeadline).joinToString(", ")
+    val runtimeStateDescription = statusHeadline
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
@@ -411,7 +418,12 @@ private fun ProxyStatusCapsule(
                 Modifier.fillMaxWidth()
                     .scale(controlScale)
                     .heightIn(min = metrics.statusCapsuleHeight)
-                    .semantics(mergeDescendants = true) { contentDescription = controlDescription }
+                    .testTag(TestTags.Home.StatusCapsule)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = controlDescription
+                        stateDescription = runtimeStateDescription
+                        liveRegion = LiveRegionMode.Polite
+                    }
                     .let { baseModifier ->
                         if (onClick != null) {
                             baseModifier.clickable(

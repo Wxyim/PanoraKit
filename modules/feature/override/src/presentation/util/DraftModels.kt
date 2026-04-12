@@ -162,7 +162,8 @@ sealed interface OverrideSaveState {
 sealed interface OverrideSaveEvent {
     data class Saved(val configId: String) : OverrideSaveEvent
 
-    data class Failed(val message: String) : OverrideSaveEvent
+    data class Failed(val error: com.github.yumelira.yumebox.domain.model.StructuredError) :
+        OverrideSaveEvent
 }
 
 data class OverrideSectionSummary(

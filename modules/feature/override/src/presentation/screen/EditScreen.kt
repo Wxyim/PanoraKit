@@ -21,15 +21,22 @@
 package com.github.yumelira.yumebox.presentation.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.util.defaultOverridePresetTemplateSelection
 import com.github.yumelira.yumebox.data.util.inferPresetTemplateSelection
 import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
 import com.github.yumelira.yumebox.presentation.util.OverrideSaveEvent
 import com.github.yumelira.yumebox.presentation.util.OverrideSaveState
@@ -100,7 +107,8 @@ fun OverrideEditScreen(
                 is OverrideSaveEvent.Saved -> Unit
                 is OverrideSaveEvent.Failed -> {
                     Timber.tag("OverrideEditScreen")
-                        .d("Suppress override save toast: %s", event.message)
+                        .w("Override save failed: %s", event.error.userVisibleMessage)
+                    context.toast(event.error.userVisibleMessage)
                 }
             }
         }
@@ -137,121 +145,135 @@ fun OverrideEditScreen(
             )
         }
     ) { paddingValues ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = paddingValues,
-            lazyListState = editorListState,
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            editSession?.let { session ->
-                OverrideEditContent(
-                    name = session.name,
-                    description = session.description,
-                    remoteSourceUrl = session.remoteSourceUrl,
-                    remoteUpdateIntervalSeconds = session.remoteUpdateIntervalSeconds,
-                    isRemoteResource = session.isRemoteResource,
-                    config = session.config,
-                    currentConfigProvider = {
-                        viewModel.editSession.value?.config ?: session.config
-                    },
-                    expandedSections = expandedSections,
-                    onNameChange = viewModel::updateDraftName,
-                    onDescriptionChange = viewModel::updateDraftDescription,
-                    onRemoteSourceUrlChange = viewModel::updateDraftRemoteSourceUrl,
-                    onRemoteIntervalSecondsChange = viewModel::updateDraftRemoteIntervalSeconds,
-                    onConfigChange = { updatedConfig ->
-                        viewModel.updateDraftConfig(
-                            updatedConfig = updatedConfig,
-                            saveImmediately = true,
-                        )
-                    },
-                    onSectionToggle = { section ->
-                        expandedSectionNames =
-                            if (section.name in expandedSectionNames) {
-                                expandedSectionNames - section.name
-                            } else {
-                                expandedSectionNames + section.name
-                            }
-                    },
-                    onOpenPresetTemplate = { showPresetTemplateSheet.value = true },
-                    onEditStringList = onOpenStringListEditor,
-                    onEditRuleList = {
-                        title,
-                        values,
-                        availableModes,
-                        selectedMode,
-                        referenceCatalog,
-                        callback ->
-                        onOpenRuleListEditor(
+            val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+            val editContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+            ScreenLazyColumn(
+                modifier = Modifier.adaptiveContentWidth(editContentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = paddingValues,
+                lazyListState = editorListState,
+            ) {
+                editSession?.let { session ->
+                    OverrideEditContent(
+                        name = session.name,
+                        description = session.description,
+                        remoteSourceUrl = session.remoteSourceUrl,
+                        remoteUpdateIntervalSeconds = session.remoteUpdateIntervalSeconds,
+                        isRemoteResource = session.isRemoteResource,
+                        config = session.config,
+                        currentConfigProvider = {
+                            viewModel.editSession.value?.config ?: session.config
+                        },
+                        expandedSections = expandedSections,
+                        onNameChange = viewModel::updateDraftName,
+                        onDescriptionChange = viewModel::updateDraftDescription,
+                        onRemoteSourceUrlChange = viewModel::updateDraftRemoteSourceUrl,
+                        onRemoteIntervalSecondsChange = viewModel::updateDraftRemoteIntervalSeconds,
+                        onConfigChange = { updatedConfig ->
+                            viewModel.updateDraftConfig(
+                                updatedConfig = updatedConfig,
+                                saveImmediately = true,
+                            )
+                        },
+                        onSectionToggle = { section ->
+                            expandedSectionNames =
+                                if (section.name in expandedSectionNames) {
+                                    expandedSectionNames - section.name
+                                } else {
+                                    expandedSectionNames + section.name
+                                }
+                        },
+                        onOpenPresetTemplate = { showPresetTemplateSheet.value = true },
+                        onEditStringList = onOpenStringListEditor,
+                        onEditRuleList = {
                             title,
                             values,
                             availableModes,
                             selectedMode,
                             referenceCatalog,
-                            callback,
-                        )
-                    },
-                    onEditStringMap = { title, keyPlaceholder, valuePlaceholder, value, callback ->
-                        currentMapEditorTitle = title
-                        currentMapEditorKeyPlaceholder = keyPlaceholder
-                        currentMapEditorValuePlaceholder = valuePlaceholder
-                        currentMapEditorValue = value
-                        currentMapEditorValidationMode = resolveStringMapValidationMode(title)
-                        currentMapEditorCallback = callback
-                        showStringMapEditor.value = true
-                    },
-                    onEditJson = { title, placeholder, value, callback ->
-                        currentJsonEditorTitle = title
-                        currentJsonEditorPlaceholder = placeholder
-                        currentJsonEditorValue = value
-                        currentJsonEditorCallback = callback
-                        showJsonEditor.value = true
-                    },
-                    onEditObjectList = {
-                        type,
-                        title,
-                        values,
-                        availableModes,
-                        selectedMode,
-                        referenceCatalog,
-                        callback ->
-                        onOpenObjectListEditor(
+                            callback ->
+                            onOpenRuleListEditor(
+                                title,
+                                values,
+                                availableModes,
+                                selectedMode,
+                                referenceCatalog,
+                                callback,
+                            )
+                        },
+                        onEditStringMap = { title, keyPlaceholder, valuePlaceholder, value, callback
+                            ->
+                            currentMapEditorTitle = title
+                            currentMapEditorKeyPlaceholder = keyPlaceholder
+                            currentMapEditorValuePlaceholder = valuePlaceholder
+                            currentMapEditorValue = value
+                            currentMapEditorValidationMode = resolveStringMapValidationMode(title)
+                            currentMapEditorCallback = callback
+                            showStringMapEditor.value = true
+                        },
+                        onEditJson = { title, placeholder, value, callback ->
+                            currentJsonEditorTitle = title
+                            currentJsonEditorPlaceholder = placeholder
+                            currentJsonEditorValue = value
+                            currentJsonEditorCallback = callback
+                            showJsonEditor.value = true
+                        },
+                        onEditObjectList = {
                             type,
                             title,
                             values,
                             availableModes,
                             selectedMode,
                             referenceCatalog,
-                            callback,
-                        )
-                    },
-                    onEditObjectMap = { type, title, values, availableModes, selectedMode, callback
-                        ->
-                        onOpenObjectMapEditor(
+                            callback ->
+                            onOpenObjectListEditor(
+                                type,
+                                title,
+                                values,
+                                availableModes,
+                                selectedMode,
+                                referenceCatalog,
+                                callback,
+                            )
+                        },
+                        onEditObjectMap = {
                             type,
                             title,
                             values,
                             availableModes,
                             selectedMode,
-                            callback,
-                        )
-                    },
-                    onEditSubRules = {
-                        title,
-                        values,
-                        availableModes,
-                        selectedMode,
-                        referenceCatalog,
-                        callback ->
-                        onOpenSubRulesEditor(
+                            callback ->
+                            onOpenObjectMapEditor(
+                                type,
+                                title,
+                                values,
+                                availableModes,
+                                selectedMode,
+                                callback,
+                            )
+                        },
+                        onEditSubRules = {
                             title,
                             values,
                             availableModes,
                             selectedMode,
                             referenceCatalog,
-                            callback,
-                        )
-                    },
-                )
+                            callback ->
+                            onOpenSubRulesEditor(
+                                title,
+                                values,
+                                availableModes,
+                                selectedMode,
+                                referenceCatalog,
+                                callback,
+                            )
+                        },
+                    )
+                }
             }
         }
         AppDialog(

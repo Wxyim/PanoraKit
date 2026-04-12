@@ -24,11 +24,9 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -175,8 +173,6 @@ fun ProfileCard(
             (ProfileCardMetrics.SwipeRailWidth + ProfileCardMetrics.SwipeActionEndPadding * 2)
                 .toPx()
         }
-    val interactionSource = remember { MutableInteractionSource() }
-
     var swipeOffsetPx by remember(profile.uuid) { mutableFloatStateOf(0f) }
     val animatedOffsetPx by
         animateFloatAsState(targetValue = swipeOffsetPx, label = "profile_card_swipe")
@@ -315,10 +311,8 @@ fun ProfileCard(
                                     },
                                 onDragStopped = { velocity -> settleActions(velocity) },
                             )
-                            .clickable(
+                            .appClickable(
                                 enabled = !isDownloading,
-                                interactionSource = interactionSource,
-                                indication = null,
                             ) {
                                 if (swipeOffsetPx < -1f) {
                                     closeActions()
@@ -553,7 +547,7 @@ private fun ProfileSwipeAction(
                     color = style.borderColor.copy(alpha = if (enabled) 1f else 0.55f),
                     shape = shape,
                 )
-                .clickable(enabled = enabled, onClick = onClick)
+                .appClickable(enabled = enabled, onClick = onClick)
                 .height(ProfileCardMetrics.SwipeActionHeight),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,

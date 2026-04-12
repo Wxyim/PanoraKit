@@ -27,7 +27,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PagerState
@@ -45,6 +44,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -58,6 +58,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.Bolt
 import com.github.yumelira.yumebox.presentation.icon.yume.House
 import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.kyant.shapes.Capsule
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -229,6 +230,7 @@ fun SideRailContent(modifier: Modifier = Modifier) {
     Column(
         modifier =
             modifier
+                .testTag(TestTags.Navigation.BottomBar)
                 .selectableGroup()
                 .shadow(
                     elevation = 22.dp,
@@ -249,7 +251,7 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                 .width(92.dp)
                 .clip(Capsule())
                 .background(containerColor, Capsule())
-                .border(width = 0.8.dp, color = borderColor, shape = Capsule())
+                .border(width = AppTheme.strokes.default, color = borderColor, shape = Capsule())
                 .padding(horizontal = 10.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -267,8 +269,9 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                             color = if (selected) indicatorContainerColor else Color.Transparent,
                             shape = Capsule(),
                         )
-                        .clickable(
+                        .appClickable(
                             role = Role.Tab,
+                            pressedAlpha = AppInteractionFeedbackDefaults.NavigationPressedAlpha,
                             onClick = { navigationState.onItemClick(index) },
                         )
                         .padding(vertical = 10.dp, horizontal = 8.dp),
@@ -403,13 +406,21 @@ private fun BottomNavigationBar(
 
         Box(
             Modifier.matchParentSize()
-                .border(width = 0.8.dp, color = containerBorderColor, shape = Capsule())
+                .border(
+                    width = AppTheme.strokes.default,
+                    color = containerBorderColor,
+                    shape = Capsule(),
+                )
         )
 
         Box(
             Modifier.matchParentSize()
                 .padding(1.dp)
-                .border(width = 0.35.dp, color = innerHighlightColor, shape = Capsule())
+                .border(
+                    width = AppTheme.strokes.thin,
+                    color = innerHighlightColor,
+                    shape = Capsule(),
+                )
         )
     }
 }
@@ -426,7 +437,12 @@ private fun RowScope.BottomNavigationTabItem(
         modifier
             .semantics(mergeDescendants = true) { this.selected = selected }
             .clip(Capsule())
-            .clickable(enabled = enabled, role = Role.Tab, onClick = onClick)
+            .appClickable(
+                enabled = enabled,
+                role = Role.Tab,
+                pressedAlpha = AppInteractionFeedbackDefaults.NavigationPressedAlpha,
+                onClick = onClick,
+            )
             .fillMaxHeight()
             .weight(1f),
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),

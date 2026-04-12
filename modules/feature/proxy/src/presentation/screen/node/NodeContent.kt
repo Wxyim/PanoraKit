@@ -23,8 +23,6 @@ package com.github.yumelira.yumebox.presentation.screen.node
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,14 +35,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.normalizeProxySheetHeightFraction
+import com.github.yumelira.yumebox.presentation.component.AppInteractionFeedbackDefaults
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
+import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -118,9 +119,9 @@ internal fun NodeTabs(groups: List<ProxyGroupInfo>, selectedIndex: Int, onSelect
                 modifier =
                     Modifier.clip(RoundedCornerShape(999.dp))
                         .background(background)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
+                        .appClickable(
+                            role = Role.Tab,
+                            pressedAlpha = AppInteractionFeedbackDefaults.NavigationPressedAlpha,
                             onClick = { onSelect(index) },
                         )
                         .padding(horizontal = 11.dp, vertical = 6.dp)

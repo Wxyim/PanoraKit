@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.screen.home
 
 import android.app.Application
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.TunnelState
@@ -31,6 +32,7 @@ import com.github.yumelira.yumebox.data.repository.NetworkInfoService
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
 import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
@@ -89,12 +91,14 @@ data class SpeedHistoryBuffer(
     }
 }
 
+@Stable
 data class HomeUiState(
     val isLoading: Boolean = false,
     val isStartingProxy: Boolean = false,
     val loadingProgress: String? = null,
     val message: String? = null,
     val error: String? = null,
+    val structuredError: StructuredError? = null,
 )
 
 enum class HomeRuntimeVisualState {
@@ -110,6 +114,7 @@ data class HomeProfilesState(
     val profilesLoaded: Boolean = false,
 )
 
+@Stable
 data class HomeChromeState(
     val ui: HomeUiState = HomeUiState(),
     val runtimeVisualState: HomeRuntimeVisualState = HomeRuntimeVisualState.Idle,
@@ -118,6 +123,7 @@ data class HomeChromeState(
     val proxyMode: ProxyMode = ProxyMode.Tun,
 )
 
+@Stable
 data class HomeScreenState(
     val ui: HomeUiState = HomeUiState(),
     val runtimeVisualState: HomeRuntimeVisualState = HomeRuntimeVisualState.Idle,

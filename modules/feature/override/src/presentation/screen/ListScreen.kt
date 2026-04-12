@@ -47,6 +47,8 @@ import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -280,98 +282,110 @@ fun OverrideListScreen(
         },
         topBar = { TopBar(title = MLang.Override.Title, scrollBehavior = scrollBehavior) },
     ) { paddingValues ->
-        ScreenLazyColumn(
-            scrollBehavior = scrollBehavior,
-            innerPadding = paddingValues,
-            bottomPadding = OverrideFloatingActionContentBottomPadding,
-            topPadding = 20.dp,
-            lazyListState = listState,
-            onScrollDirectionChanged = createFabController::onScrollDirectionChanged,
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            when {
-                userConfigs.isEmpty() -> {
-                    item(key = "override-empty") {
-                        Box(
-                            modifier =
-                                Modifier.fillParentMaxSize()
-                                    .padding(
-                                        horizontal =
-                                            OverrideListMetrics.EmptyStatePaddingHorizontal,
-                                        vertical = OverrideListMetrics.EmptyStatePaddingVertical,
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement =
-                                    Arrangement.spacedBy(OverrideListMetrics.SheetSectionSpacing),
+            val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+            val overrideContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+            ScreenLazyColumn(
+                modifier = Modifier.adaptiveContentWidth(overrideContentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = paddingValues,
+                bottomPadding = OverrideFloatingActionContentBottomPadding,
+                topPadding = 20.dp,
+                lazyListState = listState,
+                onScrollDirectionChanged = createFabController::onScrollDirectionChanged,
+            ) {
+                when {
+                    userConfigs.isEmpty() -> {
+                        item(key = "override-empty") {
+                            Box(
+                                modifier =
+                                    Modifier.fillParentMaxSize()
+                                        .padding(
+                                            horizontal =
+                                                OverrideListMetrics.EmptyStatePaddingHorizontal,
+                                            vertical = OverrideListMetrics.EmptyStatePaddingVertical,
+                                        ),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                CenteredText(
-                                    firstLine = MLang.Override.Empty.Title,
-                                    secondLine = MLang.Override.Empty.Hint,
-                                )
                                 Column(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement =
                                         Arrangement.spacedBy(
-                                            OverrideListMetrics.DialogButtonSpacing
+                                            OverrideListMetrics.SheetSectionSpacing
                                         ),
                                 ) {
-                                    AppCommandButton(
-                                        title = MLang.Override.Action.New,
-                                        imageVector = Yume.`Badge-plus`,
-                                        onClick = { showCreateDialog.value = true },
-                                        tone = SemanticTone.Brand,
-                                        highEmphasis = true,
+                                    CenteredText(
+                                        firstLine = MLang.Override.Empty.Title,
+                                        secondLine = MLang.Override.Empty.Hint,
                                     )
-                                    AppCommandButton(
-                                        title = MLang.Override.Action.Import,
-                                        imageVector = Yume.List,
-                                        onClick = { importAutoLauncher.launch("*/*") },
-                                        tone = SemanticTone.Info,
-                                    )
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement =
+                                            Arrangement.spacedBy(
+                                                OverrideListMetrics.DialogButtonSpacing
+                                            ),
+                                    ) {
+                                        AppCommandButton(
+                                            title = MLang.Override.Action.New,
+                                            imageVector = Yume.`Badge-plus`,
+                                            onClick = { showCreateDialog.value = true },
+                                            tone = SemanticTone.Brand,
+                                            highEmphasis = true,
+                                        )
+                                        AppCommandButton(
+                                            title = MLang.Override.Action.Import,
+                                            imageVector = Yume.List,
+                                            onClick = { importAutoLauncher.launch("*/*") },
+                                            tone = SemanticTone.Info,
+                                        )
+                                    }
                                 }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        items(count = userConfigs.size, key = { index -> userConfigs[index].id }) {
+                            index ->
+                            val config = userConfigs[index]
+                            val isInUse = (usageCountMap[config.id] ?: 0) > 0
+                            ReorderableItem(state = reorderState, key = config.id) { isDragging ->
+                                OverrideConfigCard(
+                                    config = config,
+                                    isDragging = isDragging,
+                                    isInUse = isInUse,
+                                    onCopy = {
+                                        viewModel.duplicateConfig(config.id)
+                                        context.toast(
+                                            message = MLang.Override.Card.Copy + "：" + config.name,
+                                            mode = ToastMode.COPY,
+                                        )
+                                    },
+                                    onExport = {
+                                        exportTargetConfig.value = config
+                                        exportConfigLauncher.launch("${config.name}.json")
+                                    },
+                                    onEdit = {
+                                        showEditOptionsDialog.value = config
+                                        isEditOptionsDialogVisible.value = true
+                                    },
+                                    onDelete = {
+                                        deleteTargetConfig.value = config
+                                        showDeleteDialog.value = true
+                                    },
+                                )
                             }
                         }
                     }
                 }
 
-                else -> {
-                    items(count = userConfigs.size, key = { index -> userConfigs[index].id }) {
-                        index ->
-                        val config = userConfigs[index]
-                        val isInUse = (usageCountMap[config.id] ?: 0) > 0
-                        ReorderableItem(state = reorderState, key = config.id) { isDragging ->
-                            OverrideConfigCard(
-                                config = config,
-                                isDragging = isDragging,
-                                isInUse = isInUse,
-                                onCopy = {
-                                    viewModel.duplicateConfig(config.id)
-                                    context.toast(
-                                        message = MLang.Override.Card.Copy + "：" + config.name,
-                                        mode = ToastMode.COPY,
-                                    )
-                                },
-                                onExport = {
-                                    exportTargetConfig.value = config
-                                    exportConfigLauncher.launch("${config.name}.json")
-                                },
-                                onEdit = {
-                                    showEditOptionsDialog.value = config
-                                    isEditOptionsDialogVisible.value = true
-                                },
-                                onDelete = {
-                                    deleteTargetConfig.value = config
-                                    showDeleteDialog.value = true
-                                },
-                            )
-                        }
-                    }
+                item(key = "override-list-bottom-spacer") {
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
-
-            item(key = "override-list-bottom-spacer") { Spacer(modifier = Modifier.height(32.dp)) }
         }
         CreateConfigDialog(
             show = showCreateDialog,

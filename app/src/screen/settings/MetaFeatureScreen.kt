@@ -26,13 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.GeoFileType
 import com.github.yumelira.yumebox.core.model.GeoXItem
 import com.github.yumelira.yumebox.core.model.geoXItems
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.remote.ServiceClient
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
@@ -52,10 +53,6 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-
-private object MetaFeatureMetrics {
-    val ContentMaxWidth = 920.dp
-}
 
 @Composable
 @Destination<RootGraph>
@@ -82,136 +79,147 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            ScreenLazyColumn(
-                modifier =
-                    Modifier.fillMaxWidth().widthIn(max = MetaFeatureMetrics.ContentMaxWidth),
-                scrollBehavior = scrollBehavior,
-                innerPadding = innerPadding,
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                item {
-                    SmallTitle(MLang.MetaFeature.Title)
-                    Card {
-                        ConfigSettingRow(
-                            title = MLang.Connection.Title,
-                            summary = MLang.Connection.Summary,
-                            showDivider = false,
-                            onClick = {
-                                navigator.navigate(ConnectionScreenDestination) {
-                                    launchSingleTop = true
-                                }
-                            },
-                        )
-                    }
-                }
-                item {
-                    SmallTitle(MLang.MetaFeature.RuntimeConfig.Title)
-                    Card {
-                        ConfigSettingRow(
-                            title = MLang.MetaFeature.RuntimeConfig.Title,
-                            summary = MLang.MetaFeature.RuntimeConfig.Summary,
-                            tone = SemanticTone.Info,
-                            showDivider = false,
-                            onClick = {
-                                if (runtimeConfigLoading) return@ConfigSettingRow
-                                scope.launch {
-                                    runtimeConfigLoading = true
-                                    try {
-                                        ServiceClient.connect(context)
-                                        val activeProfile = ServiceClient.profile().queryActive()
-                                        val runtimeConfig =
-                                            ServiceClient.clash().queryConfiguration()
-                                        if (activeProfile == null) {
-                                            context.toast(
-                                                MLang.MetaFeature.RuntimeConfig.NoActiveProfile
-                                            )
-                                            return@launch
-                                        }
-
-                                        val configPath = runtimeConfig.configPath?.trim().orEmpty()
-                                        if (configPath.isBlank()) {
-                                            context.toast(
-                                                MLang.MetaFeature.RuntimeConfig
-                                                    .RuntimeConfigNotRunning
-                                            )
-                                            return@launch
-                                        }
-
-                                        val runtimeYaml =
-                                            withContext(Dispatchers.IO) {
-                                                val file = File(configPath)
-                                                if (!file.exists() || !file.isFile) {
-                                                    null
-                                                } else {
-                                                    file.readText()
-                                                }
-                                            }
-
-                                        if (runtimeYaml.isNullOrBlank()) {
-                                            context.toast(
-                                                MLang.MetaFeature.RuntimeConfig.ConfigNotFound
-                                            )
-                                            return@launch
-                                        }
-
-                                        val previewTitle =
-                                            activeProfile.name
-                                                ?.takeIf { it.isNotBlank() }
-                                                ?.let {
-                                                    MLang.MetaFeature.RuntimeConfig
-                                                        .PreviewTitleWithProfile
-                                                        .format(it)
-                                                } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
-
-                                        OverrideStructuredEditorStore.setupConfigPreview(
-                                            title = previewTitle,
-                                            content = decodeEscapedUnicode(runtimeYaml),
-                                            language = LanguageScope.Yaml,
-                                            callback = null,
-                                        )
-                                        navigator.navigate(OverrideConfigPreviewRouteDestination) {
-                                            launchSingleTop = true
-                                        }
-                                    } catch (error: Throwable) {
-                                        val message =
-                                            when {
-                                                error.message?.contains(
-                                                    "unauthorized",
-                                                    ignoreCase = true,
-                                                ) == true -> {
-                                                    MLang.MetaFeature.RuntimeConfig
-                                                        .RuntimeConfigUnauthorized
-                                                }
-
-                                                else -> {
-                                                    MLang.MetaFeature.RuntimeConfig
-                                                        .RuntimeConfigFetchFailed
-                                                        .format(
-                                                            error.runtimeGatewayMessage(
-                                                                MLang.MetaFeature.RuntimeConfig
-                                                                    .LoadFailed
-                                                            )
-                                                        )
-                                                }
-                                            }
-                                        context.toast(message)
-                                    } finally {
-                                        runtimeConfigLoading = false
+                val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+                val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+                ScreenLazyColumn(
+                    modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = innerPadding,
+                ) {
+                    item {
+                        SmallTitle(MLang.MetaFeature.Title)
+                        Card {
+                            ConfigSettingRow(
+                                title = MLang.Connection.Title,
+                                summary = MLang.Connection.Summary,
+                                showDivider = false,
+                                onClick = {
+                                    navigator.navigate(ConnectionScreenDestination) {
+                                        launchSingleTop = true
                                     }
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
-                }
-                item {
-                    SmallTitle(MLang.MetaFeature.GeoX.OnlineUpdateTitle)
-                    Card {
-                        ConfigSettingRow(
-                            title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
-                            summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
-                            tone = SemanticTone.Info,
-                            showDivider = false,
-                            onClick = { showGeoXDownloadSheet.value = true },
-                        )
+                    item {
+                        SmallTitle(MLang.MetaFeature.RuntimeConfig.Title)
+                        Card {
+                            ConfigSettingRow(
+                                title = MLang.MetaFeature.RuntimeConfig.Title,
+                                summary = MLang.MetaFeature.RuntimeConfig.Summary,
+                                tone = SemanticTone.Info,
+                                showDivider = false,
+                                onClick = {
+                                    if (runtimeConfigLoading) return@ConfigSettingRow
+                                    scope.launch {
+                                        runtimeConfigLoading = true
+                                        try {
+                                            ServiceClient.connect(context)
+                                            val activeProfile =
+                                                ServiceClient.profile().queryActive()
+                                            val runtimeConfig =
+                                                ServiceClient.clash().queryConfiguration()
+                                            if (activeProfile == null) {
+                                                context.toast(
+                                                    MLang.MetaFeature.RuntimeConfig.NoActiveProfile
+                                                )
+                                                return@launch
+                                            }
+
+                                            val configPath =
+                                                runtimeConfig.configPath?.trim().orEmpty()
+                                            if (configPath.isBlank()) {
+                                                context.toast(
+                                                    MLang.MetaFeature.RuntimeConfig
+                                                        .RuntimeConfigNotRunning
+                                                )
+                                                return@launch
+                                            }
+
+                                            val runtimeYaml =
+                                                withContext(Dispatchers.IO) {
+                                                    val file = File(configPath)
+                                                    if (!file.exists() || !file.isFile) {
+                                                        null
+                                                    } else {
+                                                        file.readText()
+                                                    }
+                                                }
+
+                                            if (runtimeYaml.isNullOrBlank()) {
+                                                context.toast(
+                                                    MLang.MetaFeature.RuntimeConfig.ConfigNotFound
+                                                )
+                                                return@launch
+                                            }
+
+                                            val previewTitle =
+                                                activeProfile.name
+                                                    ?.takeIf { it.isNotBlank() }
+                                                    ?.let {
+                                                        MLang.MetaFeature.RuntimeConfig
+                                                            .PreviewTitleWithProfile
+                                                            .format(it)
+                                                    }
+                                                    ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
+
+                                            OverrideStructuredEditorStore.setupConfigPreview(
+                                                title = previewTitle,
+                                                content = decodeEscapedUnicode(runtimeYaml),
+                                                language = LanguageScope.Yaml,
+                                                callback = null,
+                                            )
+                                            navigator.navigate(
+                                                OverrideConfigPreviewRouteDestination
+                                            ) {
+                                                launchSingleTop = true
+                                            }
+                                        } catch (error: Throwable) {
+                                            val message =
+                                                when {
+                                                    error.message?.contains(
+                                                        "unauthorized",
+                                                        ignoreCase = true,
+                                                    ) == true -> {
+                                                        MLang.MetaFeature.RuntimeConfig
+                                                            .RuntimeConfigUnauthorized
+                                                    }
+
+                                                    else -> {
+                                                        MLang.MetaFeature.RuntimeConfig
+                                                            .RuntimeConfigFetchFailed
+                                                            .format(
+                                                                error.runtimeGatewayMessage(
+                                                                    MLang.MetaFeature.RuntimeConfig
+                                                                        .LoadFailed
+                                                                )
+                                                            )
+                                                    }
+                                                }
+                                            context.toast(message)
+                                        } finally {
+                                            runtimeConfigLoading = false
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    }
+                    item {
+                        SmallTitle(MLang.MetaFeature.GeoX.OnlineUpdateTitle)
+                        Card {
+                            ConfigSettingRow(
+                                title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
+                                summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
+                                tone = SemanticTone.Info,
+                                showDivider = false,
+                                onClick = { showGeoXDownloadSheet.value = true },
+                            )
+                        }
                     }
                 }
             }
