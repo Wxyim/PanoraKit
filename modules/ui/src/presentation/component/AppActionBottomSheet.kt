@@ -25,11 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
+import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -123,7 +125,7 @@ fun AppActionBottomSheet(
     backgroundColor: Color = Color.Unspecified,
     enableWindowDim: Boolean = true,
     cornerRadius: androidx.compose.ui.unit.Dp = BottomSheetDefaults.cornerRadius,
-    sheetMaxWidth: androidx.compose.ui.unit.Dp = BottomSheetDefaults.maxWidth,
+    sheetMaxWidth: Dp = Dp.Unspecified,
     onDismissFinished: (() -> Unit)? = null,
     outsideMargin: DpSize = BottomSheetDefaults.outsideMargin,
     insideMargin: DpSize = AppBottomSheetDefaults.insideMargin,
@@ -145,6 +147,12 @@ fun AppActionBottomSheet(
         } else {
             dragHandleColor
         }
+    val resolvedSheetMaxWidth =
+        if (sheetMaxWidth == Dp.Unspecified) {
+            LocalWindowAdaptiveInfo.current.preferredBottomSheetMaxWidth
+        } else {
+            sheetMaxWidth
+        }
 
     SuperBottomSheet(
         show = show,
@@ -155,7 +163,7 @@ fun AppActionBottomSheet(
         backgroundColor = resolvedBackgroundColor,
         enableWindowDim = enableWindowDim,
         cornerRadius = cornerRadius,
-        sheetMaxWidth = sheetMaxWidth,
+        sheetMaxWidth = resolvedSheetMaxWidth,
         onDismissRequest = onDismissRequest,
         onDismissFinished = onDismissFinished,
         outsideMargin = outsideMargin,

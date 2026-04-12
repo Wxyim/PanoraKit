@@ -27,8 +27,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.icon.yume.Close
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
 fun DialogButtonRow(
@@ -36,10 +38,28 @@ fun DialogButtonRow(
     onConfirm: () -> Unit,
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
+    cancelTone: SemanticTone = SemanticTone.Neutral,
+    confirmTone: SemanticTone = SemanticTone.Brand,
+    cancelHighEmphasis: Boolean = false,
+    confirmHighEmphasis: Boolean = true,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TextButton(text = cancelText, onClick = onCancel, modifier = Modifier.weight(1f))
-        TextButton(text = confirmText, onClick = onConfirm, modifier = Modifier.weight(1f))
+        AppCommandButton(
+            title = cancelText,
+            imageVector = Yume.Close,
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+            tone = cancelTone,
+            highEmphasis = cancelHighEmphasis,
+        )
+        AppCommandButton(
+            title = confirmText,
+            imageVector = Yume.Check,
+            onClick = onConfirm,
+            modifier = Modifier.weight(1f),
+            tone = confirmTone,
+            highEmphasis = confirmHighEmphasis,
+        )
     }
 }

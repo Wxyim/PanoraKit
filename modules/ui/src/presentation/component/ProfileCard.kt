@@ -23,12 +23,12 @@ package com.github.yumelira.yumebox.presentation.component
 import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -70,6 +70,7 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
 import com.github.yumelira.yumebox.presentation.theme.horizontalPadding
 import com.github.yumelira.yumebox.presentation.util.*
@@ -81,28 +82,39 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 private object ProfileCardMetrics {
-    val OuterBottomPadding = 12.dp
+    val OuterBottomPadding = 8.dp
     val InnerPadding = 16.dp
     val HeaderSpacing = 8.dp
-    val HeaderTrailingSpacing = 10.dp
+    val TrailingActionSpacing = 10.dp
+    val TrailingColumnSpacing = 12.dp
+    val TrailingColumnStartPadding = 8.dp
+    val HeaderEndPaddingTwoActions = 126.dp
+    val HeaderEndPaddingThreeActions = 188.dp
+    val InfoEndPadding = 18.dp
     val ProviderTopPadding = 2.dp
-    val ContentTopPadding = 8.dp
-    val SmallActionSize = 48.dp
-    val ActionIconSize = 20.dp
+    val ContentTopPadding = 10.dp
+    val ActiveContentStartPadding = 12.dp
+    val ActiveRailWidth = 4.dp
+    val ActiveRailHeight = 48.dp
+    val ActiveRailCornerRadius = 999.dp
+    val SmallActionSize = 52.dp
+    val ActionIconSize = 22.dp
     val ActionLabelFontSize = 12.sp
     val TitleFontSize = 17.sp
     val ProviderFontSize = 12.sp
     val InfoFontSize = 14.sp
     val InfoTrailingFontSize = 12.sp
-    val SwipeActionWidth = 72.dp
-    val SwipeActionSpacing = 8.dp
+    val SwipeRailWidth = 196.dp
+    val SwipeActionHeight = 96.dp
+    val SwipeActionCornerRadius = 26.dp
+    val SwipeActionSpacing = 10.dp
     val SwipeActionEndPadding = 12.dp
-    val SelectionDotSize = 10.dp
+    val CardBorderRadius = 28.dp
 }
 
 @Composable
@@ -118,25 +130,26 @@ fun ProfileCard(
     onUpdate: (Profile) -> Unit,
     onDelete: (Profile) -> Unit,
     onEdit: (Profile) -> Unit,
+    onMoreActions: (Profile) -> Unit,
     onOverrideSettings: ((Profile) -> Unit)? = null,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier,
 ) {
     val colorScheme = MiuixTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
-    val secondaryContainer = colorScheme.secondaryContainer.copy(alpha = 0.8f)
-    val actionIconTint =
-        remember(isDark) { colorScheme.onSurface.copy(alpha = if (isDark) 0.7f else 0.9f) }
-    val deleteContainer = colorScheme.errorContainer.copy(alpha = 0.92f)
-    val deleteTint = colorScheme.onErrorContainer
-    val updateBg = remember(colorScheme) { colorScheme.primary.copy(alpha = 0.1f) }
-    val updateTint = remember(colorScheme) { colorScheme.primary }
+    val activeStyle = SemanticActionDefaults.style(SemanticTone.Success, highEmphasis = true)
     val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
     val infoText = remember(profile) { profile.getInfoText() }
+    val showUpdateButton = profile.shouldShowUpdateButton()
+    val headerEndPadding =
+        if (showUpdateButton) {
+            ProfileCardMetrics.HeaderEndPaddingThreeActions
+        } else {
+            ProfileCardMetrics.HeaderEndPaddingTwoActions
+        }
     val revealWidthPx =
         with(LocalDensity.current) {
             (
-                ProfileCardMetrics.SwipeActionWidth * 3 +
-                    ProfileCardMetrics.SwipeActionSpacing * 2 +
+                ProfileCardMetrics.SwipeRailWidth +
                     ProfileCardMetrics.SwipeActionEndPadding * 2
             )
                 .toPx()
@@ -146,7 +159,6 @@ fun ProfileCard(
     var swipeOffsetPx by remember(profile.uuid) { mutableFloatStateOf(0f) }
     val animatedOffsetPx by animateFloatAsState(targetValue = swipeOffsetPx, label = "profile_card_swipe")
     val revealProgress = (-animatedOffsetPx / revealWidthPx).coerceIn(0f, 1f)
-    val affordanceAlpha = ((1f - revealProgress * 1.6f).coerceIn(0f, 1f)) * 0.7f
     val actionsInteractable = revealProgress > 0.06f && !isDownloading
 
     fun closeActions() {
@@ -162,10 +174,10 @@ fun ProfileCard(
         if (!playSwipeHint || isDownloading) return@LaunchedEffect
 
         delay(240)
-        swipeOffsetPx = -revealWidthPx * 0.2f
-        delay(260)
+        swipeOffsetPx = -revealWidthPx * 0.26f
+        delay(320)
         swipeOffsetPx = 0f
-        delay(220)
+        delay(200)
         onSwipeHintConsumed()
     }
 
@@ -193,44 +205,34 @@ fun ProfileCard(
         modifier = Modifier.fillMaxWidth().horizontalPadding().padding(bottom = ProfileCardMetrics.OuterBottomPadding)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().zIndex(1f),
+            modifier = Modifier.matchParentSize().zIndex(0f),
             contentAlignment = Alignment.CenterEnd,
         ) {
             Row(
                 modifier =
-                    Modifier.padding(end = ProfileCardMetrics.SwipeActionEndPadding)
+                    Modifier.width(ProfileCardMetrics.SwipeRailWidth)
+                        .padding(end = ProfileCardMetrics.SwipeActionEndPadding)
                         .alpha(revealProgress.coerceIn(0f, 1f)),
                 horizontalArrangement = Arrangement.spacedBy(ProfileCardMetrics.SwipeActionSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ProfileSwipeAction(
+                    modifier = Modifier.weight(1f),
                     label = MLang.Component.ProfileCard.Export,
                     icon = Yume.Share,
                     enabled = actionsInteractable && isConfigSaved,
-                    backgroundColor = secondaryContainer,
-                    tint = actionIconTint,
+                    tone = SemanticTone.Info,
                     onClick = {
                         closeActions()
                         onExport(profile)
                     },
                 )
                 ProfileSwipeAction(
-                    label = MLang.Component.ProfileCard.Edit,
-                    icon = Yume.Edit,
-                    enabled = actionsInteractable,
-                    backgroundColor = secondaryContainer,
-                    tint = actionIconTint,
-                    onClick = {
-                        closeActions()
-                        onEdit(profile)
-                    },
-                )
-                ProfileSwipeAction(
+                    modifier = Modifier.weight(1f),
                     label = MLang.Component.ProfileCard.Delete,
                     icon = Yume.Delete,
                     enabled = actionsInteractable,
-                    backgroundColor = deleteContainer,
-                    tint = deleteTint,
+                    tone = SemanticTone.Danger,
                     onClick = {
                         closeActions()
                         onDelete(profile)
@@ -243,94 +245,108 @@ fun ProfileCard(
             modifier =
                 modifier
                     .fillMaxWidth()
-                    .zIndex(0f)
-                    .nestedScroll(swipeNestedScrollConnection)
+                    .zIndex(1f)
                     .offset { IntOffset(animatedOffsetPx.roundToInt(), 0) }
-                    .draggable(
-                        enabled = !isDownloading,
-                        orientation = Orientation.Horizontal,
-                        state =
-                            rememberDraggableState { delta ->
-                                swipeOffsetPx = (swipeOffsetPx + delta).coerceIn(-revealWidthPx, 0f)
+                    .border(
+                        width = if (isSelected) 1.dp else 0.dp,
+                        color =
+                            if (isSelected) {
+                                activeStyle.borderColor.copy(alpha = 0.95f)
+                            } else {
+                                Color.Transparent
                             },
-                        onDragStopped = { velocity -> settleActions(velocity) },
+                        shape = RoundedCornerShape(ProfileCardMetrics.CardBorderRadius),
                     )
-                    .clickable(
-                        enabled = !isDownloading,
-                        interactionSource = interactionSource,
-                        indication = null,
-                    ) {
-                        if (swipeOffsetPx < -1f) {
-                            closeActions()
-                        } else {
-                            onSelect(profile)
-                        }
-                    },
+                    .nestedScroll(swipeNestedScrollConnection),
             insideMargin = PaddingValues(ProfileCardMetrics.InnerPadding),
             applyHorizontalPadding = false,
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(ProfileCardMetrics.HeaderSpacing),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
-                            Text(
-                                text = profile.name,
-                                fontSize = ProfileCardMetrics.TitleFontSize,
-                                fontWeight = FontWeight(550),
-                                color = colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                if (isSelected) {
+                    ProfileActiveRail(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        color = activeStyle.contentColor,
+                    )
+                }
 
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .then(dragHandleModifier)
+                            .draggable(
+                                enabled = !isDownloading,
+                                orientation = Orientation.Horizontal,
+                                state =
+                                    rememberDraggableState { delta ->
+                                        swipeOffsetPx =
+                                            (swipeOffsetPx + delta)
+                                                .coerceIn(-revealWidthPx, 0f)
+                                    },
+                                onDragStopped = { velocity -> settleActions(velocity) },
+                            )
+                            .clickable(
+                                enabled = !isDownloading,
+                                interactionSource = interactionSource,
+                                indication = null,
+                            ) {
+                                if (swipeOffsetPx < -1f) {
+                                    closeActions()
+                                } else {
+                                    onSelect(profile)
+                                }
+                            }
+                            .padding(
+                                start =
+                                    if (isSelected) {
+                                        ProfileCardMetrics.ActiveContentStartPadding
+                                    } else {
+                                        0.dp
+                                    }
+                            )
+                ) {
+                    Column(modifier = Modifier.padding(end = headerEndPadding)) {
+                        Text(
+                            text = profile.name,
+                            fontSize = ProfileCardMetrics.TitleFontSize,
+                            fontWeight = FontWeight(550),
+                            color = colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        Row(
+                            modifier = Modifier.padding(top = ProfileCardMetrics.ProviderTopPadding),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text(
                                 text = profile.getDisplayProvider(),
                                 fontSize = ProfileCardMetrics.ProviderFontSize,
-                                modifier = Modifier.padding(top = ProfileCardMetrics.ProviderTopPadding),
                                 fontWeight = FontWeight(550),
                                 color = colorScheme.onSurfaceVariantSummary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
                             )
-                        }
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(ProfileCardMetrics.HeaderTrailingSpacing),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (profile.shouldShowUpdateButton()) {
-                                IconButton(
-                                    backgroundColor = updateBg,
-                                    minHeight = ProfileCardMetrics.SmallActionSize,
-                                    minWidth = ProfileCardMetrics.SmallActionSize,
-                                    enabled = !isDownloading,
-                                    onClick = { if (!isDownloading) onUpdate(profile) },
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.size(ProfileCardMetrics.ActionIconSize),
-                                        imageVector = Yume.`Circle-fading-arrow-up`,
-                                        tint = updateTint,
-                                        contentDescription = MLang.Component.ProfileCard.Update,
-                                    )
-                                }
+                            if (isSelected) {
+                                StatusBadge(
+                                    text = MLang.Proxy.Selection.Current,
+                                    tone = SemanticTone.Success,
+                                    leadingDot = true,
+                                    compact = true,
+                                )
                             }
-
-                            Box(
-                                modifier =
-                                    Modifier.size(ProfileCardMetrics.SelectionDotSize)
-                                        .background(
-                                            color =
-                                                if (isSelected) colorScheme.primary
-                                                else colorScheme.outline.copy(alpha = 0.35f),
-                                            shape = CircleShape,
-                                        )
-                            )
                         }
                     }
 
-                    Column(modifier = Modifier.padding(top = ProfileCardMetrics.ContentTopPadding)) {
+                    Column(
+                        modifier =
+                            Modifier.padding(
+                                top = ProfileCardMetrics.ContentTopPadding,
+                                end = ProfileCardMetrics.InfoEndPadding,
+                            )
+                    ) {
                         val lines = infoText.split('\n')
 
                         lines.forEachIndexed { _, line ->
@@ -362,7 +378,7 @@ fun ProfileCard(
                                                 color = colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
                                                 fontWeight = FontWeight.Medium,
                                                 maxLines = 1,
-                                                modifier = Modifier.padding(end = 13.dp),
+                                                modifier = Modifier.padding(start = 12.dp),
                                             )
                                         }
                                     }
@@ -383,10 +399,22 @@ fun ProfileCard(
                     }
                 }
 
-                ProfileSwipeAffordance(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    tint = colorScheme.onSurfaceVariantSummary,
-                    alpha = affordanceAlpha,
+                ProfileActionCluster(
+                    modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
+                    showUpdateButton = showUpdateButton,
+                    enabled = !isDownloading,
+                    onEdit = {
+                        closeActions()
+                        onEdit(profile)
+                    },
+                    onUpdate = {
+                        closeActions()
+                        onUpdate(profile)
+                    },
+                    onMoreActions = {
+                        closeActions()
+                        onMoreActions(profile)
+                    },
                 )
             }
         }
@@ -394,76 +422,140 @@ fun ProfileCard(
 }
 
 @Composable
-private fun ProfileSwipeAffordance(modifier: Modifier = Modifier, tint: Color, alpha: Float) {
-    if (alpha <= 0.01f) return
+private fun ProfileActiveRail(
+    modifier: Modifier = Modifier,
+    color: Color,
+) {
+    Box(
+        modifier =
+            modifier
+                .width(ProfileCardMetrics.ActiveRailWidth)
+                .height(ProfileCardMetrics.ActiveRailHeight)
+                .clip(RoundedCornerShape(ProfileCardMetrics.ActiveRailCornerRadius))
+                .background(color.copy(alpha = 0.82f))
+    )
+}
 
-    Box(modifier = modifier.width(18.dp).height(34.dp).alpha(alpha), contentAlignment = Alignment.Center) {
-        Box(
-            modifier =
-                Modifier.width(1.dp).height(30.dp)
-                    .background(
-                        brush =
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, tint.copy(alpha = 0.45f), Color.Transparent)
-                            ),
-                        shape = CircleShape,
-                    )
+@Composable
+private fun ProfileActionCluster(
+    modifier: Modifier = Modifier,
+    showUpdateButton: Boolean,
+    enabled: Boolean,
+    onEdit: () -> Unit,
+    onUpdate: () -> Unit,
+    onMoreActions: () -> Unit,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(ProfileCardMetrics.TrailingActionSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showUpdateButton) {
+            AppCircularIconAction(
+                imageVector = Yume.`Circle-fading-arrow-up`,
+                contentDescription = MLang.Component.ProfileCard.Update,
+                tone = SemanticTone.Info,
+                highEmphasis = true,
+                size = ProfileCardMetrics.SmallActionSize,
+                iconSize = ProfileCardMetrics.ActionIconSize,
+                enabled = enabled,
+                onClick = {
+                    if (enabled) {
+                        onUpdate()
+                    }
+                },
+            )
+        }
+
+        AppCircularIconAction(
+            imageVector = Yume.Edit,
+            contentDescription = MLang.Component.ProfileCard.Edit,
+            tone = SemanticTone.Neutral,
+            size = ProfileCardMetrics.SmallActionSize,
+            iconSize = ProfileCardMetrics.ActionIconSize,
+            enabled = enabled,
+            onClick = {
+                if (enabled) {
+                    onEdit()
+                }
+            },
         )
 
-        Column(
-            modifier = Modifier.padding(start = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            repeat(3) {
-                Box(
-                    modifier =
-                        Modifier.size(2.dp)
-                            .background(color = tint.copy(alpha = 0.38f), shape = CircleShape)
-                )
-            }
-        }
+        AppCircularIconAction(
+            imageVector = Yume.`Settings-2`,
+            contentDescription = MLang.Settings.Section.More,
+            tone = SemanticTone.Neutral,
+            size = ProfileCardMetrics.SmallActionSize,
+            iconSize = ProfileCardMetrics.ActionIconSize,
+            enabled = enabled,
+            onClick = {
+                if (enabled) {
+                    onMoreActions()
+                }
+            },
+        )
     }
 }
 
 @Composable
 private fun ProfileSwipeAction(
+    modifier: Modifier = Modifier,
     label: String,
     icon: ImageVector,
     enabled: Boolean,
-    backgroundColor: Color,
-    tint: Color,
+    tone: SemanticTone,
     onClick: () -> Unit,
 ) {
     val alpha = if (enabled) 1f else 0.4f
+    val shape = RoundedCornerShape(ProfileCardMetrics.SwipeActionCornerRadius)
+    val style = SemanticActionDefaults.style(tone, highEmphasis = true)
 
-    Column(
-        modifier = Modifier.width(ProfileCardMetrics.SwipeActionWidth),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(style.containerColor.copy(alpha = if (enabled) 1f else 0.55f), shape)
+                .border(
+                    width = 0.8.dp,
+                    color = style.borderColor.copy(alpha = if (enabled) 1f else 0.55f),
+                    shape = shape,
+                )
+                .clickable(enabled = enabled, onClick = onClick)
+                .height(ProfileCardMetrics.SwipeActionHeight),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
-        IconButton(
-            backgroundColor = backgroundColor,
-            minHeight = ProfileCardMetrics.SmallActionSize,
-            minWidth = ProfileCardMetrics.SmallActionSize,
-            enabled = enabled,
-            onClick = { if (enabled) onClick() },
+        Column(
+            modifier = Modifier.alpha(alpha),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
         ) {
-            Icon(
-                modifier = Modifier.size(ProfileCardMetrics.ActionIconSize).alpha(alpha),
-                imageVector = icon,
-                tint = tint.copy(alpha = alpha),
-                contentDescription = label,
+            Box(
+                modifier =
+                    Modifier.size(34.dp)
+                        .clip(CircleShape)
+                        .background(
+                            style.iconContainerColor.copy(alpha = if (enabled) 1f else 0.5f),
+                            CircleShape,
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    modifier = Modifier.size(ProfileCardMetrics.ActionIconSize),
+                    imageVector = icon,
+                    tint = style.contentColor.copy(alpha = alpha),
+                    contentDescription = label,
+                )
+            }
+
+            Text(
+                text = label,
+                color = style.contentColor.copy(alpha = alpha),
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                maxLines = 1,
             )
         }
-
-        Text(
-            modifier = Modifier.padding(top = 6.dp).alpha(alpha),
-            text = label,
-            color = tint.copy(alpha = alpha),
-            fontWeight = FontWeight.Medium,
-            fontSize = ProfileCardMetrics.ActionLabelFontSize,
-            maxLines = 1,
-        )
     }
 }

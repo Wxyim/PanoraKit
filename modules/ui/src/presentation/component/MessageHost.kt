@@ -27,8 +27,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.extra.SuperArrow
 
 enum class MessageType {
     SUCCESS,
@@ -67,7 +68,13 @@ fun MessageHost(message: Message?, onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 contentAlignment = Alignment.CenterEnd,
             ) {
-                SuperArrow(title = MLang.Component.Message.Confirm, onClick = dismissDialog)
+                AppCommandButton(
+                    title = MLang.Component.Message.Confirm,
+                    imageVector = Yume.Check,
+                    tone = SemanticTone.Brand,
+                    highEmphasis = true,
+                    onClick = dismissDialog,
+                )
             }
         }
 

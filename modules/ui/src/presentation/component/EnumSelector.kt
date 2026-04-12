@@ -21,7 +21,9 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
-import top.yukonga.miuix.kmp.extra.WindowDropdown
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
 
 @Composable
 fun <T> EnumSelector(
@@ -30,19 +32,34 @@ fun <T> EnumSelector(
     currentValue: T,
     items: List<String>,
     values: List<T>,
+    imageVector: ImageVector = Yume.`List-chevrons-up-down`,
+    showDivider: Boolean = true,
     onValueChange: (T) -> Unit,
 ) {
     val selectedIndex = values.indexOf(currentValue).coerceAtLeast(0)
+    val selectedLabel = items.getOrElse(selectedIndex) { items.firstOrNull().orEmpty() }
 
-    WindowDropdown(
+    ConfigActionMenuRow(
         title = title,
         summary = summary,
-        items = items,
-        selectedIndex = selectedIndex,
-        onSelectedIndexChange = { index ->
-            if (index >= 0 && index < values.size) {
-                onValueChange(values[index])
-            }
-        },
+        valueLabel = selectedLabel,
+        imageVector = imageVector,
+        tone = if (selectedIndex == 0) SemanticTone.Neutral else SemanticTone.Brand,
+        badgeTone = if (selectedIndex == 0) SemanticTone.Neutral else SemanticTone.Brand,
+        showDivider = showDivider,
+        options =
+            items.mapIndexed { index, item ->
+                ConfigEntryActionOption(
+                    title = item,
+                    icon = imageVector,
+                    tone = if (index == selectedIndex) SemanticTone.Brand else SemanticTone.Neutral,
+                    selected = index == selectedIndex,
+                    onClick = {
+                        if (index >= 0 && index < values.size) {
+                            onValueChange(values[index])
+                        }
+                    },
+                )
+            },
     )
 }

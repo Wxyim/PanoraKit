@@ -36,6 +36,7 @@ fun YumeTheme(
     themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
     spacing: Spacing = Spacing(),
     radii: Radii = Radii(),
+    windowAdaptiveInfo: WindowAdaptiveInfo = WindowAdaptiveInfo(),
     content: @Composable () -> Unit,
 ) {
     LocalPlatformSystemUiEffect.current()
@@ -51,7 +52,11 @@ fun YumeTheme(
             colorSchemeFromSeed(colorFromArgb(themeSeedColorArgb), isDark)
         }
 
-    CompositionLocalProvider(LocalSpacing provides spacing, LocalRadii provides radii) {
+    CompositionLocalProvider(
+        LocalSpacing provides spacing,
+        LocalRadii provides radii,
+        LocalWindowAdaptiveInfo provides windowAdaptiveInfo,
+    ) {
         MiuixTheme(colors = colors) { content() }
     }
 }

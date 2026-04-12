@@ -30,6 +30,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.*
@@ -44,8 +45,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -77,6 +81,7 @@ fun BottomBarContent(isVisible: Boolean = true) {
     val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
     val liquidState = LocalBottomBarLiquidState.current
     val bottomBarVisible = isVisible && (bottomBarScrollBehavior?.isBottomBarVisible ?: true)
+    val isLightTheme = !isSystemInDarkTheme()
     val animatedScale by
         animateFloatAsState(
             targetValue = if (bottomBarVisible) 1f else AnimationSpecs.Proxy.VisibilityTargetScale,
@@ -106,12 +111,29 @@ fun BottomBarContent(isVisible: Boolean = true) {
         }
 
     val selectedColor = MiuixTheme.colorScheme.primary
-    val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-    val containerColor = MiuixTheme.colorScheme.background
-    val indicatorContainerColor = selectedColor.copy(alpha = 0.1f)
+    val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+    val containerColor =
+        if (isLightTheme) {
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f)
+        } else {
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.86f)
+        }
+    val indicatorContainerColor = selectedColor.copy(alpha = 0.16f)
+    val containerBorderColor =
+        if (isLightTheme) {
+            selectedColor.copy(alpha = 0.10f)
+        } else {
+            selectedColor.copy(alpha = 0.18f)
+        }
+    val innerHighlightColor =
+        if (isLightTheme) {
+            White.copy(alpha = 0.62f)
+        } else {
+            White.copy(alpha = 0.14f)
+        }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val horizontalInset = (maxWidth * 0.11f).coerceIn(20.dp, 48.dp)
+        val horizontalInset = (maxWidth * 0.10f).coerceIn(18.dp, 40.dp)
 
         BottomNavigationBar(
             selectedIndex = navigationState.page,
@@ -119,13 +141,15 @@ fun BottomBarContent(isVisible: Boolean = true) {
             liquidState = liquidState,
             containerColor = containerColor,
             indicatorContainerColor = indicatorContainerColor,
+            containerBorderColor = containerBorderColor,
+            innerHighlightColor = innerHighlightColor,
             modifier =
                 Modifier.fillMaxWidth()
                     .padding(
                         start = horizontalInset,
                         end = horizontalInset,
-                        top = 6.dp,
-                        bottom = bottomSafeInset + 12.dp,
+                        top = 8.dp,
+                        bottom = bottomSafeInset + 14.dp,
                     )
                     .graphicsLayer {
                         alpha = animatedAlpha
@@ -135,16 +159,18 @@ fun BottomBarContent(isVisible: Boolean = true) {
                     },
         ) {
             BottomBarDestination.entries.forEachIndexed { index, destination ->
+                val selected = navigationState.page == index
                 val itemColor: Color =
-                    if (navigationState.page == index) selectedColor else unselectedColor
+                    if (selected) selectedColor else unselectedColor
                 BottomNavigationTabItem(
+                    selected = selected,
                     enabled = bottomBarVisible,
                     onClick = { navigationState.onItemClick(index) },
                 ) {
                     Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = destination.icon,
-                            contentDescription = destination.label(),
+                            contentDescription = null,
                             tint = itemColor,
                         )
                     }
@@ -184,18 +210,48 @@ enum class BottomBarDestination(val icon: ImageVector) {
 @Composable
 fun SideRailContent(modifier: Modifier = Modifier) {
     val navigationState = rememberPrimaryNavigationState()
+    val isLightTheme = !isSystemInDarkTheme()
     val selectedColor = MiuixTheme.colorScheme.primary
-    val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.62f)
-    val containerColor = MiuixTheme.colorScheme.background
-    val indicatorContainerColor = selectedColor.copy(alpha = 0.1f)
+    val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val containerColor =
+        if (isLightTheme) {
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f)
+        } else {
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.88f)
+        }
+    val indicatorContainerColor = selectedColor.copy(alpha = 0.14f)
+    val borderColor =
+        if (isLightTheme) {
+            selectedColor.copy(alpha = 0.08f)
+        } else {
+            selectedColor.copy(alpha = 0.16f)
+        }
 
     Column(
         modifier =
             modifier
-                .width(88.dp)
+                .selectableGroup()
+                .shadow(
+                    elevation = 22.dp,
+                    shape = Capsule(),
+                    ambientColor =
+                        if (isLightTheme) {
+                            Black.copy(alpha = 0.14f)
+                        } else {
+                            Black.copy(alpha = 0.34f)
+                        },
+                    spotColor =
+                        if (isLightTheme) {
+                            Black.copy(alpha = 0.10f)
+                        } else {
+                            Black.copy(alpha = 0.24f)
+                        },
+                )
+                .width(92.dp)
                 .clip(Capsule())
                 .background(containerColor, Capsule())
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .border(width = 0.8.dp, color = borderColor, shape = Capsule())
+                .padding(horizontal = 10.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -206,6 +262,7 @@ fun SideRailContent(modifier: Modifier = Modifier) {
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
+                        .semantics(mergeDescendants = true) { this.selected = selected }
                         .clip(Capsule())
                         .background(
                             color = if (selected) indicatorContainerColor else Color.Transparent,
@@ -213,8 +270,6 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                         )
                         .clickable(
                             role = Role.Tab,
-                            interactionSource = null,
-                            indication = null,
                             onClick = { navigationState.onItemClick(index) },
                         )
                         .padding(vertical = 10.dp, horizontal = 8.dp),
@@ -223,7 +278,7 @@ fun SideRailContent(modifier: Modifier = Modifier) {
             ) {
                 Icon(
                     imageVector = destination.icon,
-                    contentDescription = destination.label(),
+                    contentDescription = null,
                     tint = itemColor,
                     modifier = Modifier.size(22.dp),
                 )
@@ -249,6 +304,8 @@ private fun BottomNavigationBar(
     liquidState: LiquidState?,
     containerColor: Color,
     indicatorContainerColor: Color,
+    containerBorderColor: Color,
+    innerHighlightColor: Color,
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -281,7 +338,23 @@ private fun BottomNavigationBar(
     BoxWithConstraints(
         modifier =
             modifier
-                .height(56.dp)
+                .shadow(
+                    elevation = 24.dp,
+                    shape = Capsule(),
+                    ambientColor =
+                        if (isLightTheme) {
+                            Black.copy(alpha = 0.18f)
+                        } else {
+                            Black.copy(alpha = 0.38f)
+                        },
+                    spotColor =
+                        if (isLightTheme) {
+                            Black.copy(alpha = 0.14f)
+                        } else {
+                            Black.copy(alpha = 0.28f)
+                        },
+                )
+                .height(60.dp)
                 .clip(Capsule())
                 .then(
                     if (liquidState != null) {
@@ -295,8 +368,8 @@ private fun BottomNavigationBar(
                                 contrast = 1.1f
                             }
                             .background(
-                                if (isLightTheme) White.copy(alpha = 0.75f)
-                                else Black.copy(alpha = 0.8f),
+                                if (isLightTheme) White.copy(alpha = 0.9f)
+                                else Black.copy(alpha = 0.88f),
                                 Capsule(),
                             )
                     } else {
@@ -317,13 +390,13 @@ private fun BottomNavigationBar(
                         scaleX = indicatorScale.value
                         scaleY = indicatorScale.value
                     }
-                    .height(48.dp)
+                    .height(52.dp)
                     .fillMaxWidth(1f / tabsCount)
                     .background(indicatorContainerColor, Capsule())
             )
 
             Row(
-                Modifier.height(48.dp).fillMaxWidth(),
+                Modifier.height(52.dp).fillMaxWidth().selectableGroup(),
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
             )
@@ -332,13 +405,8 @@ private fun BottomNavigationBar(
         Box(
             Modifier.matchParentSize()
                 .border(
-                    width = 0.3.dp,
-                    color =
-                        if (isLightTheme) {
-                            White.copy(alpha = 0.4f)
-                        } else {
-                            Black.copy(alpha = 0.2f)
-                        },
+                    width = 0.8.dp,
+                    color = containerBorderColor,
                     shape = Capsule(),
                 )
         )
@@ -347,13 +415,8 @@ private fun BottomNavigationBar(
             Modifier.matchParentSize()
                 .padding(1.dp)
                 .border(
-                    width = 0.2.dp,
-                    color =
-                        if (isLightTheme) {
-                            Black.copy(alpha = 0.045f)
-                        } else {
-                            White.copy(alpha = 0.08f)
-                        },
+                    width = 0.35.dp,
+                    color = innerHighlightColor,
                     shape = Capsule(),
                 )
         )
@@ -362,6 +425,7 @@ private fun BottomNavigationBar(
 
 @Composable
 private fun RowScope.BottomNavigationTabItem(
+    selected: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -369,11 +433,10 @@ private fun RowScope.BottomNavigationTabItem(
 ) {
     Column(
         modifier
+            .semantics(mergeDescendants = true) { this.selected = selected }
             .clip(Capsule())
             .clickable(
                 enabled = enabled,
-                interactionSource = null,
-                indication = null,
                 role = Role.Tab,
                 onClick = onClick,
             )

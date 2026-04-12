@@ -26,12 +26,11 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun TextEditBottomSheet(
@@ -44,28 +43,21 @@ fun TextEditBottomSheet(
     onSecondaryClick: () -> Unit = onDismiss,
 ) {
     AppActionBottomSheet(show = show.value, title = title, onDismissRequest = onDismiss) {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             TextField(
                 value = textFieldValue.value,
                 onValueChange = { textFieldValue.value = it },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onSecondaryClick, modifier = Modifier.weight(1f)) {
-                    Text(secondaryButtonText)
-                }
-                Button(
-                    onClick = {
-                        onConfirm(textFieldValue.value.text)
-                        show.value = false
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary(),
-                ) {
-                    Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
-                }
-            }
+            DialogButtonRow(
+                onCancel = onSecondaryClick,
+                onConfirm = {
+                    onConfirm(textFieldValue.value.text)
+                    show.value = false
+                },
+                cancelText = secondaryButtonText,
+                confirmText = MLang.Component.Button.Confirm,
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -80,24 +72,24 @@ fun WarningBottomSheet(
     onDismiss: () -> Unit = { show.value = false },
 ) {
     AppActionBottomSheet(show = show.value, title = title, onDismissRequest = onDismiss) {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             messages.forEachIndexed { index, message ->
                 Text(message)
                 if (index < messages.lastIndex) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
+            AppCommandButton(
+                title = MLang.Component.Button.Confirm,
+                imageVector = Yume.Check,
                 onClick = {
                     onConfirm()
                     show.value = false
                 },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
-                Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
-            }
+                tone = SemanticTone.Warning,
+                highEmphasis = true,
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

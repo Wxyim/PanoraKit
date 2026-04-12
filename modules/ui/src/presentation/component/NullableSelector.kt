@@ -20,20 +20,31 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
+import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
+import com.github.yumelira.yumebox.presentation.icon.yume.PowerOff
+import com.github.yumelira.yumebox.presentation.icon.yume.Square
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 
 @Composable
 fun NullableBooleanSelector(
     title: String,
     summary: String? = null,
     value: Boolean?,
+    imageVector: ImageVector = Yume.CircleCheckBig,
+    unsetLabel: String = MLang.Component.Selector.NotModify,
     onValueChange: (Boolean?) -> Unit,
 ) {
     val items =
         listOf(
-            MLang.Component.Selector.NotModify,
+            unsetLabel,
             MLang.Component.Selector.Enable,
             MLang.Component.Selector.Disable,
         )
@@ -43,21 +54,57 @@ fun NullableBooleanSelector(
             true -> 1
             false -> 2
         }
+    var showSheet by remember { mutableStateOf(false) }
 
-    WindowDropdown(
+    ConfigSettingRow(
         title = title,
         summary = summary,
-        items = items,
-        selectedIndex = selectedIndex,
-        onSelectedIndexChange = { index ->
-            onValueChange(
-                when (index) {
-                    1 -> true
-                    2 -> false
-                    else -> null
-                }
-            )
-        },
+        valueLabel = items[selectedIndex],
+        imageVector = imageVector,
+        tone =
+            when (value) {
+                true -> SemanticTone.Success
+                false -> SemanticTone.Warning
+                null -> SemanticTone.Neutral
+            },
+        badgeTone =
+            when (value) {
+                true -> SemanticTone.Success
+                false -> SemanticTone.Warning
+                null -> SemanticTone.Neutral
+            },
+        badgeLeadingDot = value == true,
+        onClick = { showSheet = true },
+    )
+
+    ConfigSelectionBottomSheet(
+        show = showSheet,
+        title = title,
+        options =
+            listOf(
+                ConfigEntryActionOption(
+                    title = items[0],
+                    icon = Yume.Square,
+                    tone = SemanticTone.Neutral,
+                    selected = selectedIndex == 0,
+                    onClick = { onValueChange(null) },
+                ),
+                ConfigEntryActionOption(
+                    title = items[1],
+                    icon = Yume.CircleCheckBig,
+                    tone = SemanticTone.Success,
+                    selected = selectedIndex == 1,
+                    onClick = { onValueChange(true) },
+                ),
+                ConfigEntryActionOption(
+                    title = items[2],
+                    icon = Yume.PowerOff,
+                    tone = SemanticTone.Warning,
+                    selected = selectedIndex == 2,
+                    onClick = { onValueChange(false) },
+                ),
+            ),
+        onDismissRequest = { showSheet = false },
     )
 }
 
@@ -68,20 +115,41 @@ fun <T> NullableEnumSelector(
     value: T?,
     items: List<String>,
     values: List<T?>,
+    imageVector: ImageVector = Yume.`List-chevrons-up-down`,
     onValueChange: (T?) -> Unit,
 ) {
     val selectedIndex = values.indexOf(value).coerceAtLeast(0)
+    val selectedLabel = items.getOrElse(selectedIndex) { items.firstOrNull().orEmpty() }
+    var showSheet by remember { mutableStateOf(false) }
 
-    WindowDropdown(
+    ConfigSettingRow(
         title = title,
         summary = summary,
-        items = items,
-        selectedIndex = selectedIndex,
-        onSelectedIndexChange = { index ->
-            if (index >= 0 && index < values.size) {
-                onValueChange(values[index])
-            }
-        },
+        valueLabel = selectedLabel,
+        imageVector = imageVector,
+        tone = if (selectedIndex == 0) SemanticTone.Neutral else SemanticTone.Brand,
+        badgeTone = if (selectedIndex == 0) SemanticTone.Neutral else SemanticTone.Brand,
+        onClick = { showSheet = true },
+    )
+
+    ConfigSelectionBottomSheet(
+        show = showSheet,
+        title = title,
+        options =
+            items.mapIndexed { index, item ->
+                ConfigEntryActionOption(
+                    title = item,
+                    icon = if (index == 0) Yume.Square else imageVector,
+                    tone = if (index == 0) SemanticTone.Neutral else SemanticTone.Brand,
+                    selected = index == selectedIndex,
+                    onClick = {
+                        if (index >= 0 && index < values.size) {
+                            onValueChange(values[index])
+                        }
+                    },
+                )
+            },
+        onDismissRequest = { showSheet = false },
     )
 }
 

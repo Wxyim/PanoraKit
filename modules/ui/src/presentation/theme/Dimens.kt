@@ -23,31 +23,37 @@ package com.github.yumelira.yumebox.presentation.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.max
 
 /**
- * Returns an adaptive [Spacing] instance tuned for the current window width:
+ * Returns an adaptive [Spacing] instance tuned for the current window size class:
  *
- * - **Compact  (< 600 dp)**: phones in portrait or 16:9–21:9 tall phones → `screenH = 12 dp`
- * - **Medium   (600–840 dp)**: large-phone landscape / small tablet portrait → `screenH = 24 dp`
- * - **Expanded (> 840 dp)**: tablets / foldables → `screenH` computed as
- *   `max(32, (screenWidth − 680) / 2)` so content stays within a ~680 dp column.
+ * - **Compact**: narrow phone or split-window layouts → `screenH = 12 dp`
+ * - **Medium**: landscape phones / foldables / narrow tablets → `screenH = 24 dp`
+ * - **Expanded**: wide tablets or desktop-like windows → constrain content toward a ~680 dp column.
  */
 @Composable
-fun rememberAdaptiveSpacing(pageScale: Float = 1f): Spacing {
-    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+fun rememberAdaptiveSpacing(
+    windowAdaptiveInfo: WindowAdaptiveInfo,
+    pageScale: Float = 1f,
+): Spacing {
     val normalizedScale = pageScale.coerceIn(0.8f, 1.2f)
-    return remember(screenWidthDp, normalizedScale) {
+    return remember(windowAdaptiveInfo.widthSizeClass, windowAdaptiveInfo.windowWidth, normalizedScale) {
         val baseSpacing =
-            when {
-                screenWidthDp >= 840 -> {
-                    val inset = max(32, (screenWidthDp - 680) / 2)
-                    Spacing(screenH = inset.dp, gutter = 24.dp)
+            when (windowAdaptiveInfo.widthSizeClass) {
+                androidx.compose.material3.windowsizeclass.WindowWidthSizeClass.Expanded -> {
+                    val effectiveWidth =
+                        if (windowAdaptiveInfo.windowWidth > 0.dp) {
+                            windowAdaptiveInfo.windowWidth
+                        } else {
+                            840.dp
+                        }
+                    val inset = ((effectiveWidth - 680.dp) / 2f).coerceAtLeast(32.dp)
+                    Spacing(screenH = inset, gutter = 24.dp)
                 }
-                screenWidthDp >= 600 -> Spacing(screenH = 24.dp, gutter = 20.dp)
+                androidx.compose.material3.windowsizeclass.WindowWidthSizeClass.Medium ->
+                    Spacing(screenH = 24.dp, gutter = 20.dp)
                 else -> Spacing()
             }
         baseSpacing.scaleBy(normalizedScale)

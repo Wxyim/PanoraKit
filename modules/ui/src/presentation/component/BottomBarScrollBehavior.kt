@@ -21,19 +21,22 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 
 @Stable
-class BottomBarScrollBehavior {
+class BottomBarScrollBehavior(
+    private val scrollThresholdPx: Float,
+) {
     var isBottomBarVisible by mutableStateOf(true)
         private set
 
     var isAutoHideEnabled by mutableStateOf(true)
-
-    private val scrollThreshold = 12f
 
     private var lastToggleTime = 0L
     private val toggleDelay = 150L
@@ -59,7 +62,7 @@ class BottomBarScrollBehavior {
 
                 accumulatedScroll += delta
 
-                if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
+                if (kotlin.math.abs(accumulatedScroll) >= scrollThresholdPx) {
                     if (accumulatedScroll < 0) hideBottomBar() else showBottomBar()
                     accumulatedScroll = 0f
                 }
@@ -67,17 +70,17 @@ class BottomBarScrollBehavior {
             }
         }
 
-    fun showBottomBar() {
+    fun showBottomBar(force: Boolean = false) {
         val currentTime = System.currentTimeMillis()
-        if (!isBottomBarVisible && currentTime - lastToggleTime >= toggleDelay) {
+        if (!isBottomBarVisible && (force || currentTime - lastToggleTime >= toggleDelay)) {
             isBottomBarVisible = true
             lastToggleTime = currentTime
         }
     }
 
-    fun hideBottomBar() {
+    fun hideBottomBar(force: Boolean = false) {
         val currentTime = System.currentTimeMillis()
-        if (isBottomBarVisible && currentTime - lastToggleTime >= toggleDelay) {
+        if (isBottomBarVisible && (force || currentTime - lastToggleTime >= toggleDelay)) {
             isBottomBarVisible = false
             lastToggleTime = currentTime
         }
@@ -86,8 +89,12 @@ class BottomBarScrollBehavior {
 
 @Composable
 fun rememberBottomBarScrollBehavior(autoHideEnabled: Boolean = true): BottomBarScrollBehavior {
-    return remember(autoHideEnabled) {
-        BottomBarScrollBehavior().apply { isAutoHideEnabled = autoHideEnabled }
+    val density = LocalDensity.current
+    val scrollThresholdPx = with(density) { 24.dp.toPx() }
+    return remember(autoHideEnabled, scrollThresholdPx) {
+        BottomBarScrollBehavior(scrollThresholdPx = scrollThresholdPx).apply {
+            isAutoHideEnabled = autoHideEnabled
+        }
     }
 }
 
@@ -95,13 +102,14 @@ fun rememberBottomBarScrollBehavior(autoHideEnabled: Boolean = true): BottomBarS
 fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomBarScrollBehavior {
     val isAtTop by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+            !listState.canScrollBackward ||
+                (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 1)
         }
     }
 
-    LaunchedEffect(isAtTop) {
-        if (isAtTop) {
-            showBottomBar()
+    LaunchedEffect(isAtTop, isAutoHideEnabled) {
+        if (isAtTop || !isAutoHideEnabled) {
+            showBottomBar(force = true)
         }
     }
 
@@ -114,9 +122,9 @@ fun BottomBarScrollBehavior.withLazyListState(listState: LazyListState): BottomB
         }
     }
 
-    LaunchedEffect(isScrollingUp) {
-        if (isScrollingUp) {
-            showBottomBar()
+    LaunchedEffect(isScrollingUp, isAutoHideEnabled) {
+        if (isScrollingUp || !isAutoHideEnabled) {
+            showBottomBar(force = true)
         }
     }
 

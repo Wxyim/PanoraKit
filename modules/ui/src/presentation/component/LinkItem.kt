@@ -24,8 +24,9 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumelira.yumebox.common.util.openUrl
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Link
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.extra.SuperArrow
 
 @Composable
 fun LinkItem(
@@ -35,7 +36,14 @@ fun LinkItem(
     context: Context = LocalContext.current,
 ) {
     if (showArrow) {
-        SuperArrow(title = title, summary = url, onClick = { openUrl(context, url) })
+        ConfigSettingRow(
+            title = title,
+            summary = url,
+            imageVector = Yume.Link,
+            tone = SemanticTone.Info,
+            showDivider = false,
+            onClick = { openUrl(context, url) },
+        )
     } else {
         BasicComponent(title = title, summary = url, onClick = { openUrl(context, url) })
     }

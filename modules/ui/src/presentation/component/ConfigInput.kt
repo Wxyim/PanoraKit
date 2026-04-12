@@ -22,14 +22,23 @@ package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.icon.yume.Delete
+import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
+import com.github.yumelira.yumebox.presentation.icon.yume.List
+import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 typealias OpenStringListModifiersEditor =
@@ -45,14 +54,23 @@ typealias OpenStringListModifiersEditor =
     ) -> Unit
 
 @Composable
-fun PortInputContent(title: String, value: Int?, onValueChange: (Int?) -> Unit) {
+fun PortInputContent(
+    title: String,
+    value: Int?,
+    onValueChange: (Int?) -> Unit,
+    imageVector: ImageVector = Yume.`Wifi-cog`,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
+) {
     val showDialog = remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(value?.toString() ?: "") }
     var inputValue by remember { mutableStateOf("") }
 
-    SuperArrow(
+    ConfigSettingRow(
         title = title,
-        summary = if (value != null) "$value" else MLang.Component.Selector.NotModify,
+        valueLabel = value?.toString() ?: unsetLabel,
+        imageVector = imageVector,
+        tone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
+        badgeTone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
         onClick = {
             textValue = value?.toString() ?: ""
             inputValue = textValue
@@ -83,14 +101,22 @@ fun StringInputContent(
     title: String,
     value: String?,
     placeholder: String = "",
+    imageVector: ImageVector = Yume.Edit,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
     onValueChange: (String?) -> Unit,
 ) {
     val showDialog = remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(value ?: "") }
+    val displayValue = value?.takeIf { it.isNotEmpty() }
+    val compactValue = displayValue?.takeIf { it.length <= 12 }
 
-    SuperArrow(
+    ConfigSettingRow(
         title = title,
-        summary = value?.takeIf { it.isNotEmpty() } ?: MLang.Component.Selector.NotModify,
+        summary = displayValue?.takeIf { compactValue == null },
+        valueLabel = compactValue ?: if (displayValue == null) unsetLabel else null,
+        imageVector = imageVector,
+        tone = if (displayValue == null) SemanticTone.Neutral else SemanticTone.Info,
+        badgeTone = if (displayValue == null) SemanticTone.Neutral else SemanticTone.Info,
         onClick = {
             textValue = value ?: ""
             showDialog.value = true
@@ -109,29 +135,53 @@ fun StringInputContent(
 }
 
 @Composable
-fun StringListInputContent(title: String, value: List<String>?, onClick: () -> Unit) {
+fun StringListInputContent(
+    title: String,
+    value: List<String>?,
+    onClick: () -> Unit,
+    imageVector: ImageVector = Yume.List,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
+) {
     val itemCount = value?.size ?: 0
-    val displayValue =
-        if (itemCount > 0) {
-            MLang.Component.ConfigInput.CountItems.format(itemCount)
-        } else {
-            MLang.Component.Selector.NotModify
-        }
-
-    SuperArrow(title = title, summary = displayValue, onClick = onClick)
+    ConfigSettingRow(
+        title = title,
+        summary = value?.firstOrNull(),
+        valueLabel =
+            if (itemCount > 0) {
+                MLang.Component.ConfigInput.CountItems.format(itemCount)
+            } else {
+                unsetLabel
+            },
+        imageVector = imageVector,
+        tone = if (itemCount > 0) SemanticTone.Info else SemanticTone.Neutral,
+        badgeTone = if (itemCount > 0) SemanticTone.Info else SemanticTone.Neutral,
+        onClick = onClick,
+    )
 }
 
 @Composable
-fun StringMapInputContent(title: String, value: Map<String, String>?, onClick: () -> Unit) {
+fun StringMapInputContent(
+    title: String,
+    value: Map<String, String>?,
+    onClick: () -> Unit,
+    imageVector: ImageVector = Yume.`Git-merge`,
+    unsetLabel: String = MLang.Component.Selector.UseDefault,
+) {
     val itemCount = value?.size ?: 0
-    val displayValue =
-        if (itemCount > 0) {
-            MLang.Component.ConfigInput.CountItems.format(itemCount)
-        } else {
-            MLang.Component.Selector.NotModify
-        }
-
-    SuperArrow(title = title, summary = displayValue, onClick = onClick)
+    ConfigSettingRow(
+        title = title,
+        summary = value?.entries?.firstOrNull()?.key,
+        valueLabel =
+            if (itemCount > 0) {
+                MLang.Component.ConfigInput.CountItems.format(itemCount)
+            } else {
+                unsetLabel
+            },
+        imageVector = imageVector,
+        tone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
+        badgeTone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -165,25 +215,27 @@ private fun ConfigTextInputDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
+                AppCommandButton(
+                    title = MLang.Component.Button.Clear,
+                    imageVector = Yume.Delete,
                     onClick = {
                         onClear()
                         show.value = false
                     },
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text(MLang.Component.Button.Clear)
-                }
-                Button(
+                    tone = SemanticTone.Danger,
+                )
+                AppCommandButton(
+                    title = MLang.Component.Button.Confirm,
+                    imageVector = Yume.Check,
                     onClick = {
                         onConfirm()
                         show.value = false
                     },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary(),
-                ) {
-                    Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary)
-                }
+                    tone = SemanticTone.Brand,
+                    highEmphasis = true,
+                )
             }
         }
     }
@@ -196,6 +248,8 @@ fun StringListWithModifiersInput(
     startValue: List<String>?,
     endValue: List<String>?,
     placeholder: String = "",
+    imageVector: ImageVector = Yume.List,
+    unsetLabel: String = MLang.Component.Selector.NotModify,
     onReplaceChange: (List<String>?) -> Unit,
     onStartChange: (List<String>?) -> Unit,
     onEndChange: (List<String>?) -> Unit,
@@ -203,24 +257,44 @@ fun StringListWithModifiersInput(
 ) {
     val summary =
         remember(replaceValue, startValue, endValue) {
-            buildList {
-                    replaceValue
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { add("${MLang.Component.Selector.Replace} ${it.size}") }
-                    startValue
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { add("${MLang.Component.Selector.Prepend} ${it.size}") }
-                    endValue
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { add("${MLang.Component.Selector.Append} ${it.size}") }
-                }
-                .joinToString(" · ")
-                .ifEmpty { MLang.Component.Selector.NotModify }
+            val replaceCount = replaceValue?.size ?: 0
+            val startCount = startValue?.size ?: 0
+            val endCount = endValue?.size ?: 0
+            val totalCount = replaceCount + startCount + endCount
+            val activeModes = listOf(replaceCount, startCount, endCount).count { it > 0 }
+
+            when {
+                totalCount == 0 -> unsetLabel
+                activeModes == 1 -> MLang.Component.ConfigInput.CountItems.format(totalCount)
+                else ->
+                    buildList {
+                            if (replaceCount > 0) {
+                                add(
+                                    "${MLang.Component.Selector.Replace} ${MLang.Component.ConfigInput.CountItems.format(replaceCount)}"
+                                )
+                            }
+                            if (startCount > 0) {
+                                add(
+                                    "${MLang.Component.Selector.Prepend} ${MLang.Component.ConfigInput.CountItems.format(startCount)}"
+                                )
+                            }
+                            if (endCount > 0) {
+                                add(
+                                    "${MLang.Component.Selector.Append} ${MLang.Component.ConfigInput.CountItems.format(endCount)}"
+                                )
+                            }
+                        }
+                        .joinToString(" · ")
+            }
         }
 
-    SuperArrow(
+    ConfigSettingRow(
         title = title,
-        summary = summary,
+        summary = summary.takeIf { it != unsetLabel },
+        valueLabel = if (summary == unsetLabel) summary else null,
+        imageVector = imageVector,
+        tone = if (summary == unsetLabel) SemanticTone.Neutral else SemanticTone.Info,
+        badgeTone = if (summary == unsetLabel) SemanticTone.Neutral else SemanticTone.Info,
         onClick = {
             onEditListGroup(
                 title,
@@ -243,6 +317,9 @@ fun StringMapWithModifiersInput(
     mergeValue: Map<String, String>?,
     keyPlaceholder: String = "",
     valuePlaceholder: String = "",
+    imageVector: ImageVector = Yume.`Git-merge`,
+    unsetLabel: String = MLang.Component.Selector.NotModify,
+    compactSingleMode: Boolean = false,
     onReplaceChange: (Map<String, String>?) -> Unit,
     onMergeChange: (Map<String, String>?) -> Unit,
     onEditMap:
@@ -256,26 +333,96 @@ fun StringMapWithModifiersInput(
         ) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val localMergedValue =
+        remember(replaceValue, mergeValue, compactSingleMode) {
+            if (!compactSingleMode) {
+                null
+            } else {
+                linkedMapOf<String, String>().apply {
+                    mergeValue.orEmpty().forEach { (key, value) ->
+                        this[key] = value
+                    }
+                    replaceValue.orEmpty().forEach { (key, value) ->
+                        if (key !in this) {
+                            this[key] = value
+                        }
+                    }
+                }.takeIf { it.isNotEmpty() }
+            }
+        }
+
+    if (compactSingleMode) {
+        val itemCount = localMergedValue?.size ?: 0
+        ConfigSettingRow(
+            title = title,
+            summary = localMergedValue?.entries?.firstOrNull()?.key,
+            valueLabel =
+                if (itemCount > 0) {
+                    MLang.Component.ConfigInput.CountItems.format(itemCount)
+                } else {
+                    unsetLabel
+                },
+            imageVector = imageVector,
+            tone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
+            badgeTone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
+            onClick = {
+                onEditMap(
+                    MapMergeStrategy.Replace,
+                    title,
+                    keyPlaceholder,
+                    valuePlaceholder,
+                    localMergedValue,
+                ) { updatedValue ->
+                    onReplaceChange(updatedValue)
+                    onMergeChange(null)
+                }
+            },
+        )
+        return
+    }
 
     val summary =
-        remember(replaceValue, mergeValue) {
-            buildList {
-                    replaceValue
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { add("${MLang.Component.Selector.Replace} ${it.size}") }
-                    mergeValue
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { add("${MLang.Component.Selector.Merge} ${it.size}") }
-                }
-                .joinToString(" · ")
-                .ifEmpty { MLang.Component.Selector.NotModify }
+        remember(replaceValue, mergeValue, unsetLabel) {
+            val replaceCount = replaceValue?.size ?: 0
+            val mergeCount = mergeValue?.size ?: 0
+            val totalCount = replaceCount + mergeCount
+            val activeModes = listOf(replaceCount, mergeCount).count { it > 0 }
+
+            when {
+                totalCount == 0 -> unsetLabel
+                activeModes == 1 -> MLang.Component.ConfigInput.CountItems.format(totalCount)
+                else ->
+                    buildList {
+                            if (replaceCount > 0) {
+                                add(
+                                    "${MLang.Component.Selector.Replace} ${MLang.Component.ConfigInput.CountItems.format(replaceCount)}"
+                                )
+                            }
+                            if (mergeCount > 0) {
+                                add(
+                                    "${MLang.Component.Selector.Merge} ${MLang.Component.ConfigInput.CountItems.format(mergeCount)}"
+                                )
+                            }
+                        }
+                        .joinToString(" · ")
+            }
         }
 
     Column {
-        SuperArrow(
+        ConfigSettingRow(
             title = title,
-            summary = summary,
-            holdDownState = expanded,
+            summary = summary.takeIf { it != unsetLabel },
+            valueLabel =
+                if (replaceValue.isNullOrEmpty() && mergeValue.isNullOrEmpty()) {
+                    unsetLabel
+                } else {
+                    MLang.Component.ConfigInput.CountItems.format(
+                        (replaceValue?.size ?: 0) + (mergeValue?.size ?: 0)
+                    )
+                },
+            imageVector = imageVector,
+            tone = if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty()) SemanticTone.Warning else SemanticTone.Neutral,
+            badgeTone = if (expanded || !replaceValue.isNullOrEmpty() || !mergeValue.isNullOrEmpty()) SemanticTone.Warning else SemanticTone.Neutral,
             onClick = { expanded = !expanded },
         )
 
@@ -303,8 +450,9 @@ fun StringMapWithModifiersInput(
                     ModifierModeCard(
                         modifier = Modifier.weight(1f),
                         title = MLang.Component.Selector.Replace,
-                        summary = buildMapModeSummary(replaceValue),
+                        summary = buildMapModeSummary(replaceValue, unsetLabel),
                         helperText = MLang.Component.ConfigInput.ReplaceHelper,
+                        tone = SemanticTone.Brand,
                         onEdit = {
                             onEditMap(
                                 MapMergeStrategy.Replace,
@@ -325,8 +473,9 @@ fun StringMapWithModifiersInput(
                     ModifierModeCard(
                         modifier = Modifier.weight(1f),
                         title = MLang.Component.Selector.Merge,
-                        summary = buildMapModeSummary(mergeValue),
+                        summary = buildMapModeSummary(mergeValue, unsetLabel),
                         helperText = MLang.Component.ConfigInput.MergeHelper,
+                        tone = SemanticTone.Info,
                         onEdit = {
                             onEditMap(
                                 MapMergeStrategy.Merge,
@@ -361,32 +510,51 @@ private fun ModifierModeCard(
     title: String,
     summary: String,
     helperText: String,
+    tone: SemanticTone,
     onEdit: () -> Unit,
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier, insideMargin = PaddingValues(12.dp)) {
-        Text(text = title, color = MiuixTheme.colorScheme.onSurface)
+    val style = SemanticActionDefaults.style(tone = tone, highEmphasis = true)
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(style.containerColor, shape)
+                .border(0.8.dp, style.borderColor, shape)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        StatusBadge(text = title, tone = tone, compact = true)
         Text(
             text = summary,
-            modifier = Modifier.padding(top = 6.dp),
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            color = MiuixTheme.colorScheme.onSurface,
         )
         Text(
             text = helperText,
-            modifier = Modifier.padding(top = 6.dp),
             style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.outline,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(modifier = Modifier.weight(1f), onClick = onEdit) {
-                Text(MLang.Component.Button.Edit)
-            }
+            AppCommandButton(
+                title = MLang.Component.Button.Edit,
+                imageVector = Yume.Edit,
+                onClick = onEdit,
+                modifier = Modifier.weight(1f),
+                tone = tone,
+                highEmphasis = true,
+            )
             if (onClear != null) {
-                Button(modifier = Modifier.weight(1f), onClick = onClear) {
-                    Text(MLang.Component.Button.Clear)
-                }
+                AppCommandButton(
+                    title = MLang.Component.Button.Clear,
+                    imageVector = Yume.Delete,
+                    onClick = onClear,
+                    modifier = Modifier.weight(1f),
+                    tone = SemanticTone.Danger,
+                )
             }
         }
     }
@@ -399,9 +567,9 @@ private fun buildListModeSummary(value: List<String>?): String {
     }
 }
 
-private fun buildMapModeSummary(value: Map<String, String>?): String {
+private fun buildMapModeSummary(value: Map<String, String>?, unsetLabel: String): String {
     return when {
-        value.isNullOrEmpty() -> MLang.Component.Selector.NotModify
+        value.isNullOrEmpty() -> unsetLabel
         else ->
             "${MLang.Component.ConfigInput.CountItems.format(value.size)} · ${value.entries.first().key}"
     }

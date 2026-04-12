@@ -82,6 +82,7 @@ dependencies {
     implementation(composeBom)
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3-window-size-class")
     implementation("androidx.compose.ui:ui")
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.compose)

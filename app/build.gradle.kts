@@ -341,6 +341,7 @@ dependencies {
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3-window-size-class")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation(libs.activity.compose)
@@ -363,6 +364,7 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
+    implementation("org.yaml:snakeyaml:2.2")
 
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
