@@ -20,9 +20,18 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.CAMERA"/>
 
+    <!--
+      TODO: When compileSdk is bumped to 37+, declare ACCESS_LOCAL_NETWORK.
+      NetworkInterfaces.kt uses NetworkInterface.getNetworkInterfaces() for
+      local IP discovery; this requires ACCESS_LOCAL_NETWORK on Android 17
+      (target 37+). Also add a runtime-check degradation path in
+      NetworkInfoService for when the permission is denied.
+    -->
+
     <application
             android:name="com.github.yumelira.yumebox.App"
             android:allowBackup="false"
+            android:enableOnBackInvokedCallback="true"
             android:fullBackupContent="false"
             android:icon="@mipmap/ic_launcher"
             android:label="${appName}"

@@ -17,6 +17,8 @@ class BaselineProfileGenerator {
         rule.collect(packageName = BenchmarkConfig.TargetPackage, includeInStartupProfile = true) {
             startupJourney()
             openNextMainPage()
+            bottomNavigationJourney()
+            settingsScrollJourney()
         }
     }
 }

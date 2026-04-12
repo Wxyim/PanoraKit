@@ -133,6 +133,8 @@ android {
         includeInBundle = false
     }
 
+    testOptions { unitTests.isIncludeAndroidResources = true }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -392,6 +394,11 @@ dependencies {
     implementation(libs.profileinstaller)
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)

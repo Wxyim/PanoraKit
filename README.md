@@ -15,6 +15,7 @@ MonadBox is a customized Android client based on [mihomo](https://github.com/Met
 
 - Development guide: [docs/DEVELOP.md](docs/DEVELOP.md)
 - Licensing policy: [docs/LICENSING.md](docs/LICENSING.md)
+- Product specification: [docs/SPEC.md](docs/SPEC.md)
 - Privacy notice (EN): [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md)
 
 ## Quick Start
@@ -46,7 +47,7 @@ This fork currently emphasizes:
 ## Project Spec Statement
 
 This project follows the 2026 Modern Android Design and Engineering Specification in
-[docs/SPEC_ZH_HANS.md](docs/SPEC_ZH_HANS.md).
+[docs/SPEC.md](docs/SPEC.md).
 
 Core rules:
 
