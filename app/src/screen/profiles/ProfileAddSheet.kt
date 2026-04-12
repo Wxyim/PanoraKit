@@ -37,6 +37,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -99,17 +100,17 @@ internal fun AddProfileSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-    var selectedTypeIndex by remember { mutableIntStateOf(0) }
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var filePath by remember { mutableStateOf("") }
-    var fileName by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
-    var isDownloading by remember { mutableStateOf(false) }
+    var selectedTypeIndex by rememberSaveable { mutableIntStateOf(0) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var url by rememberSaveable { mutableStateOf("") }
+    var filePath by rememberSaveable { mutableStateOf("") }
+    var fileName by rememberSaveable { mutableStateOf("") }
+    var error by rememberSaveable { mutableStateOf("") }
+    var isDownloading by rememberSaveable { mutableStateOf(false) }
 
     val downloadProgress by profilesViewModel.downloadProgress.collectAsStateWithLifecycle()
     val uiState by profilesViewModel.uiState.collectAsStateWithLifecycle()
-    var hasShownCompleteAnimation by remember { mutableStateOf(false) }
+    var hasShownCompleteAnimation by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(show.value) {
         if (!show.value) {
@@ -165,7 +166,7 @@ internal fun AddProfileSheet(
         error = ""
     }
 
-    var hasCameraPermission by remember {
+    var hasCameraPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
@@ -301,7 +302,7 @@ internal fun AddProfileSheet(
             }
         }
 
-    val showCameraPreview = remember { mutableStateOf(false) }
+    val showCameraPreview = rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(selectedTypeIndex, show.value, isDownloading, hasCameraPermission) {
         showCameraPreview.value =

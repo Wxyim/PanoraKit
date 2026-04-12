@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumelira.yumebox.presentation.component.EnumSelector
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -90,34 +90,26 @@ internal fun LinkSettingsDialog(
                 verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
             ) {
                 top.yukonga.miuix.kmp.basic.Card {
-                    WindowDropdown(
+                    EnumSelector(
                         title = MLang.ProfilesPage.LinkSettings.OpenMode,
+                        currentValue = linkOpenMode,
                         items = openModeOptions,
-                        selectedIndex = openModeIndex,
-                        onSelectedIndexChange = { index ->
-                            val mode =
-                                when (index) {
-                                    0 -> LinkOpenMode.IN_APP
-                                    1 -> LinkOpenMode.EXTERNAL_BROWSER
-                                    else -> LinkOpenMode.IN_APP
-                                }
-                            onOpenModeChange(mode)
-                        },
+                        values = listOf(LinkOpenMode.IN_APP, LinkOpenMode.EXTERNAL_BROWSER),
+                        showDivider = false,
+                        onValueChange = onOpenModeChange,
                     )
                 }
 
                 if (links.isNotEmpty()) {
                     top.yukonga.miuix.kmp.basic.Card {
-                        WindowDropdown(
+                        EnumSelector(
                             title = MLang.ProfilesPage.LinkSettings.DefaultLink,
                             summary = MLang.ProfilesPage.LinkSettings.DefaultLinkSummary,
+                            currentValue = links[defaultLinkIndex],
                             items = links.map { it.name },
-                            selectedIndex = defaultLinkIndex,
-                            onSelectedIndexChange = { index ->
-                                if (index in links.indices) {
-                                    onDefaultLinkChange(links[index].id)
-                                }
-                            },
+                            values = links,
+                            showDivider = false,
+                            onValueChange = { onDefaultLinkChange(it.id) },
                         )
                     }
                 }

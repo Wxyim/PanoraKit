@@ -28,6 +28,7 @@ import android.graphics.ImageFormat
 import android.net.Uri
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -168,6 +169,7 @@ internal suspend fun readQrFromImage(context: Context, uri: Uri): String? =
             .getOrNull()
     }
 
+@ExperimentalGetImage
 private fun decodeQrFromImageProxy(imageProxy: ImageProxy): String? {
     if (imageProxy.image == null || imageProxy.format != ImageFormat.YUV_420_888) {
         return null

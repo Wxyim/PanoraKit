@@ -11,6 +11,7 @@ LogScreen|app/src/screen/log/LogScreen.kt|logs|data/log|top-level|navigation|mor
 NetworkSettingsScreen|app/src/screen/settings/NetworkSettingsScreen.kt|network-settings|app|top-level|navigation|ui-settings|app/src/screen/settings/NetworkSettingsScreen.kt;app/src/screen/settings/NetworkSettingsViewModel.kt
 OverrideScreen|app/src/screen/navigation/OverrideNavigation.kt|override-home|feature/override|top-level|navigation|ui-settings|app/src/screen/navigation/OverrideNavigation.kt
 OverrideEditRoute|app/src/screen/navigation/OverrideNavigation.kt|override-edit|feature/override|editor|start||app/src/screen/navigation/OverrideNavigation.kt
+LocalProfileConfigEditRoute|app/src/screen/navigation/OverrideNavigation.kt|local-profile-config-edit|app|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt;app/src/screen/profiles/LocalProfileConfigEditScreen.kt;app/src/screen/profiles/ProfilesViewModel.kt
 OverrideRuleListEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-rule-list-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
 OverrideObjectListEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-object-list-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt
 OverrideKeyedObjectMapEditorRoute|app/src/screen/navigation/OverrideNavigation.kt|override-keyed-object-map-editor|feature/override|editor|implicit||app/src/screen/navigation/OverrideNavigation.kt

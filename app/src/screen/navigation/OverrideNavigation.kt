@@ -25,8 +25,10 @@ import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewScreen
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.presentation.screen.*
+import com.github.yumelira.yumebox.presentation.util.OverrideEditorSemantics
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.yumelira.yumebox.screen.profiles.LocalProfileConfigEditScreen
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
@@ -181,6 +183,118 @@ fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
                 selectedMode = selectedMode,
                 values = values,
                 referenceCatalog = referenceCatalog,
+                callback = callback,
+            )
+            navigator.navigate(OverrideSubRuleMapEditorRouteDestination)
+        },
+    )
+}
+
+@Composable
+@Destination<OverrideEditorNavGraph>
+fun LocalProfileConfigEditRoute(navigator: DestinationsNavigator, profileUuid: String) {
+    LocalProfileConfigEditScreen(
+        navigator = navigator,
+        profileUuid = profileUuid,
+        onOpenStringListEditor = {
+            title,
+            placeholder,
+            replaceValue,
+            startValue,
+            endValue,
+            onReplaceChange,
+            onStartChange,
+            onEndChange ->
+            val mergedValue =
+                buildList {
+                    addAll(startValue.orEmpty())
+                    addAll(replaceValue.orEmpty())
+                    addAll(endValue.orEmpty())
+                }.takeIf { it.isNotEmpty() }
+            val values =
+                com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
+                    replaceValue = mergedValue,
+                )
+            val availableModes =
+                listOf(com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace)
+            OverrideStructuredEditorStore.setupStringListEditor(
+                title = title,
+                placeholder = placeholder,
+                availableModes = availableModes,
+                selectedMode = com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
+                values = values,
+                semantics = OverrideEditorSemantics.LocalConfig,
+            ) { updatedValues ->
+                onReplaceChange(updatedValues.replaceValue)
+                onStartChange(null)
+                onEndChange(null)
+            }
+            navigator.navigate(OverrideStringListEditorRouteDestination)
+        },
+        onOpenRuleListEditor = {
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
+            OverrideStructuredEditorStore.setupRuleEditor(
+                title = title,
+                availableModes = availableModes,
+                selectedMode = selectedMode,
+                values = values,
+                referenceCatalog = referenceCatalog,
+                semantics = OverrideEditorSemantics.LocalConfig,
+                callback = callback,
+            )
+            navigator.navigate(OverrideRuleListEditorRouteDestination)
+        },
+        onOpenObjectListEditor = {
+            type,
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
+            OverrideStructuredEditorStore.setupObjectEditor(
+                type = type,
+                title = title,
+                availableModes = availableModes,
+                selectedMode = selectedMode,
+                values = values,
+                referenceCatalog = referenceCatalog,
+                semantics = OverrideEditorSemantics.LocalConfig,
+                callback = callback,
+            )
+            navigator.navigate(OverrideObjectListEditorRouteDestination)
+        },
+        onOpenObjectMapEditor = { type, title, values, availableModes, selectedMode, callback ->
+            OverrideStructuredEditorStore.setupKeyedObjectMapEditor(
+                type = type,
+                title = title,
+                availableModes = availableModes,
+                selectedMode = selectedMode,
+                values = values,
+                semantics = OverrideEditorSemantics.LocalConfig,
+                callback = callback,
+            )
+            navigator.navigate(OverrideKeyedObjectMapEditorRouteDestination)
+        },
+        onOpenSubRulesEditor = {
+            title,
+            values,
+            availableModes,
+            selectedMode,
+            referenceCatalog,
+            callback ->
+            OverrideStructuredEditorStore.setupSubRuleGroupEditor(
+                title = title,
+                availableModes = availableModes,
+                selectedMode = selectedMode,
+                values = values,
+                referenceCatalog = referenceCatalog,
+                semantics = OverrideEditorSemantics.LocalConfig,
                 callback = callback,
             )
             navigator.navigate(OverrideSubRuleMapEditorRouteDestination)

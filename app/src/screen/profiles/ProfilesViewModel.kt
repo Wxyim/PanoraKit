@@ -26,6 +26,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.CompileRequest
+import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.FetchStatus
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
@@ -36,9 +37,14 @@ import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
+import com.github.yumelira.yumebox.presentation.runtime.HandledRuntimeActionFailure
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
+import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
+import com.github.yumelira.yumebox.presentation.runtime.getOrThrowHandled
 import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
 import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
 import com.github.yumelira.yumebox.service.remote.IFetchObserver
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
@@ -55,6 +61,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.SerialKind
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
 import timber.log.Timber
 
 class ProfilesViewModel(
@@ -63,7 +86,8 @@ class ProfilesViewModel(
     profileLinksStorage: ProfileLinksStorage,
     private val bindingProvider: ProfileBindingProvider,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
-    private val runtimeControlCoordinator: RuntimeControlCoordinator,
+    private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : AndroidViewModel(application) {
     companion object {
         private const val BLANK_PROFILE_SOURCE = "blank://local-config"
@@ -75,6 +99,12 @@ class ProfilesViewModel(
     val linkOpenMode: Preference<LinkOpenMode> = profileLinksStorage.linkOpenMode
     val links: Preference<List<ProfileLink>> = profileLinksStorage.links
     val defaultLinkId: Preference<String> = profileLinksStorage.defaultLinkId
+
+    private val profileGuiJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        prettyPrint = true
+    }
 
     fun setOpenMode(mode: LinkOpenMode) = linkOpenMode.set(mode)
 
@@ -108,6 +138,8 @@ class ProfilesViewModel(
             try {
                 setLoading(true)
                 block()
+            } catch (_: HandledRuntimeActionFailure) {
+                onFailure?.invoke()
             } catch (e: Exception) {
                 Timber.e(e, failureLog)
                 showError(failureMessage(e))
@@ -272,11 +304,16 @@ class ProfilesViewModel(
                 .queryProfileByUUID(uuid)
                 ?.takeIf { it.active }
                 ?.let { activeProfile ->
-                    runtimeControlCoordinator.activateProfile(
-                        operation = "profiles:delete-active",
-                        profileId = activeProfile.uuid,
-                        enabled = false,
-                    )
+                    runtimeActionExecutor
+                        .activateProfile(
+                            operation = "profiles:delete-active",
+                            profileId = activeProfile.uuid,
+                            enabled = false,
+                            presentation =
+                                RuntimeActionFailurePresentation.Global(message = { reason ->
+                                    MLang.ProfilesVM.Message.DeleteFailed.format(reason)
+                                }),
+                        ).getOrThrowHandled()
                 }
             profilesRepository.deleteProfile(uuid)
             runCatching { bindingProvider.removeBinding(uuid.toString()) }
@@ -296,11 +333,26 @@ class ProfilesViewModel(
                 MLang.ProfilesVM.Message.ToggleFailed.format(e.uiErrorMessage())
             },
         ) {
-            runtimeControlCoordinator.activateProfile(
-                operation = "profiles:activate",
-                profileId = uuid,
-                enabled = true,
-            )
+            val outcome =
+                runtimeActionExecutor.activateProfile(
+                    operation = "profiles:activate",
+                    profileId = uuid,
+                    enabled = true,
+                    presentation =
+                        RuntimeActionFailurePresentation.Global(message = { reason ->
+                            MLang.ProfilesVM.Message.ToggleFailed.format(reason)
+                        }),
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired -> {
+                    vpnPermissionCoordinator.requestPermission(outcome.intent) {
+                        activateProfile(uuid)
+                    }
+                    throw HandledRuntimeActionFailure()
+                }
+                RuntimeActionOutcome.FailureHandled -> throw HandledRuntimeActionFailure()
+            }
             showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format("Active"))
             refreshProfiles()
             Timber.i("Profile activated: $uuid")
@@ -397,7 +449,15 @@ class ProfilesViewModel(
 
     suspend fun updateProfileNow(uuid: UUID, observer: IFetchObserver? = null): Profile {
         profilesRepository.updateProfile(uuid, observer)
-        runtimeControlCoordinator.reloadIfActiveProfile("profiles:update-profile", uuid)
+        runtimeActionExecutor
+            .reloadIfActiveProfile(
+                operation = "profiles:update-profile",
+                profileId = uuid,
+                presentation =
+                    RuntimeActionFailurePresentation.Runtime(
+                        fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                    ),
+            ).getOrThrowHandled()
         refreshProfilesNow()
         return profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
     }
@@ -407,7 +467,15 @@ class ProfilesViewModel(
             profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
         try {
             profilesRepository.patchProfile(uuid, name, source, interval)
-            runtimeControlCoordinator.reloadIfActiveProfile("profiles:patch-profile", uuid)
+            runtimeActionExecutor
+                .reloadIfActiveProfile(
+                    operation = "profiles:patch-profile",
+                    profileId = uuid,
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                        ),
+                ).getOrThrowHandled()
         } catch (error: Exception) {
             runCatching {
                 profilesRepository.patchProfile(
@@ -424,11 +492,16 @@ class ProfilesViewModel(
     }
 
     suspend fun setProfileEnabledNow(uuid: UUID, enabled: Boolean): Profile {
-        runtimeControlCoordinator.activateProfile(
-            operation = "profiles:set-active",
-            profileId = uuid,
-            enabled = enabled,
-        )
+        runtimeActionExecutor
+            .activateProfile(
+                operation = "profiles:set-active",
+                profileId = uuid,
+                enabled = enabled,
+                presentation =
+                    RuntimeActionFailurePresentation.Global(message = { reason ->
+                        MLang.ProfilesVM.Message.ToggleFailed.format(reason)
+                    }),
+            ).getOrThrowHandled()
         refreshProfilesNow()
         return profilesRepository.queryProfileByUUID(uuid)
             ?: error("Profile not found after profile activation: $uuid")
@@ -531,10 +604,15 @@ class ProfilesViewModel(
                 Timber.w("Override reapply skipped for profile (missing configs?): %s", uuid)
             }
 
-            runtimeControlCoordinator.reloadIfActiveProfile(
-                operation = "profiles:save-config",
-                profileId = uuid,
-            )
+            runtimeActionExecutor
+                .reloadIfActiveProfile(
+                    operation = "profiles:save-config",
+                    profileId = uuid,
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                        ),
+                ).getOrThrowHandled()
             setLocalUnvalidatedMarker(uuid, false)
             refreshProfilesNow()
             return ConfigPreviewSaveOutcome.Saved
@@ -543,6 +621,59 @@ class ProfilesViewModel(
                 stagingDir.deleteRecursively()
             }
         }
+    }
+
+    suspend fun loadProfileConfigForGui(uuid: UUID): ConfigurationOverride {
+        val liveConfigFile = resolveProfileConfigFile(uuid)
+        if (!liveConfigFile.exists()) {
+            error(MLang.ProfilesPage.Message.ProfileFileNotExist)
+        }
+
+        return withContext(Dispatchers.IO) {
+            parseProfileConfigYaml(liveConfigFile.readText())
+        }
+    }
+
+    fun hasProfileGuiConfigChanges(
+        originalConfig: ConfigurationOverride,
+        updatedConfig: ConfigurationOverride,
+    ): Boolean {
+        return buildProfileGuiOverrideContent(originalConfig, updatedConfig) != "{}"
+    }
+
+    suspend fun saveProfileConfigGuiContent(
+        uuid: UUID,
+        originalConfig: ConfigurationOverride,
+        updatedConfig: ConfigurationOverride,
+        onPhaseChanged: (ConfigPreviewSavePhase) -> Unit = {},
+        decisionProvider: () -> ConfigPreviewSaveDecision = { ConfigPreviewSaveDecision.Continue },
+        stopRuntime: suspend () -> Unit = {},
+    ): ConfigPreviewSaveOutcome {
+        if (!hasProfileGuiConfigChanges(originalConfig, updatedConfig)) {
+            return ConfigPreviewSaveOutcome.Saved
+        }
+
+        val liveConfigFile = resolveProfileConfigFile(uuid)
+        if (!liveConfigFile.exists()) {
+            error(MLang.ProfilesPage.Message.ProfileFileNotExist)
+        }
+
+        val overrideContent = buildProfileGuiOverrideContent(originalConfig, updatedConfig)
+        val updatedYaml =
+            withContext(Dispatchers.IO) {
+                applyProfileGuiDiffToYaml(
+                    originalYaml = liveConfigFile.readText(),
+                    diffJson = overrideContent,
+                )
+            }
+
+        return saveProfileConfigContent(
+            uuid = uuid,
+            content = updatedYaml,
+            onPhaseChanged = onPhaseChanged,
+            decisionProvider = decisionProvider,
+            stopRuntime = stopRuntime,
+        )
     }
 
     private suspend fun validateStagedProfileConfig(
@@ -580,6 +711,345 @@ class ProfilesViewModel(
             }
             stagingDir.copyRecursively(liveProfileDir, overwrite = true)
         }
+    }
+
+    private fun buildProfileGuiOverrideContent(
+        originalConfig: ConfigurationOverride,
+        updatedConfig: ConfigurationOverride,
+    ): String {
+        val originalElement =
+            profileGuiJson.encodeToJsonElement(ConfigurationOverride.serializer(), originalConfig)
+        val updatedElement =
+            profileGuiJson.encodeToJsonElement(ConfigurationOverride.serializer(), updatedConfig)
+        val diffElement = diffJsonElement(originalElement, updatedElement) ?: JsonObject(emptyMap())
+        return profileGuiJson.encodeToString(JsonElement.serializer(), diffElement)
+    }
+
+    private fun diffJsonElement(
+        original: JsonElement?,
+        updated: JsonElement?,
+    ): JsonElement? {
+        if (original == updated) {
+            return null
+        }
+
+        return when {
+            original is JsonObject && updated is JsonObject -> {
+                val keys = original.keys + updated.keys
+                val changed =
+                    buildMap<String, JsonElement> {
+                        keys.forEach { key ->
+                            diffJsonElement(original[key], updated[key])?.let { put(key, it) }
+                        }
+                    }
+                changed.takeIf(Map<String, JsonElement>::isNotEmpty)?.let(::JsonObject)
+            }
+
+            original is JsonArray && updated is JsonArray -> updated
+            updated == null -> JsonNull
+            else -> updated
+        }
+    }
+
+    private fun parseProfileConfigYaml(yamlText: String): ConfigurationOverride {
+        val rootElement = yamlValueToJsonElement(loadProfileConfigYamlRoot(yamlText))
+        val configElement =
+            if (rootElement is JsonObject) {
+                sanitizeJsonElementForSerializer(rootElement, ConfigurationOverride.serializer())
+                    as? JsonObject
+                    ?: JsonObject(emptyMap())
+            } else {
+                JsonObject(emptyMap())
+            }
+
+        return runCatching {
+                profileGuiJson.decodeFromJsonElement(
+                    ConfigurationOverride.serializer(),
+                    configElement,
+                )
+            }
+            .getOrElse { error ->
+                Clash.inspectCompiledConfig(yamlText)
+                    ?: throw IllegalStateException(
+                        error.message ?: MLang.ProfilesPage.Message.ReadProfileFailed,
+                        error,
+                    )
+            }
+    }
+
+    private fun <T> sanitizeJsonElementForSerializer(
+        element: JsonElement,
+        serializer: KSerializer<T>,
+    ): JsonElement? = sanitizeJsonElementForDescriptor(element, serializer.descriptor)
+
+    private fun sanitizeJsonElementForDescriptor(
+        element: JsonElement,
+        descriptor: SerialDescriptor,
+    ): JsonElement? {
+        if (element is JsonNull) {
+            return JsonNull
+        }
+        if (descriptor.serialName.startsWith("kotlinx.serialization.json.")) {
+            return element
+        }
+
+        return when (descriptor.kind) {
+            StructureKind.CLASS,
+            StructureKind.OBJECT,
+            -> sanitizeJsonObject(element as? JsonObject, descriptor)
+
+            StructureKind.LIST ->
+                sanitizeJsonArray(
+                    element = element as? JsonArray,
+                    elementDescriptor = descriptor.getElementDescriptor(0),
+                )
+
+            StructureKind.MAP ->
+                sanitizeJsonMap(
+                    element = element as? JsonObject,
+                    valueDescriptor = descriptor.getElementDescriptor(1),
+                )
+
+            SerialKind.ENUM -> (element as? JsonPrimitive)?.let { JsonPrimitive(it.content) }
+            PrimitiveKind.STRING -> (element as? JsonPrimitive)?.let { JsonPrimitive(it.content) }
+            PrimitiveKind.BOOLEAN ->
+                (element as? JsonPrimitive)?.booleanOrNull?.let { value -> JsonPrimitive(value) }
+
+            PrimitiveKind.BYTE,
+            PrimitiveKind.SHORT,
+            PrimitiveKind.INT,
+            -> (element as? JsonPrimitive)?.intOrNull?.let { value -> JsonPrimitive(value) }
+
+            PrimitiveKind.LONG ->
+                (element as? JsonPrimitive)?.longOrNull?.let { value -> JsonPrimitive(value) }
+
+            PrimitiveKind.FLOAT,
+            PrimitiveKind.DOUBLE,
+            -> (element as? JsonPrimitive)?.doubleOrNull?.let { value -> JsonPrimitive(value) }
+
+            PrimitiveKind.CHAR ->
+                (element as? JsonPrimitive)?.content?.singleOrNull()?.let { value ->
+                    JsonPrimitive(value.toString())
+                }
+
+            else -> element.takeIf { it is JsonPrimitive }
+        }
+    }
+
+    private fun sanitizeJsonObject(
+        element: JsonObject?,
+        descriptor: SerialDescriptor,
+    ): JsonElement? {
+        if (element == null) {
+            return null
+        }
+
+        val content =
+            buildMap<String, JsonElement> {
+                for (index in 0 until descriptor.elementsCount) {
+                    val key = descriptor.getElementName(index)
+                    val childElement = element[key] ?: continue
+                    sanitizeJsonElementForDescriptor(
+                        element = childElement,
+                        descriptor = descriptor.getElementDescriptor(index),
+                    )?.let { sanitizedChild -> put(key, sanitizedChild) }
+                }
+            }
+
+        if (content.isEmpty() && element.isNotEmpty()) {
+            return null
+        }
+        return JsonObject(content)
+    }
+
+    private fun sanitizeJsonArray(
+        element: JsonArray?,
+        elementDescriptor: SerialDescriptor,
+    ): JsonElement? {
+        if (element == null) {
+            return null
+        }
+
+        val content =
+            element.mapNotNull { childElement ->
+                sanitizeJsonElementForDescriptor(childElement, elementDescriptor)
+            }
+
+        if (content.isEmpty() && element.isNotEmpty()) {
+            return null
+        }
+        return JsonArray(content)
+    }
+
+    private fun sanitizeJsonMap(
+        element: JsonObject?,
+        valueDescriptor: SerialDescriptor,
+    ): JsonElement? {
+        if (element == null) {
+            return null
+        }
+
+        val content =
+            buildMap<String, JsonElement> {
+                element.forEach { (key, childElement) ->
+                    sanitizeJsonElementForDescriptor(childElement, valueDescriptor)?.let {
+                        put(key, it)
+                    }
+                }
+            }
+
+        if (content.isEmpty() && element.isNotEmpty()) {
+            return null
+        }
+        return JsonObject(content)
+    }
+
+    private fun applyProfileGuiDiffToYaml(
+        originalYaml: String,
+        diffJson: String,
+    ): String {
+        val diffElement = profileGuiJson.parseToJsonElement(diffJson)
+        if (diffElement !is JsonObject || diffElement.isEmpty()) {
+            return originalYaml
+        }
+
+        val root = loadProfileConfigYamlRoot(originalYaml)
+        applyJsonDiffToYamlMap(root, diffElement)
+        return dumpProfileConfigYaml(root)
+    }
+
+    private fun loadProfileConfigYamlRoot(yamlText: String): MutableMap<String, Any?> {
+        val loaded =
+            yamlText.takeIf { it.isNotBlank() }?.let { Yaml().load<Any?>(it) }
+                ?: emptyMap<String, Any?>()
+        val mutableValue = toMutableYamlValue(loaded)
+        @Suppress("UNCHECKED_CAST")
+        return when (mutableValue) {
+            is MutableMap<*, *> -> mutableValue as MutableMap<String, Any?>
+            else -> linkedMapOf()
+        }
+    }
+
+    private fun toMutableYamlValue(value: Any?): Any? {
+        return when (value) {
+            is Map<*, *> -> {
+                linkedMapOf<String, Any?>().apply {
+                    value.forEach { (key, childValue) ->
+                        key?.toString()?.let { put(it, toMutableYamlValue(childValue)) }
+                    }
+                }
+            }
+
+            is List<*> -> value.mapTo(mutableListOf()) { childValue -> toMutableYamlValue(childValue) }
+            else -> value
+        }
+    }
+
+    private fun yamlValueToJsonElement(value: Any?): JsonElement {
+        return when (value) {
+            null -> JsonNull
+            is Map<*, *> -> {
+                val content =
+                    buildMap<String, JsonElement> {
+                        value.forEach { (key, childValue) ->
+                            key?.toString()?.let { put(it, yamlValueToJsonElement(childValue)) }
+                        }
+                    }
+                JsonObject(content)
+            }
+
+            is List<*> -> JsonArray(value.map(::yamlValueToJsonElement))
+            is String -> JsonPrimitive(value)
+            is Boolean -> JsonPrimitive(value)
+            is Int -> JsonPrimitive(value)
+            is Long -> JsonPrimitive(value)
+            is Float -> JsonPrimitive(value)
+            is Double -> JsonPrimitive(value)
+            is Short -> JsonPrimitive(value.toInt())
+            is Byte -> JsonPrimitive(value.toInt())
+            else -> JsonPrimitive(value.toString())
+        }
+    }
+
+    private fun applyJsonDiffToYamlMap(
+        target: MutableMap<String, Any?>,
+        diff: JsonObject,
+    ) {
+        diff.forEach { (key, value) ->
+            when (value) {
+                JsonNull -> target.remove(key)
+
+                is JsonObject -> {
+                    val currentValue = toMutableYamlValue(target[key])
+                    @Suppress("UNCHECKED_CAST")
+                    val childMap =
+                        when (currentValue) {
+                            is MutableMap<*, *> -> currentValue as MutableMap<String, Any?>
+                            else -> linkedMapOf()
+                        }
+                    applyJsonDiffToYamlMap(childMap, value)
+                    if (childMap.isEmpty()) {
+                        target.remove(key)
+                    } else {
+                        target[key] = childMap
+                    }
+                }
+
+                else -> target[key] = jsonElementToYamlValue(value)
+            }
+        }
+    }
+
+    private fun jsonElementToYamlValue(element: JsonElement): Any? {
+        return when (element) {
+            JsonNull -> null
+            is JsonObject -> {
+                linkedMapOf<String, Any?>().apply {
+                    element.forEach { (key, childElement) ->
+                        put(key, jsonElementToYamlValue(childElement))
+                    }
+                }
+            }
+
+            is JsonArray -> {
+                element.mapTo(mutableListOf()) { childElement ->
+                    jsonElementToYamlValue(childElement)
+                }
+            }
+            is JsonPrimitive -> {
+                when {
+                    element.isString -> element.content
+                    element.booleanOrNull != null -> element.booleanOrNull
+                    element.longOrNull != null -> {
+                        val longValue = element.longOrNull!!
+                        if (longValue in Int.MIN_VALUE..Int.MAX_VALUE) {
+                            longValue.toInt()
+                        } else {
+                            longValue
+                        }
+                    }
+
+                    element.doubleOrNull != null -> element.doubleOrNull
+                    else -> element.content
+                }
+            }
+        }
+    }
+
+    private fun dumpProfileConfigYaml(root: MutableMap<String, Any?>): String {
+        if (root.isEmpty()) {
+            return ""
+        }
+
+        val dumperOptions =
+            DumperOptions().apply {
+                defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
+                indent = 4
+                indicatorIndent = 2
+                isPrettyFlow = true
+                splitLines = false
+            }
+        return Yaml(dumperOptions).dump(root).trimEnd() + "\n"
     }
 
     private fun createProfileSaveStagingDirectory(uuid: UUID): File {
@@ -622,17 +1092,34 @@ class ProfilesViewModel(
                 val profile =
                     profilesRepository.queryProfileByUUID(uuid) ?: error("Profile not found: $uuid")
 
-                runtimeControlCoordinator.activateProfile(
-                    operation = "profiles:toggle-active",
-                    profileId = uuid,
-                    enabled = !profile.active,
-                )
+                val outcome =
+                    runtimeActionExecutor.activateProfile(
+                        operation = "profiles:toggle-active",
+                        profileId = uuid,
+                        enabled = !profile.active,
+                        presentation =
+                            RuntimeActionFailurePresentation.Global(message = { reason ->
+                                MLang.ProfilesVM.Message.ToggleFailed.format(reason)
+                            }),
+                    )
+                when (outcome) {
+                    is RuntimeActionOutcome.Success -> Unit
+                    is RuntimeActionOutcome.PermissionRequired -> {
+                        vpnPermissionCoordinator.requestPermission(outcome.intent) {
+                            toggleProfileEnabled(uuid)
+                        }
+                        return@launch
+                    }
+                    RuntimeActionOutcome.FailureHandled -> return@launch
+                }
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
                 refreshProfiles()
                 Timber.d("Profile toggled: $uuid, active=${!profile.active}")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to toggle profile")
-                showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.uiErrorMessage()))
+                if (e !is HandledRuntimeActionFailure) {
+                    showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.uiErrorMessage()))
+                }
             }
         }
     }
