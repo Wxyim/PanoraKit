@@ -3,6 +3,7 @@ package com.github.yumelira.yumebox.runtime.client
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.core.model.ProxyGroup
 import com.github.yumelira.yumebox.data.model.ProxyMode
+import com.github.yumelira.yumebox.domain.model.ProxyLatencyState
 import com.github.yumelira.yumebox.service.root.RootTunState
 import com.github.yumelira.yumebox.service.root.RootTunStatus
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
@@ -109,6 +110,49 @@ class ProxyFacadeRuntimeStateTest {
         assertNull(mismatched)
     }
 
+    @Test
+    fun latencyObservationStore_keepsTimeoutWhenControllerFallsBackToUnknown() {
+        val store = ProxyLatencyObservationStore()
+        store.bind("profile-a")
+        store.record("HK", 65_535)
+
+        val merged =
+            store.merge(listOf(sampleGroup(proxies = listOf(sampleProxy(name = "HK", delay = 0)))))
+
+        assertEquals(
+            ProxyLatencyState.DISPLAY_TIMEOUT_DELAY_MS,
+            merged.first().proxies.first().delay,
+        )
+    }
+
+    @Test
+    fun latencyObservationStore_recordsObservedGroupTimeouts() {
+        val store = ProxyLatencyObservationStore()
+        store.bind("profile-a")
+        store.recordObservedProxies(listOf(sampleProxy(name = "HK", delay = 65_535)))
+
+        val merged =
+            store.merge(listOf(sampleGroup(proxies = listOf(sampleProxy(name = "HK", delay = 0)))))
+
+        assertEquals(
+            ProxyLatencyState.DISPLAY_TIMEOUT_DELAY_MS,
+            merged.first().proxies.first().delay,
+        )
+    }
+
+    @Test
+    fun latencyObservationStore_clearsWhenProfileScopeChanges() {
+        val store = ProxyLatencyObservationStore()
+        store.bind("profile-a")
+        store.record("HK", -1)
+        store.bind("profile-b")
+
+        val merged =
+            store.merge(listOf(sampleGroup(proxies = listOf(sampleProxy(name = "HK", delay = 0)))))
+
+        assertEquals(0, merged.first().proxies.first().delay)
+    }
+
     private fun sampleProfile(): Profile {
         return Profile(
             uuid = UUID.fromString("11111111-1111-1111-1111-111111111111"),
@@ -125,12 +169,22 @@ class ProxyFacadeRuntimeStateTest {
         )
     }
 
-    private fun sampleGroup(name: String = "main"): ProxyGroup {
+    private fun sampleGroup(name: String = "main", proxies: List<Proxy> = emptyList()): ProxyGroup {
         return ProxyGroup(
             name = name,
             type = Proxy.Type.Selector,
-            proxies = emptyList(),
+            proxies = proxies,
             now = "DIRECT",
+        )
+    }
+
+    private fun sampleProxy(name: String = "proxy", delay: Int = 0): Proxy {
+        return Proxy(
+            name = name,
+            title = name,
+            subtitle = "",
+            type = Proxy.Type.URLTest,
+            delay = delay,
         )
     }
 }

@@ -20,8 +20,8 @@
 
 package com.github.yumelira.yumebox.runtime.client
 
-import android.app.ActivityManager
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -40,6 +40,7 @@ import com.github.yumelira.yumebox.core.model.UiConfiguration
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumelira.yumebox.domain.model.ProxyLatencyState
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.remote.RuntimeGatewayException
 import com.github.yumelira.yumebox.remote.ServiceClient
@@ -340,6 +341,7 @@ class ProxyFacade(
     val trafficTotal: StateFlow<Traffic> = runtimeState.trafficTotal
 
     private val previewCache = ProxyFacadePreviewCache()
+    private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
     private val operationMutex = Mutex()
@@ -506,13 +508,13 @@ class ProxyFacade(
         if (refreshAfter) {
             repeat(4) {
                 delay(1000.milliseconds)
-                refreshProxyGroups()
+                refreshProxyGroups(captureObservedGroupNames = setOf(group))
             }
         } else {
             scope.launch {
                 delay(300.milliseconds)
                 repeat(3) {
-                    runCatching { refreshProxyGroups() }
+                    runCatching { refreshProxyGroups(captureObservedGroupNames = setOf(group)) }
                     delay(500.milliseconds)
                 }
             }
@@ -524,6 +526,8 @@ class ProxyFacade(
         Timber.d("Health check proxy request: proxy=%s", proxyName)
         val delay = ServiceClient.clash().healthCheckProxy(proxyName)
         Timber.d("Health check proxy done: proxy=%s delay=%s", proxyName, delay)
+        latencyObservations.bind(latencyScopeKey())
+        latencyObservations.record(proxyName, delay)
         refreshProxyGroups()
         return delay
     }
@@ -584,7 +588,14 @@ class ProxyFacade(
     private fun normalizeProxyGroups(groups: List<ProxyGroup>): List<ProxyGroupInfo> {
         var normalized: MutableList<ProxyGroupInfo>? = null
         groups.forEachIndexed { index, group ->
-            val normalizedGroup = if (group.now.isBlank()) group.copy(now = "-") else group
+            val normalizedNow = if (group.now.isBlank()) "-" else group.now
+            val normalizedProxies = normalizeControllerProxyDelays(group.proxies)
+            val normalizedGroup =
+                if (normalizedNow == group.now && normalizedProxies === group.proxies) {
+                    group
+                } else {
+                    group.copy(now = normalizedNow, proxies = normalizedProxies)
+                }
             if (normalized == null && normalizedGroup !== group) {
                 normalized = ArrayList(groups.size)
                 var head = 0
@@ -598,13 +609,15 @@ class ProxyFacade(
         return normalized ?: groups
     }
 
-    suspend fun refreshProxyGroups() {
+    suspend fun refreshProxyGroups(captureObservedGroupNames: Set<String> = emptySet()) {
         refreshProxyGroupsMutex.withLock {
             val snapshot = runtimeSnapshot.value
+            val latencyScopeKey = latencyScopeKey()
             val groups =
                 withContext(Dispatchers.IO) {
                     try {
                         if (!snapshot.running) {
+                            latencyObservations.clear()
                             return@withContext queryPreviewProxyGroups()
                         }
 
@@ -613,14 +626,22 @@ class ProxyFacade(
                         }
 
                         connectCurrentBackend()
-                        val groups =
-                            normalizeProxyGroups(
-                                ServiceClient.clash()
-                                    .queryAllProxyGroups(excludeNotSelectable = false)
+                        val rawGroups =
+                            ServiceClient.clash().queryAllProxyGroups(excludeNotSelectable = false)
+                        if (captureObservedGroupNames.isNotEmpty()) {
+                            latencyObservations.bind(latencyScopeKey)
+                            rawGroups
+                                .asSequence()
+                                .filter { it.name in captureObservedGroupNames }
+                                .forEach { latencyObservations.recordObservedProxies(it.proxies) }
+                        }
+                        val groups = normalizeProxyGroups(rawGroups)
+                        latencyObservations.bind(latencyScopeKey)
+                        latencyObservations.merge(
+                            enrichProxyGroupsFromController(
+                                groups,
+                                ServiceClient.clash().queryConfiguration(),
                             )
-                        enrichProxyGroupsFromController(
-                            groups,
-                            ServiceClient.clash().queryConfiguration(),
                         )
                     } catch (e: ControllerError) {
                         Timber.w(e, "Failed to refresh proxy groups: ${e.message}")
@@ -975,6 +996,7 @@ class ProxyFacade(
     }
 
     private fun transitionToIdle(configuredMode: ProxyMode, generation: Long, lastError: String?) {
+        latencyObservations.clear()
         runtimeState.clearRuntimePayload(resetGroups = false)
         publishRuntimeSnapshot(
             RuntimeStateMapper.idleSnapshot(
@@ -1116,7 +1138,8 @@ class ProxyFacade(
     private suspend fun collectStopSignalConsistency(owner: RuntimeOwner): StopSignalConsistency {
         val snapshotPhase = runtimeSnapshot.value.phase
         return StopSignalConsistency(
-            snapshotTerminal = snapshotPhase == RuntimePhase.Idle || snapshotPhase == RuntimePhase.Failed,
+            snapshotTerminal =
+                snapshotPhase == RuntimePhase.Idle || snapshotPhase == RuntimePhase.Failed,
             statusStoreStopped = !isOwnerActive(owner),
             processStopped = isOwnerProcessStopped(owner),
         )
@@ -1225,6 +1248,34 @@ class ProxyFacade(
             )
 
         return groups
+    }
+
+    private fun latencyScopeKey(): String? {
+        return currentProfile.value?.uuid?.toString()
+            ?: runtimeSnapshot.value.profileUuid?.takeIf { it.isNotBlank() }
+    }
+
+    private fun normalizeControllerProxyDelays(proxies: List<Proxy>): List<Proxy> {
+        var normalized: MutableList<Proxy>? = null
+        proxies.forEachIndexed { index, proxy ->
+            val normalizedDelay = ProxyLatencyState.normalizeSnapshotDelay(proxy.delay)
+            val normalizedProxy =
+                if (normalizedDelay == proxy.delay) {
+                    proxy
+                } else {
+                    proxy.copy(delay = normalizedDelay)
+                }
+            if (normalized == null && normalizedProxy !== proxy) {
+                normalized = ArrayList(proxies.size)
+                var head = 0
+                while (head < index) {
+                    normalized?.add(proxies[head])
+                    head += 1
+                }
+            }
+            normalized?.add(normalizedProxy)
+        }
+        return normalized ?: proxies
     }
 
     private fun enrichProxyGroupsFromController(
