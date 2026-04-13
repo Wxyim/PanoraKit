@@ -38,7 +38,7 @@ APK 打包依赖 native 产物。
 Linux/macOS：
 
 ```bash
-./scripts/sync-kernel.sh alpha
+./scripts/sync-kernel.sh alpha # or meta/smart
 kotlin scripts/native-build.main.kts --all
 ./gradlew build
 ```
@@ -46,7 +46,7 @@ kotlin scripts/native-build.main.kts --all
 Windows PowerShell：
 
 ```powershell
-./scripts/sync-kernel.ps1 alpha
+./scripts/sync-kernel.ps1 alpha # or meta/smart
 kotlin scripts/native-build.main.kts --all
 .\gradlew.bat build
 ```
