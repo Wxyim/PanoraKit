@@ -147,22 +147,27 @@ abstract class UiContractValidationTask : DefaultTask() {
         val registeredSettingsDestinations =
             registryEntries
                 .asSequence()
-                .filter { !it.settingsSection.isNullOrBlank() }
+                .filter { it.uiType == "top-level" && !it.settingsSection.isNullOrBlank() }
                 .map(UiCapabilityEntry::destination)
                 .toSet()
 
-        val missingFromSettings =
-            registeredSettingsDestinations - sourceAnalysis.settingsEntryDestinations
+        val settingPagerTopLevelDestinations =
+            sourceAnalysis.settingsEntryDestinations.filterTo(linkedSetOf()) { destination ->
+                registryEntries.any { entry ->
+                    entry.destination == destination && entry.uiType == "top-level"
+                }
+            }
+
+        val missingFromSettings = registeredSettingsDestinations - settingPagerTopLevelDestinations
         if (missingFromSettings.isNotEmpty()) {
             issues +=
                 "Registry top-level settings pages missing from SettingPager: ${missingFromSettings.sorted().joinToString()}"
         }
 
-        val missingFromRegistry =
-            sourceAnalysis.settingsEntryDestinations - registeredSettingsDestinations
+        val missingFromRegistry = settingPagerTopLevelDestinations - registeredSettingsDestinations
         if (missingFromRegistry.isNotEmpty()) {
             issues +=
-                "SettingPager destinations missing from registry settingsSection mapping: ${missingFromRegistry.sorted().joinToString()}"
+                "SettingPager top-level destinations missing from registry settingsSection mapping: ${missingFromRegistry.sorted().joinToString()}"
         }
 
         val orphanedDestinations =

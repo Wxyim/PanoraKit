@@ -26,6 +26,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.data.repository.DebugExportBundleBuilder
 import com.github.yumelira.yumebox.data.repository.LogRepository
+import com.github.yumelira.yumebox.domain.model.StructuredLogCollector
+import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -41,6 +43,7 @@ import kotlinx.coroutines.withContext
 class LogViewModel(
     private val repository: LogRepository,
     private val debugExportBundleBuilder: DebugExportBundleBuilder,
+    private val structuredLogCollector: StructuredLogCollector,
 ) : ViewModel() {
 
     private val refreshMutex = Mutex()
@@ -69,6 +72,9 @@ class LogViewModel(
 
     private val _selectedStartupEntries = MutableStateFlow<List<LogEntry>>(emptyList())
     val selectedStartupEntries: StateFlow<List<LogEntry>> = _selectedStartupEntries.asStateFlow()
+
+    private val _recentFailures = MutableStateFlow<List<StructuredLogEntry>>(emptyList())
+    val recentFailures: StateFlow<List<StructuredLogEntry>> = _recentFailures.asStateFlow()
 
     init {
         requestBrowserStateRefresh()
@@ -131,6 +137,7 @@ class LogViewModel(
             _historyFiles.value = browserState.historyFiles
             _startupFiles.value = browserState.startupFiles
             _tempLogEntries.value = browserState.tempEntries
+            _recentFailures.value = structuredLogCollector.recentFailures(limit = 6)
 
             val selectedHistory = _selectedHistoryFileName.value
             if (
@@ -244,6 +251,8 @@ class LogViewModel(
                     _selectedStartupFileName.value = null
                     _selectedHistoryEntries.value = emptyList()
                     _selectedStartupEntries.value = emptyList()
+                    _recentFailures.value = emptyList()
+                    structuredLogCollector.clear()
                     requestBrowserStateRefresh()
                 }
                 .getOrDefault(false)

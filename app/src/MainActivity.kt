@@ -70,7 +70,9 @@ import com.github.yumelira.yumebox.common.util.IntentController
 import com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper
 import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.presentation.component.BottomBarContent
+import com.github.yumelira.yumebox.presentation.component.BottomBarLayoutDefaults
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarLiquidState
+import com.github.yumelira.yumebox.presentation.component.LocalBottomBarOverlayPadding
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
@@ -373,6 +375,8 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         LocalHandlePageChange provides handlePageChange,
         LocalNavigator provides navigator,
         LocalBottomBarScrollBehavior provides bottomBarScrollBehavior,
+        LocalBottomBarOverlayPadding provides
+            BottomBarLayoutDefaults.overlayPadding(useRailNavigation),
         LocalBottomBarLiquidState provides
             if (!useRailNavigation && bottomBarLiquidGlassEnabled) bottomBarLiquidState else null,
     ) {
@@ -395,7 +399,7 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                 } else {
                     systemBottomInset
                 }
-            val bottomBarReservedHeight = if (useRailNavigation) 0.dp else 74.dp
+            val bottomBarReservedHeight = LocalBottomBarOverlayPadding.current
             val safeMainPadding =
                 PaddingValues(
                     top = innerPadding.calculateTopPadding(),

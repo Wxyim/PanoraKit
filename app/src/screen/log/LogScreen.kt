@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,7 +38,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.LogMessage
@@ -46,22 +46,32 @@ import com.github.yumelira.yumebox.presentation.component.AppDialogDefaults
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.ConfigSettingRow
 import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
+import com.github.yumelira.yumebox.presentation.component.InfoSettingRow
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticNavigationTarget
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPanel
+import com.github.yumelira.yumebox.presentation.diagnostic.buildRuntimeEntryRemediationPlan
+import com.github.yumelira.yumebox.presentation.diagnostic.rememberDiagnosticActionHost
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
 import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.Save
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.RuntimeHealthDetailScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -69,20 +79,10 @@ import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object LogScreenMetrics {
-    val TopBarActionEndPadding = 24.dp
-    val CardVerticalPadding = 4.dp
-    val CardHorizontalPadding = 12.dp
-    val CardVerticalInnerPadding = 10.dp
-    val MetaFontSize = 11.sp
-    val MessageFontSize = 12.sp
-    val MetaSpacing = 8.dp
-    val MessageTopSpacing = 6.dp
-}
 
 private enum class LogContentMode {
     Browser,
@@ -93,7 +93,9 @@ private enum class LogContentMode {
 @Destination<RootGraph>
 fun LogScreen(navigator: DestinationsNavigator) {
     val viewModel = koinViewModel<LogViewModel>()
+    val proxyFacade = koinInject<ProxyFacade>()
     val scrollBehavior = MiuixScrollBehavior()
+    val spacing = AppTheme.spacing
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -105,6 +107,8 @@ fun LogScreen(navigator: DestinationsNavigator) {
     val selectedStartupFileName by viewModel.selectedStartupFileName.collectAsStateWithLifecycle()
     val selectedHistoryEntries by viewModel.selectedHistoryEntries.collectAsStateWithLifecycle()
     val selectedStartupEntries by viewModel.selectedStartupEntries.collectAsStateWithLifecycle()
+    val recentFailures by viewModel.recentFailures.collectAsStateWithLifecycle()
+    val isRuntimeRunning by proxyFacade.isRunning.collectAsStateWithLifecycle()
     val viewingHistory = selectedHistoryFileName != null
     val viewingStartup = selectedStartupFileName != null
     val viewingSavedFile = viewingHistory || viewingStartup
@@ -117,6 +121,28 @@ fun LogScreen(navigator: DestinationsNavigator) {
 
     val listState = remember { LazyListState() }
     val dateFormatter = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    val remediationPlan =
+        remember(recentFailures, isRuntimeRunning) {
+            buildRuntimeEntryRemediationPlan(
+                hasAttention = recentFailures.isNotEmpty(),
+                runtimeRunning = isRuntimeRunning,
+            )
+        }
+    val diagnosticActions =
+        rememberDiagnosticActionHost(
+            onNavigate = { target ->
+                when (target) {
+                    DiagnosticNavigationTarget.RuntimeHealth -> {
+                        navigator.navigate(RuntimeHealthDetailScreenDestination) {
+                            launchSingleTop = true
+                        }
+                    }
+
+                    else -> Unit
+                }
+            },
+            onRefresh = viewModel::requestBrowserStateRefresh,
+        )
 
     val saveFileLauncher =
         rememberLauncherForActivityResult(
@@ -154,21 +180,12 @@ fun LogScreen(navigator: DestinationsNavigator) {
             }
         }
 
-    val showExportConfirmDialog = remember { mutableStateOf(false) }
+    val showExportConfirmDialog = rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         viewModel.startAutoRefresh()
         onDispose { viewModel.stopAutoRefresh() }
     }
-
-    DebugBundleExportConfirmDialog(
-        show = showExportConfirmDialog.value,
-        onConfirm = {
-            showExportConfirmDialog.value = false
-            debugBundleLauncher.launch(viewModel.suggestDebugBundleFileName())
-        },
-        onDismiss = { showExportConfirmDialog.value = false },
-    )
 
     Scaffold(
         topBar = {
@@ -218,8 +235,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                     "${prefix}_log_${System.currentTimeMillis()}.txt"
                                 )
                             },
-                            modifier =
-                                Modifier.padding(end = LogScreenMetrics.TopBarActionEndPadding),
+                            modifier = Modifier.padding(end = spacing.xxl),
                         ) {
                             Icon(
                                 imageVector = Yume.Share,
@@ -242,17 +258,34 @@ fun LogScreen(navigator: DestinationsNavigator) {
         val showWaitingEmptyState =
             !viewingSavedFile && logEntries.isEmpty() && isRecording && !hasSavedLogs
 
+        DebugBundleExportConfirmDialog(
+            show = showExportConfirmDialog.value,
+            onConfirm = {
+                showExportConfirmDialog.value = false
+                debugBundleLauncher.launch(viewModel.suggestDebugBundleFileName())
+            },
+            onDismiss = { showExportConfirmDialog.value = false },
+        )
+
         if (showNoLogsEmptyState || showWaitingEmptyState) {
             LogEmptyStateContent(
                 firstLine = MLang.Log.Empty.NoLogs,
                 secondLine =
                     if (showWaitingEmptyState) {
                         MLang.Log.Detail.WillShowWhenGenerated
-                    } else {
-                        MLang.Log.Empty.AutoRecordHint
-                    },
+                } else {
+                    MLang.Log.Empty.AutoRecordHint
+                },
                 innerPadding = innerPadding,
+                remediationPlan = remediationPlan,
+                actionUiState = diagnosticActions.uiState,
+                onAction = diagnosticActions.onAction,
                 onExportDebugBundle = { showExportConfirmDialog.value = true },
+                liveCount = logEntries.size,
+                failureCount = recentFailures.size,
+                archiveCount = historyFiles.size,
+                startupCount = startupFiles.size,
+                isRecording = isRecording,
             )
             return@Scaffold
         }
@@ -293,17 +326,35 @@ fun LogScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
-                    topPadding = 20.dp,
+                    topPadding = spacing.xl,
                     lazyListState = listState,
                 ) {
                     if (!isDetailMode) {
                         item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
+                        item(key = "diagnostic_overview") {
+                            LogOverviewSection(
+                                liveCount = logEntries.size,
+                                failureCount = recentFailures.size,
+                                archiveCount = historyFiles.size,
+                                startupCount = startupFiles.size,
+                                isRecording = isRecording,
+                            )
+                        }
+                        if (remediationPlan.actions.isNotEmpty() || diagnosticActions.uiState.feedback != null) {
+                            item(key = "diagnostic_actions_title") {
+                                SmallTitle(DiagnosticLang.DetailPages.Common.RepairLoop)
+                            }
+                            item(key = "diagnostic_actions") {
+                                DiagnosticRemediationPanel(
+                                    plan = remediationPlan,
+                                    actionUiState = diagnosticActions.uiState,
+                                    onAction = diagnosticActions.onAction,
+                                )
+                            }
+                        }
                         item(key = "diagnostic_export") {
                             DiagnosticExportRow(
-                                modifier =
-                                    Modifier.padding(
-                                        vertical = LogScreenMetrics.CardVerticalPadding
-                                    ),
+                                modifier = Modifier.padding(vertical = spacing.xs),
                                 onClick = { showExportConfirmDialog.value = true },
                             )
                         }
@@ -311,12 +362,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
 
                     if (isDetailMode) {
                         item(key = "history_header") {
-                            Card(
-                                modifier =
-                                    Modifier.padding(
-                                        vertical = LogScreenMetrics.CardVerticalPadding
-                                    )
-                            ) {
+                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                                 Row(
                                     modifier =
                                         Modifier.fillMaxWidth()
@@ -324,12 +370,12 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                                 onClick = { viewModel.closeHistoryViewer() }
                                             )
                                             .padding(
-                                                horizontal = LogScreenMetrics.CardHorizontalPadding,
-                                                vertical = LogScreenMetrics.CardVerticalInnerPadding,
+                                                horizontal = spacing.md,
+                                                vertical = spacing.sm,
                                             ),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
                                         Icon(
                                             imageVector = Yume.ArrowLeft,
                                             contentDescription = MLang.Component.Navigation.Back,
@@ -382,12 +428,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
                         itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file
                             ->
-                            Card(
-                                modifier =
-                                    Modifier.padding(
-                                        vertical = LogScreenMetrics.CardVerticalPadding
-                                    )
-                            ) {
+                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                                 ConfigSettingRow(
                                     title = file.name,
                                     summary =
@@ -409,12 +450,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
                         itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file
                             ->
-                            Card(
-                                modifier =
-                                    Modifier.padding(
-                                        vertical = LogScreenMetrics.CardVerticalPadding
-                                    )
-                            ) {
+                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                                 ConfigSettingRow(
                                     title = file.name,
                                     summary =
@@ -452,9 +488,18 @@ private fun LogEmptyStateContent(
     firstLine: String,
     secondLine: String,
     innerPadding: PaddingValues,
+    remediationPlan: com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPlan,
+    actionUiState: com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionUiState,
+    onAction: (com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationAction) -> Unit,
     onExportDebugBundle: () -> Unit,
+    liveCount: Int,
+    failureCount: Int,
+    archiveCount: Int,
+    startupCount: Int,
+    isRecording: Boolean,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    val spacing = AppTheme.spacing
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
         val logContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
@@ -462,21 +507,42 @@ private fun LogEmptyStateContent(
             modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
-            topPadding = 20.dp,
+            topPadding = spacing.xl,
         ) {
             item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
+            item(key = "diagnostic_overview") {
+                LogOverviewSection(
+                    liveCount = liveCount,
+                    failureCount = failureCount,
+                    archiveCount = archiveCount,
+                    startupCount = startupCount,
+                    isRecording = isRecording,
+                )
+            }
+            if (remediationPlan.actions.isNotEmpty() || actionUiState.feedback != null) {
+                item(key = "diagnostic_actions_title") {
+                    SmallTitle(DiagnosticLang.DetailPages.Common.RepairLoop)
+                }
+                item(key = "diagnostic_actions") {
+                    DiagnosticRemediationPanel(
+                        plan = remediationPlan,
+                        actionUiState = actionUiState,
+                        onAction = onAction,
+                    )
+                }
+            }
             item(key = "diagnostic_export") {
                 DiagnosticExportRow(
-                    modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding),
+                    modifier = Modifier.padding(vertical = spacing.xs),
                     onClick = onExportDebugBundle,
                 )
             }
             item(key = "empty_state") {
-                Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+                Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(spacing.xxl),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(spacing.sm),
                     ) {
                         Text(
                             text = firstLine,
@@ -509,6 +575,55 @@ private fun DiagnosticExportRow(modifier: Modifier = Modifier, onClick: () -> Un
     }
 }
 
+@Composable
+private fun LogOverviewSection(
+    liveCount: Int,
+    failureCount: Int,
+    archiveCount: Int,
+    startupCount: Int,
+    isRecording: Boolean,
+) {
+    Card {
+        InfoSettingRow(
+            title = DiagnosticLang.DetailPages.Console.LiveLogs,
+            summary =
+                if (isRecording) {
+                    DiagnosticLang.DetailPages.Console.Recording
+                } else {
+                    DiagnosticLang.DetailPages.Console.NotRecording
+                },
+            valueLabel = liveCount.toString(),
+            tone = if (isRecording) SemanticTone.Success else SemanticTone.Neutral,
+            badgeLeadingDot = isRecording,
+        )
+        InfoSettingRow(
+            title = DiagnosticLang.DetailPages.RuntimeHealth.Failures,
+            summary =
+                if (failureCount == 0) {
+                    DiagnosticLang.NoActiveIssues
+                } else {
+                    DiagnosticLang.RecentFailureItems.format(failureCount)
+                },
+            valueLabel = failureCount.toString(),
+            tone = if (failureCount == 0) SemanticTone.Success else SemanticTone.Danger,
+            badgeLeadingDot = failureCount > 0,
+        )
+        InfoSettingRow(
+            title = DiagnosticLang.DetailPages.Console.Archives,
+            summary = MLang.Log.History.Title,
+            valueLabel = archiveCount.toString(),
+            tone = if (archiveCount > 0) SemanticTone.Info else SemanticTone.Neutral,
+        )
+        InfoSettingRow(
+            title = DiagnosticLang.DetailPages.Console.StartupArchives,
+            summary = MLang.Log.Startup.Title,
+            valueLabel = startupCount.toString(),
+            tone = if (startupCount > 0) SemanticTone.Info else SemanticTone.Neutral,
+            showDivider = false,
+        )
+    }
+}
+
 private fun formatFileSize(bytes: Long): String {
     if (bytes < 1024L) return "${bytes}B"
     val kb = bytes / 1024.0
@@ -519,6 +634,8 @@ private fun formatFileSize(bytes: Long): String {
 
 @Composable
 private fun LogEntryRow(entry: LogViewModel.LogEntry) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
     val levelColor =
         when (entry.level) {
             LogMessage.Level.Debug -> Color(0xFF9E9E9E)
@@ -529,25 +646,21 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
             LogMessage.Level.Unknown -> Color(0xFF9E9E9E)
         }
 
-    Card(modifier = Modifier.padding(vertical = LogScreenMetrics.CardVerticalPadding)) {
+    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
         Column(
             modifier =
-                Modifier.fillMaxWidth()
-                    .padding(
-                        horizontal = LogScreenMetrics.CardHorizontalPadding,
-                        vertical = LogScreenMetrics.CardVerticalInnerPadding,
-                    )
+                Modifier.fillMaxWidth().padding(horizontal = spacing.md, vertical = spacing.sm)
         ) {
             if (entry.time.isNotBlank()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LogScreenMetrics.MetaSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                 ) {
                     Text(
                         text = entry.time,
                         style =
                             MiuixTheme.textStyles.body2.copy(
-                                fontSize = LogScreenMetrics.MetaFontSize,
+                                fontSize = pageMetrics.logMetaFontSize,
                                 fontFamily = FontFamily.Monospace,
                             ),
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -556,21 +669,21 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
                         text = entry.level.name.uppercase().take(1),
                         style =
                             MiuixTheme.textStyles.body2.copy(
-                                fontSize = LogScreenMetrics.MetaFontSize,
+                                fontSize = pageMetrics.logMetaFontSize,
                                 fontFamily = FontFamily.Monospace,
                             ),
                         color = levelColor,
                     )
                 }
             }
-            Spacer(modifier = Modifier.size(LogScreenMetrics.MessageTopSpacing))
+            Spacer(modifier = Modifier.size(spacing.xs))
             Text(
                 text = entry.message,
                 style =
                     MiuixTheme.textStyles.body2.copy(
-                        fontSize = LogScreenMetrics.MessageFontSize,
+                        fontSize = pageMetrics.logMessageFontSize,
                         fontFamily = FontFamily.Monospace,
-                ),
+                    ),
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 8,

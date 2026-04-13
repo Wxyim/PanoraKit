@@ -28,6 +28,10 @@ import com.github.yumelira.yumebox.core.model.Provider
 import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.ProvidersRepository
+import com.github.yumelira.yumebox.domain.model.ErrorCategory
+import com.github.yumelira.yumebox.domain.model.ErrorImpact
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
 import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
@@ -71,14 +75,14 @@ class ProvidersViewModel(
             result
                 .onSuccess { providerList -> _providers.value = providerList.sorted() }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                MLang.Providers.Message.FetchFailed.format(
-                                    e.message ?: MLang.Providers.Message.UnknownError
-                                )
-                        )
-                    }
+                    showError(
+                        message =
+                            MLang.Providers.Message.FetchFailed.format(
+                                e.message ?: MLang.Providers.Message.UnknownError
+                            ),
+                        rawCause = e.message,
+                        phase = ErrorPhase.Running,
+                    )
                 }
             _uiState.update { it.copy(isLoading = false) }
         }
@@ -87,51 +91,16 @@ class ProvidersViewModel(
     fun refreshRemoteOverrides() {
         viewModelScope.launch {
             runCatching { overrideConfigRepository.listRemoteResources() }
-                .onSuccess { resources ->
-                    _remoteOverrides.value = resources
-
-                    val now = System.currentTimeMillis()
-                    val staleResources =
-                        resources.filter { resource ->
-                            val dueAt =
-                                resource.lastUpdatedAt + resource.updateIntervalSeconds * 1_000L
-                            now >= dueAt
-                        }
-
-                    if (staleResources.isNotEmpty()) {
-                        val failedResources = mutableListOf<String>()
-                        runtimeControlCoordinator.runSerialized(
-                            "providers:refresh-stale-overrides"
-                        ) {
-                            staleResources.forEach { stale ->
-                                refreshRemoteOverrideInternal(stale.id).onFailure {
-                                    failedResources += stale.name
-                                }
-                            }
-                        }
-                        _remoteOverrides.value = overrideConfigRepository.listRemoteResources()
-
-                        if (failedResources.isNotEmpty()) {
-                            _uiState.update {
-                                it.copy(
-                                    error =
-                                        MLang.Providers.Message.UpdateFailedResources.format(
-                                            failedResources.joinToString(", ")
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
+                .onSuccess { resources -> _remoteOverrides.value = resources }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                MLang.Providers.Message.FetchFailed.format(
-                                    e.message ?: MLang.Providers.Message.UnknownError
-                                )
-                        )
-                    }
+                    showError(
+                        message =
+                            MLang.Providers.Message.FetchFailed.format(
+                                e.message ?: MLang.Providers.Message.UnknownError
+                            ),
+                        rawCause = e.message,
+                        phase = ErrorPhase.Reloading,
+                    )
                 }
         }
     }
@@ -146,21 +115,17 @@ class ProvidersViewModel(
                 }
                 .onSuccess {
                     refreshRemoteOverrides()
-                    _uiState.update {
-                        it.copy(
-                            message = MLang.Providers.Message.UpdateSuccess.format(resource.name)
-                        )
-                    }
+                    showMessage(MLang.Providers.Message.UpdateSuccess.format(resource.name))
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                MLang.Providers.Message.UpdateFailed.format(
-                                    e.message ?: MLang.Providers.Message.UnknownError
-                                )
-                        )
-                    }
+                    showError(
+                        message =
+                            MLang.Providers.Message.UpdateFailed.format(
+                                e.message ?: MLang.Providers.Message.UnknownError
+                            ),
+                        rawCause = e.message,
+                        phase = ErrorPhase.Reloading,
+                    )
                 }
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - key) }
         }
@@ -179,74 +144,19 @@ class ProvidersViewModel(
             result
                 .onSuccess {
                     refreshProviders()
-                    _uiState.update {
-                        it.copy(
-                            message = MLang.Providers.Message.UpdateSuccess.format(provider.name)
-                        )
-                    }
+                    showMessage(MLang.Providers.Message.UpdateSuccess.format(provider.name))
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                MLang.Providers.Message.UpdateFailed.format(
-                                    e.message ?: MLang.Providers.Message.UnknownError
-                                )
-                        )
-                    }
-                }
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
-        }
-    }
-
-    fun updateAllProviders() {
-        viewModelScope.launch {
-            val httpProviders =
-                _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
-            val remoteOverrides = _remoteOverrides.value
-            if (httpProviders.isEmpty() && remoteOverrides.isEmpty()) return@launch
-
-            _uiState.update { it.copy(isUpdatingAll = true) }
-            val providerKeys =
-                httpProviders.map { "${it.type}_${it.name}" }.toSet() +
-                    remoteOverrides.map { remoteOverrideKey(it.id) }
-            _uiState.update { it.copy(updatingProviders = providerKeys) }
-
-            val failedItems = mutableListOf<String>()
-
-            runtimeControlCoordinator.runSerialized("providers:update-all") {
-                if (httpProviders.isNotEmpty()) {
-                    val providerResult = providersRepository.updateAllProviders(httpProviders)
-                    providerResult
-                        .onSuccess { updateResult -> failedItems += updateResult.failedProviders }
-                        .onFailure { e ->
-                            failedItems += e.message ?: MLang.Providers.Message.UnknownError
-                        }
-                }
-
-                remoteOverrides.forEach { resource ->
-                    refreshRemoteOverrideInternal(resource.id).onFailure {
-                        failedItems += resource.name
-                    }
-                }
-            }
-
-            refreshProviders()
-
-            if (failedItems.isEmpty()) {
-                _uiState.update { it.copy(message = MLang.Providers.Message.AllUpdated) }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        error =
-                            MLang.Providers.Message.UpdateFailedResources.format(
-                                failedItems.joinToString(", ")
-                            )
+                    showError(
+                        message =
+                            MLang.Providers.Message.UpdateFailed.format(
+                                e.message ?: MLang.Providers.Message.UnknownError
+                            ),
+                        rawCause = e.message,
+                        phase = ErrorPhase.Reloading,
                     )
                 }
-            }
-
-            _uiState.update { it.copy(isUpdatingAll = false, updatingProviders = emptySet()) }
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
         }
     }
 
@@ -300,36 +210,63 @@ class ProvidersViewModel(
                     applyResult
                         .onSuccess {
                             refreshProviders()
-                            _uiState.update {
-                                it.copy(
-                                    message =
-                                        MLang.Providers.Message.UploadSuccess.format(provider.name)
-                                )
-                            }
+                            showMessage(MLang.Providers.Message.UploadSuccess.format(provider.name))
                         }
                         .onFailure { e ->
-                            _uiState.update {
-                                it.copy(
-                                    error =
-                                        MLang.Providers.Message.UpdateFailed.format(
-                                            e.message ?: MLang.Providers.Message.UnknownError
-                                        )
-                                )
-                            }
+                            showError(
+                                message =
+                                    MLang.Providers.Message.UpdateFailed.format(
+                                        e.message ?: MLang.Providers.Message.UnknownError
+                                    ),
+                                rawCause = e.message,
+                                phase = ErrorPhase.Saving,
+                            )
                         }
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                MLang.Providers.Message.UploadFailed.format(
-                                    e.message ?: MLang.Providers.Message.UnknownError
-                                )
-                        )
-                    }
+                    showError(
+                        message =
+                            MLang.Providers.Message.UploadFailed.format(
+                                e.message ?: MLang.Providers.Message.UnknownError
+                            ),
+                        rawCause = e.message,
+                        phase = ErrorPhase.Saving,
+                        retryability = ErrorRetryability.RetryableAfterAction,
+                    )
                 }
 
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
+        }
+    }
+
+    private fun showMessage(message: String) {
+        _uiState.update { current ->
+            current.copy(message = message, structuredError = null)
+        }
+    }
+
+    private fun showError(
+        message: String,
+        rawCause: String?,
+        phase: ErrorPhase,
+        category: ErrorCategory = ErrorCategory.Runtime,
+        impact: ErrorImpact = ErrorImpact.FeatureUnavailable,
+        retryability: ErrorRetryability = ErrorRetryability.Retryable,
+    ) {
+        _uiState.update { current ->
+            current.copy(
+                error = message,
+                structuredError =
+                    StructuredError(
+                        category = category,
+                        phase = phase,
+                        impact = impact,
+                        retryability = retryability,
+                        rawCause = rawCause,
+                        userVisibleMessage = message,
+                        technicalDetail = rawCause,
+                    ),
+            )
         }
     }
 

@@ -23,19 +23,28 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val ConfigRowDividerStart = 70.dp
@@ -86,6 +95,82 @@ fun ConfigSettingRow(
             HorizontalDivider(
                 modifier =
                     Modifier.padding(start = ConfigRowDividerStart, end = ConfigRowDividerEnd),
+                thickness = 0.5.dp,
+                color = MiuixTheme.colorScheme.outline.copy(alpha = 0.14f),
+            )
+        }
+    }
+}
+
+@Composable
+fun InfoSettingRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    summary: String? = null,
+    valueLabel: String? = null,
+    tone: SemanticTone = SemanticTone.Neutral,
+    badgeTone: SemanticTone = tone,
+    badgeLeadingDot: Boolean = false,
+    showDivider: Boolean = true,
+) {
+    val semanticDescription =
+        listOfNotNull(
+                title.takeIf(String::isNotBlank),
+                summary?.takeIf(String::isNotBlank),
+                valueLabel?.takeIf(String::isNotBlank),
+            )
+            .joinToString(separator = ", ")
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = semanticDescription
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!summary.isNullOrBlank()) {
+                    Text(
+                        text = summary,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            if (!valueLabel.isNullOrBlank()) {
+                StatusBadge(
+                    text = valueLabel,
+                    tone = badgeTone,
+                    leadingDot = badgeLeadingDot,
+                    compact = true,
+                )
+            }
+        }
+
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 16.dp, end = ConfigRowDividerEnd),
                 thickness = 0.5.dp,
                 color = MiuixTheme.colorScheme.outline.copy(alpha = 0.14f),
             )

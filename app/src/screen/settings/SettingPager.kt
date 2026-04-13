@@ -35,8 +35,8 @@ import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
@@ -263,9 +263,7 @@ private fun MoreSettingsCard(
             summary = MLang.Connection.Summary,
             imageVector = Yume.`Scan-eye`,
             tone = SemanticTone.Info,
-            onClick = {
-                navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true }
-            },
+            onClick = { navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true } },
         )
         SettingsDivider()
         SettingsRow(

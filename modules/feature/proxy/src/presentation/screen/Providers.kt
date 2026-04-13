@@ -35,24 +35,37 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Provider
+import com.github.yumelira.yumebox.domain.model.ErrorCategory
+import com.github.yumelira.yumebox.domain.model.ErrorImpact
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
 import com.github.yumelira.yumebox.presentation.component.AppCommandButton
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.CenteredText
+import com.github.yumelira.yumebox.presentation.component.DiagnosticBannerState
+import com.github.yumelira.yumebox.presentation.component.InfoSettingRow
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.component.orFallback
+import com.github.yumelira.yumebox.presentation.component.toDisplayLabel
+import com.github.yumelira.yumebox.presentation.component.toSemanticTone
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.Edit
 import com.github.yumelira.yumebox.presentation.icon.yume.Folders
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
+import com.github.yumelira.yumebox.presentation.util.ExternalResourceDiagnostics
+import com.github.yumelira.yumebox.presentation.util.buildExternalResourceDiagnostics
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.util.*
@@ -69,13 +82,21 @@ private data class RemoteOverrideSection(
     val resources: List<RemoteOverrideResource>,
 )
 
-private object ProvidersScreenMetrics {
-    val ContentMaxWidth = 840.dp
-}
-
 @Composable
-fun ProvidersContent(navigator: DestinationsNavigator) {
-    val viewModel = koinViewModel<ProvidersViewModel>()
+fun ProvidersContent(
+    navigator: DestinationsNavigator,
+    viewModel: ProvidersViewModel = koinViewModel(),
+    onRefreshSourcesRequest: () -> Unit = {},
+    refreshSourcesInProgress: Boolean = false,
+    diagnosticContent:
+        @Composable (ExternalResourceDiagnostics, com.github.yumelira.yumebox.domain.model.StructuredError?) ->
+            Unit = { externalDiagnostics, structuredError ->
+            ProvidersDiagnosticSummaryCard(
+                banner = externalDiagnostics.toBannerState(),
+                structuredError = structuredError,
+            )
+        },
+) {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
 
@@ -138,6 +159,23 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
                 }
             }
         }
+    val externalDiagnostics =
+        remember(providers, remoteOverrides) {
+            buildExternalResourceDiagnostics(
+                providers = providers,
+                remoteOverrides = remoteOverrides,
+            )
+        }
+    val structuredError =
+        remember(uiState.structuredError, uiState.error) {
+            uiState.structuredError.orFallback(
+                message = uiState.error,
+                category = ErrorCategory.Runtime,
+                phase = ErrorPhase.Running,
+                impact = ErrorImpact.FeatureUnavailable,
+                retryability = ErrorRetryability.Retryable,
+            )
+        }
 
     Scaffold(
         topBar = {
@@ -158,7 +196,8 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
                         AppCircularIconAction(
                             imageVector = Yume.`Circle-fading-arrow-up`,
                             contentDescription = MLang.Providers.Action.UpdateAll,
-                            onClick = { viewModel.updateAllProviders() },
+                            onClick = onRefreshSourcesRequest,
+                            enabled = !refreshSourcesInProgress,
                             tone = SemanticTone.Info,
                             highEmphasis = true,
                             size = 44.dp,
@@ -182,6 +221,11 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
             )
         } else {
             ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
+                item(key = "providers_diagnostics") {
+                    ProvidersCenteredContent {
+                        diagnosticContent(externalDiagnostics, structuredError)
+                    }
+                }
                 sections.forEach { section ->
                     providerSection(
                         section = section,
@@ -205,6 +249,44 @@ fun ProvidersContent(navigator: DestinationsNavigator) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProvidersDiagnosticSummaryCard(
+    banner: DiagnosticBannerState,
+    structuredError: com.github.yumelira.yumebox.domain.model.StructuredError?,
+) {
+    Card {
+        InfoSettingRow(
+            title = banner.headline,
+            summary = banner.subtitle,
+            valueLabel = banner.tone.toProviderStateLabel(),
+            tone = banner.tone,
+            badgeLeadingDot = banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
+            showDivider = structuredError != null,
+        )
+        structuredError?.let { error ->
+            InfoSettingRow(
+                title = error.userVisibleMessage,
+                summary = error.technicalDetail ?: error.rawCause,
+                valueLabel = error.impact.toDisplayLabel(),
+                tone = error.toSemanticTone(),
+                badgeLeadingDot = true,
+                showDivider = false,
+            )
+        }
+    }
+}
+
+private fun SemanticTone.toProviderStateLabel(): String {
+    return when (this) {
+        SemanticTone.Success,
+        SemanticTone.Brand -> DiagnosticLang.DetailPages.Common.Ready
+        SemanticTone.Info -> DiagnosticLang.DetailPages.Common.Waiting
+        SemanticTone.Warning -> DiagnosticLang.DetailPages.Common.Attention
+        SemanticTone.Danger -> DiagnosticLang.DetailPages.Remediation.Failed
+        SemanticTone.Neutral -> DiagnosticLang.DetailPages.Common.NotAvailable
     }
 }
 
@@ -396,10 +478,10 @@ private fun LazyListScope.remoteOverrideSection(
 
 @Composable
 private fun ProvidersCenteredContent(content: @Composable () -> Unit) {
+    val pageMetrics = AppTheme.pageMetrics
+
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Box(modifier = Modifier.adaptiveContentWidth(ProvidersScreenMetrics.ContentMaxWidth)) {
-            content()
-        }
+        Box(modifier = Modifier.adaptiveContentWidth(pageMetrics.contentMaxWidth)) { content() }
     }
 }
 

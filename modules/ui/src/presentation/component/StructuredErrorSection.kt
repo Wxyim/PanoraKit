@@ -164,12 +164,7 @@ fun StructuredErrorSection(
                 ErrorDetailRow(label = phaseLabel, value = impactLabel)
 
                 if (error.isRetryable) {
-                    val retryLabel =
-                        when (error.retryability) {
-                            ErrorRetryability.Retryable -> "Retryable"
-                            ErrorRetryability.RetryableAfterAction -> "Retryable after action"
-                            ErrorRetryability.NonRetryable -> "Non-retryable"
-                        }
+                    val retryLabel = error.retryability.toDisplayLabel()
                     Text(
                         text = retryLabel,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -224,16 +219,6 @@ private fun ErrorDetailRow(label: String, value: String) {
     }
 }
 
-private fun StructuredError.toSemanticTone(): SemanticTone {
-    return when (impact) {
-        ErrorImpact.None -> SemanticTone.Info
-        ErrorImpact.Degraded -> SemanticTone.Warning
-        ErrorImpact.FeatureUnavailable -> SemanticTone.Warning
-        ErrorImpact.ServiceDown -> SemanticTone.Danger
-        ErrorImpact.DataLoss -> SemanticTone.Danger
-    }
-}
-
 private fun StructuredError.toIcon(): ImageVector {
     return when (impact) {
         ErrorImpact.None -> Yume.Activity
@@ -241,31 +226,5 @@ private fun StructuredError.toIcon(): ImageVector {
         ErrorImpact.FeatureUnavailable -> Yume.Cancel
         ErrorImpact.ServiceDown -> Yume.ShieldMinus
         ErrorImpact.DataLoss -> Yume.ShieldMinus
-    }
-}
-
-private fun com.github.yumelira.yumebox.domain.model.ErrorPhase.toDisplayLabel(): String {
-    return when (this) {
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Init -> "Init"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Preparing -> "Preparing"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Connecting -> "Connecting"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Running -> "Running"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Reloading -> "Reloading"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Stopping -> "Stopping"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Saving -> "Saving"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Importing -> "Importing"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Exporting -> "Exporting"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Compiling -> "Compiling"
-        com.github.yumelira.yumebox.domain.model.ErrorPhase.Validating -> "Validating"
-    }
-}
-
-private fun ErrorImpact.toDisplayLabel(): String {
-    return when (this) {
-        ErrorImpact.None -> "No impact"
-        ErrorImpact.Degraded -> "Degraded"
-        ErrorImpact.FeatureUnavailable -> "Feature unavailable"
-        ErrorImpact.ServiceDown -> "Service down"
-        ErrorImpact.DataLoss -> "Data loss risk"
     }
 }
