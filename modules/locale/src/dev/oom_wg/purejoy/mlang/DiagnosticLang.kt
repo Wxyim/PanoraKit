@@ -271,13 +271,22 @@ object DiagnosticLang {
                 get() = pick(en = "%d/%d channels ready", zh = "%d/%d 个通道已就绪")
 
             val RunningHealthy: String
-                get() = pick(en = "Runtime accepted traffic and payload is complete", zh = "运行时已承载流量且载荷完整")
+                get() =
+                    pick(
+                        en = "Runtime accepted traffic and payload is complete",
+                        zh = "运行时已承载流量且载荷完整",
+                    )
 
             val RunningDegraded: String
-                get() = pick(en = "Runtime is running but some payload channels are still missing", zh = "运行时已启动，但部分载荷通道仍未完成")
+                get() =
+                    pick(
+                        en = "Runtime is running but some payload channels are still missing",
+                        zh = "运行时已启动，但部分载荷通道仍未完成",
+                    )
 
             val Starting: String
-                get() = pick(en = "Runtime is preparing controller and payload", zh = "运行时正在准备控制器与载荷")
+                get() =
+                    pick(en = "Runtime is preparing controller and payload", zh = "运行时正在准备控制器与载荷")
 
             val Stopping: String
                 get() = pick(en = "Runtime is shutting down", zh = "运行时正在停止")
@@ -416,7 +425,8 @@ object DiagnosticLang {
             val Summary: String
                 get() =
                     pick(
-                        en = "Inspect why the current profile, source, and runtime state led to the current outcome",
+                        en =
+                            "Inspect why the current profile, source, and runtime state led to the current outcome",
                         zh = "检查活动配置、来源与运行时状态为何导向当前结果",
                     )
 
@@ -488,7 +498,8 @@ object DiagnosticLang {
             val Summary: String
                 get() =
                     pick(
-                        en = "Inspect structured events, runtime snapshot, and raw runtime log buffers",
+                        en =
+                            "Inspect structured events, runtime snapshot, and raw runtime log buffers",
                         zh = "检查结构化事件、运行时快照与底层运行时日志缓冲",
                     )
 
@@ -611,7 +622,8 @@ object DiagnosticLang {
             val Summary: String
                 get() =
                     pick(
-                        en = "Inspect effective config files, providers, and remote override sources in one registry",
+                        en =
+                            "Inspect effective config files, providers, and remote override sources in one registry",
                         zh = "统一检查生效配置文件、提供方与远程覆盖来源",
                     )
 
@@ -708,10 +720,20 @@ object DiagnosticLang {
                 get() = pick(en = "Repair loop", zh = "修复闭环")
 
             val HealthySummary: String
-                get() = pick(en = "State is stable. Re-run diagnostics or inspect adjacent pages when needed.", zh = "当前状态稳定；如需确认，可重新抓取诊断或查看相邻页面。")
+                get() =
+                    pick(
+                        en =
+                            "State is stable. Re-run diagnostics or inspect adjacent pages when needed.",
+                        zh = "当前状态稳定；如需确认，可重新抓取诊断或查看相邻页面。",
+                    )
 
             val AttentionSummary: String
-                get() = pick(en = "Resolve the highest-priority runtime or source issue first, then re-check the chain.", zh = "优先处理最高优先级的运行时或来源问题，再回看链路是否收敛。")
+                get() =
+                    pick(
+                        en =
+                            "Resolve the highest-priority runtime or source issue first, then re-check the chain.",
+                        zh = "优先处理最高优先级的运行时或来源问题，再回看链路是否收敛。",
+                    )
 
             val Execute: String
                 get() = pick(en = "Apply", zh = "执行")
@@ -744,118 +766,221 @@ object DiagnosticLang {
                 get() = pick(en = "Refresh diagnostics", zh = "刷新诊断")
 
             val RefreshPageSummary: String
-                get() = pick(en = "Capture a new diagnostic snapshot for this page.", zh = "重新抓取当前页面依赖的诊断快照。")
+                get() =
+                    pick(
+                        en = "Capture a new diagnostic snapshot for this page.",
+                        zh = "重新抓取当前页面依赖的诊断快照。",
+                    )
 
             val StartRuntime: String
                 get() = pick(en = "Start runtime", zh = "启动运行时")
 
             val StartRuntimeSummary: String
-                get() = pick(en = "Start the active profile with the current runtime mode.", zh = "按当前运行模式启动活动配置。")
+                get() =
+                    pick(
+                        en = "Start the active profile with the current runtime mode.",
+                        zh = "按当前运行模式启动活动配置。",
+                    )
 
             val ReloadRuntime: String
                 get() = pick(en = "Reload current profile", zh = "重载当前配置")
 
             val ReloadRuntimeSummary: String
-                get() = pick(en = "Keep the current mode and reload the active profile into runtime.", zh = "保留当前模式，并将活动配置重新加载到运行时。")
+                get() =
+                    pick(
+                        en = "Keep the current mode and reload the active profile into runtime.",
+                        zh = "保留当前模式，并将活动配置重新加载到运行时。",
+                    )
 
             val RestartRuntime: String
                 get() = pick(en = "Restart runtime", zh = "重启运行时")
 
             val RestartRuntimeSummary: String
-                get() = pick(en = "Rebuild the runtime pipeline and re-apply the current config.", zh = "完整重建运行时链路并重新应用当前配置。")
+                get() =
+                    pick(
+                        en = "Rebuild the runtime pipeline and re-apply the current config.",
+                        zh = "完整重建运行时链路并重新应用当前配置。",
+                    )
 
             val RestartRuntimeConfirm: String
-                get() = pick(en = "This will interrupt the current proxy session and rebuild the runtime immediately.", zh = "这会中断当前代理会话，并立即重建运行时。")
+                get() =
+                    pick(
+                        en =
+                            "This will interrupt the current proxy session and rebuild the runtime immediately.",
+                        zh = "这会中断当前代理会话，并立即重建运行时。",
+                    )
 
             val RefreshSources: String
                 get() = pick(en = "Refresh sources", zh = "刷新来源")
 
             val RefreshSourcesSummary: String
-                get() = pick(en = "Refresh remote providers and remote overrides, then re-apply active overrides when needed.", zh = "刷新远程 provider 与远程覆盖来源，并在需要时回灌活动覆盖。")
+                get() =
+                    pick(
+                        en =
+                            "Refresh remote providers and remote overrides, then re-apply active overrides when needed.",
+                        zh = "刷新远程 provider 与远程覆盖来源，并在需要时回灌活动覆盖。",
+                    )
 
             val OpenRuntimeHealth: String
                 get() = pick(en = "Open runtime health", zh = "查看运行时健康")
 
             val OpenRuntimeHealthSummary: String
-                get() = pick(en = "Return to lifecycle and readiness health checks.", zh = "返回查看生命周期与就绪性健康项。")
+                get() =
+                    pick(
+                        en = "Return to lifecycle and readiness health checks.",
+                        zh = "返回查看生命周期与就绪性健康项。",
+                    )
 
             val OpenRuleSetInspector: String
                 get() = pick(en = "Open rule set inspector", zh = "查看规则集检查器")
 
             val OpenRuleSetInspectorSummary: String
-                get() = pick(en = "Inspect effective rules and matcher distribution for the current config.", zh = "查看当前配置的生效规则与匹配分布。")
+                get() =
+                    pick(
+                        en =
+                            "Inspect effective rules and matcher distribution for the current config.",
+                        zh = "查看当前配置的生效规则与匹配分布。",
+                    )
 
             val OpenExplanationChain: String
                 get() = pick(en = "Open explanation chain", zh = "查看解释链")
 
             val OpenExplanationChainSummary: String
-                get() = pick(en = "Review which stage blocked or degraded the current path.", zh = "回看是哪一个阶段阻塞或降级了当前链路。")
+                get() =
+                    pick(
+                        en = "Review which stage blocked or degraded the current path.",
+                        zh = "回看是哪一个阶段阻塞或降级了当前链路。",
+                    )
 
             val OpenRawTrace: String
                 get() = pick(en = "Open raw trace", zh = "查看原始 trace")
 
             val OpenRawTraceSummary: String
-                get() = pick(en = "Inspect structured events and runtime buffers for this path.", zh = "检查这条链路对应的结构化事件与运行时缓冲。")
+                get() =
+                    pick(
+                        en = "Inspect structured events and runtime buffers for this path.",
+                        zh = "检查这条链路对应的结构化事件与运行时缓冲。",
+                    )
 
             val OpenSourceRegistry: String
                 get() = pick(en = "Open source registry", zh = "查看来源注册表")
 
             val OpenSourceRegistrySummary: String
-                get() = pick(en = "Inspect effective sources, freshness, and ownership in one registry.", zh = "在一个注册表里查看生效来源、新鲜度和归属。")
+                get() =
+                    pick(
+                        en = "Inspect effective sources, freshness, and ownership in one registry.",
+                        zh = "在一个注册表里查看生效来源、新鲜度和归属。",
+                    )
 
             val OpenProviders: String
                 get() = pick(en = "Open providers", zh = "查看 providers")
 
             val OpenProvidersSummary: String
-                get() = pick(en = "Inspect provider and remote override update status in the providers page.", zh = "到 providers 页面检查 provider 与远程覆盖的更新状态。")
+                get() =
+                    pick(
+                        en =
+                            "Inspect provider and remote override update status in the providers page.",
+                        zh = "到 providers 页面检查 provider 与远程覆盖的更新状态。",
+                    )
 
             val OpenLogs: String
                 get() = pick(en = "Open logs", zh = "查看日志")
 
             val OpenLogsSummary: String
-                get() = pick(en = "Inspect recent logs around this diagnostic event.", zh = "查看围绕这次诊断事件的最近日志。")
+                get() =
+                    pick(
+                        en = "Inspect recent logs around this diagnostic event.",
+                        zh = "查看围绕这次诊断事件的最近日志。",
+                    )
 
             val CopyRawTrace: String
                 get() = pick(en = "Copy raw trace", zh = "复制原始 trace")
 
             val CopyRawTraceSummary: String
-                get() = pick(en = "Copy the current raw trace payload to the clipboard.", zh = "把当前原始 trace 载荷复制到剪贴板。")
+                get() =
+                    pick(
+                        en = "Copy the current raw trace payload to the clipboard.",
+                        zh = "把当前原始 trace 载荷复制到剪贴板。",
+                    )
 
             val ResultStarted: String
-                get() = pick(en = "Runtime started and the current config was applied.", zh = "运行时已启动，并已应用当前配置。")
+                get() =
+                    pick(
+                        en = "Runtime started and the current config was applied.",
+                        zh = "运行时已启动，并已应用当前配置。",
+                    )
 
             val ResultReloaded: String
-                get() = pick(en = "Active profile reloaded into the running runtime.", zh = "活动配置已重新加载到运行中的运行时。")
+                get() =
+                    pick(
+                        en = "Active profile reloaded into the running runtime.",
+                        zh = "活动配置已重新加载到运行中的运行时。",
+                    )
 
             val ResultRestarted: String
-                get() = pick(en = "Runtime restarted and the current config was rebuilt.", zh = "运行时已重启，并已重建当前配置。")
+                get() =
+                    pick(
+                        en = "Runtime restarted and the current config was rebuilt.",
+                        zh = "运行时已重启，并已重建当前配置。",
+                    )
 
             val ResultApplied: String
                 get() = pick(en = "The requested action was applied.", zh = "请求的动作已应用。")
 
             val ResultDeferred: String
-                get() = pick(en = "Runtime is not in a state where this can apply immediately. The action is deferred.", zh = "当前运行时无法立即应用该动作，已转为待生效状态。")
+                get() =
+                    pick(
+                        en =
+                            "Runtime is not in a state where this can apply immediately. The action is deferred.",
+                        zh = "当前运行时无法立即应用该动作，已转为待生效状态。",
+                    )
 
             val ResultPermissionPending: String
-                get() = pick(en = "VPN permission is required before the action can continue.", zh = "继续执行前需要先授予 VPN 权限。")
+                get() =
+                    pick(
+                        en = "VPN permission is required before the action can continue.",
+                        zh = "继续执行前需要先授予 VPN 权限。",
+                    )
 
             val ResultActionFailed: String
-                get() = pick(en = "The action did not complete. Check the current diagnostics or global error feedback.", zh = "动作未完成，请查看当前诊断或全局错误反馈。")
+                get() =
+                    pick(
+                        en =
+                            "The action did not complete. Check the current diagnostics or global error feedback.",
+                        zh = "动作未完成，请查看当前诊断或全局错误反馈。",
+                    )
 
             val ResultActionUnsupported: String
-                get() = pick(en = "This action is not available in the current context.", zh = "当前上下文下该动作不可用。")
+                get() =
+                    pick(
+                        en = "This action is not available in the current context.",
+                        zh = "当前上下文下该动作不可用。",
+                    )
 
             val ResultSourcesRefreshed: String
                 get() = pick(en = "%d sources refreshed.", zh = "已刷新 %d 个来源。")
 
             val ResultSourcesPartial: String
-                get() = pick(en = "%d sources refreshed, %d still failed.", zh = "已刷新 %d 个来源，仍有 %d 个失败。")
+                get() =
+                    pick(
+                        en = "%d sources refreshed, %d still failed.",
+                        zh = "已刷新 %d 个来源，仍有 %d 个失败。",
+                    )
 
             val ResultSourcesDeferred: String
-                get() = pick(en = "%d remote sources refreshed. Runtime-bound providers will continue after runtime starts.", zh = "已刷新 %d 个远程来源；依赖运行时的 provider 会在运行时启动后继续处理。")
+                get() =
+                    pick(
+                        en =
+                            "%d remote sources refreshed. Runtime-bound providers will continue after runtime starts.",
+                        zh = "已刷新 %d 个远程来源；依赖运行时的 provider 会在运行时启动后继续处理。",
+                    )
 
             val ResultSourcesEmpty: String
-                get() = pick(en = "There are no refreshable sources in the current context.", zh = "当前上下文下没有可刷新的来源。")
+                get() =
+                    pick(
+                        en = "There are no refreshable sources in the current context.",
+                        zh = "当前上下文下没有可刷新的来源。",
+                    )
 
             val ResultCopied: String
                 get() = pick(en = "Copied the current raw trace payload.", zh = "已复制当前原始 trace 载荷。")

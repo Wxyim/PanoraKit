@@ -33,6 +33,7 @@ import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.DiagnosticBannerState
 import com.github.yumelira.yumebox.presentation.component.InfoSettingRow
+import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.orFallback
 import com.github.yumelira.yumebox.presentation.component.toDisplayLabel
 import com.github.yumelira.yumebox.presentation.component.toSemanticTone
@@ -42,7 +43,6 @@ import com.github.yumelira.yumebox.presentation.diagnostic.buildSourceEntryRemed
 import com.github.yumelira.yumebox.presentation.diagnostic.refreshSourcesAction
 import com.github.yumelira.yumebox.presentation.diagnostic.rememberDiagnosticActionHost
 import com.github.yumelira.yumebox.presentation.screen.ProvidersContent
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.util.buildExternalResourceDiagnostics
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
@@ -136,7 +136,8 @@ private fun ProviderDiagnosticSummaryCard(
             summary = banner.subtitle,
             valueLabel = banner.tone.toProviderStateLabel(),
             tone = banner.tone,
-            badgeLeadingDot = banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
+            badgeLeadingDot =
+                banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
             showDivider = structuredError != null,
         )
         structuredError?.let { error ->
@@ -157,7 +158,9 @@ private fun SemanticTone.toProviderStateLabel(): String {
         SemanticTone.Brand -> dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Common.Ready
         SemanticTone.Info -> dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Common.Waiting
         SemanticTone.Warning -> dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Common.Attention
-        SemanticTone.Danger -> dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Remediation.Failed
-        SemanticTone.Neutral -> dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Common.NotAvailable
+        SemanticTone.Danger ->
+            dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Remediation.Failed
+        SemanticTone.Neutral ->
+            dev.oom_wg.purejoy.mlang.DiagnosticLang.DetailPages.Common.NotAvailable
     }
 }

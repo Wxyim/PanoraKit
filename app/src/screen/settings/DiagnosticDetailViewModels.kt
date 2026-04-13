@@ -28,15 +28,15 @@ import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionFeedb
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionFeedbackStatus
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionUiState
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticDetailRepository
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticNavigationTarget
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationAction
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationCoordinator
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticNavigationTarget
 import com.github.yumelira.yumebox.presentation.diagnostic.ExplanationChainDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RawTraceDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RuleSetInspectorDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RuntimeHealthDetail
-import com.github.yumelira.yumebox.presentation.diagnostic.SourceRegistryOverviewDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.SnapshotHistoryDetail
+import com.github.yumelira.yumebox.presentation.diagnostic.SourceRegistryOverviewDetail
 import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -80,9 +80,10 @@ abstract class DiagnosticDetailActionViewModel<T>(
                             feedback =
                                 DiagnosticActionFeedback(
                                     title = action.title,
-                                    message = DiagnosticLang.DetailPages.Remediation.ResultRefreshed,
+                                    message =
+                                        DiagnosticLang.DetailPages.Remediation.ResultRefreshed,
                                     status = DiagnosticActionFeedbackStatus.Info,
-                                ),
+                                )
                         )
                     refresh()
                 }
@@ -95,9 +96,11 @@ abstract class DiagnosticDetailActionViewModel<T>(
                                 feedback =
                                     DiagnosticActionFeedback(
                                         title = action.title,
-                                        message = DiagnosticLang.DetailPages.Remediation.ResultActionUnsupported,
+                                        message =
+                                            DiagnosticLang.DetailPages.Remediation
+                                                .ResultActionUnsupported,
                                         status = DiagnosticActionFeedbackStatus.Info,
-                                    ),
+                                    )
                             )
                     } else {
                         _events.tryEmit(DiagnosticActionEvent.CopyText(payload))
@@ -106,9 +109,10 @@ abstract class DiagnosticDetailActionViewModel<T>(
                                 feedback =
                                     DiagnosticActionFeedback(
                                         title = action.title,
-                                        message = DiagnosticLang.DetailPages.Remediation.ResultCopied,
+                                        message =
+                                            DiagnosticLang.DetailPages.Remediation.ResultCopied,
                                         status = DiagnosticActionFeedbackStatus.Success,
-                                    ),
+                                    )
                             )
                     }
                 }
@@ -121,7 +125,9 @@ abstract class DiagnosticDetailActionViewModel<T>(
                 DiagnosticActionCommand.OpenSourceRegistry,
                 DiagnosticActionCommand.OpenProviders,
                 DiagnosticActionCommand.OpenLogs -> {
-                    _events.emit(DiagnosticActionEvent.Navigate(action.command.toNavigationTarget()))
+                    _events.emit(
+                        DiagnosticActionEvent.Navigate(action.command.toNavigationTarget())
+                    )
                 }
 
                 else -> executeMutationAction(action)
@@ -129,10 +135,8 @@ abstract class DiagnosticDetailActionViewModel<T>(
         }
     }
 
-    protected open fun resolveCopyPayload(
-        action: DiagnosticRemediationAction,
-        detail: T,
-    ): String? = null
+    protected open fun resolveCopyPayload(action: DiagnosticRemediationAction, detail: T): String? =
+        null
 
     protected abstract suspend fun loadDetail(): T
 
@@ -210,7 +214,11 @@ class RuntimeHealthDetailViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<RuntimeHealthDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<RuntimeHealthDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(RuntimeHealthDetailUiState())
     val uiState: StateFlow<RuntimeHealthDetailUiState> = _uiState.asStateFlow()
@@ -234,7 +242,11 @@ class RuleSetInspectorViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<RuleSetInspectorDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<RuleSetInspectorDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(RuleSetInspectorUiState())
     val uiState: StateFlow<RuleSetInspectorUiState> = _uiState.asStateFlow()
@@ -258,7 +270,11 @@ class SnapshotHistoryViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<SnapshotHistoryDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<SnapshotHistoryDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(SnapshotHistoryUiState())
     val uiState: StateFlow<SnapshotHistoryUiState> = _uiState.asStateFlow()
@@ -282,7 +298,11 @@ class ExplanationChainDetailViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<ExplanationChainDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<ExplanationChainDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(ExplanationChainUiState())
     val uiState: StateFlow<ExplanationChainUiState> = _uiState.asStateFlow()
@@ -306,7 +326,11 @@ class RawTraceDetailViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<RawTraceDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<RawTraceDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(RawTraceUiState())
     val uiState: StateFlow<RawTraceUiState> = _uiState.asStateFlow()
@@ -325,22 +349,27 @@ class RawTraceDetailViewModel(
         _uiState.value = _uiState.value.copy(isLoading = isLoading)
     }
 
-    override fun resolveCopyPayload(action: DiagnosticRemediationAction, detail: RawTraceDetail): String? {
+    override fun resolveCopyPayload(
+        action: DiagnosticRemediationAction,
+        detail: RawTraceDetail,
+    ): String? {
         if (action.command != DiagnosticActionCommand.CopyRawTrace) {
             return null
         }
 
         return buildString {
-            appendLine("${DiagnosticLang.DetailPages.RawTrace.TraceId}: ${detail.traceId}")
-            appendLine(
-                "${DiagnosticLang.DetailPages.RawTrace.RuntimePhase}: ${detail.runtimePhase.name}"
-            )
-            detail.rawSections.forEach { section ->
-                appendLine()
-                appendLine(section.title)
-                section.lines.forEach(::appendLine)
+                appendLine("${DiagnosticLang.DetailPages.RawTrace.TraceId}: ${detail.traceId}")
+                appendLine(
+                    "${DiagnosticLang.DetailPages.RawTrace.RuntimePhase}: ${detail.runtimePhase.name}"
+                )
+                detail.rawSections.forEach { section ->
+                    appendLine()
+                    appendLine(section.title)
+                    section.lines.forEach(::appendLine)
+                }
             }
-        }.trim().takeIf(String::isNotBlank)
+            .trim()
+            .takeIf(String::isNotBlank)
     }
 }
 
@@ -348,7 +377,11 @@ class SourceRegistryOverviewViewModel(
     private val diagnosticDetailRepository: DiagnosticDetailRepository,
     remediationCoordinator: DiagnosticRemediationCoordinator,
     vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : DiagnosticDetailActionViewModel<SourceRegistryOverviewDetail>(remediationCoordinator, vpnPermissionCoordinator) {
+) :
+    DiagnosticDetailActionViewModel<SourceRegistryOverviewDetail>(
+        remediationCoordinator,
+        vpnPermissionCoordinator,
+    ) {
 
     private val _uiState = MutableStateFlow(SourceRegistryOverviewUiState())
     val uiState: StateFlow<SourceRegistryOverviewUiState> = _uiState.asStateFlow()

@@ -43,19 +43,18 @@ fun buildRuntimeEntryRemediationPlan(
     hasAttention: Boolean,
     runtimeRunning: Boolean,
 ): DiagnosticRemediationPlan {
-    val actions =
-        buildList {
-            if (!hasAttention) {
-                return@buildList
-            }
-
-            if (runtimeRunning) {
-                add(reloadRuntimeAction(isPrimary = true))
-            } else {
-                add(startRuntimeAction(isPrimary = true))
-            }
-            add(openRuntimeHealthAction())
+    val actions = buildList {
+        if (!hasAttention) {
+            return@buildList
         }
+
+        if (runtimeRunning) {
+            add(reloadRuntimeAction(isPrimary = true))
+        } else {
+            add(startRuntimeAction(isPrimary = true))
+        }
+        add(openRuntimeHealthAction())
+    }
 
     return buildDiagnosticRemediationPlan(needsAttention = hasAttention, actions = actions)
 }
@@ -64,15 +63,14 @@ fun buildSourceEntryRemediationPlan(
     hasSources: Boolean,
     needsAttention: Boolean,
 ): DiagnosticRemediationPlan {
-    val actions =
-        buildList {
-            if (hasSources) {
-                add(refreshSourcesAction(isPrimary = needsAttention))
-                add(openSourceRegistryAction())
-            } else if (needsAttention) {
-                add(openSourceRegistryAction(isPrimary = true))
-            }
+    val actions = buildList {
+        if (hasSources) {
+            add(refreshSourcesAction(isPrimary = needsAttention))
+            add(openSourceRegistryAction())
+        } else if (needsAttention) {
+            add(openSourceRegistryAction(isPrimary = true))
         }
+    }
 
     return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
 }

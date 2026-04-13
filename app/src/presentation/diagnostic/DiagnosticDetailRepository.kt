@@ -66,8 +66,8 @@ import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -125,31 +125,28 @@ class DiagnosticDetailRepository(
     }
     private val snapshotStore = DiagnosticSnapshotStore(context)
 
-    suspend fun loadRuntimeHealthDetail(): RuntimeHealthDetail = withContext(Dispatchers.IO) {
-        runCatching {
-                buildRuntimeHealthDetail(loadContext())
-            }
-            .getOrElse { error ->
-                RuntimeHealthDetail(
-                    generatedAtMillis = System.currentTimeMillis(),
-                    structuredError =
-                        StructuredError.fromThrowable(
-                            throwable = error,
-                            phase = ErrorPhase.Validating,
-                            category = ErrorCategory.Runtime,
-                            impact = ErrorImpact.Degraded,
-                            retryability = ErrorRetryability.Retryable,
-                            userVisibleMessage = DiagnosticLang.DetailPages.RuntimeHealth.Title,
-                        ),
-                )
-            }
-    }
+    suspend fun loadRuntimeHealthDetail(): RuntimeHealthDetail =
+        withContext(Dispatchers.IO) {
+            runCatching { buildRuntimeHealthDetail(loadContext()) }
+                .getOrElse { error ->
+                    RuntimeHealthDetail(
+                        generatedAtMillis = System.currentTimeMillis(),
+                        structuredError =
+                            StructuredError.fromThrowable(
+                                throwable = error,
+                                phase = ErrorPhase.Validating,
+                                category = ErrorCategory.Runtime,
+                                impact = ErrorImpact.Degraded,
+                                retryability = ErrorRetryability.Retryable,
+                                userVisibleMessage = DiagnosticLang.DetailPages.RuntimeHealth.Title,
+                            ),
+                    )
+                }
+        }
 
     suspend fun loadRuleSetInspectorDetail(): RuleSetInspectorDetail =
         withContext(Dispatchers.IO) {
-            runCatching {
-                    buildRuleSetInspectorDetail(loadContext())
-                }
+            runCatching { buildRuleSetInspectorDetail(loadContext()) }
                 .getOrElse { error ->
                     RuleSetInspectorDetail(
                         generatedAtMillis = System.currentTimeMillis(),
@@ -161,81 +158,81 @@ class DiagnosticDetailRepository(
                                 category = ErrorCategory.Configuration,
                                 impact = ErrorImpact.FeatureUnavailable,
                                 retryability = ErrorRetryability.RetryableAfterAction,
-                                userVisibleMessage = DiagnosticLang.DetailPages.RuleSetInspector.Title,
+                                userVisibleMessage =
+                                    DiagnosticLang.DetailPages.RuleSetInspector.Title,
                             ),
                     )
                 }
         }
 
-    suspend fun loadSnapshotHistoryDetail(): SnapshotHistoryDetail = withContext(Dispatchers.IO) {
-        runCatching {
-                buildSnapshotHistoryDetail(loadContext())
-            }
-            .getOrElse { error ->
-                SnapshotHistoryDetail(
-                    generatedAtMillis = System.currentTimeMillis(),
-                    structuredError =
-                        StructuredError.fromThrowable(
-                            throwable = error,
-                            phase = ErrorPhase.Validating,
-                            category = ErrorCategory.Storage,
-                            impact = ErrorImpact.Degraded,
-                            retryability = ErrorRetryability.Retryable,
-                            userVisibleMessage = DiagnosticLang.DetailPages.SnapshotHistory.Title,
-                        ),
-                )
-            }
-    }
+    suspend fun loadSnapshotHistoryDetail(): SnapshotHistoryDetail =
+        withContext(Dispatchers.IO) {
+            runCatching { buildSnapshotHistoryDetail(loadContext()) }
+                .getOrElse { error ->
+                    SnapshotHistoryDetail(
+                        generatedAtMillis = System.currentTimeMillis(),
+                        structuredError =
+                            StructuredError.fromThrowable(
+                                throwable = error,
+                                phase = ErrorPhase.Validating,
+                                category = ErrorCategory.Storage,
+                                impact = ErrorImpact.Degraded,
+                                retryability = ErrorRetryability.Retryable,
+                                userVisibleMessage =
+                                    DiagnosticLang.DetailPages.SnapshotHistory.Title,
+                            ),
+                    )
+                }
+        }
 
-    suspend fun loadExplanationChainDetail(): ExplanationChainDetail = withContext(Dispatchers.IO) {
-        runCatching {
-                buildExplanationChainDetail(loadContext())
-            }
-            .getOrElse { error ->
-                ExplanationChainDetail(
-                    generatedAtMillis = System.currentTimeMillis(),
-                    structuredError =
-                        StructuredError.fromThrowable(
-                            throwable = error,
-                            phase = ErrorPhase.Validating,
-                            category = ErrorCategory.Runtime,
-                            impact = ErrorImpact.Degraded,
-                            retryability = ErrorRetryability.Retryable,
-                            userVisibleMessage = DiagnosticLang.DetailPages.ExplanationChain.Title,
-                        ),
-                )
-            }
-    }
+    suspend fun loadExplanationChainDetail(): ExplanationChainDetail =
+        withContext(Dispatchers.IO) {
+            runCatching { buildExplanationChainDetail(loadContext()) }
+                .getOrElse { error ->
+                    ExplanationChainDetail(
+                        generatedAtMillis = System.currentTimeMillis(),
+                        structuredError =
+                            StructuredError.fromThrowable(
+                                throwable = error,
+                                phase = ErrorPhase.Validating,
+                                category = ErrorCategory.Runtime,
+                                impact = ErrorImpact.Degraded,
+                                retryability = ErrorRetryability.Retryable,
+                                userVisibleMessage =
+                                    DiagnosticLang.DetailPages.ExplanationChain.Title,
+                            ),
+                    )
+                }
+        }
 
-    suspend fun loadRawTraceDetail(): RawTraceDetail = withContext(Dispatchers.IO) {
-        runCatching {
-                val detailContext = loadContext()
-                buildRawTraceDetail(
-                    context = detailContext,
-                    runtimeLogLines = loadRawRuntimeLogs(detailContext.runtimeSnapshot),
-                )
-            }
-            .getOrElse { error ->
-                RawTraceDetail(
-                    generatedAtMillis = System.currentTimeMillis(),
-                    structuredError =
-                        StructuredError.fromThrowable(
-                            throwable = error,
-                            phase = ErrorPhase.Validating,
-                            category = ErrorCategory.Runtime,
-                            impact = ErrorImpact.Degraded,
-                            retryability = ErrorRetryability.Retryable,
-                            userVisibleMessage = DiagnosticLang.DetailPages.RawTrace.Title,
-                        ),
-                )
-            }
-    }
+    suspend fun loadRawTraceDetail(): RawTraceDetail =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                    val detailContext = loadContext()
+                    buildRawTraceDetail(
+                        context = detailContext,
+                        runtimeLogLines = loadRawRuntimeLogs(detailContext.runtimeSnapshot),
+                    )
+                }
+                .getOrElse { error ->
+                    RawTraceDetail(
+                        generatedAtMillis = System.currentTimeMillis(),
+                        structuredError =
+                            StructuredError.fromThrowable(
+                                throwable = error,
+                                phase = ErrorPhase.Validating,
+                                category = ErrorCategory.Runtime,
+                                impact = ErrorImpact.Degraded,
+                                retryability = ErrorRetryability.Retryable,
+                                userVisibleMessage = DiagnosticLang.DetailPages.RawTrace.Title,
+                            ),
+                    )
+                }
+        }
 
     suspend fun loadSourceRegistryOverviewDetail(): SourceRegistryOverviewDetail =
         withContext(Dispatchers.IO) {
-            runCatching {
-                    buildSourceRegistryOverviewDetail(loadContext())
-                }
+            runCatching { buildSourceRegistryOverviewDetail(loadContext()) }
                 .getOrElse { error ->
                     SourceRegistryOverviewDetail(
                         generatedAtMillis = System.currentTimeMillis(),
@@ -266,21 +263,24 @@ class DiagnosticDetailRepository(
                 configVersion = context.runtimeSnapshot.effectiveFingerprint,
             )
 
-        val detail = RuntimeHealthDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            runtimeSnapshot = context.runtimeSnapshot,
-            healthReport = report,
-            structuredError = structuredError,
-            recentFailures = context.recentFailures,
-            externalResources = context.externalResources,
-            sourcePath = context.configSource?.sourcePath,
-        )
+        val detail =
+            RuntimeHealthDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                runtimeSnapshot = context.runtimeSnapshot,
+                healthReport = report,
+                structuredError = structuredError,
+                recentFailures = context.recentFailures,
+                externalResources = context.externalResources,
+                sourcePath = context.configSource?.sourcePath,
+            )
         return detail.copy(remediationPlan = buildRuntimeHealthRemediation(context, detail))
     }
 
-    private fun buildRuleSetInspectorDetail(context: DiagnosticDetailContext): RuleSetInspectorDetail {
+    private fun buildRuleSetInspectorDetail(
+        context: DiagnosticDetailContext
+    ): RuleSetInspectorDetail {
         if (context.profileId == null) {
             return RuleSetInspectorDetail(
                 generatedAtMillis = context.capturedAtMillis,
@@ -306,7 +306,8 @@ class DiagnosticDetailRepository(
                 structuredError =
                     StructuredError.configuration(
                         phase = ErrorPhase.Validating,
-                        userVisibleMessage = DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable,
+                        userVisibleMessage =
+                            DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable,
                         impact = ErrorImpact.FeatureUnavailable,
                         retryability = ErrorRetryability.RetryableAfterAction,
                     ),
@@ -319,7 +320,8 @@ class DiagnosticDetailRepository(
             if (source.inspectedConfig == null) {
                 StructuredError.configuration(
                     phase = ErrorPhase.Validating,
-                    userVisibleMessage = DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable,
+                    userVisibleMessage =
+                        DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable,
                     rawCause = source.sourcePath,
                     impact = ErrorImpact.FeatureUnavailable,
                     retryability = ErrorRetryability.RetryableAfterAction,
@@ -328,56 +330,66 @@ class DiagnosticDetailRepository(
                 null
             }
 
-        val detail = RuleSetInspectorDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            sourceLabel = source.sourceKind.toRuleSetSourceLabel(),
-            sourcePath = source.sourcePath,
-            configHash = source.configHash,
-            ruleSets = ruleSets,
-            structuredError = structuredError,
-            overlayRuleCount = countOverlayEntries(context.runtimeOverride),
-        )
+        val detail =
+            RuleSetInspectorDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                sourceLabel = source.sourceKind.toRuleSetSourceLabel(),
+                sourcePath = source.sourcePath,
+                configHash = source.configHash,
+                ruleSets = ruleSets,
+                structuredError = structuredError,
+                overlayRuleCount = countOverlayEntries(context.runtimeOverride),
+            )
         return detail.copy(remediationPlan = buildRuleSetInspectorRemediation(context, detail))
     }
 
-    private fun buildSnapshotHistoryDetail(context: DiagnosticDetailContext): SnapshotHistoryDetail {
-        val storedSnapshots = loadStoredSnapshots().sortedByDescending(WorkspaceSnapshot::createdAtMillis)
+    private fun buildSnapshotHistoryDetail(
+        context: DiagnosticDetailContext
+    ): SnapshotHistoryDetail {
+        val storedSnapshots =
+            loadStoredSnapshots().sortedByDescending(WorkspaceSnapshot::createdAtMillis)
         val (currentSnapshot, updatedSnapshots) = captureCurrentSnapshot(context, storedSnapshots)
-        val detail = SnapshotHistoryDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            currentSnapshotId = currentSnapshot?.snapshotId,
-            snapshots = updatedSnapshots,
-            structuredError =
-                if (updatedSnapshots.isEmpty() && context.profileId == null) {
-                    StructuredError.configuration(
-                        phase = ErrorPhase.Validating,
-                        userVisibleMessage = DiagnosticLang.DetailPages.Common.NoActiveProfile,
-                        impact = ErrorImpact.FeatureUnavailable,
-                        retryability = ErrorRetryability.RetryableAfterAction,
-                    )
-                } else {
-                    null
-                },
-        )
+        val detail =
+            SnapshotHistoryDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                currentSnapshotId = currentSnapshot?.snapshotId,
+                snapshots = updatedSnapshots,
+                structuredError =
+                    if (updatedSnapshots.isEmpty() && context.profileId == null) {
+                        StructuredError.configuration(
+                            phase = ErrorPhase.Validating,
+                            userVisibleMessage = DiagnosticLang.DetailPages.Common.NoActiveProfile,
+                            impact = ErrorImpact.FeatureUnavailable,
+                            retryability = ErrorRetryability.RetryableAfterAction,
+                        )
+                    } else {
+                        null
+                    },
+            )
         return detail.copy(remediationPlan = buildSnapshotHistoryRemediation(context, detail))
     }
 
-    private fun buildExplanationChainDetail(context: DiagnosticDetailContext): ExplanationChainDetail {
+    private fun buildExplanationChainDetail(
+        context: DiagnosticDetailContext
+    ): ExplanationChainDetail {
         val structuredError = buildRuntimeStructuredError(context)
-        val detail = ExplanationChainDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            chain = buildExplanationChain(context, structuredError),
-            structuredError = structuredError,
-            sourcePath = context.configSource?.sourcePath,
-            configHash = context.configSource?.configHash ?: context.runtimeSnapshot.effectiveFingerprint,
-            recentEvents = context.recentEvents.takeLast(MAX_EXPLANATION_EVENTS),
-        )
+        val detail =
+            ExplanationChainDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                chain = buildExplanationChain(context, structuredError),
+                structuredError = structuredError,
+                sourcePath = context.configSource?.sourcePath,
+                configHash =
+                    context.configSource?.configHash
+                        ?: context.runtimeSnapshot.effectiveFingerprint,
+                recentEvents = context.recentEvents.takeLast(MAX_EXPLANATION_EVENTS),
+            )
         return detail.copy(remediationPlan = buildExplanationChainRemediation(context, detail))
     }
 
@@ -387,59 +399,65 @@ class DiagnosticDetailRepository(
     ): RawTraceDetail {
         val structuredError = buildRuntimeStructuredError(context)
         val recentEvents = context.recentEvents.takeLast(MAX_TRACE_ENTRIES)
-        val detail = RawTraceDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            traceId =
-                recentEvents.lastOrNull()?.correlationId?.takeIf(String::isNotBlank)
-                    ?: "runtime-trace:${context.profileId ?: "none"}:${context.runtimeSnapshot.generation}",
-            runtimePhase = context.runtimeSnapshot.phase,
-            steps =
-                if (recentEvents.isNotEmpty()) {
-                    recentEvents.map { entry -> entry.toTraceStep() }
-                } else {
-                    buildSyntheticTraceSteps(context, structuredError)
-                },
-            rawSections = buildRawTraceSections(context, recentEvents, runtimeLogLines),
-            recentEvents = recentEvents,
-            structuredError = structuredError,
-            configHash = context.configSource?.configHash ?: context.runtimeSnapshot.effectiveFingerprint,
-        )
+        val detail =
+            RawTraceDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                traceId =
+                    recentEvents.lastOrNull()?.correlationId?.takeIf(String::isNotBlank)
+                        ?: "runtime-trace:${context.profileId ?: "none"}:${context.runtimeSnapshot.generation}",
+                runtimePhase = context.runtimeSnapshot.phase,
+                steps =
+                    if (recentEvents.isNotEmpty()) {
+                        recentEvents.map { entry -> entry.toTraceStep() }
+                    } else {
+                        buildSyntheticTraceSteps(context, structuredError)
+                    },
+                rawSections = buildRawTraceSections(context, recentEvents, runtimeLogLines),
+                recentEvents = recentEvents,
+                structuredError = structuredError,
+                configHash =
+                    context.configSource?.configHash ?: context.runtimeSnapshot.effectiveFingerprint,
+            )
         return detail.copy(remediationPlan = buildRawTraceRemediation(context, detail))
     }
 
     private fun buildSourceRegistryOverviewDetail(
-        context: DiagnosticDetailContext,
+        context: DiagnosticDetailContext
     ): SourceRegistryOverviewDetail {
         val items = buildSourceRegistryItems(context)
-        val detail = SourceRegistryOverviewDetail(
-            generatedAtMillis = context.capturedAtMillis,
-            profileId = context.profileId,
-            profileName = context.profileName,
-            effectiveFingerprint =
-                context.configSource?.configHash ?: context.runtimeSnapshot.effectiveFingerprint,
-            items = items,
-            structuredError =
-                when {
-                    items.isNotEmpty() -> null
-                    context.profileId == null ->
-                        StructuredError.configuration(
-                            phase = ErrorPhase.Validating,
-                            userVisibleMessage = DiagnosticLang.DetailPages.Common.NoActiveProfile,
-                            impact = ErrorImpact.FeatureUnavailable,
-                            retryability = ErrorRetryability.RetryableAfterAction,
-                        )
-                    else ->
-                        StructuredError.configuration(
-                            phase = ErrorPhase.Validating,
-                            userVisibleMessage = DiagnosticLang.DetailPages.SourceRegistry.NoSources,
-                            impact = ErrorImpact.FeatureUnavailable,
-                            retryability = ErrorRetryability.RetryableAfterAction,
-                        )
-                },
-        )
-                return detail.copy(remediationPlan = buildSourceRegistryRemediation(context, detail))
+        val detail =
+            SourceRegistryOverviewDetail(
+                generatedAtMillis = context.capturedAtMillis,
+                profileId = context.profileId,
+                profileName = context.profileName,
+                effectiveFingerprint =
+                    context.configSource?.configHash
+                        ?: context.runtimeSnapshot.effectiveFingerprint,
+                items = items,
+                structuredError =
+                    when {
+                        items.isNotEmpty() -> null
+                        context.profileId == null ->
+                            StructuredError.configuration(
+                                phase = ErrorPhase.Validating,
+                                userVisibleMessage =
+                                    DiagnosticLang.DetailPages.Common.NoActiveProfile,
+                                impact = ErrorImpact.FeatureUnavailable,
+                                retryability = ErrorRetryability.RetryableAfterAction,
+                            )
+                        else ->
+                            StructuredError.configuration(
+                                phase = ErrorPhase.Validating,
+                                userVisibleMessage =
+                                    DiagnosticLang.DetailPages.SourceRegistry.NoSources,
+                                impact = ErrorImpact.FeatureUnavailable,
+                                retryability = ErrorRetryability.RetryableAfterAction,
+                            )
+                    },
+            )
+        return detail.copy(remediationPlan = buildSourceRegistryRemediation(context, detail))
     }
 
     private fun buildExplanationChain(
@@ -468,70 +486,70 @@ class DiagnosticDetailRepository(
                 else -> DiagnosticLang.DetailPages.ExplanationChain.AttentionConclusion
             }
 
-        val steps =
-            buildList {
-                add(
-                    ExplanationStep(
-                        stage = DiagnosticLang.DetailPages.ExplanationChain.Profile,
-                        label = context.profileName ?: DiagnosticLang.DetailPages.Common.NoActiveProfile,
-                        output = context.profileId,
-                        matched = profileMatched,
-                        detail = context.profileId,
-                    )
+        val steps = buildList {
+            add(
+                ExplanationStep(
+                    stage = DiagnosticLang.DetailPages.ExplanationChain.Profile,
+                    label =
+                        context.profileName ?: DiagnosticLang.DetailPages.Common.NoActiveProfile,
+                    output = context.profileId,
+                    matched = profileMatched,
+                    detail = context.profileId,
                 )
-                add(
-                    ExplanationStep(
-                        stage = DiagnosticLang.DetailPages.ExplanationChain.ConfigSource,
-                        label =
-                            source?.sourceKind?.toExplanationSourceLabel()
-                                ?: DiagnosticLang.DetailPages.Common.NotAvailable,
-                        input = source?.sourcePath,
-                        output = source?.configHash?.let(::shortFingerprint),
-                        matched = sourceMatched,
-                        detail = source?.sourcePath,
-                    )
+            )
+            add(
+                ExplanationStep(
+                    stage = DiagnosticLang.DetailPages.ExplanationChain.ConfigSource,
+                    label =
+                        source?.sourceKind?.toExplanationSourceLabel()
+                            ?: DiagnosticLang.DetailPages.Common.NotAvailable,
+                    input = source?.sourcePath,
+                    output = source?.configHash?.let(::shortFingerprint),
+                    matched = sourceMatched,
+                    detail = source?.sourcePath,
                 )
-                add(
-                    ExplanationStep(
-                        stage = DiagnosticLang.DetailPages.ExplanationChain.Resources,
-                        label = buildResourceStatusLabel(context),
-                        input = context.externalResources.subscriptionSources.size.toString(),
-                        output = buildSourceRegistryOverviewLabel(context),
-                        matched = resourceMatched,
-                        detail = buildSourceRegistryOverviewLabel(context),
-                    )
+            )
+            add(
+                ExplanationStep(
+                    stage = DiagnosticLang.DetailPages.ExplanationChain.Resources,
+                    label = buildResourceStatusLabel(context),
+                    input = context.externalResources.subscriptionSources.size.toString(),
+                    output = buildSourceRegistryOverviewLabel(context),
+                    matched = resourceMatched,
+                    detail = buildSourceRegistryOverviewLabel(context),
                 )
-                add(
-                    ExplanationStep(
-                        stage = DiagnosticLang.DetailPages.ExplanationChain.RuntimeState,
-                        label = context.runtimeSnapshot.phase.toDisplayLabel(),
-                        input = context.runtimeSnapshot.owner.toDisplayLabel(),
-                        output = context.runtimeSnapshot.targetMode.toDisplayLabel(),
-                        matched = runtimeMatched,
-                        detail = buildRuntimePipelineSummary(context),
-                    )
+            )
+            add(
+                ExplanationStep(
+                    stage = DiagnosticLang.DetailPages.ExplanationChain.RuntimeState,
+                    label = context.runtimeSnapshot.phase.toDisplayLabel(),
+                    input = context.runtimeSnapshot.owner.toDisplayLabel(),
+                    output = context.runtimeSnapshot.targetMode.toDisplayLabel(),
+                    matched = runtimeMatched,
+                    detail = buildRuntimePipelineSummary(context),
                 )
-                structuredError?.let { error ->
-                    add(
-                        ExplanationStep(
-                            stage = DiagnosticLang.DetailPages.ExplanationChain.RootCause,
-                            label = error.userVisibleMessage,
-                            input = error.phase.name,
-                            output = error.impact.name,
-                            matched = false,
-                            detail = error.technicalDetail ?: error.rawCause,
-                        )
-                    )
-                }
+            )
+            structuredError?.let { error ->
                 add(
                     ExplanationStep(
-                        stage = DiagnosticLang.DetailPages.ExplanationChain.Conclusion,
-                        label = conclusion,
-                        matched = structuredError == null && runtimeMatched,
-                        detail = buildExplanationConclusionDetail(context, structuredError),
+                        stage = DiagnosticLang.DetailPages.ExplanationChain.RootCause,
+                        label = error.userVisibleMessage,
+                        input = error.phase.name,
+                        output = error.impact.name,
+                        matched = false,
+                        detail = error.technicalDetail ?: error.rawCause,
                     )
                 )
             }
+            add(
+                ExplanationStep(
+                    stage = DiagnosticLang.DetailPages.ExplanationChain.Conclusion,
+                    label = conclusion,
+                    matched = structuredError == null && runtimeMatched,
+                    detail = buildExplanationConclusionDetail(context, structuredError),
+                )
+            )
+        }
 
         return ExplanationChain(
             chainId = buildExplanationChainId(context),
@@ -548,32 +566,32 @@ class DiagnosticDetailRepository(
         val needsAttention =
             detail.structuredError != null ||
                 detail.healthReport.overallSeverity >= HealthCheckSeverity.Warning
-        val actions =
-            buildList {
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
-                            add(startRuntimeAction(isPrimary = true))
-                        detail.structuredError != null && context.runtimeSnapshot.phase == RuntimePhase.Failed ->
-                            add(restartRuntimeAction(isPrimary = true))
-                        needsAttention -> add(reloadRuntimeAction(isPrimary = true))
-                    }
+        val actions = buildList {
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
+                        add(startRuntimeAction(isPrimary = true))
+                    detail.structuredError != null &&
+                        context.runtimeSnapshot.phase == RuntimePhase.Failed ->
+                        add(restartRuntimeAction(isPrimary = true))
+                    needsAttention -> add(reloadRuntimeAction(isPrimary = true))
                 }
-
-                if (hasSourceAttention(detail.externalResources)) {
-                    add(refreshSourcesAction(isPrimary = isEmpty()))
-                }
-                if (detail.structuredError != null || detail.recentFailures.isNotEmpty()) {
-                    add(openExplanationChainAction())
-                }
-                if (detail.recentFailures.isNotEmpty()) {
-                    add(openRawTraceAction())
-                }
-                if (detail.externalResources.subscriptionSources.isNotEmpty()) {
-                    add(openSourceRegistryAction())
-                }
-                add(refreshPageAction())
             }
+
+            if (hasSourceAttention(detail.externalResources)) {
+                add(refreshSourcesAction(isPrimary = isEmpty()))
+            }
+            if (detail.structuredError != null || detail.recentFailures.isNotEmpty()) {
+                add(openExplanationChainAction())
+            }
+            if (detail.recentFailures.isNotEmpty()) {
+                add(openRawTraceAction())
+            }
+            if (detail.externalResources.subscriptionSources.isNotEmpty()) {
+                add(openSourceRegistryAction())
+            }
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
     }
 
@@ -582,27 +600,26 @@ class DiagnosticDetailRepository(
         detail: RuleSetInspectorDetail,
     ): DiagnosticRemediationPlan {
         val needsAttention = detail.structuredError != null || detail.ruleSets.isEmpty()
-        val actions =
-            buildList {
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && needsAttention ->
-                            add(startRuntimeAction(isPrimary = true))
-                        needsAttention -> add(reloadRuntimeAction(isPrimary = true))
-                    }
+        val actions = buildList {
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) &&
+                        needsAttention -> add(startRuntimeAction(isPrimary = true))
+                    needsAttention -> add(reloadRuntimeAction(isPrimary = true))
                 }
-
-                if (hasSourceAttention(context.externalResources)) {
-                    add(refreshSourcesAction(isPrimary = isEmpty()))
-                }
-                if (context.externalResources.subscriptionSources.isNotEmpty()) {
-                    add(openSourceRegistryAction())
-                }
-                if (detail.structuredError != null) {
-                    add(openExplanationChainAction())
-                }
-                add(refreshPageAction())
             }
+
+            if (hasSourceAttention(context.externalResources)) {
+                add(refreshSourcesAction(isPrimary = isEmpty()))
+            }
+            if (context.externalResources.subscriptionSources.isNotEmpty()) {
+                add(openSourceRegistryAction())
+            }
+            if (detail.structuredError != null) {
+                add(openExplanationChainAction())
+            }
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
     }
 
@@ -611,23 +628,23 @@ class DiagnosticDetailRepository(
         detail: SnapshotHistoryDetail,
     ): DiagnosticRemediationPlan {
         val needsAttention = detail.structuredError != null || detail.snapshots.isEmpty()
-        val actions =
-            buildList {
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && needsAttention ->
-                            add(startRuntimeAction(isPrimary = true))
-                        needsAttention && RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
-                            add(reloadRuntimeAction(isPrimary = true))
-                    }
+        val actions = buildList {
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) &&
+                        needsAttention -> add(startRuntimeAction(isPrimary = true))
+                    needsAttention &&
+                        RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
+                        add(reloadRuntimeAction(isPrimary = true))
                 }
-
-                add(openRuntimeHealthAction(isPrimary = isEmpty()))
-                if (context.recentFailures.isNotEmpty()) {
-                    add(openRawTraceAction())
-                }
-                add(refreshPageAction())
             }
+
+            add(openRuntimeHealthAction(isPrimary = isEmpty()))
+            if (context.recentFailures.isNotEmpty()) {
+                add(openRawTraceAction())
+            }
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
     }
 
@@ -637,32 +654,32 @@ class DiagnosticDetailRepository(
     ): DiagnosticRemediationPlan {
         val blockedStages = detail.chain.steps.count { !it.matched }
         val needsAttention = detail.structuredError != null || blockedStages > 0
-        val actions =
-            buildList {
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && needsAttention ->
-                            add(startRuntimeAction(isPrimary = true))
-                        detail.structuredError != null && context.runtimeSnapshot.phase == RuntimePhase.Failed ->
-                            add(restartRuntimeAction(isPrimary = true))
-                        needsAttention -> add(reloadRuntimeAction(isPrimary = true))
-                    }
+        val actions = buildList {
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) &&
+                        needsAttention -> add(startRuntimeAction(isPrimary = true))
+                    detail.structuredError != null &&
+                        context.runtimeSnapshot.phase == RuntimePhase.Failed ->
+                        add(restartRuntimeAction(isPrimary = true))
+                    needsAttention -> add(reloadRuntimeAction(isPrimary = true))
                 }
-
-                if (hasSourceAttention(context.externalResources)) {
-                    add(refreshSourcesAction(isPrimary = isEmpty()))
-                }
-                if (blockedStages > 0 && context.configSource != null) {
-                    add(openRuleSetInspectorAction())
-                }
-                if (blockedStages > 0 && context.externalResources.subscriptionSources.isNotEmpty()) {
-                    add(openSourceRegistryAction())
-                }
-                if (detail.recentEvents.isNotEmpty()) {
-                    add(openRawTraceAction())
-                }
-                add(refreshPageAction())
             }
+
+            if (hasSourceAttention(context.externalResources)) {
+                add(refreshSourcesAction(isPrimary = isEmpty()))
+            }
+            if (blockedStages > 0 && context.configSource != null) {
+                add(openRuleSetInspectorAction())
+            }
+            if (blockedStages > 0 && context.externalResources.subscriptionSources.isNotEmpty()) {
+                add(openSourceRegistryAction())
+            }
+            if (detail.recentEvents.isNotEmpty()) {
+                add(openRawTraceAction())
+            }
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
     }
 
@@ -670,26 +687,27 @@ class DiagnosticDetailRepository(
         context: DiagnosticDetailContext,
         detail: RawTraceDetail,
     ): DiagnosticRemediationPlan {
-        val hasFailures = detail.structuredError != null || detail.steps.any { it.phase == TracePhase.Failed }
-        val actions =
-            buildList {
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && hasFailures ->
-                            add(startRuntimeAction(isPrimary = true))
-                        detail.structuredError != null && context.runtimeSnapshot.phase == RuntimePhase.Failed ->
-                            add(restartRuntimeAction(isPrimary = true))
-                        hasFailures -> add(reloadRuntimeAction(isPrimary = true))
-                    }
+        val hasFailures =
+            detail.structuredError != null || detail.steps.any { it.phase == TracePhase.Failed }
+        val actions = buildList {
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && hasFailures ->
+                        add(startRuntimeAction(isPrimary = true))
+                    detail.structuredError != null &&
+                        context.runtimeSnapshot.phase == RuntimePhase.Failed ->
+                        add(restartRuntimeAction(isPrimary = true))
+                    hasFailures -> add(reloadRuntimeAction(isPrimary = true))
                 }
-
-                add(copyRawTraceAction(isPrimary = isEmpty()))
-                if (detail.recentEvents.isNotEmpty()) {
-                    add(openLogsAction())
-                }
-                add(openExplanationChainAction())
-                add(refreshPageAction())
             }
+
+            add(copyRawTraceAction(isPrimary = isEmpty()))
+            if (detail.recentEvents.isNotEmpty()) {
+                add(openLogsAction())
+            }
+            add(openExplanationChainAction())
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = hasFailures, actions = actions)
     }
 
@@ -697,44 +715,49 @@ class DiagnosticDetailRepository(
         context: DiagnosticDetailContext,
         detail: SourceRegistryOverviewDetail,
     ): DiagnosticRemediationPlan {
-        val needsAttention = detail.structuredError != null || detail.items.any { it.source.needsSync }
-        val actions =
-            buildList {
-                if (detail.items.any { it.source.needsSync || it.source.syncState == SyncState.Failed }) {
-                    add(refreshSourcesAction(isPrimary = true))
-                }
-
-                if (context.profileId != null) {
-                    when {
-                        !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) && needsAttention ->
-                            add(startRuntimeAction(isPrimary = isEmpty()))
-                        RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
-                            add(reloadRuntimeAction(isPrimary = isEmpty()))
-                    }
-                }
-
-                if (
-                    detail.items.any {
-                        it.role == SourceRegistryRole.RuleProvider ||
-                            it.role == SourceRegistryRole.ProxyProvider ||
-                            it.role == SourceRegistryRole.RemoteOverride
-                    }
-                ) {
-                    add(openProvidersAction())
-                }
-                if (context.configSource != null) {
-                    add(openRuleSetInspectorAction())
-                }
-                add(refreshPageAction())
+        val needsAttention =
+            detail.structuredError != null || detail.items.any { it.source.needsSync }
+        val actions = buildList {
+            if (
+                detail.items.any { it.source.needsSync || it.source.syncState == SyncState.Failed }
+            ) {
+                add(refreshSourcesAction(isPrimary = true))
             }
+
+            if (context.profileId != null) {
+                when {
+                    !RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) &&
+                        needsAttention -> add(startRuntimeAction(isPrimary = isEmpty()))
+                    RuntimeStateMapper.isActuallyRunning(context.runtimeSnapshot) ->
+                        add(reloadRuntimeAction(isPrimary = isEmpty()))
+                }
+            }
+
+            if (
+                detail.items.any {
+                    it.role == SourceRegistryRole.RuleProvider ||
+                        it.role == SourceRegistryRole.ProxyProvider ||
+                        it.role == SourceRegistryRole.RemoteOverride
+                }
+            ) {
+                add(openProvidersAction())
+            }
+            if (context.configSource != null) {
+                add(openRuleSetInspectorAction())
+            }
+            add(refreshPageAction())
+        }
         return buildDiagnosticRemediationPlan(needsAttention = needsAttention, actions = actions)
     }
 
     private suspend fun loadContext(): DiagnosticDetailContext {
         val capturedAtMillis = System.currentTimeMillis()
         val runtimeSnapshot = proxyFacade.runtimeSnapshot.value
-        val activeProfile = runCatching { profilesRepository.queryActiveProfile(ensureDefault = false) }.getOrNull()
-        val profileId = activeProfile?.uuid?.toString() ?: runtimeSnapshot.profileUuid?.takeIf(String::isNotBlank)
+        val activeProfile =
+            runCatching { profilesRepository.queryActiveProfile(ensureDefault = false) }.getOrNull()
+        val profileId =
+            activeProfile?.uuid?.toString()
+                ?: runtimeSnapshot.profileUuid?.takeIf(String::isNotBlank)
         val profileName =
             activeProfile?.name?.takeIf(String::isNotBlank)
                 ?: runtimeSnapshot.profileName?.takeIf(String::isNotBlank)
@@ -742,14 +765,16 @@ class DiagnosticDetailRepository(
         val recentEvents = structuredEvents.takeLast(MAX_TRACE_ENTRIES)
 
         val providers = providersRepository.queryProviders().getOrDefault(emptyList())
-        val remoteOverrides = runCatching { overrideConfigRepository.listRemoteResources() }.getOrDefault(emptyList())
+        val remoteOverrides =
+            runCatching { overrideConfigRepository.listRemoteResources() }.getOrDefault(emptyList())
         val externalResources = buildExternalResourceDiagnostics(providers, remoteOverrides)
         val runtimeOverride =
             profileId
                 ?.let(::runtimeOverrideId)
                 ?.let { overrideConfigRepository.getById(it) }
                 ?.config
-        val configSources = resolveConfigSources(profileId = profileId, runtimeSnapshot = runtimeSnapshot)
+        val configSources =
+            resolveConfigSources(profileId = profileId, runtimeSnapshot = runtimeSnapshot)
 
         return DiagnosticDetailContext(
             capturedAtMillis = capturedAtMillis,
@@ -772,12 +797,14 @@ class DiagnosticDetailRepository(
         structuredError: StructuredError?,
     ): List<HealthCheckItem> {
         val runtime = context.runtimeSnapshot
-        val payloadChannelsReady = listOf(runtime.profileReady, runtime.groupsReady, runtime.trafficReady).count { it }
+        val payloadChannelsReady =
+            listOf(runtime.profileReady, runtime.groupsReady, runtime.trafficReady).count { it }
         val sourceCount = context.externalResources.subscriptionSources.size
         val sourceDetail =
             when {
                 sourceCount == 0 -> DiagnosticLang.DetailPages.RuntimeHealth.SourcesEmpty
-                context.externalResources.staleCount > 0 || context.externalResources.pendingCount > 0 ->
+                context.externalResources.staleCount > 0 ||
+                    context.externalResources.pendingCount > 0 ->
                     DiagnosticLang.DetailPages.RuntimeHealth.SourcesAttention.format(
                         context.externalResources.staleCount,
                         context.externalResources.pendingCount,
@@ -804,7 +831,9 @@ class DiagnosticDetailRepository(
             HealthCheckItem(
                 checkId = "active-profile",
                 label = DiagnosticLang.DetailPages.RuntimeHealth.ActiveProfile,
-                severity = if (context.profileId == null) HealthCheckSeverity.Warning else HealthCheckSeverity.Ok,
+                severity =
+                    if (context.profileId == null) HealthCheckSeverity.Warning
+                    else HealthCheckSeverity.Ok,
                 detail = context.profileName ?: DiagnosticLang.DetailPages.Common.NoActiveProfile,
                 category = "profile",
             ),
@@ -834,8 +863,8 @@ class DiagnosticDetailRepository(
                 severity =
                     when {
                         runtime.payloadReady -> HealthCheckSeverity.Ok
-                        runtime.phase == RuntimePhase.Running || runtime.phase == RuntimePhase.Starting ->
-                            HealthCheckSeverity.Warning
+                        runtime.phase == RuntimePhase.Running ||
+                            runtime.phase == RuntimePhase.Starting -> HealthCheckSeverity.Warning
                         else -> HealthCheckSeverity.Info
                     },
                 detail =
@@ -862,7 +891,8 @@ class DiagnosticDetailRepository(
                 label = DiagnosticLang.DetailPages.RuntimeHealth.Config,
                 severity =
                     when {
-                        runtime.configReady && context.configSource != null -> HealthCheckSeverity.Ok
+                        runtime.configReady && context.configSource != null ->
+                            HealthCheckSeverity.Ok
                         context.configSource != null -> HealthCheckSeverity.Warning
                         else -> HealthCheckSeverity.Info
                     },
@@ -909,8 +939,10 @@ class DiagnosticDetailRepository(
                 label = DiagnosticLang.DetailPages.RuntimeHealth.Failures,
                 severity =
                     when {
-                        structuredError?.impact == ErrorImpact.DataLoss -> HealthCheckSeverity.Critical
-                        structuredError?.impact == ErrorImpact.ServiceDown -> HealthCheckSeverity.Error
+                        structuredError?.impact == ErrorImpact.DataLoss ->
+                            HealthCheckSeverity.Critical
+                        structuredError?.impact == ErrorImpact.ServiceDown ->
+                            HealthCheckSeverity.Error
                         structuredError != null -> HealthCheckSeverity.Warning
                         context.recentFailures.isNotEmpty() -> HealthCheckSeverity.Warning
                         else -> HealthCheckSeverity.Ok
@@ -929,7 +961,9 @@ class DiagnosticDetailRepository(
     }
 
     private fun buildRuntimeStructuredError(context: DiagnosticDetailContext): StructuredError? {
-        context.runtimeSnapshot.lastStructuredError?.let { return it }
+        context.runtimeSnapshot.lastStructuredError?.let {
+            return it
+        }
 
         val fallbackMessage =
             context.runtimeSnapshot.lastError?.takeIf(String::isNotBlank)
@@ -939,7 +973,8 @@ class DiagnosticDetailRepository(
         return StructuredError.runtime(
             phase = context.runtimeSnapshot.phase.toErrorPhase(),
             userVisibleMessage = fallbackMessage,
-            rawCause = context.recentFailures.lastOrNull()?.detail ?: context.runtimeSnapshot.lastError,
+            rawCause =
+                context.recentFailures.lastOrNull()?.detail ?: context.runtimeSnapshot.lastError,
             impact =
                 if (context.runtimeSnapshot.phase == RuntimePhase.Failed) {
                     ErrorImpact.ServiceDown
@@ -957,12 +992,11 @@ class DiagnosticDetailRepository(
         val profileId = context.profileId ?: return emptyList()
         val inspectedConfig = source.inspectedConfig ?: return emptyList()
         val generatedAtMillis = context.capturedAtMillis
-        val allRules =
-            buildList {
-                addAll(inspectedConfig.rules.orEmpty())
-                addAll(inspectedConfig.rulesStart.orEmpty())
-                addAll(inspectedConfig.rulesEnd.orEmpty())
-            }
+        val allRules = buildList {
+            addAll(inspectedConfig.rules.orEmpty())
+            addAll(inspectedConfig.rulesStart.orEmpty())
+            addAll(inspectedConfig.rulesEnd.orEmpty())
+        }
         val parsedRules = allRules.map(RuleMatcher::parse)
         val providerRulesByName =
             parsedRules
@@ -986,7 +1020,8 @@ class DiagnosticDetailRepository(
                         matchers = providerRulesByName[providerName].orEmpty(),
                         profileId = profileId,
                         providerName = providerName,
-                        providerUrl = definition.stringValue("url") ?: definition.stringValue("path"),
+                        providerUrl =
+                            definition.stringValue("url") ?: definition.stringValue("path"),
                         providerBehavior = definition.stringValue("behavior"),
                         updatedAtMillis =
                             providersByName[providerName]?.updatedAt?.takeIf { it > 0L }
@@ -1024,7 +1059,8 @@ class DiagnosticDetailRepository(
             }
 
         return (providerSets + subRuleSets + inlineSets).sortedWith(
-            compareBy<RuleSet> { it.origin.sortOrder() }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+            compareBy<RuleSet> { it.origin.sortOrder() }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
         )
     }
 
@@ -1034,14 +1070,18 @@ class DiagnosticDetailRepository(
     ): Pair<WorkspaceSnapshot?, List<WorkspaceSnapshot>> {
         val source = context.configSource ?: return null to snapshots
         val profileId = context.profileId ?: return null to snapshots
-        val existing = snapshots.firstOrNull { it.profileId == profileId && it.configHash == source.configHash }
+        val existing =
+            snapshots.firstOrNull {
+                it.profileId == profileId && it.configHash == source.configHash
+            }
         if (existing != null) {
             return existing to snapshots
         }
 
         val currentSnapshot =
             WorkspaceSnapshot(
-                snapshotId = buildSnapshotId(profileId, source.configHash, context.capturedAtMillis),
+                snapshotId =
+                    buildSnapshotId(profileId, source.configHash, context.capturedAtMillis),
                 profileId = profileId,
                 snapshotType = SnapshotType.AutoSave,
                 createdAtMillis = context.runtimeSnapshot.startedAt ?: context.capturedAtMillis,
@@ -1087,35 +1127,36 @@ class DiagnosticDetailRepository(
 
         val candidateFiles =
             buildList {
-                runtimeConfigPath.takeIf(String::isNotBlank)?.let { add(File(it)) }
-                if (!profileId.isNullOrBlank()) {
-                    add(File(context.filesDir, "imported/$profileId/runtime.yaml"))
-                    add(File(context.filesDir, "clash/profiles/$profileId/runtime.yaml"))
-                    add(File(context.filesDir, "imported/$profileId/config.yaml"))
-                    add(File(context.filesDir, "clash/profiles/$profileId/config.yaml"))
+                    runtimeConfigPath.takeIf(String::isNotBlank)?.let { add(File(it)) }
+                    if (!profileId.isNullOrBlank()) {
+                        add(File(context.filesDir, "imported/$profileId/runtime.yaml"))
+                        add(File(context.filesDir, "clash/profiles/$profileId/runtime.yaml"))
+                        add(File(context.filesDir, "imported/$profileId/config.yaml"))
+                        add(File(context.filesDir, "clash/profiles/$profileId/config.yaml"))
+                    }
                 }
-            }.distinctBy { it.absolutePath }
+                .distinctBy { it.absolutePath }
 
         return candidateFiles.mapNotNull { selectedFile ->
             if (!selectedFile.exists() || !selectedFile.isFile) {
                 return@mapNotNull null
             }
             val yamlText =
-                runCatching { selectedFile.readText() }
-                    .getOrNull()
-                    ?.takeIf(String::isNotBlank)
+                runCatching { selectedFile.readText() }.getOrNull()?.takeIf(String::isNotBlank)
                     ?: return@mapNotNull null
             val sourceKind =
                 when {
                     runtimeConfigPath.isNotBlank() &&
-                        selectedFile.absolutePath == File(runtimeConfigPath).absolutePath -> ConfigSourceKind.Runtime
-                    selectedFile.name.equals("runtime.yaml", ignoreCase = true) -> ConfigSourceKind.Runtime
+                        selectedFile.absolutePath == File(runtimeConfigPath).absolutePath ->
+                        ConfigSourceKind.Runtime
+                    selectedFile.name.equals("runtime.yaml", ignoreCase = true) ->
+                        ConfigSourceKind.Runtime
                     else -> ConfigSourceKind.Profile
                 }
             val effectiveFingerprint =
-                runtimeSnapshot.effectiveFingerprint
-                    ?.takeIf(String::isNotBlank)
-                    ?.takeIf { sourceKind == ConfigSourceKind.Runtime }
+                runtimeSnapshot.effectiveFingerprint?.takeIf(String::isNotBlank)?.takeIf {
+                    sourceKind == ConfigSourceKind.Runtime
+                }
 
             EffectiveConfigSource(
                 sourceKind = sourceKind,
@@ -1123,7 +1164,8 @@ class DiagnosticDetailRepository(
                 yamlText = yamlText,
                 configSizeBytes = selectedFile.length(),
                 configHash = effectiveFingerprint ?: sha256(yamlText),
-                inspectedConfig = Clash.inspectCompiledConfig(yamlText) ?: parseProfileConfigYaml(yamlText),
+                inspectedConfig =
+                    Clash.inspectCompiledConfig(yamlText) ?: parseProfileConfigYaml(yamlText),
             )
         }
     }
@@ -1132,7 +1174,9 @@ class DiagnosticDetailRepository(
         if (runtimeSnapshot.owner != RuntimeOwner.RootTun) {
             return emptyList()
         }
-        return runCatching { RootTunController.queryRecentLogs(context, 0L).items.takeLast(MAX_RAW_TRACE_LINES) }
+        return runCatching {
+                RootTunController.queryRecentLogs(context, 0L).items.takeLast(MAX_RAW_TRACE_LINES)
+            }
             .getOrDefault(emptyList())
     }
 
@@ -1146,7 +1190,13 @@ class DiagnosticDetailRepository(
                 RawTraceSection(
                     sectionId = "runtime-snapshot",
                     title = DiagnosticLang.DetailPages.RawTrace.RuntimeSnapshot,
-                    lines = listOf(rawTraceJson.encodeToString(RuntimeSnapshot.serializer(), context.runtimeSnapshot)),
+                    lines =
+                        listOf(
+                            rawTraceJson.encodeToString(
+                                RuntimeSnapshot.serializer(),
+                                context.runtimeSnapshot,
+                            )
+                        ),
                 )
             )
             if (recentEvents.isNotEmpty()) {
@@ -1189,7 +1239,8 @@ class DiagnosticDetailRepository(
                     phase =
                         when {
                             structuredError != null -> TracePhase.Failed
-                            context.runtimeSnapshot.phase == RuntimePhase.Running -> TracePhase.Complete
+                            context.runtimeSnapshot.phase == RuntimePhase.Running ->
+                                TracePhase.Complete
                             else -> TracePhase.Transport
                         },
                     label = context.runtimeSnapshot.phase.toDisplayLabel(),
@@ -1208,16 +1259,21 @@ class DiagnosticDetailRepository(
         }
     }
 
-    private fun buildSourceRegistryItems(context: DiagnosticDetailContext): List<SourceRegistryItem> {
+    private fun buildSourceRegistryItems(
+        context: DiagnosticDetailContext
+    ): List<SourceRegistryItem> {
         val remoteOverridesById = context.remoteOverrides.associateBy { "override:${it.id}" }
-        val configItems = context.configSources.map { source -> buildConfigSourceRegistryItem(context, source) }
+        val configItems =
+            context.configSources.map { source -> buildConfigSourceRegistryItem(context, source) }
         val externalItems =
             context.externalResources.subscriptionSources.map { source ->
                 val role =
                     when {
                         source.sourceId.startsWith("override:") -> SourceRegistryRole.RemoteOverride
-                        source.sourceType == SourceType.RuleProvider -> SourceRegistryRole.RuleProvider
-                        source.sourceType == SourceType.ProxyProvider -> SourceRegistryRole.ProxyProvider
+                        source.sourceType == SourceType.RuleProvider ->
+                            SourceRegistryRole.RuleProvider
+                        source.sourceType == SourceType.ProxyProvider ->
+                            SourceRegistryRole.ProxyProvider
                         else -> SourceRegistryRole.RemoteOverride
                     }
 
@@ -1233,7 +1289,14 @@ class DiagnosticDetailRepository(
         return (configItems + externalItems).sortedWith(
             compareBy<SourceRegistryItem> { if (it.isEffective) 0 else 1 }
                 .thenBy { it.role.sortOrder() }
-                .thenBy { if (it.source.syncState == SyncState.Stale || it.source.syncState == SyncState.Failed) 0 else 1 }
+                .thenBy {
+                    if (
+                        it.source.syncState == SyncState.Stale ||
+                            it.source.syncState == SyncState.Failed
+                    )
+                        0
+                    else 1
+                }
                 .thenByDescending { it.source.updatedAtMillis }
                 .thenBy(String.CASE_INSENSITIVE_ORDER) { it.source.name }
         )
@@ -1247,7 +1310,8 @@ class DiagnosticDetailRepository(
         val updatedAtMillis = file.lastModified().takeIf { it > 0L } ?: context.capturedAtMillis
         val subscriptionSource =
             SubscriptionSource(
-                sourceId = "config:${source.sourceKind.name.lowercase()}:${shortFingerprint(source.configHash)}",
+                sourceId =
+                    "config:${source.sourceKind.name.lowercase()}:${shortFingerprint(source.configHash)}",
                 name = file.name,
                 sourceType = SourceType.LocalFile,
                 localPath = source.sourcePath,
@@ -1274,7 +1338,8 @@ class DiagnosticDetailRepository(
         val sourceCount = context.externalResources.subscriptionSources.size
         return when {
             sourceCount == 0 -> DiagnosticLang.DetailPages.RuntimeHealth.SourcesEmpty
-            context.externalResources.staleCount > 0 || context.externalResources.pendingCount > 0 ->
+            context.externalResources.staleCount > 0 ||
+                context.externalResources.pendingCount > 0 ->
                 DiagnosticLang.DetailPages.RuntimeHealth.SourcesAttention.format(
                     context.externalResources.staleCount,
                     context.externalResources.pendingCount,
@@ -1292,10 +1357,11 @@ class DiagnosticDetailRepository(
     private fun buildRuntimePipelineSummary(context: DiagnosticDetailContext): String {
         val payloadReady =
             listOf(
-                context.runtimeSnapshot.profileReady,
-                context.runtimeSnapshot.groupsReady,
-                context.runtimeSnapshot.trafficReady,
-            ).count { it }
+                    context.runtimeSnapshot.profileReady,
+                    context.runtimeSnapshot.groupsReady,
+                    context.runtimeSnapshot.trafficReady,
+                )
+                .count { it }
         return listOf(
                 context.runtimeSnapshot.owner.toDisplayLabel(),
                 context.runtimeSnapshot.targetMode.toDisplayLabel(),
@@ -1341,24 +1407,20 @@ class DiagnosticDetailRepository(
                 .joinToString(separator = " · ")
                 .takeIf(String::isNotBlank)
 
-        return TraceStep(
-            phase = toTracePhase(),
-            label = action,
-            detail = detailText,
-        )
+        return TraceStep(phase = toTracePhase(), label = action, detail = detailText)
     }
 
     private fun StructuredLogEntry.toTracePhase(): TracePhase {
         return when {
             isFailure -> TracePhase.Failed
-            phase?.contains("dns", ignoreCase = true) == true || action.contains("dns", ignoreCase = true) ->
-                TracePhase.DnsResolve
-            phase?.contains("rule", ignoreCase = true) == true || action.contains("rule", ignoreCase = true) ->
-                TracePhase.RuleMatch
-            phase?.contains("policy", ignoreCase = true) == true || action.contains("policy", ignoreCase = true) ->
-                TracePhase.PolicySelect
-            action.contains("outbound", ignoreCase = true) || message.contains("outbound", ignoreCase = true) ->
-                TracePhase.OutboundConnect
+            phase?.contains("dns", ignoreCase = true) == true ||
+                action.contains("dns", ignoreCase = true) -> TracePhase.DnsResolve
+            phase?.contains("rule", ignoreCase = true) == true ||
+                action.contains("rule", ignoreCase = true) -> TracePhase.RuleMatch
+            phase?.contains("policy", ignoreCase = true) == true ||
+                action.contains("policy", ignoreCase = true) -> TracePhase.PolicySelect
+            action.contains("outbound", ignoreCase = true) ||
+                message.contains("outbound", ignoreCase = true) -> TracePhase.OutboundConnect
             status.equals("complete", ignoreCase = true) ||
                 status.equals("completed", ignoreCase = true) ||
                 status.equals("success", ignoreCase = true) -> TracePhase.Complete
@@ -1425,16 +1487,22 @@ class DiagnosticDetailRepository(
     }
 
     private fun sha256(content: String): String {
-        return MessageDigest.getInstance("SHA-256")
-            .digest(content.toByteArray())
-            .joinToString(separator = "") { "%02x".format(it) }
+        return MessageDigest.getInstance("SHA-256").digest(content.toByteArray()).joinToString(
+            separator = ""
+        ) {
+            "%02x".format(it)
+        }
     }
 
     private fun shortFingerprint(hash: String): String {
         return if (hash.length <= 10) hash else hash.take(10)
     }
 
-    private fun buildSnapshotId(profileId: String, configHash: String, capturedAtMillis: Long): String {
+    private fun buildSnapshotId(
+        profileId: String,
+        configHash: String,
+        capturedAtMillis: Long,
+    ): String {
         return "snapshot-${profileId.takeLast(8)}-${configHash.take(10)}-$capturedAtMillis"
     }
 

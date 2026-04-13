@@ -4253,6 +4253,23 @@ object `MLang` {
                 fun `ValidatingConfig`(vararg args: Any?) =
                     FYTxtConfig.observe { `ValidatingConfig`.fmt(args) }
 
+                /** 配置校验通过 */
+                val `ValidationPassed`
+                    get() =
+                        FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
+                            it as `MLangTags`
+                            when (it) {
+                                `MLangTags`.EN -> """Configuration check passed"""
+                                `MLangTags`.ZH -> """配置校验通过"""
+                                else -> null
+                            }
+                        } ?: """配置校验通过"""
+
+                /** 配置校验通过 */
+                @Composable
+                fun `ValidationPassed`(vararg args: Any?) =
+                    FYTxtConfig.observe { `ValidationPassed`.fmt(args) }
+
                 /** 正在获取远程资源... */
                 val `FetchingRemoteResources`
                     get() =
@@ -5918,9 +5935,7 @@ object `MLang` {
             fun `ExportDebugBundle`(vararg args: Any?) =
                 FYTxtConfig.observe { `ExportDebugBundle`.fmt(args) }
 
-            /**
-             * 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。
-             */
+            /** 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。 */
             val `ExportDebugBundleWarning`
                 get() =
                     FYTxtConfig.activeTags.value.firstNotNullOfOrNull {
@@ -5928,16 +5943,12 @@ object `MLang` {
                         when (it) {
                             `MLangTags`.EN ->
                                 """Includes runtime state and sanitized logs. May still contain server/context details; share only with trusted recipients."""
-                            `MLangTags`.ZH ->
-                                """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
+                            `MLangTags`.ZH -> """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
                             else -> null
                         }
-                    }
-                        ?: """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
+                    } ?: """包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。"""
 
-            /**
-             * 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。
-             */
+            /** 包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。 */
             @Composable
             fun `ExportDebugBundleWarning`(vararg args: Any?) =
                 FYTxtConfig.observe { `ExportDebugBundleWarning`.fmt(args) }

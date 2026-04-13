@@ -22,19 +22,19 @@ package com.github.yumelira.yumebox.screen.settings
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,9 +52,9 @@ import com.github.yumelira.yumebox.domain.model.HealthCheckItem
 import com.github.yumelira.yumebox.domain.model.HealthCheckSeverity
 import com.github.yumelira.yumebox.domain.model.RuleSet
 import com.github.yumelira.yumebox.domain.model.RuleSetOrigin
-import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.domain.model.SnapshotType
 import com.github.yumelira.yumebox.domain.model.SourceType
+import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.domain.model.SyncState
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.CollectFlowWithLifecycle
@@ -72,17 +72,17 @@ import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionEvent
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionUiState
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticNavigationTarget
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationAction
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPlan
 import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPanel
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPlan
 import com.github.yumelira.yumebox.presentation.diagnostic.ExplanationChainDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RawTraceDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RawTraceSection
 import com.github.yumelira.yumebox.presentation.diagnostic.RuleSetInspectorDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.RuntimeHealthDetail
+import com.github.yumelira.yumebox.presentation.diagnostic.SnapshotHistoryDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.SourceRegistryItem
 import com.github.yumelira.yumebox.presentation.diagnostic.SourceRegistryOverviewDetail
 import com.github.yumelira.yumebox.presentation.diagnostic.SourceRegistryRole
-import com.github.yumelira.yumebox.presentation.diagnostic.SnapshotHistoryDetail
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
@@ -96,8 +96,8 @@ import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDe
 import com.ramcosta.composedestinations.generated.destinations.RawTraceDetailScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.RuleSetInspectorScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.RuntimeHealthDetailScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.SourceRegistryOverviewScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.SnapshotHistoryScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.SourceRegistryOverviewScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
@@ -119,10 +119,7 @@ private data class MetricCardModel(
     val summary: String? = null,
 )
 
-private data class DetailInfoEntry(
-    val label: String,
-    val value: String,
-)
+private data class DetailInfoEntry(val label: String, val value: String)
 
 private enum class DiagnosticDetailPage {
     RuntimeHealth,
@@ -147,23 +144,24 @@ fun RuntimeHealthDetailScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.RuntimeHealth.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.RuntimeHealth,
-            keyPrefix = "runtime",
-            banner =
-                DiagnosticBannerState(
-                    headline = detail.profileName ?: DiagnosticLang.DetailPages.RuntimeHealth.Headline,
-                    subtitle = buildRuntimeBannerSubtitle(detail),
-                    tone = buildRuntimeBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildRuntimeMetricCards(detail),
-            infoEntries = buildRuntimeInfoEntries(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.RuntimeHealth,
+                keyPrefix = "runtime",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.profileName ?: DiagnosticLang.DetailPages.RuntimeHealth.Headline,
+                        subtitle = buildRuntimeBannerSubtitle(detail),
+                        tone = buildRuntimeBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildRuntimeMetricCards(detail),
+                infoEntries = buildRuntimeInfoEntries(detail),
+            )
         },
         evidence = {
             val detail = uiState.detail
@@ -187,42 +185,46 @@ fun RuleSetInspectorScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.RuleSetInspector.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.RuleSetInspector,
-            keyPrefix = "ruleset",
-            banner =
-                DiagnosticBannerState(
-                    headline = detail.profileName ?: DiagnosticLang.DetailPages.RuleSetInspector.Headline,
-                    subtitle = buildRuleSetBannerSubtitle(detail),
-                    tone = buildRuleSetBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildRuleSetMetricCards(detail),
-            infoEntries = buildRuleSetInfoEntries(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.RuleSetInspector,
+                keyPrefix = "ruleset",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.profileName
+                                ?: DiagnosticLang.DetailPages.RuleSetInspector.Headline,
+                        subtitle = buildRuleSetBannerSubtitle(detail),
+                        tone = buildRuleSetBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildRuleSetMetricCards(detail),
+                infoEntries = buildRuleSetInfoEntries(detail),
+            )
         },
         evidence = {
-        val detail = uiState.detail
-        val groupedRuleSets = detail.ruleSets.groupBy(RuleSet::origin)
-        if (groupedRuleSets.isEmpty()) {
-            item("ruleset_empty") { EmptyStateCard(message = DiagnosticLang.DetailPages.RuleSetInspector.NoRuleSets) }
-        } else {
-            RuleSetOrigin.entries.forEach { origin ->
-                val ruleSets = groupedRuleSets[origin].orEmpty()
-                if (ruleSets.isNotEmpty()) {
-                    item("ruleset_group_title_${origin.name}") {
-                        SmallTitle(origin.toDisplayLabel())
-                    }
-                    item("ruleset_group_${origin.name}") {
-                        RuleSetGroupCard(ruleSets = ruleSets)
+            val detail = uiState.detail
+            val groupedRuleSets = detail.ruleSets.groupBy(RuleSet::origin)
+            if (groupedRuleSets.isEmpty()) {
+                item("ruleset_empty") {
+                    EmptyStateCard(message = DiagnosticLang.DetailPages.RuleSetInspector.NoRuleSets)
+                }
+            } else {
+                RuleSetOrigin.entries.forEach { origin ->
+                    val ruleSets = groupedRuleSets[origin].orEmpty()
+                    if (ruleSets.isNotEmpty()) {
+                        item("ruleset_group_title_${origin.name}") {
+                            SmallTitle(origin.toDisplayLabel())
+                        }
+                        item("ruleset_group_${origin.name}") {
+                            RuleSetGroupCard(ruleSets = ruleSets)
+                        }
                     }
                 }
             }
-        }
         },
     )
 }
@@ -241,40 +243,43 @@ fun SnapshotHistoryScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.SnapshotHistory.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.SnapshotHistory,
-            keyPrefix = "snapshot",
-            banner =
-                DiagnosticBannerState(
-                    headline = detail.profileName ?: DiagnosticLang.DetailPages.SnapshotHistory.Headline,
-                    subtitle = buildSnapshotBannerSubtitle(detail),
-                    tone = buildSnapshotBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildSnapshotMetricCards(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.SnapshotHistory,
+                keyPrefix = "snapshot",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.profileName
+                                ?: DiagnosticLang.DetailPages.SnapshotHistory.Headline,
+                        subtitle = buildSnapshotBannerSubtitle(detail),
+                        tone = buildSnapshotBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildSnapshotMetricCards(detail),
+            )
         },
         evidence = {
-        val detail = uiState.detail
-        item("snapshot_current_title") { SmallTitle(DiagnosticLang.DetailPages.Common.CurrentView) }
-        item("snapshot_current") {
-            val currentSnapshot = detail.snapshots.firstOrNull { it.snapshotId == detail.currentSnapshotId }
-            if (currentSnapshot != null) {
-                DetailInfoCard(entries = buildCurrentSnapshotEntries(currentSnapshot))
-            } else {
-                EmptyStateCard(message = DiagnosticLang.DetailPages.SnapshotHistory.NoSnapshots)
+            val detail = uiState.detail
+            item("snapshot_current_title") {
+                SmallTitle(DiagnosticLang.DetailPages.Common.CurrentView)
             }
-        }
-        item("snapshot_history_title") { SmallTitle(DiagnosticLang.DetailPages.Common.Evidence) }
-        item("snapshot_history") {
-            SnapshotTimelineCard(
-                detail = detail,
-            )
-        }
+            item("snapshot_current") {
+                val currentSnapshot =
+                    detail.snapshots.firstOrNull { it.snapshotId == detail.currentSnapshotId }
+                if (currentSnapshot != null) {
+                    DetailInfoCard(entries = buildCurrentSnapshotEntries(currentSnapshot))
+                } else {
+                    EmptyStateCard(message = DiagnosticLang.DetailPages.SnapshotHistory.NoSnapshots)
+                }
+            }
+            item("snapshot_history_title") {
+                SmallTitle(DiagnosticLang.DetailPages.Common.Evidence)
+            }
+            item("snapshot_history") { SnapshotTimelineCard(detail = detail) }
         },
     )
 }
@@ -293,34 +298,38 @@ fun ExplanationChainDetailScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.ExplanationChain.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.ExplanationChain,
-            keyPrefix = "explanation",
-            banner =
-                DiagnosticBannerState(
-                    headline = detail.profileName ?: DiagnosticLang.DetailPages.ExplanationChain.Headline,
-                    subtitle = buildExplanationBannerSubtitle(detail),
-                    tone = buildExplanationBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildExplanationMetricCards(detail),
-            infoEntries = buildExplanationInfoEntries(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.ExplanationChain,
+                keyPrefix = "explanation",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.profileName
+                                ?: DiagnosticLang.DetailPages.ExplanationChain.Headline,
+                        subtitle = buildExplanationBannerSubtitle(detail),
+                        tone = buildExplanationBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildExplanationMetricCards(detail),
+                infoEntries = buildExplanationInfoEntries(detail),
+            )
         },
         evidence = {
-        val detail = uiState.detail
-        item("explanation_steps_title") { SmallTitle(DiagnosticLang.DetailPages.Common.Evidence) }
-        if (detail.chain.steps.isEmpty()) {
-            item("explanation_empty") {
-                EmptyStateCard(message = DiagnosticLang.DetailPages.ExplanationChain.NoChain)
+            val detail = uiState.detail
+            item("explanation_steps_title") {
+                SmallTitle(DiagnosticLang.DetailPages.Common.Evidence)
             }
-        } else {
-            item("explanation_steps") { ExplanationChainStepCard(chain = detail.chain) }
-        }
+            if (detail.chain.steps.isEmpty()) {
+                item("explanation_empty") {
+                    EmptyStateCard(message = DiagnosticLang.DetailPages.ExplanationChain.NoChain)
+                }
+            } else {
+                item("explanation_steps") { ExplanationChainStepCard(chain = detail.chain) }
+            }
         },
     )
 }
@@ -339,30 +348,31 @@ fun RawTraceDetailScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.RawTrace.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.RawTrace,
-            keyPrefix = "raw_trace",
-            banner =
-                DiagnosticBannerState(
-                    headline = detail.profileName ?: DiagnosticLang.DetailPages.RawTrace.Headline,
-                    subtitle = buildRawTraceBannerSubtitle(detail),
-                    tone = buildRawTraceBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildRawTraceMetricCards(detail),
-            infoEntries = buildRawTraceInfoEntries(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.RawTrace,
+                keyPrefix = "raw_trace",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.profileName ?: DiagnosticLang.DetailPages.RawTrace.Headline,
+                        subtitle = buildRawTraceBannerSubtitle(detail),
+                        tone = buildRawTraceBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildRawTraceMetricCards(detail),
+                infoEntries = buildRawTraceInfoEntries(detail),
+            )
         },
         evidence = {
-        val detail = uiState.detail
-        item("raw_trace_payload_title") {
-            SmallTitle(DiagnosticLang.DetailPages.RawTrace.RawPayload)
-        }
-        item("raw_trace_payload") { RawTraceSectionsCard(sections = detail.rawSections) }
+            val detail = uiState.detail
+            item("raw_trace_payload_title") {
+                SmallTitle(DiagnosticLang.DetailPages.RawTrace.RawPayload)
+            }
+            item("raw_trace_payload") { RawTraceSectionsCard(sections = detail.rawSections) }
         },
     )
 }
@@ -381,44 +391,46 @@ fun SourceRegistryOverviewScreen(navigator: DestinationsNavigator) {
         title = DiagnosticLang.DetailPages.SourceRegistry.Title,
         navigator = navigator,
         overview = {
-        val detail = uiState.detail
-        diagnosticOverviewItems(
-            page = DiagnosticDetailPage.SourceRegistry,
-            keyPrefix = "source_registry",
-            banner =
-                DiagnosticBannerState(
-                    headline =
-                        detail.items.firstOrNull { it.isEffective }?.source?.name
-                            ?: detail.profileName
-                            ?: DiagnosticLang.DetailPages.SourceRegistry.Headline,
-                    subtitle = buildSourceRegistryBannerSubtitle(detail),
-                    tone = buildSourceRegistryBannerTone(detail),
-                ),
-            structuredError = detail.structuredError,
-            remediationPlan = detail.remediationPlan,
-            actionUiState = actionUiState,
-            onAction = viewModel::onAction,
-            metricCards = buildSourceRegistryMetricCards(detail),
-            infoEntries = buildSourceRegistryInfoEntries(detail),
-        )
+            val detail = uiState.detail
+            diagnosticOverviewItems(
+                page = DiagnosticDetailPage.SourceRegistry,
+                keyPrefix = "source_registry",
+                banner =
+                    DiagnosticBannerState(
+                        headline =
+                            detail.items.firstOrNull { it.isEffective }?.source?.name
+                                ?: detail.profileName
+                                ?: DiagnosticLang.DetailPages.SourceRegistry.Headline,
+                        subtitle = buildSourceRegistryBannerSubtitle(detail),
+                        tone = buildSourceRegistryBannerTone(detail),
+                    ),
+                structuredError = detail.structuredError,
+                remediationPlan = detail.remediationPlan,
+                actionUiState = actionUiState,
+                onAction = viewModel::onAction,
+                metricCards = buildSourceRegistryMetricCards(detail),
+                infoEntries = buildSourceRegistryInfoEntries(detail),
+            )
         },
         evidence = {
-        val detail = uiState.detail
-        if (detail.items.isEmpty()) {
-            item("source_registry_empty") {
-                EmptyStateCard(message = DiagnosticLang.DetailPages.SourceRegistry.NoSources)
-            }
-        } else {
-            SourceRegistryRole.entries.forEach { role ->
-                val items = detail.items.filter { it.role == role }
-                if (items.isNotEmpty()) {
-                    item("source_registry_title_${role.name}") { SmallTitle(role.toDisplayLabel()) }
-                    item("source_registry_group_${role.name}") {
-                        SourceRegistryGroupCard(items = items)
+            val detail = uiState.detail
+            if (detail.items.isEmpty()) {
+                item("source_registry_empty") {
+                    EmptyStateCard(message = DiagnosticLang.DetailPages.SourceRegistry.NoSources)
+                }
+            } else {
+                SourceRegistryRole.entries.forEach { role ->
+                    val items = detail.items.filter { it.role == role }
+                    if (items.isNotEmpty()) {
+                        item("source_registry_title_${role.name}") {
+                            SmallTitle(role.toDisplayLabel())
+                        }
+                        item("source_registry_group_${role.name}") {
+                            SourceRegistryGroupCard(items = items)
+                        }
                     }
                 }
             }
-        }
         },
     )
 }
@@ -488,7 +500,8 @@ private fun DiagnosticDetailScaffold(
                     }
                 } else {
                     ScreenLazyColumn(
-                        modifier = Modifier.adaptiveContentWidth(adaptiveInfo.preferredSinglePaneMaxWidth),
+                        modifier =
+                            Modifier.adaptiveContentWidth(adaptiveInfo.preferredSinglePaneMaxWidth),
                         scrollBehavior = scrollBehavior,
                         innerPadding = innerPadding,
                     ) {
@@ -513,7 +526,9 @@ private fun HandleDiagnosticActionEvents(
     CollectFlowWithLifecycle(flow = events) { event ->
         when (event) {
             is DiagnosticActionEvent.CopyText -> {
-                clipboardManager.setPrimaryClip(ClipData.newPlainText("diagnostic-trace", event.text))
+                clipboardManager.setPrimaryClip(
+                    ClipData.newPlainText("diagnostic-trace", event.text)
+                )
             }
 
             is DiagnosticActionEvent.Navigate -> {
@@ -555,15 +570,11 @@ private fun HandleDiagnosticActionEvents(
                     }
 
                     DiagnosticNavigationTarget.Providers -> {
-                        navigator.navigate(ProvidersScreenDestination) {
-                            launchSingleTop = true
-                        }
+                        navigator.navigate(ProvidersScreenDestination) { launchSingleTop = true }
                     }
 
                     DiagnosticNavigationTarget.Logs -> {
-                        navigator.navigate(LogScreenDestination) {
-                            launchSingleTop = true
-                        }
+                        navigator.navigate(LogScreenDestination) { launchSingleTop = true }
                     }
                 }
             }
@@ -583,15 +594,16 @@ private fun LazyListScope.diagnosticOverviewItems(
     infoEntries: List<DetailInfoEntry> = emptyList(),
 ) {
     val visibleRemediationPlan = remediationPlan.filteredFor(page)
-    item("${keyPrefix}_summary_title") { SmallTitle(DiagnosticLang.DetailPages.Common.StateSummary) }
+    item("${keyPrefix}_summary_title") {
+        SmallTitle(DiagnosticLang.DetailPages.Common.StateSummary)
+    }
     item("${keyPrefix}_summary") {
-        DiagnosticStateSummaryCard(
-            banner = banner,
-            structuredError = structuredError,
-        )
+        DiagnosticStateSummaryCard(banner = banner, structuredError = structuredError)
     }
     if (visibleRemediationPlan.actions.isNotEmpty() || actionUiState.feedback != null) {
-        item("${keyPrefix}_actions_title") { SmallTitle(DiagnosticLang.DetailPages.Common.RepairLoop) }
+        item("${keyPrefix}_actions_title") {
+            SmallTitle(DiagnosticLang.DetailPages.Common.RepairLoop)
+        }
         item("${keyPrefix}_actions") {
             DiagnosticRemediationPanel(
                 plan = visibleRemediationPlan,
@@ -601,16 +613,16 @@ private fun LazyListScope.diagnosticOverviewItems(
         }
     }
     item("${keyPrefix}_metrics_title") { SmallTitle(DiagnosticLang.DetailPages.Common.Signals) }
-    item("${keyPrefix}_metrics") {
-        DetailSignalCard(cards = metricCards)
-    }
+    item("${keyPrefix}_metrics") { DetailSignalCard(cards = metricCards) }
     if (infoEntries.isNotEmpty()) {
         item("${keyPrefix}_info_title") { SmallTitle(DiagnosticLang.DetailPages.Common.Identity) }
         item("${keyPrefix}_info") { DetailInfoCard(entries = infoEntries) }
     }
 }
 
-private fun DiagnosticRemediationPlan.filteredFor(page: DiagnosticDetailPage): DiagnosticRemediationPlan {
+private fun DiagnosticRemediationPlan.filteredFor(
+    page: DiagnosticDetailPage
+): DiagnosticRemediationPlan {
     val visibleCommands =
         when (page) {
             DiagnosticDetailPage.RuntimeHealth ->
@@ -669,7 +681,9 @@ private fun DiagnosticRemediationPlan.filteredFor(page: DiagnosticDetailPage): D
                 )
         }
 
-    return copy(actions = actions.filter { it.command in visibleCommands }.distinctBy { it.command })
+    return copy(
+        actions = actions.filter { it.command in visibleCommands }.distinctBy { it.command }
+    )
 }
 
 @Composable
@@ -706,9 +720,7 @@ private fun DiagnosticStateSummaryCard(
 }
 
 @Composable
-private fun DetailSignalCard(
-    cards: List<MetricCardModel>,
-) {
+private fun DetailSignalCard(cards: List<MetricCardModel>) {
     if (cards.isEmpty()) {
         return
     }
@@ -832,11 +844,13 @@ private fun DetailCardDivider() {
 }
 
 private fun buildRuntimeBannerSubtitle(detail: RuntimeHealthDetail): String {
-    val payloadReady = listOf(
-        detail.runtimeSnapshot.profileReady,
-        detail.runtimeSnapshot.groupsReady,
-        detail.runtimeSnapshot.trafficReady,
-    ).count { it }
+    val payloadReady =
+        listOf(
+                detail.runtimeSnapshot.profileReady,
+                detail.runtimeSnapshot.groupsReady,
+                detail.runtimeSnapshot.trafficReady,
+            )
+            .count { it }
     return "${detail.runtimeSnapshot.phase.toDisplayLabel()} · " +
         DiagnosticLang.DetailPages.RuntimeHealth.PayloadReadyFormat.format(payloadReady, 3)
 }
@@ -853,7 +867,8 @@ private fun buildRuntimeBannerTone(detail: RuntimeHealthDetail): SemanticTone {
 
 private fun buildRuntimeMetricCards(detail: RuntimeHealthDetail): List<MetricCardModel> {
     val runtime = detail.runtimeSnapshot
-    val payloadReady = listOf(runtime.profileReady, runtime.groupsReady, runtime.trafficReady).count { it }
+    val payloadReady =
+        listOf(runtime.profileReady, runtime.groupsReady, runtime.trafficReady).count { it }
     return listOf(
         MetricCardModel(
             title = DiagnosticLang.DetailPages.RuntimeHealth.Lifecycle,
@@ -865,7 +880,8 @@ private fun buildRuntimeMetricCards(detail: RuntimeHealthDetail): List<MetricCar
             title = DiagnosticLang.DetailPages.RuntimeHealth.Payload,
             value = "$payloadReady/3",
             tone = if (runtime.payloadReady) SemanticTone.Success else SemanticTone.Warning,
-            summary = DiagnosticLang.DetailPages.RuntimeHealth.PayloadReadyFormat.format(payloadReady, 3),
+            summary =
+                DiagnosticLang.DetailPages.RuntimeHealth.PayloadReadyFormat.format(payloadReady, 3),
         ),
         MetricCardModel(
             title = DiagnosticLang.DetailPages.RuntimeHealth.Sources,
@@ -905,16 +921,13 @@ private fun buildRuntimeInfoEntries(detail: RuntimeHealthDetail): List<DetailInf
         add(
             DetailInfoEntry(
                 label = DiagnosticLang.DetailPages.Common.ConfigFingerprint,
-                value = detail.runtimeSnapshot.effectiveFingerprint ?: DiagnosticLang.DetailPages.Common.NotAvailable,
+                value =
+                    detail.runtimeSnapshot.effectiveFingerprint
+                        ?: DiagnosticLang.DetailPages.Common.NotAvailable,
             )
         )
         detail.sourcePath?.let { path ->
-            add(
-                DetailInfoEntry(
-                    label = DiagnosticLang.DetailPages.Common.SourcePath,
-                    value = path,
-                )
-            )
+            add(DetailInfoEntry(label = DiagnosticLang.DetailPages.Common.SourcePath, value = path))
         }
     }
 }
@@ -924,7 +937,10 @@ private fun buildRuleSetBannerSubtitle(detail: RuleSetInspectorDetail): String {
         return detail.sourceLabel.ifBlank { DiagnosticLang.DetailPages.RuleSetInspector.NoRuleSets }
     }
     val matcherCount = detail.ruleSets.sumOf(RuleSet::matcherCount)
-    return DiagnosticLang.DetailPages.RuleSetInspector.Overview.format(detail.ruleSets.size, matcherCount)
+    return DiagnosticLang.DetailPages.RuleSetInspector.Overview.format(
+        detail.ruleSets.size,
+        matcherCount,
+    )
 }
 
 private fun buildRuleSetBannerTone(detail: RuleSetInspectorDetail): SemanticTone {
@@ -943,7 +959,10 @@ private fun buildRuleSetMetricCards(detail: RuleSetInspectorDetail): List<Metric
             title = DiagnosticLang.DetailPages.RuleSetInspector.TotalRuleSets,
             value = detail.ruleSets.size.toString(),
             tone = if (detail.ruleSets.isEmpty()) SemanticTone.Neutral else SemanticTone.Info,
-            summary = detail.sourceLabel.ifBlank { DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable },
+            summary =
+                detail.sourceLabel.ifBlank {
+                    DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable
+                },
         ),
         MetricCardModel(
             title = DiagnosticLang.DetailPages.RuleSetInspector.TotalMatchers,
@@ -977,7 +996,10 @@ private fun buildRuleSetInfoEntries(detail: RuleSetInspectorDetail): List<Detail
         add(
             DetailInfoEntry(
                 label = DiagnosticLang.DetailPages.RuleSetInspector.SourceRuntime,
-                value = detail.sourceLabel.ifBlank { DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable },
+                value =
+                    detail.sourceLabel.ifBlank {
+                        DiagnosticLang.DetailPages.RuleSetInspector.SourceUnavailable
+                    },
             )
         )
         detail.configHash?.let { hash ->
@@ -989,12 +1011,7 @@ private fun buildRuleSetInfoEntries(detail: RuleSetInspectorDetail): List<Detail
             )
         }
         detail.sourcePath?.let { path ->
-            add(
-                DetailInfoEntry(
-                    label = DiagnosticLang.DetailPages.Common.SourcePath,
-                    value = path,
-                )
-            )
+            add(DetailInfoEntry(label = DiagnosticLang.DetailPages.Common.SourcePath, value = path))
         }
     }
 }
@@ -1012,8 +1029,9 @@ private fun buildRuleSetSummary(ruleSet: RuleSet): String {
 }
 
 private fun buildRuleSetRowSummary(ruleSet: RuleSet): String {
-    return (listOf(buildRuleSetSummary(ruleSet)) + buildRuleSetDetails(ruleSet))
-        .joinToString(separator = "\n")
+    return (listOf(buildRuleSetSummary(ruleSet)) + buildRuleSetDetails(ruleSet)).joinToString(
+        separator = "\n"
+    )
 }
 
 private fun buildRuleSetDetails(ruleSet: RuleSet): List<String> {
@@ -1034,12 +1052,12 @@ private fun buildRuleSetDetails(ruleSet: RuleSet): List<String> {
             add("${DiagnosticLang.DetailPages.RuleSetInspector.ProviderBehavior}: $behavior")
         }
         val previewMatchers = ruleSet.matchers.take(2)
-        previewMatchers.forEach { matcher ->
-            add(matcher.rawText)
-        }
+        previewMatchers.forEach { matcher -> add(matcher.rawText) }
         val remainingCount = ruleSet.matchers.size - previewMatchers.size
         if (remainingCount > 0) {
-            add(DiagnosticLang.DetailPages.RuleSetInspector.RemainingMatchers.format(remainingCount))
+            add(
+                DiagnosticLang.DetailPages.RuleSetInspector.RemainingMatchers.format(remainingCount)
+            )
         }
     }
 }
@@ -1122,12 +1140,7 @@ private fun buildExplanationInfoEntries(detail: ExplanationChainDetail): List<De
             )
         }
         detail.sourcePath?.let { path ->
-            add(
-                DetailInfoEntry(
-                    label = DiagnosticLang.DetailPages.Common.SourcePath,
-                    value = path,
-                )
-            )
+            add(DetailInfoEntry(label = DiagnosticLang.DetailPages.Common.SourcePath, value = path))
         }
     }
 }
@@ -1161,12 +1174,14 @@ private fun ExplanationChainStepCard(chain: ExplanationChain) {
 
 private fun buildExplanationStepDetails(step: ExplanationStep): List<String> {
     return buildList {
-        step.input?.takeIf { it.isNotBlank() }?.let { input ->
-            add("${DiagnosticLang.DetailPages.ExplanationChain.Input}: $input")
-        }
-        step.output?.takeIf { it.isNotBlank() }?.let { output ->
-            add("${DiagnosticLang.DetailPages.ExplanationChain.Output}: $output")
-        }
+        step.input
+            ?.takeIf { it.isNotBlank() }
+            ?.let { input -> add("${DiagnosticLang.DetailPages.ExplanationChain.Input}: $input") }
+        step.output
+            ?.takeIf { it.isNotBlank() }
+            ?.let { output ->
+                add("${DiagnosticLang.DetailPages.ExplanationChain.Output}: $output")
+            }
         step.detail?.takeIf { it.isNotBlank() }?.let(::add)
     }
 }
@@ -1268,7 +1283,11 @@ private fun RawTraceSectionsCard(sections: List<RawTraceSection>) {
             sections.forEachIndexed { index, section ->
                 InfoSettingRow(
                     title = section.title,
-                    summary = DiagnosticLang.DetailPages.RawTrace.SectionOverview.format(1, section.lines.size),
+                    summary =
+                        DiagnosticLang.DetailPages.RawTrace.SectionOverview.format(
+                            1,
+                            section.lines.size,
+                        ),
                     valueLabel = section.lines.size.toString(),
                     tone = SemanticTone.Info,
                     showDivider = false,
@@ -1280,13 +1299,17 @@ private fun RawTraceSectionsCard(sections: List<RawTraceSection>) {
                     verticalArrangement = Arrangement.spacedBy(spacing.sm),
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).verticalScroll(rememberScrollState()),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .heightIn(max = 220.dp)
+                                .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(spacing.xs),
                     ) {
                         Text(
-                            text = section.lines.joinToString(separator = "\n").ifBlank {
-                                DiagnosticLang.DetailPages.Common.NotAvailable
-                            },
+                            text =
+                                section.lines.joinToString(separator = "\n").ifBlank {
+                                    DiagnosticLang.DetailPages.Common.NotAvailable
+                                },
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             fontSize = MiuixTheme.textStyles.body2.fontSize,
                             fontFamily = FontFamily.Monospace,
@@ -1317,7 +1340,7 @@ private fun buildSourceRegistryBannerTone(detail: SourceRegistryOverviewDetail):
 }
 
 private fun buildSourceRegistryMetricCards(
-    detail: SourceRegistryOverviewDetail,
+    detail: SourceRegistryOverviewDetail
 ): List<MetricCardModel> {
     val remoteCount = detail.items.count { it.source.isRemote }
     val localCount = detail.items.size - remoteCount
@@ -1351,7 +1374,7 @@ private fun buildSourceRegistryMetricCards(
 }
 
 private fun buildSourceRegistryInfoEntries(
-    detail: SourceRegistryOverviewDetail,
+    detail: SourceRegistryOverviewDetail
 ): List<DetailInfoEntry> {
     return buildList {
         add(
@@ -1402,19 +1425,27 @@ private fun buildSourceRegistryDetails(item: SourceRegistryItem): List<String> {
     return buildList {
         item.source.url?.takeIf { it.isNotBlank() }?.let(::add)
         item.source.localPath?.takeIf { it.isNotBlank() }?.let(::add)
-        add("${DiagnosticLang.DetailPages.SourceRegistry.SourceType}: ${item.source.sourceType.toDisplayLabel()}")
-        add("${DiagnosticLang.DetailPages.SourceRegistry.SyncState}: ${item.source.syncState.toDisplayLabel()}")
-        item.source.owner.label.takeIf { it.isNotBlank() }?.let { owner ->
-            add("${DiagnosticLang.DetailPages.SourceRegistry.Owner}: $owner")
-        }
+        add(
+            "${DiagnosticLang.DetailPages.SourceRegistry.SourceType}: ${item.source.sourceType.toDisplayLabel()}"
+        )
+        add(
+            "${DiagnosticLang.DetailPages.SourceRegistry.SyncState}: ${item.source.syncState.toDisplayLabel()}"
+        )
+        item.source.owner.label
+            .takeIf { it.isNotBlank() }
+            ?.let { owner -> add("${DiagnosticLang.DetailPages.SourceRegistry.Owner}: $owner") }
         item.itemCount?.let { count ->
             add("${DiagnosticLang.DetailPages.SourceRegistry.ItemCount}: $count")
         }
         item.fingerprint?.let { fingerprint ->
-            add("${DiagnosticLang.DetailPages.Common.ConfigFingerprint}: ${shortenHash(fingerprint)}")
+            add(
+                "${DiagnosticLang.DetailPages.Common.ConfigFingerprint}: ${shortenHash(fingerprint)}"
+            )
         }
         if (item.source.syncIntervalSeconds > 0L) {
-            add("${DiagnosticLang.DetailPages.SourceRegistry.Interval}: ${item.source.syncIntervalSeconds}s")
+            add(
+                "${DiagnosticLang.DetailPages.SourceRegistry.Interval}: ${item.source.syncIntervalSeconds}s"
+            )
         }
     }
 }
@@ -1452,7 +1483,8 @@ private fun buildSnapshotMetricCards(detail: SnapshotHistoryDetail): List<Metric
             title = DiagnosticLang.DetailPages.SnapshotHistory.TotalSnapshots,
             value = detail.snapshots.size.toString(),
             tone = if (detail.snapshots.isEmpty()) SemanticTone.Neutral else SemanticTone.Info,
-            summary = DiagnosticLang.DetailPages.SnapshotHistory.Overview.format(detail.snapshots.size),
+            summary =
+                DiagnosticLang.DetailPages.SnapshotHistory.Overview.format(detail.snapshots.size),
         ),
         MetricCardModel(
             title = DiagnosticLang.DetailPages.SnapshotHistory.ProfilesCovered,
@@ -1475,7 +1507,9 @@ private fun buildSnapshotMetricCards(detail: SnapshotHistoryDetail): List<Metric
     )
 }
 
-private fun buildCurrentSnapshotEntries(snapshot: com.github.yumelira.yumebox.domain.model.WorkspaceSnapshot): List<DetailInfoEntry> {
+private fun buildCurrentSnapshotEntries(
+    snapshot: com.github.yumelira.yumebox.domain.model.WorkspaceSnapshot
+): List<DetailInfoEntry> {
     return buildList {
         add(
             DetailInfoEntry(
@@ -1498,13 +1532,17 @@ private fun buildCurrentSnapshotEntries(snapshot: com.github.yumelira.yumebox.do
         add(
             DetailInfoEntry(
                 label = DiagnosticLang.DetailPages.Common.SourcePath,
-                value = snapshot.metadata["source_path"] ?: DiagnosticLang.DetailPages.Common.NotAvailable,
+                value =
+                    snapshot.metadata["source_path"]
+                        ?: DiagnosticLang.DetailPages.Common.NotAvailable,
             )
         )
     }
 }
 
-private fun buildSnapshotSubtitle(snapshot: com.github.yumelira.yumebox.domain.model.WorkspaceSnapshot): String {
+private fun buildSnapshotSubtitle(
+    snapshot: com.github.yumelira.yumebox.domain.model.WorkspaceSnapshot
+): String {
     return DiagnosticLang.DetailPages.SnapshotHistory.SnapshotSummary.format(
         snapshot.snapshotType.toDisplayLabel(),
         ByteFormatter.format(snapshot.configSizeBytes),
@@ -1523,7 +1561,8 @@ private fun buildSourceTone(detail: RuntimeHealthDetail): SemanticTone {
 
 private fun buildSourceSummary(detail: RuntimeHealthDetail): String {
     return when {
-        detail.externalResources.subscriptionSources.isEmpty() -> DiagnosticLang.DetailPages.RuntimeHealth.SourcesEmpty
+        detail.externalResources.subscriptionSources.isEmpty() ->
+            DiagnosticLang.DetailPages.RuntimeHealth.SourcesEmpty
         detail.externalResources.staleCount > 0 || detail.externalResources.pendingCount > 0 ->
             DiagnosticLang.DetailPages.RuntimeHealth.SourcesAttention.format(
                 detail.externalResources.staleCount,
@@ -1622,7 +1661,8 @@ private fun SourceRegistryRole.toDisplayLabel(): String {
         SourceRegistryRole.ProfileConfig -> DiagnosticLang.DetailPages.SourceRegistry.ProfileConfig
         SourceRegistryRole.RuleProvider -> DiagnosticLang.DetailPages.SourceRegistry.RuleProvider
         SourceRegistryRole.ProxyProvider -> DiagnosticLang.DetailPages.SourceRegistry.ProxyProvider
-        SourceRegistryRole.RemoteOverride -> DiagnosticLang.DetailPages.SourceRegistry.RemoteOverride
+        SourceRegistryRole.RemoteOverride ->
+            DiagnosticLang.DetailPages.SourceRegistry.RemoteOverride
     }
 }
 
@@ -1660,14 +1700,18 @@ private fun formatShortTimestamp(timestamp: Long?): String {
     if (timestamp == null || timestamp <= 0L) {
         return DiagnosticLang.DetailPages.Common.NotAvailable
     }
-    return SHORT_TIME_FORMATTER.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
+    return SHORT_TIME_FORMATTER.format(
+        Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
+    )
 }
 
 private fun formatLongTimestamp(timestamp: Long?): String {
     if (timestamp == null || timestamp <= 0L) {
         return DiagnosticLang.DetailPages.Common.NotAvailable
     }
-    return LONG_TIME_FORMATTER.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
+    return LONG_TIME_FORMATTER.format(
+        Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
+    )
 }
 
 private fun shortenHash(hash: String?): String {

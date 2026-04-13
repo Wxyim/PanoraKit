@@ -58,9 +58,8 @@ fun DiagnosticRemediationPanel(
         return
     }
 
-    var pendingConfirmation by remember(plan.actions) {
-        mutableStateOf<DiagnosticRemediationAction?>(null)
-    }
+    var pendingConfirmation by
+        remember(plan.actions) { mutableStateOf<DiagnosticRemediationAction?>(null) }
     val prioritizedActions =
         plan.actions.sortedWith(
             compareByDescending<DiagnosticRemediationAction> { it.isPrimaryAction() }
@@ -98,7 +97,8 @@ fun DiagnosticRemediationPanel(
                         } else {
                             action.effect.toDisplayLabel()
                         },
-                    badgeTone = if (isActive) SemanticTone.Brand else action.effect.toSemanticTone(),
+                    badgeTone =
+                        if (isActive) SemanticTone.Brand else action.effect.toSemanticTone(),
                     badgeLeadingDot = isActive || action.effect != DiagnosticActionEffect.Inspect,
                     showDivider = index != prioritizedActions.lastIndex,
                     onClick = {

@@ -44,7 +44,8 @@ fun rememberDiagnosticActionHost(
     onCopyText: ((String) -> Unit)? = null,
 ): DiagnosticActionHostState {
     val remediationCoordinator = koinInject<DiagnosticRemediationCoordinator>()
-    val vpnPermissionCoordinator = koinInject<com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator>()
+    val vpnPermissionCoordinator =
+        koinInject<com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator>()
     val scope = rememberCoroutineScope()
     val navigateHandler by rememberUpdatedState(onNavigate)
     val refreshHandler by rememberUpdatedState(onRefresh)
@@ -63,9 +64,10 @@ fun rememberDiagnosticActionHost(
                             feedback =
                                 DiagnosticActionFeedback(
                                     title = action.title,
-                                    message = DiagnosticLang.DetailPages.Remediation.ResultRefreshed,
+                                    message =
+                                        DiagnosticLang.DetailPages.Remediation.ResultRefreshed,
                                     status = DiagnosticActionFeedbackStatus.Info,
-                                ),
+                                )
                         )
                     refreshHandler?.invoke()
                 }
@@ -79,7 +81,8 @@ fun rememberDiagnosticActionHost(
                                     title = action.title,
                                     message =
                                         if (payload.isNullOrBlank()) {
-                                            DiagnosticLang.DetailPages.Remediation.ResultActionUnsupported
+                                            DiagnosticLang.DetailPages.Remediation
+                                                .ResultActionUnsupported
                                         } else {
                                             copyHandler?.invoke(payload)
                                             DiagnosticLang.DetailPages.Remediation.ResultCopied
@@ -90,7 +93,7 @@ fun rememberDiagnosticActionHost(
                                         } else {
                                             DiagnosticActionFeedbackStatus.Success
                                         },
-                                ),
+                                )
                         )
                 }
 
@@ -109,10 +112,7 @@ fun rememberDiagnosticActionHost(
                     actionUiState = actionUiState.copy(activeActionId = action.actionId)
                     val result = remediationCoordinator.execute(action)
                     actionUiState =
-                        DiagnosticActionUiState(
-                            activeActionId = null,
-                            feedback = result.feedback,
-                        )
+                        DiagnosticActionUiState(activeActionId = null, feedback = result.feedback)
 
                     result.permissionIntent?.let { intent ->
                         vpnPermissionCoordinator.requestPermission(intent) { dispatch(action) }
@@ -128,10 +128,7 @@ fun rememberDiagnosticActionHost(
     }
 
     return remember(actionUiState) {
-        DiagnosticActionHostState(
-            uiState = actionUiState,
-            onAction = ::dispatch,
-        )
+        DiagnosticActionHostState(uiState = actionUiState, onAction = ::dispatch)
     }
 }
 

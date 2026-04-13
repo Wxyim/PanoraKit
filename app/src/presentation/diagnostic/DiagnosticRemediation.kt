@@ -149,15 +149,16 @@ class DiagnosticRemediationCoordinator(
                     feedback =
                         DiagnosticActionFeedback(
                             title = action.title,
-                            message = DiagnosticLang.DetailPages.Remediation.ResultActionUnsupported,
+                            message =
+                                DiagnosticLang.DetailPages.Remediation.ResultActionUnsupported,
                             status = DiagnosticActionFeedbackStatus.Info,
-                        ),
+                        )
                 )
         }
     }
 
     private suspend fun executeStartRuntime(
-        action: DiagnosticRemediationAction,
+        action: DiagnosticRemediationAction
     ): DiagnosticActionExecutionResult {
         val outcome =
             runtimeActionExecutor.startProxy(
@@ -170,7 +171,7 @@ class DiagnosticRemediationCoordinator(
     }
 
     private suspend fun executeReloadRuntime(
-        action: DiagnosticRemediationAction,
+        action: DiagnosticRemediationAction
     ): DiagnosticActionExecutionResult {
         val outcome =
             runtimeActionExecutor.reloadCurrentProfile(
@@ -178,15 +179,17 @@ class DiagnosticRemediationCoordinator(
                 presentation =
                     RuntimeActionFailurePresentation.Global(
                         message = { reason ->
-                            DiagnosticLang.DetailPages.Remediation.ReloadRuntimeFailure + ": " + reason
-                        },
+                            DiagnosticLang.DetailPages.Remediation.ReloadRuntimeFailure +
+                                ": " +
+                                reason
+                        }
                     ),
             )
         return mapRuntimeOutcome(action, outcome)
     }
 
     private suspend fun executeRestartRuntime(
-        action: DiagnosticRemediationAction,
+        action: DiagnosticRemediationAction
     ): DiagnosticActionExecutionResult {
         val outcome =
             runtimeActionExecutor.applyConfigChange(
@@ -196,98 +199,110 @@ class DiagnosticRemediationCoordinator(
                 presentation =
                     RuntimeActionFailurePresentation.Start(
                         targetMode = runtimeActionExecutor.resolveDialogMode(),
-                        fallbackMessage = DiagnosticLang.DetailPages.Remediation.RestartRuntimeFailure,
+                        fallbackMessage =
+                            DiagnosticLang.DetailPages.Remediation.RestartRuntimeFailure,
                     ),
             )
         return mapRuntimeOutcome(action, outcome)
     }
 
     private suspend fun executeRefreshSources(
-        action: DiagnosticRemediationAction,
-    ): DiagnosticActionExecutionResult = withContext(Dispatchers.IO) {
-        val remoteOverrides = runCatching { overrideConfigRepository.listRemoteResources() }.getOrDefault(emptyList())
-        val runtimeRunning = proxyFacade.isRunning.value
-        val providers =
-            if (runtimeRunning) {
-                providersRepository
-                    .queryProviders()
+        action: DiagnosticRemediationAction
+    ): DiagnosticActionExecutionResult =
+        withContext(Dispatchers.IO) {
+            val remoteOverrides =
+                runCatching { overrideConfigRepository.listRemoteResources() }
                     .getOrDefault(emptyList())
-                    .filter { it.vehicleType == Provider.VehicleType.HTTP }
-            } else {
-                emptyList()
+            val runtimeRunning = proxyFacade.isRunning.value
+            val providers =
+                if (runtimeRunning) {
+                    providersRepository.queryProviders().getOrDefault(emptyList()).filter {
+                        it.vehicleType == Provider.VehicleType.HTTP
+                    }
+                } else {
+                    emptyList()
+                }
+
+            if (providers.isEmpty() && remoteOverrides.isEmpty()) {
+                return@withContext DiagnosticActionExecutionResult(
+                    feedback =
+                        DiagnosticActionFeedback(
+                            title = action.title,
+                            message = DiagnosticLang.DetailPages.Remediation.ResultSourcesEmpty,
+                            status = DiagnosticActionFeedbackStatus.Info,
+                        )
+                )
             }
 
-        if (providers.isEmpty() && remoteOverrides.isEmpty()) {
-            return@withContext DiagnosticActionExecutionResult(
-                feedback =
-                    DiagnosticActionFeedback(
-                        title = action.title,
-                        message = DiagnosticLang.DetailPages.Remediation.ResultSourcesEmpty,
-                        status = DiagnosticActionFeedbackStatus.Info,
-                    ),
-            )
+            val failedItems = mutableListOf<String>()
+            var refreshedCount = 0
+
+            runtimeControlCoordinator.runSerialized("diagnostic:refresh-sources") {
+                if (providers.isNotEmpty()) {
+                    providersRepository
+                        .updateAllProviders(providers)
+                        .onSuccess { result ->
+                            refreshedCount += providers.size - result.failedProviders.size
+                            failedItems += result.failedProviders
+                        }
+                        .onFailure { error ->
+                            failedItems +=
+                                error.message
+                                    ?: DiagnosticLang.DetailPages.Remediation.ResultActionFailed
+                        }
+                }
+
+                remoteOverrides.forEach { resource ->
+                    runCatching {
+                            overrideConfigRepository.refreshRemoteResource(resource.id)
+                            activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
+                                resource.id
+                            )
+                        }
+                        .onSuccess { refreshedCount += 1 }
+                        .onFailure { failedItems += resource.name }
+                }
+            }
+
+            val feedback =
+                when {
+                    refreshedCount == 0 && failedItems.isNotEmpty() ->
+                        DiagnosticActionFeedback(
+                            title = action.title,
+                            message = DiagnosticLang.DetailPages.Remediation.ResultActionFailed,
+                            status = DiagnosticActionFeedbackStatus.Failed,
+                        )
+                    failedItems.isEmpty() && runtimeRunning ->
+                        DiagnosticActionFeedback(
+                            title = action.title,
+                            message =
+                                DiagnosticLang.DetailPages.Remediation.ResultSourcesRefreshed
+                                    .format(refreshedCount),
+                            status = DiagnosticActionFeedbackStatus.Success,
+                        )
+                    failedItems.isEmpty() ->
+                        DiagnosticActionFeedback(
+                            title = action.title,
+                            message =
+                                DiagnosticLang.DetailPages.Remediation.ResultSourcesDeferred.format(
+                                    refreshedCount
+                                ),
+                            status = DiagnosticActionFeedbackStatus.Warning,
+                        )
+                    else ->
+                        DiagnosticActionFeedback(
+                            title = action.title,
+                            message =
+                                DiagnosticLang.DetailPages.Remediation.ResultSourcesPartial.format(
+                                    refreshedCount,
+                                    failedItems.size,
+                                ),
+                            status = DiagnosticActionFeedbackStatus.Warning,
+                        )
+                }
+
+            DiagnosticActionExecutionResult(feedback = feedback, shouldRefresh = true)
         }
-
-        val failedItems = mutableListOf<String>()
-        var refreshedCount = 0
-
-        runtimeControlCoordinator.runSerialized("diagnostic:refresh-sources") {
-            if (providers.isNotEmpty()) {
-                providersRepository.updateAllProviders(providers)
-                    .onSuccess { result ->
-                        refreshedCount += providers.size - result.failedProviders.size
-                        failedItems += result.failedProviders
-                    }
-                    .onFailure { error ->
-                        failedItems +=
-                            error.message ?: DiagnosticLang.DetailPages.Remediation.ResultActionFailed
-                    }
-            }
-
-            remoteOverrides.forEach { resource ->
-                runCatching {
-                        overrideConfigRepository.refreshRemoteResource(resource.id)
-                        activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(resource.id)
-                    }
-                    .onSuccess { refreshedCount += 1 }
-                    .onFailure { failedItems += resource.name }
-            }
-        }
-
-        val feedback =
-            when {
-                refreshedCount == 0 && failedItems.isNotEmpty() ->
-                    DiagnosticActionFeedback(
-                        title = action.title,
-                        message = DiagnosticLang.DetailPages.Remediation.ResultActionFailed,
-                        status = DiagnosticActionFeedbackStatus.Failed,
-                    )
-                failedItems.isEmpty() && runtimeRunning ->
-                    DiagnosticActionFeedback(
-                        title = action.title,
-                        message = DiagnosticLang.DetailPages.Remediation.ResultSourcesRefreshed.format(refreshedCount),
-                        status = DiagnosticActionFeedbackStatus.Success,
-                    )
-                failedItems.isEmpty() ->
-                    DiagnosticActionFeedback(
-                        title = action.title,
-                        message = DiagnosticLang.DetailPages.Remediation.ResultSourcesDeferred.format(refreshedCount),
-                        status = DiagnosticActionFeedbackStatus.Warning,
-                    )
-                else ->
-                    DiagnosticActionFeedback(
-                        title = action.title,
-                        message =
-                            DiagnosticLang.DetailPages.Remediation.ResultSourcesPartial.format(
-                                refreshedCount,
-                                failedItems.size,
-                            ),
-                        status = DiagnosticActionFeedbackStatus.Warning,
-                    )
-            }
-
-        DiagnosticActionExecutionResult(feedback = feedback, shouldRefresh = true)
-    }
 
     private fun mapRuntimeOutcome(
         action: DiagnosticRemediationAction,
@@ -312,7 +327,8 @@ class DiagnosticRemediationCoordinator(
                     feedback =
                         DiagnosticActionFeedback(
                             title = action.title,
-                            message = DiagnosticLang.DetailPages.Remediation.ResultPermissionPending,
+                            message =
+                                DiagnosticLang.DetailPages.Remediation.ResultPermissionPending,
                             status = DiagnosticActionFeedbackStatus.Pending,
                         ),
                     permissionIntent = outcome.intent,
@@ -325,7 +341,7 @@ class DiagnosticRemediationCoordinator(
                             title = action.title,
                             message = DiagnosticLang.DetailPages.Remediation.ResultActionFailed,
                             status = DiagnosticActionFeedbackStatus.Failed,
-                        ),
+                        )
                 )
         }
     }
@@ -334,7 +350,8 @@ class DiagnosticRemediationCoordinator(
         return when (this) {
             RuntimeMutationStatus.Deferred -> DiagnosticLang.DetailPages.Remediation.ResultDeferred
             RuntimeMutationStatus.Reloaded -> DiagnosticLang.DetailPages.Remediation.ResultReloaded
-            RuntimeMutationStatus.Restarted -> DiagnosticLang.DetailPages.Remediation.ResultRestarted
+            RuntimeMutationStatus.Restarted ->
+                DiagnosticLang.DetailPages.Remediation.ResultRestarted
             RuntimeMutationStatus.Started -> DiagnosticLang.DetailPages.Remediation.ResultStarted
             RuntimeMutationStatus.Stopped -> DiagnosticLang.DetailPages.Remediation.ResultApplied
             RuntimeMutationStatus.Updated -> DiagnosticLang.DetailPages.Remediation.ResultApplied

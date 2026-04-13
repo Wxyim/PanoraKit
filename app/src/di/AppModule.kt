@@ -36,8 +36,8 @@ import com.github.yumelira.yumebox.screen.settings.NetworkSettingsViewModel
 import com.github.yumelira.yumebox.screen.settings.RawTraceDetailViewModel
 import com.github.yumelira.yumebox.screen.settings.RuleSetInspectorViewModel
 import com.github.yumelira.yumebox.screen.settings.RuntimeHealthDetailViewModel
-import com.github.yumelira.yumebox.screen.settings.SourceRegistryOverviewViewModel
 import com.github.yumelira.yumebox.screen.settings.SnapshotHistoryViewModel
+import com.github.yumelira.yumebox.screen.settings.SourceRegistryOverviewViewModel
 import com.github.yumelira.yumebox.service.LogRecordServiceGateway
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
