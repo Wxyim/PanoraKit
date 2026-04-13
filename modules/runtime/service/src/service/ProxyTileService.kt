@@ -35,8 +35,8 @@ import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
 import com.github.yumelira.yumebox.runtime.service.R
 import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
 import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
+import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
 import com.github.yumelira.yumebox.service.root.RootTunState
 import com.github.yumelira.yumebox.service.root.RootTunStateStore
 import com.github.yumelira.yumebox.service.root.RootTunStatus
@@ -243,8 +243,9 @@ class ProxyTileService : TileService() {
         return if (owner == RuntimeOwner.None) {
             RuntimeSnapshot(
                 owner = RuntimeOwner.None,
-                phase = rootTunTilePhase(rootStatus).takeIf { it == RuntimePhase.Failed }
-                    ?: RuntimePhase.Idle,
+                phase =
+                    rootTunTilePhase(rootStatus).takeIf { it == RuntimePhase.Failed }
+                        ?: RuntimePhase.Idle,
                 targetMode = configuredMode,
                 lastError = rootStatus.composedError(),
             )
@@ -262,8 +263,7 @@ class ProxyTileService : TileService() {
                     owner == RuntimeOwner.RootTun && !rootStatus.profileUuid.isNullOrBlank(),
                 profileUuid = rootStatus.profileUuid.takeIf { owner == RuntimeOwner.RootTun },
                 profileName = rootStatus.profileName.takeIf { owner == RuntimeOwner.RootTun },
-                lastError =
-                    rootStatus.composedError().takeIf { owner == RuntimeOwner.RootTun },
+                lastError = rootStatus.composedError().takeIf { owner == RuntimeOwner.RootTun },
                 startedAt = rootStatus.startedAt.takeIf { owner == RuntimeOwner.RootTun },
             )
         }

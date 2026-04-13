@@ -926,7 +926,9 @@ class ProxyFacade(
         return recoverRootTunStatus(rootTunStateStore.snapshot())
     }
 
-    private fun recoverRootTunStatus(status: RootTunStatus = rootTunStateStore.snapshot()): RootTunStatus {
+    private fun recoverRootTunStatus(
+        status: RootTunStatus = rootTunStateStore.snapshot()
+    ): RootTunStatus {
         val recovered = RootTunRuntimeRecovery.recoverStaleTransition(appContext, status)
         applyRootTunStatus(recovered)
         return recovered

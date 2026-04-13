@@ -69,10 +69,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Proxy
+import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.ProxyGroupStyle
 import com.github.yumelira.yumebox.domain.model.ProxySortMode
@@ -94,14 +94,20 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.screen.node.NodeCard
-import com.github.yumelira.yumebox.presentation.screen.node.NodeCardDefaults
 import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
 import com.github.yumelira.yumebox.presentation.screen.node.adaptiveNodeGroupItems
 import com.github.yumelira.yumebox.presentation.screen.node.proxyLatencyVisual
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
+import com.github.yumelira.yumebox.presentation.theme.ProxyDisplaySettingsLayoutDefaults
+import com.github.yumelira.yumebox.presentation.theme.ProxyFloatingPanelHeaderLayoutDefaults
+import com.github.yumelira.yumebox.presentation.theme.ProxyFloatingPanelLayoutDefaults
+import com.github.yumelira.yumebox.presentation.theme.ProxyPageLayoutDefaults
+import com.github.yumelira.yumebox.presentation.theme.ProxyRuntimePreviewLayoutDefaults
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
+import com.github.yumelira.yumebox.presentation.util.resolveAdaptiveProxyDisplayMode
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
@@ -118,37 +124,40 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
 private object ProxyPageSpacing {
-    val ContentTop = 20.dp
-    val ContentHorizontal = 12.dp
-    val ItemVertical = 6.dp
+    val ContentTop = ProxyPageLayoutDefaults.ContentTop
+    val ContentHorizontal = ProxyPageLayoutDefaults.ContentHorizontal
+    val ItemVertical = ProxyPageLayoutDefaults.ItemVertical
 }
 
 private object FloatingPanelDefaults {
-    val WidthFraction = 0.84f
-    val MaxWidth = 520.dp
-    val MaxHeight = 640.dp
-    val ListMaxHeight = 460.dp
-    val OuterPadding = 12.dp
-    val CornerRadius = 22.dp
+    val OuterPadding = ProxyFloatingPanelLayoutDefaults.OuterPadding
+    val CornerRadius = ProxyFloatingPanelLayoutDefaults.CornerRadius
 }
 
 private object FloatingPanelMetrics {
-    val HeaderCornerRadius = 18.dp
-    val HeaderHorizontalPadding = 14.dp
-    val HeaderVerticalPadding = 12.dp
-    val HeaderSectionSpacing = 10.dp
-    val HeaderMetaSpacing = 8.dp
-    val HeaderMetaChipVerticalPadding = 3.dp
-    val HeaderMetaCountFontSize = NodeCardDefaults.ChipFontSize
-    val HeaderMetaChipFontSize = NodeCardDefaults.ChipFontSize
-    val HeaderCloseIconSize = NodeCardDefaults.ChevronIconSize
-    val HeaderActionSpacing = 4.dp
-    val DetailLabelSpacing = 3.dp
-    val CurrentBadgeTopPadding = 10.dp
-    val CurrentBadgeEndPadding = 12.dp
-    val CurrentBadgeHorizontalPadding = 8.dp
-    val CurrentBadgeVerticalPadding = 3.dp
-    val CurrentBadgeFontSize = NodeCardDefaults.ChipFontSize
+    val HeaderCornerRadius = ProxyFloatingPanelHeaderLayoutDefaults.HeaderCornerRadius
+    val HeaderHorizontalPadding = ProxyFloatingPanelHeaderLayoutDefaults.HeaderHorizontalPadding
+    val HeaderVerticalPadding = ProxyFloatingPanelHeaderLayoutDefaults.HeaderVerticalPadding
+    val HeaderSectionSpacing = ProxyFloatingPanelHeaderLayoutDefaults.HeaderSectionSpacing
+    val HeaderTitleSpacing = ProxyFloatingPanelHeaderLayoutDefaults.HeaderTitleSpacing
+    val HeaderMetaSpacing = ProxyFloatingPanelHeaderLayoutDefaults.HeaderMetaSpacing
+    val HeaderMetaChipVerticalPadding =
+        ProxyFloatingPanelHeaderLayoutDefaults.HeaderMetaChipVerticalPadding
+    val HeaderMetaCountFontSize = ProxyFloatingPanelHeaderLayoutDefaults.HeaderMetaCountFontSize
+    val HeaderMetaChipFontSize = ProxyFloatingPanelHeaderLayoutDefaults.HeaderMetaChipFontSize
+    val HeaderCloseIconSize = ProxyFloatingPanelHeaderLayoutDefaults.HeaderCloseIconSize
+    val HeaderCloseActionSize = ProxyFloatingPanelHeaderLayoutDefaults.HeaderCloseActionSize
+    val HeaderActionSpacing = ProxyFloatingPanelHeaderLayoutDefaults.HeaderActionSpacing
+    val DetailLabelSpacing = ProxyFloatingPanelHeaderLayoutDefaults.DetailLabelSpacing
+    val DetailLatencyStartPadding = ProxyFloatingPanelHeaderLayoutDefaults.DetailLatencyStartPadding
+    val CurrentBadgeCornerRadius = ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeCornerRadius
+    val CurrentBadgeTopPadding = ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeTopPadding
+    val CurrentBadgeEndPadding = ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeEndPadding
+    val CurrentBadgeHorizontalPadding =
+        ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeHorizontalPadding
+    val CurrentBadgeVerticalPadding =
+        ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeVerticalPadding
+    val CurrentBadgeFontSize = ProxyFloatingPanelHeaderLayoutDefaults.CurrentBadgeFontSize
 }
 
 @Composable
@@ -228,7 +237,16 @@ fun ProxyPager(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+        val adaptiveDisplayMode =
+            remember(maxWidth, adaptiveInfo.prefersTwoPaneContent) {
+                resolveAdaptiveProxyDisplayMode(
+                    maxWidth = maxWidth,
+                    prefersTwoPane = adaptiveInfo.prefersTwoPaneContent,
+                )
+            }
+
         Scaffold(
             topBar = {
                 ProxyTopBar(
@@ -264,6 +282,7 @@ fun ProxyPager(
                 } else {
                     ProxyContent(
                         proxyGroups = proxyGroups,
+                        displayMode = adaptiveDisplayMode,
                         groupStyle = groupStyle,
                         scrollBehavior = groupScrollBehavior,
                         innerPadding = it,
@@ -320,6 +339,7 @@ fun ProxyPager(
 
         ProxyDisplaySettingsDialog(
             show = showDisplaySettingsDialog,
+            adaptiveDisplayMode = adaptiveDisplayMode,
             groupStyle = groupStyle,
             sortMode = sortMode,
             showHiddenGroups = showHiddenGroups,
@@ -388,9 +408,18 @@ private fun ProxyTopBar(
         title = title,
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                horizontalArrangement =
+                    Arrangement.spacedBy(ProxyPageLayoutDefaults.TopBarNavigationSpacing)
+            ) {
                 if (showBack) {
-                    IconButton(modifier = Modifier.padding(start = 24.dp), onClick = onBack) {
+                    IconButton(
+                        modifier =
+                            Modifier.padding(
+                                start = ProxyPageLayoutDefaults.TopBarBackStartPadding
+                            ),
+                        onClick = onBack,
+                    ) {
                         Icon(MiuixIcons.Back, contentDescription = MLang.Proxy.Action.Back)
                     }
                 }
@@ -404,9 +433,10 @@ private fun ProxyTopBar(
                     onClick = { onTestDelay.invoke() },
                     tone = SemanticTone.Info,
                     highEmphasis = true,
-                    size = 44.dp,
-                    iconSize = 20.dp,
-                    modifier = Modifier.padding(end = 12.dp),
+                    size = ProxyPageLayoutDefaults.TopBarActionSize,
+                    iconSize = ProxyPageLayoutDefaults.TopBarActionIconSize,
+                    modifier =
+                        Modifier.padding(end = ProxyPageLayoutDefaults.TopBarInnerActionEndPadding),
                 )
             }
             AppCircularIconAction(
@@ -415,9 +445,10 @@ private fun ProxyTopBar(
                 onClick = onOpenDisplaySettings,
                 tone = if (showHiddenGroups) SemanticTone.Info else SemanticTone.Neutral,
                 highEmphasis = showHiddenGroups,
-                size = 44.dp,
-                iconSize = 20.dp,
-                modifier = Modifier.padding(end = 24.dp),
+                size = ProxyPageLayoutDefaults.TopBarActionSize,
+                iconSize = ProxyPageLayoutDefaults.TopBarActionIconSize,
+                modifier =
+                    Modifier.padding(end = ProxyPageLayoutDefaults.TopBarOuterActionEndPadding),
             )
         },
     )
@@ -426,6 +457,7 @@ private fun ProxyTopBar(
 @Composable
 private fun ProxyContent(
     proxyGroups: List<ProxyGroupInfo>,
+    displayMode: ProxyDisplayMode,
     groupStyle: ProxyGroupStyle,
     scrollBehavior: ScrollBehavior,
     innerPadding: PaddingValues,
@@ -442,17 +474,18 @@ private fun ProxyContent(
     singleNodeTestEnabled: Boolean,
 ) {
     val spacing = LocalSpacing.current
+    val pageMetrics = AppTheme.pageMetrics
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
         val groupColumns =
             when {
-                maxWidth >= 1280.dp -> 3
+                maxWidth >= ProxyPageLayoutDefaults.ExpandedThreeColumnMinWidth -> 3
                 !availableAdaptiveInfo.isCompactWidth -> 2
                 else -> 1
             }
         val inlineExpandedMaxHeight =
-            if (groupStyle == ProxyGroupStyle.INLINE && groupColumns == 1) {
-                FloatingPanelDefaults.ListMaxHeight
+            if (groupStyle == ProxyGroupStyle.INLINE) {
+                pageMetrics.proxyFloatingPanelListMaxHeight
             } else {
                 null
             }
@@ -466,7 +499,10 @@ private fun ProxyContent(
                     start = ProxyPageSpacing.ContentHorizontal,
                     end = ProxyPageSpacing.ContentHorizontal,
                     top = innerPadding.calculateTopPadding() + ProxyPageSpacing.ContentTop,
-                    bottom = mainInnerPadding.calculateBottomPadding() + spacing.xl + 16.dp,
+                    bottom =
+                        mainInnerPadding.calculateBottomPadding() +
+                            spacing.xl +
+                            ProxyPageLayoutDefaults.ContentBottomExtra,
                 ),
         ) {
             if (!isRunning) {
@@ -481,6 +517,7 @@ private fun ProxyContent(
             adaptiveNodeGroupItems(
                 groups = proxyGroups,
                 columns = groupColumns,
+                displayMode = displayMode,
                 onGroupClick = onGroupClick,
                 testingGroupNames = testingGroupNames,
                 testingProxyNames = testingProxyNames,
@@ -501,6 +538,7 @@ private fun ProxyContent(
 @Composable
 private fun ProxyDisplaySettingsDialog(
     show: Boolean,
+    adaptiveDisplayMode: ProxyDisplayMode,
     groupStyle: ProxyGroupStyle,
     sortMode: ProxySortMode,
     showHiddenGroups: Boolean,
@@ -510,17 +548,33 @@ private fun ProxyDisplaySettingsDialog(
     onShowHiddenGroupsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val windowHeight = LocalWindowAdaptiveInfo.current.windowHeight.takeIf { it > 0.dp } ?: 640.dp
-    val compactHeight = windowHeight < 560.dp
-    val contentSpacing = if (compactHeight) 12.dp else 16.dp
-    val sectionSpacing = if (compactHeight) 8.dp else 10.dp
-    val dialogContentMaxHeight = (windowHeight * 0.7f).coerceAtMost(520.dp)
+    val windowHeight =
+        LocalWindowAdaptiveInfo.current.windowHeight.takeIf { it > AppTheme.spacing.none }
+            ?: ProxyDisplaySettingsLayoutDefaults.FallbackWindowHeight
+    val compactHeight = windowHeight < ProxyDisplaySettingsLayoutDefaults.CompactHeightThreshold
+    val contentSpacing =
+        if (compactHeight) {
+            ProxyDisplaySettingsLayoutDefaults.ContentSpacingCompact
+        } else {
+            ProxyDisplaySettingsLayoutDefaults.ContentSpacingRegular
+        }
+    val sectionSpacing =
+        if (compactHeight) {
+            ProxyDisplaySettingsLayoutDefaults.SectionSpacingCompact
+        } else {
+            ProxyDisplaySettingsLayoutDefaults.SectionSpacingRegular
+        }
+    val dialogContentMaxHeight =
+        (windowHeight * ProxyDisplaySettingsLayoutDefaults.ContentMaxHeightFraction).coerceAtMost(
+            ProxyDisplaySettingsLayoutDefaults.ContentMaxHeightCap
+        )
 
     AppDialog(show = show, title = MLang.Proxy.Action.More, onDismissRequest = onDismiss) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
                     .heightIn(max = dialogContentMaxHeight)
+                    .padding(bottom = sectionSpacing)
                     .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
@@ -535,6 +589,8 @@ private fun ProxyDisplaySettingsDialog(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            ProxyAdaptiveModeCard(displayMode = adaptiveDisplayMode)
 
             ProxyDialogSection(title = MLang.Proxy.Action.GroupStyle)
             Row(horizontalArrangement = Arrangement.spacedBy(sectionSpacing)) {
@@ -575,10 +631,81 @@ private fun ProxyDisplaySettingsDialog(
 }
 
 @Composable
+private fun ProxyAdaptiveModeCard(displayMode: ProxyDisplayMode) {
+    val style = SemanticActionDefaults.style(SemanticTone.Brand, highEmphasis = true)
+    val shape = RoundedCornerShape(ProxyDisplaySettingsLayoutDefaults.ToggleContainerCornerRadius)
+
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(shape)
+                .background(style.containerColor, shape)
+                .border(AppTheme.strokes.default, style.borderColor, shape)
+                .padding(
+                    horizontal = ProxyDisplaySettingsLayoutDefaults.ToggleContentHorizontalPadding,
+                    vertical = ProxyDisplaySettingsLayoutDefaults.ToggleContentVerticalPadding,
+                ),
+        horizontalArrangement =
+            Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleContentSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconContainerSize)
+                    .clip(
+                        RoundedCornerShape(
+                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
+                        )
+                    )
+                    .background(style.iconContainerColor)
+                    .border(
+                        AppTheme.strokes.default,
+                        style.contentColor.copy(alpha = 0.18f),
+                        RoundedCornerShape(
+                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
+                        ),
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Yume.LayoutPanelLeft,
+                contentDescription = null,
+                tint = style.contentColor,
+                modifier = Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconSize),
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement =
+                Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleLabelSpacing),
+        ) {
+            Text(
+                text = MLang.Proxy.Action.ControlPanel,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = displayMode.displayName,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        StatusBadge(text = displayMode.displayName, tone = SemanticTone.Brand, compact = true)
+    }
+}
+
+@Composable
 private fun ProxyDialogSection(title: String, summary: String? = null) {
     Column(
-        modifier = Modifier.padding(start = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(start = ProxyDisplaySettingsLayoutDefaults.SectionStartPadding),
+        verticalArrangement =
+            Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.SectionTextSpacing),
     ) {
         Text(
             text = title,
@@ -612,40 +739,57 @@ private fun ProxyChoiceTile(
         compact = compact,
         tone = if (selected) SemanticTone.Brand else SemanticTone.Neutral,
         highEmphasis = selected,
-        minHeight = if (compact) 76.dp else 58.dp,
+        minHeight =
+            if (compact) {
+                ProxyDisplaySettingsLayoutDefaults.ChoiceTileMinHeightCompact
+            } else {
+                ProxyDisplaySettingsLayoutDefaults.ChoiceTileMinHeightRegular
+            },
     )
 }
 
 @Composable
 private fun ProxyHiddenGroupsToggle(showHiddenGroups: Boolean, onClick: () -> Unit) {
+    val spacing = AppTheme.spacing
+    val strokes = AppTheme.strokes
     val tone = if (showHiddenGroups) SemanticTone.Info else SemanticTone.Neutral
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = showHiddenGroups)
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(ProxyDisplaySettingsLayoutDefaults.ToggleContainerCornerRadius)
 
     Row(
         modifier =
             Modifier.fillMaxWidth()
                 .clip(shape)
                 .background(style.containerColor, shape)
-                .border(0.8.dp, style.borderColor, shape)
+                .border(strokes.default, style.borderColor, shape)
                 .toggleable(
                     value = showHiddenGroups,
                     role = Role.Switch,
                     onValueChange = { onClick() },
                 )
-                .padding(horizontal = 15.dp, vertical = 13.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(
+                    horizontal = ProxyDisplaySettingsLayoutDefaults.ToggleContentHorizontalPadding,
+                    vertical = ProxyDisplaySettingsLayoutDefaults.ToggleContentVerticalPadding,
+                ),
+        horizontalArrangement =
+            Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleContentSpacing),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier =
-                Modifier.size(38.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconContainerSize)
+                    .clip(
+                        RoundedCornerShape(
+                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
+                        )
+                    )
                     .background(style.iconContainerColor)
                     .border(
-                        0.8.dp,
+                        strokes.default,
                         style.contentColor.copy(alpha = 0.18f),
-                        RoundedCornerShape(14.dp),
+                        RoundedCornerShape(
+                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
+                        ),
                     ),
             contentAlignment = Alignment.Center,
         ) {
@@ -653,11 +797,15 @@ private fun ProxyHiddenGroupsToggle(showHiddenGroups: Boolean, onClick: () -> Un
                 imageVector = Yume.`Scan-eye`,
                 contentDescription = null,
                 tint = style.contentColor,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconSize),
             )
         }
 
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement =
+                Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleLabelSpacing),
+        ) {
             Text(
                 text = MLang.Proxy.Action.ShowHiddenGroups,
                 style = MiuixTheme.textStyles.body2,
@@ -699,15 +847,18 @@ private fun ProxyRuntimePreviewNotice(modifier: Modifier = Modifier) {
     Column(
         modifier =
             modifier
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(ProxyRuntimePreviewLayoutDefaults.CornerRadius))
                 .background(primary.copy(alpha = 0.08f))
                 .border(
-                    width = 1.dp,
+                    width = ProxyRuntimePreviewLayoutDefaults.BorderWidth,
                     color = primary.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(ProxyRuntimePreviewLayoutDefaults.CornerRadius),
                 )
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(
+                    horizontal = ProxyRuntimePreviewLayoutDefaults.PaddingHorizontal,
+                    vertical = ProxyRuntimePreviewLayoutDefaults.PaddingVertical,
+                ),
+        verticalArrangement = Arrangement.spacedBy(ProxyRuntimePreviewLayoutDefaults.ContentSpacing),
     ) {
         Text(
             text = MLang.Providers.Empty.NotRunning,
@@ -735,6 +886,7 @@ private fun FloatingGroupOverlay(
     onSelectProxy: ((String) -> Unit)?,
     onTestProxyDelay: ((String) -> Unit)?,
 ) {
+    val pageMetrics = AppTheme.pageMetrics
     val dismissInteraction = remember { MutableInteractionSource() }
     val visibilityState = remember { MutableTransitionState(false) }
 
@@ -843,11 +995,11 @@ private fun FloatingGroupOverlay(
                             scaleY = panelScale
                             translationY = panelTranslationY
                         }
-                        .widthIn(max = FloatingPanelDefaults.MaxWidth)
-                        .fillMaxWidth(FloatingPanelDefaults.WidthFraction)
-                        .heightIn(max = FloatingPanelDefaults.MaxHeight)
+                        .widthIn(max = pageMetrics.proxyFloatingPanelMaxWidth)
+                        .fillMaxWidth(pageMetrics.proxyFloatingPanelWidthFraction)
+                        .heightIn(max = pageMetrics.proxyFloatingPanelMaxHeight)
                         .shadow(
-                            elevation = 16.dp,
+                            elevation = ProxyFloatingPanelLayoutDefaults.ShadowElevation,
                             shape = panelShape,
                             ambientColor = Color.Black.copy(alpha = panelShadowAlpha),
                             spotColor = Color.Black.copy(alpha = panelShadowAlpha),
@@ -855,7 +1007,7 @@ private fun FloatingGroupOverlay(
                         .clip(panelShape)
                         .background(MiuixTheme.colorScheme.surface)
                         .border(
-                            width = 1.dp,
+                            width = ProxyFloatingPanelLayoutDefaults.BorderWidth,
                             color = MiuixTheme.colorScheme.onSurface.copy(alpha = panelBorderAlpha),
                             shape = panelShape,
                         )
@@ -865,11 +1017,13 @@ private fun FloatingGroupOverlay(
                             onClick = {},
                         )
                         .padding(FloatingPanelDefaults.OuterPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(ProxyFloatingPanelLayoutDefaults.ContentSpacing),
             ) {
                 Column(
                     modifier = Modifier.graphicsLayer { alpha = contentAlpha },
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(ProxyFloatingPanelLayoutDefaults.ContentSpacing),
                 ) {
                     FloatingGroupHeader(
                         group = group,
@@ -881,7 +1035,10 @@ private fun FloatingGroupOverlay(
                     Spacer(
                         modifier =
                             Modifier.fillMaxWidth()
-                                .heightIn(min = 1.dp, max = 1.dp)
+                                .heightIn(
+                                    min = ProxyFloatingPanelLayoutDefaults.DividerThickness,
+                                    max = ProxyFloatingPanelLayoutDefaults.DividerThickness,
+                                )
                                 .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f))
                     )
                 }
@@ -890,10 +1047,11 @@ private fun FloatingGroupOverlay(
                     modifier =
                         Modifier.graphicsLayer { alpha = contentAlpha }
                             .fillMaxWidth()
-                            .heightIn(max = FloatingPanelDefaults.ListMaxHeight)
+                            .heightIn(max = pageMetrics.proxyFloatingPanelListMaxHeight)
                             .selectableGroup()
                             .overScrollVertical(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(ProxyFloatingPanelLayoutDefaults.ListItemSpacing),
                     overscrollEffect = null,
                 ) {
                     items(group.proxies, key = { it.name }, contentType = { "FloatingNodeCard" }) {
@@ -960,7 +1118,7 @@ private fun FloatingGroupHeader(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(FloatingPanelMetrics.HeaderTitleSpacing),
             ) {
                 Text(
                     text = group.name,
@@ -1025,7 +1183,7 @@ private fun FloatingGroupHeader(
                     contentDescription = MLang.Proxy.Action.Close,
                     onClick = onDismiss,
                     tone = SemanticTone.Neutral,
-                    size = FloatingPanelMetrics.HeaderCloseIconSize + 16.dp,
+                    size = FloatingPanelMetrics.HeaderCloseActionSize,
                     iconSize = FloatingPanelMetrics.HeaderCloseIconSize,
                 )
             }
@@ -1078,7 +1236,8 @@ private fun FloatingGroupHeader(
                     text = latencyVisual.label,
                     style = MiuixTheme.textStyles.footnote1,
                     color = latencyVisual.color,
-                    modifier = Modifier.padding(start = 12.dp),
+                    modifier =
+                        Modifier.padding(start = FloatingPanelMetrics.DetailLatencyStartPadding),
                 )
             }
         }
@@ -1098,18 +1257,27 @@ private fun FloatingProxyNodeCard(
     onClickLabel: String?,
     actionChipLabel: String?,
 ) {
+    val spacing = AppTheme.spacing
     val primary = MiuixTheme.colorScheme.primary
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(ProxyFloatingPanelLayoutDefaults.SelectedCardCornerRadius))
                 .background(if (isSelected) primary.copy(alpha = 0.09f) else Color.Transparent)
                 .border(
-                    width = if (isSelected) 1.dp else 0.dp,
+                    width =
+                        if (isSelected) {
+                            ProxyFloatingPanelLayoutDefaults.SelectedCardBorderWidth
+                        } else {
+                            spacing.none
+                        },
                     color = if (isSelected) primary.copy(alpha = 0.24f) else Color.Transparent,
-                    shape = RoundedCornerShape(24.dp),
+                    shape =
+                        RoundedCornerShape(
+                            ProxyFloatingPanelLayoutDefaults.SelectedCardCornerRadius
+                        ),
                 )
-                .padding(2.dp)
+                .padding(ProxyFloatingPanelLayoutDefaults.SelectedCardInnerPadding)
     ) {
         NodeCard(
             proxy = proxy,
@@ -1141,7 +1309,7 @@ private fun FloatingProxyNodeCard(
                             top = FloatingPanelMetrics.CurrentBadgeTopPadding,
                             end = FloatingPanelMetrics.CurrentBadgeEndPadding,
                         )
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(FloatingPanelMetrics.CurrentBadgeCornerRadius))
                         .background(primary.copy(alpha = 0.10f))
                         .padding(
                             horizontal = FloatingPanelMetrics.CurrentBadgeHorizontalPadding,

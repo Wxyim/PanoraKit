@@ -89,8 +89,11 @@ fun ProvidersContent(
     onRefreshSourcesRequest: () -> Unit = {},
     refreshSourcesInProgress: Boolean = false,
     diagnosticContent:
-        @Composable (ExternalResourceDiagnostics, com.github.yumelira.yumebox.domain.model.StructuredError?) ->
-            Unit = { externalDiagnostics, structuredError ->
+        @Composable
+        (
+            ExternalResourceDiagnostics, com.github.yumelira.yumebox.domain.model.StructuredError?,
+        ) -> Unit =
+        { externalDiagnostics, structuredError ->
             ProvidersDiagnosticSummaryCard(
                 banner = externalDiagnostics.toBannerState(),
                 structuredError = structuredError,
@@ -263,7 +266,8 @@ private fun ProvidersDiagnosticSummaryCard(
             summary = banner.subtitle,
             valueLabel = banner.tone.toProviderStateLabel(),
             tone = banner.tone,
-            badgeLeadingDot = banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
+            badgeLeadingDot =
+                banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
             showDivider = structuredError != null,
         )
         structuredError?.let { error ->

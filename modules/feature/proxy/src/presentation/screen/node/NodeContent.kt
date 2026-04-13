@@ -41,11 +41,11 @@ import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumelira.yumebox.domain.model.normalizeProxySheetHeightFraction
 import com.github.yumelira.yumebox.presentation.component.AppInteractionFeedbackDefaults
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -134,7 +134,7 @@ internal fun NodeTabs(groups: List<ProxyGroupInfo>, selectedIndex: Int, onSelect
 
 @Composable
 internal fun rememberNodeSheetHeight(sheetHeightFraction: Float): Dp {
-    val normalized = normalizeProxySheetHeightFraction(sheetHeightFraction)
+    val normalized = sheetHeightFraction.coerceIn(0.5f, 0.8f)
     val windowHeight = LocalWindowAdaptiveInfo.current.windowHeight.takeIf { it > 0.dp } ?: 640.dp
     return remember(windowHeight, normalized) { windowHeight * normalized }
 }
@@ -143,9 +143,9 @@ internal fun rememberNodeSheetHeight(sheetHeightFraction: Float): Dp {
 internal fun NodeGroupSheetContent(
     groups: List<ProxyGroupInfo>,
     testingGroupNames: Set<String>,
-    sheetHeightFraction: Float,
     onGroupClick: (ProxyGroupInfo) -> Unit,
 ) {
+    val sheetHeightFraction = AppTheme.pageMetrics.proxyNotificationSheetHeightFraction
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
     LazyColumn(
@@ -172,60 +172,66 @@ fun NodeSheetContent(
     testingProxyNames: Set<String>,
     onTestDelay: () -> Unit,
     onTestProxyDelay: (String) -> Unit,
-    sheetHeightFraction: Float,
     singleNodeTestEnabled: Boolean = true,
 ) {
+    val sheetHeightFraction = AppTheme.pageMetrics.proxyNotificationSheetHeightFraction
     val sheetHeight = rememberNodeSheetHeight(sheetHeightFraction)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().height(sheetHeight).overScrollVertical(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = NodeSheetContentPadding,
-        overscrollEffect = null,
-    ) {
-        item(key = "__refresh_indicator__") {
-            AnimatedVisibility(
-                visible = isDelayTesting,
-                enter =
-                    expandVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(durationMillis = 150)),
-                exit =
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(sheetHeight)) {
+        val columns =
+            rememberAdaptiveNodeGridColumns(maxWidth = maxWidth, displayMode = displayMode)
+
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).overScrollVertical(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = NodeSheetContentPadding,
+            overscrollEffect = null,
+        ) {
+            item(key = "__refresh_indicator__") {
+                AnimatedVisibility(
+                    visible = isDelayTesting,
+                    enter =
+                        expandVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                    exit =
+                        shrinkVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(animationSpec = tween(durationMillis = 150)),
                 ) {
-                    InfiniteProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text(
-                        text = MLang.Proxy.Testing.InProgress,
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        InfiniteProgressIndicator(modifier = Modifier.size(24.dp))
+                        Text(
+                            text = MLang.Proxy.Testing.InProgress,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
                 }
             }
-        }
 
-        nodeGridItems(
-            proxies = group.proxies,
-            selectedProxyName = group.now,
-            onProxyClick = { proxyName ->
-                if (group.type == Proxy.Type.Selector) {
-                    onSelectProxy(proxyName)
-                } else {
-                    onTestDelay()
-                }
-            },
-            isDelayTesting = isDelayTesting,
-            testingProxyNames = testingProxyNames,
-            onSingleNodeTestClick = onTestProxyDelay,
-            singleNodeTestEnabled = singleNodeTestEnabled,
-        )
+            adaptiveNodeGridItems(
+                proxies = group.proxies,
+                columns = columns,
+                selectedProxyName = group.now,
+                onProxyClick = { proxyName ->
+                    if (group.type == Proxy.Type.Selector) {
+                        onSelectProxy(proxyName)
+                    } else {
+                        onTestDelay()
+                    }
+                },
+                isDelayTesting = isDelayTesting,
+                testingProxyNames = testingProxyNames,
+                onSingleNodeTestClick = onTestProxyDelay,
+                singleNodeTestEnabled = singleNodeTestEnabled,
+            )
+        }
     }
 }

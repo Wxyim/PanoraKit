@@ -75,13 +75,6 @@ class ProxyViewModel(
 
     val isRunning: StateFlow<Boolean> = proxyFacade.isRunning
 
-    val displayMode: StateFlow<ProxyDisplayMode> =
-        proxyDisplaySettingsStore.displayMode.state.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            ProxyDisplayMode.SINGLE_DETAILED,
-        )
-
     val groupStyle: StateFlow<ProxyGroupStyle> =
         proxyDisplaySettingsStore.groupStyle.state.stateIn(
             viewModelScope,
@@ -94,13 +87,6 @@ class ProxyViewModel(
             viewModelScope,
             SharingStarted.Eagerly,
             ProxySortMode.DEFAULT,
-        )
-
-    val sheetHeightFraction: StateFlow<Float> =
-        proxyDisplaySettingsStore.sheetHeightFraction.state.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            PROXY_SHEET_HEIGHT_FRACTION_DEFAULT,
         )
 
     val showHiddenGroups: StateFlow<Boolean> =
@@ -329,20 +315,12 @@ class ProxyViewModel(
         }
     }
 
-    fun setDisplayMode(mode: ProxyDisplayMode) {
-        proxyDisplaySettingsStore.displayMode.set(mode)
-    }
-
     fun setGroupStyle(style: ProxyGroupStyle) {
         proxyDisplaySettingsStore.groupStyle.set(style)
     }
 
     fun setSortMode(mode: ProxySortMode) {
         proxyDisplaySettingsStore.sortMode.set(mode)
-    }
-
-    fun setSheetHeightFraction(value: Float) {
-        proxyDisplaySettingsStore.sheetHeightFraction.set(normalizeProxySheetHeightFraction(value))
     }
 
     fun setShowHiddenGroups(show: Boolean) {

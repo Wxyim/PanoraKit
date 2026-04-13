@@ -41,7 +41,9 @@ import com.github.yumelira.yumebox.presentation.screen.node.NodeGroupSheetConten
 import com.github.yumelira.yumebox.presentation.screen.node.NodeSheetContent
 import com.github.yumelira.yumebox.presentation.screen.node.NodeSortPopup
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.WindowBlurEffect
+import com.github.yumelira.yumebox.presentation.util.resolveAdaptiveProxyDisplayMode
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
@@ -54,18 +56,24 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val POPUP_ANIMATION_DURATION_MS = 320
-private const val NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION = 0.55f
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val windowAdaptiveInfo = LocalWindowAdaptiveInfo.current
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
     val uiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
-    val displayMode by proxyViewModel.displayMode.collectAsStateWithLifecycle()
     val testingGroupNames by proxyViewModel.testingGroupNames.collectAsStateWithLifecycle()
     val testingProxyNames by proxyViewModel.testingProxyNames.collectAsStateWithLifecycle()
     val sortMode by proxyViewModel.sortMode.collectAsStateWithLifecycle()
+    val adaptiveDisplayMode =
+        remember(windowAdaptiveInfo.windowWidth, windowAdaptiveInfo.prefersTwoPaneContent) {
+            resolveAdaptiveProxyDisplayMode(
+                maxWidth = windowAdaptiveInfo.windowWidth,
+                prefersTwoPane = windowAdaptiveInfo.prefersTwoPaneContent,
+            )
+        }
 
     val showSheet = rememberSaveable { mutableStateOf(true) }
     val showSortPopup = rememberSaveable { mutableStateOf(false) }
@@ -250,12 +258,11 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     groups = proxyGroups,
                     onGroupClick = { targetGroup -> selectedGroupName = targetGroup.name },
                     testingGroupNames = testingGroupNames,
-                    sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                 )
             } else {
                 NodeSheetContent(
                     group = group,
-                    displayMode = displayMode,
+                    displayMode = adaptiveDisplayMode,
                     isDelayTesting = testingGroupNames.contains(group.name),
                     testingProxyNames = testingProxyNames,
                     onSelectProxy = { proxyName ->
@@ -267,7 +274,6 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     },
                     onTestDelay = { proxyViewModel.testDelay(group.name) },
                     onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
-                    sheetHeightFraction = NOTIFICATION_PROXY_SHEET_HEIGHT_FRACTION,
                 )
             }
         }

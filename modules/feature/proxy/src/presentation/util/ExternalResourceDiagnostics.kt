@@ -123,8 +123,8 @@ private fun RemoteOverrideResource.toSubscriptionSource(now: Long): Subscription
     val syncState =
         when {
             lastSyncAtMillis == null -> SyncState.Idle
-            updateIntervalSeconds > 0L &&
-                now - lastSyncAtMillis > updateIntervalSeconds * 1_000L -> SyncState.Stale
+            updateIntervalSeconds > 0L && now - lastSyncAtMillis > updateIntervalSeconds * 1_000L ->
+                SyncState.Stale
             else -> SyncState.Succeeded
         }
 

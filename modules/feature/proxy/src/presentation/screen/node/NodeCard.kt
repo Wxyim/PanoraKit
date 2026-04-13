@@ -43,8 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
@@ -57,6 +55,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.CircleGauge
 import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
 import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
 import com.github.yumelira.yumebox.presentation.icon.yume.Speed
+import com.github.yumelira.yumebox.presentation.theme.ProxyNodeCardLayoutDefaults
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import com.github.yumelira.yumebox.presentation.util.extractNodeTags
 import dev.oom_wg.purejoy.mlang.MLang
@@ -67,20 +66,31 @@ import top.yukonga.miuix.kmp.utils.SinkFeedback
 import top.yukonga.miuix.kmp.utils.pressable
 
 internal object NodeCardDefaults {
-    val CornerRadius = 24.dp
-    val PaddingHorizontal = 16.dp
-    val PaddingVertical = 16.dp
-    val TextSpacing = 8.dp
-    val LeadingContainerSize = 44.dp
-    val LeadingContainerCornerRadius = 14.dp
-    val LargeFlagSize = 28.dp
-    val InlineFlagSize = 20.dp
-    val ActionIconSize = 16.dp
-    val ChevronIconSize = 18.dp
-    val ChipFontSize = 10.sp
-    val ChipHorizontalPadding = 7.dp
-    val ChipVerticalPadding = 2.dp
-    val MultiplierIconSize = 9.dp
+    val CornerRadius = ProxyNodeCardLayoutDefaults.CornerRadius
+    val PaddingHorizontal = ProxyNodeCardLayoutDefaults.PaddingHorizontal
+    val PaddingVertical = ProxyNodeCardLayoutDefaults.PaddingVertical
+    val CompactPaddingVertical = ProxyNodeCardLayoutDefaults.CompactPaddingVertical
+    val TextSpacing = ProxyNodeCardLayoutDefaults.TextSpacing
+    val LeadingContainerSize = ProxyNodeCardLayoutDefaults.LeadingContainerSize
+    val LeadingContainerCornerRadius = ProxyNodeCardLayoutDefaults.LeadingContainerCornerRadius
+    val LargeFlagSize = ProxyNodeCardLayoutDefaults.LargeFlagSize
+    val InlineFlagSize = ProxyNodeCardLayoutDefaults.InlineFlagSize
+    val ActionIconSize = ProxyNodeCardLayoutDefaults.ActionIconSize
+    val ChevronIconSize = ProxyNodeCardLayoutDefaults.ChevronIconSize
+    val ChipCornerRadius = ProxyNodeCardLayoutDefaults.ChipCornerRadius
+    val ChipFontSize = ProxyNodeCardLayoutDefaults.ChipFontSize
+    val ChipHorizontalPadding = ProxyNodeCardLayoutDefaults.ChipHorizontalPadding
+    val ChipVerticalPadding = ProxyNodeCardLayoutDefaults.ChipVerticalPadding
+    val MultiplierIconSize = ProxyNodeCardLayoutDefaults.MultiplierIconSize
+    val SelectionBorderWidth = ProxyNodeCardLayoutDefaults.SelectionBorderWidth
+    val ContentRowSpacing = ProxyNodeCardLayoutDefaults.ContentRowSpacing
+    val TextColumnSpacing = ProxyNodeCardLayoutDefaults.TextColumnSpacing
+    val TagRowHorizontalSpacing = ProxyNodeCardLayoutDefaults.TagRowHorizontalSpacing
+    val TagRowVerticalSpacing = ProxyNodeCardLayoutDefaults.TagRowVerticalSpacing
+    val MetricStartPadding = ProxyNodeCardLayoutDefaults.MetricStartPadding
+    val MetricSpacing = ProxyNodeCardLayoutDefaults.MetricSpacing
+    val CountryFlagCornerRadius = ProxyNodeCardLayoutDefaults.CountryFlagCornerRadius
+    val MultiplierChipSpacing = ProxyNodeCardLayoutDefaults.MultiplierChipSpacing
 }
 
 private data class BuiltInNodeVisual(
@@ -144,7 +154,7 @@ internal fun NodeSelectableCard(
                 }
                 .clip(shape)
                 .background(backgroundColor)
-                .border(1.dp, borderColor, shape)
+                .border(NodeCardDefaults.SelectionBorderWidth, borderColor, shape)
                 .let {
                     when {
                         onClick == null -> it
@@ -197,7 +207,7 @@ internal fun NodeCard(
         isSelected = isSelected,
         onClick = onCardClick,
         modifier = modifier,
-        paddingVertical = 12.dp,
+        paddingVertical = NodeCardDefaults.CompactPaddingVertical,
         interactionRole = interactionRole,
         onClickLabel = onClickLabel,
     ) {
@@ -213,7 +223,7 @@ internal fun NodeCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(NodeCardDefaults.ContentRowSpacing),
         ) {
             NodeLargeIcon(
                 countryCode = flagged.countryCode.takeIf { showCountryFlag },
@@ -225,7 +235,7 @@ internal fun NodeCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(NodeCardDefaults.TextColumnSpacing),
             ) {
                 Text(
                     text = flagged.displayName,
@@ -241,8 +251,10 @@ internal fun NodeCard(
                 ) {
                     FlowRow(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(NodeCardDefaults.TagRowHorizontalSpacing),
+                        verticalArrangement =
+                            Arrangement.spacedBy(NodeCardDefaults.TagRowVerticalSpacing),
                     ) {
                         actionChipLabel?.let { label ->
                             NodeTagChip(
@@ -256,8 +268,9 @@ internal fun NodeCard(
                         tags.multiplier?.let { m -> if (m > 0f) NodeMultiplierChip(multiplier = m) }
                     }
                     Row(
-                        modifier = Modifier.padding(start = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(start = NodeCardDefaults.MetricStartPadding),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(NodeCardDefaults.MetricSpacing),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -332,7 +345,7 @@ internal fun NodeLargeIcon(
             CountryFlagFilledIcon(
                 countryCode = countryCode,
                 size = NodeCardDefaults.LargeFlagSize,
-                cornerRadius = 8.dp,
+                cornerRadius = NodeCardDefaults.CountryFlagCornerRadius,
             )
         } else if (builtInVisual != null) {
             Icon(
@@ -434,7 +447,7 @@ private fun NodeTagChip(label: String, textColor: Color? = null, backgroundColor
         style = MiuixTheme.textStyles.footnote1.copy(fontSize = NodeCardDefaults.ChipFontSize),
         color = resolvedTextColor,
         modifier =
-            Modifier.clip(RoundedCornerShape(100.dp))
+            Modifier.clip(RoundedCornerShape(NodeCardDefaults.ChipCornerRadius))
                 .background(resolvedBackgroundColor)
                 .padding(
                     horizontal = NodeCardDefaults.ChipHorizontalPadding,
@@ -455,14 +468,14 @@ private fun NodeMultiplierChip(multiplier: Float) {
 
     Row(
         modifier =
-            Modifier.clip(RoundedCornerShape(100.dp))
+            Modifier.clip(RoundedCornerShape(NodeCardDefaults.ChipCornerRadius))
                 .background(chipBg)
                 .padding(
                     horizontal = NodeCardDefaults.ChipHorizontalPadding,
                     vertical = NodeCardDefaults.ChipVerticalPadding,
                 ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(NodeCardDefaults.MultiplierChipSpacing),
     ) {
         Icon(
             imageVector = Yume.BadgeDollarSign,

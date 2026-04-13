@@ -81,7 +81,9 @@ object RootTunStartCoordinator {
                         )
                     stateStore.markIdle(error = failure.error, errorCode = failure.errorCode)
                     runCatching { RootTunService.stop(appContext) }
-                    runCatching { RootService.stop(Intent(appContext, RootTunRootService::class.java)) }
+                    runCatching {
+                        RootService.stop(Intent(appContext, RootTunRootService::class.java))
+                    }
                     RootTunRemoteClient.disconnect()
                     startupLogStore.append(
                         "ROOT_TUN $callerTag: total=${System.currentTimeMillis() - startedAt}ms failed=${failure.error}"

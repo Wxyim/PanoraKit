@@ -240,9 +240,7 @@ class ProvidersViewModel(
     }
 
     private fun showMessage(message: String) {
-        _uiState.update { current ->
-            current.copy(message = message, structuredError = null)
-        }
+        _uiState.update { current -> current.copy(message = message, structuredError = null) }
     }
 
     private fun showError(
