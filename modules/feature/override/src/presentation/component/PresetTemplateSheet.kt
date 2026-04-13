@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.data.util.OverridePresetItem
 import com.github.yumelira.yumebox.data.util.OverridePresetRegion
 import com.github.yumelira.yumebox.data.util.OverridePresetTemplateSelection
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
@@ -40,7 +41,6 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object PresetTemplateSheetMetrics {
-    val ListMaxHeight = 560.dp
     val BottomPadding = 12.dp
     val SectionSpacing = 8.dp
     val IntroHorizontalPadding = 16.dp
@@ -55,6 +55,7 @@ fun OverridePresetTemplateSheet(
     onDismiss: () -> Unit,
     onConfirm: (OverridePresetTemplateSelection) -> Unit,
 ) {
+    val pageMetrics = AppTheme.pageMetrics
     val selectedRegions = remember(show) { mutableStateListOf<OverridePresetRegion>() }
     val enabledItems = remember(show) { mutableStateListOf<OverridePresetItem>() }
     val templateId = initialSelection.templateId
@@ -96,7 +97,7 @@ fun OverridePresetTemplateSheet(
         LazyColumn(
             modifier =
                 Modifier.fillMaxWidth()
-                    .heightIn(max = PresetTemplateSheetMetrics.ListMaxHeight)
+                    .heightIn(max = pageMetrics.overridePresetTemplateListMaxHeight)
                     .padding(bottom = PresetTemplateSheetMetrics.BottomPadding),
             verticalArrangement = Arrangement.spacedBy(PresetTemplateSheetMetrics.SectionSpacing),
         ) {

@@ -86,7 +86,6 @@ fun ConnectionDetailSheet(
                 it.isNotBlank() && !it.equals(sourcePackageName.orEmpty(), ignoreCase = true)
             }
         }
-
     AppActionBottomSheet(
         show = show,
         title = displayAddress?.title.orEmpty(),

@@ -57,6 +57,8 @@ import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmA
 import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
@@ -66,19 +68,6 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.WindowSpinner
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object ProfileSheetMetrics {
-    val BottomPadding = 16.dp
-    val ContentSpacing = 16.dp
-    val ProgressSpacing = 16.dp
-    val ProgressIconContainer = 48.dp
-    val ProgressIndicatorSize = 32.dp
-    val CompletedIconCornerRadius = 16.dp
-    val CompletedIconPadding = 10.dp
-    val QrPreviewMinHeight = 188.dp
-    val QrPreviewMaxHeight = 256.dp
-    const val QrPreviewHeightFraction = 0.28f
-}
 
 @Composable
 internal fun AddProfileSheet(
@@ -98,6 +87,9 @@ internal fun AddProfileSheet(
     onDownloadComplete: () -> Unit,
     profilesViewModel: ProfilesViewModel,
 ) {
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    val pageMetrics = LocalPageMetrics.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -398,16 +390,17 @@ internal fun AddProfileSheet(
         onDismissRequest = dismissSheet,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val sheetViewportHeight = maxHeight.takeIf { it > 0.dp } ?: 640.dp
+            val sheetViewportHeight =
+                maxHeight.takeIf { it > 0.dp } ?: pageMetrics.profileAddSheetFallbackHeight
             val downloadSheetContentHeight =
                 (sheetViewportHeight * 0.30f).coerceIn(
-                    ProfileSheetMetrics.QrPreviewMinHeight,
-                    ProfileSheetMetrics.QrPreviewMaxHeight,
+                    pageMetrics.profileAddSheetQrPreviewMinHeight,
+                    pageMetrics.profileAddSheetQrPreviewMaxHeight,
                 )
             val qrPreviewHeight =
-                (sheetViewportHeight * ProfileSheetMetrics.QrPreviewHeightFraction).coerceIn(
-                    ProfileSheetMetrics.QrPreviewMinHeight,
-                    ProfileSheetMetrics.QrPreviewMaxHeight,
+                (sheetViewportHeight * pageMetrics.profileAddSheetQrPreviewHeightFraction).coerceIn(
+                    pageMetrics.profileAddSheetQrPreviewMinHeight,
+                    pageMetrics.profileAddSheetQrPreviewMaxHeight,
                 )
 
             Box(
@@ -423,7 +416,7 @@ internal fun AddProfileSheet(
                         .animateContentSize(
                             animationSpec = tween(300, easing = FastOutSlowInEasing)
                         )
-                        .padding(bottom = ProfileSheetMetrics.BottomPadding)
+                        .padding(bottom = spacing.lg)
             ) {
                 AnimatedVisibility(
                     modifier = Modifier.fillMaxWidth(),
@@ -439,13 +432,11 @@ internal fun AddProfileSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement =
-                                Arrangement.spacedBy(
-                                    ProfileSheetMetrics.ProgressSpacing,
-                                    Alignment.CenterVertically,
-                                ),
+                                Arrangement.spacedBy(spacing.lg, Alignment.CenterVertically),
                         ) {
                             Box(
-                                modifier = Modifier.size(ProfileSheetMetrics.ProgressIconContainer),
+                                modifier =
+                                    Modifier.size(pageMetrics.profileAddSheetProgressIconContainer),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 AnimatedContent(
@@ -465,22 +456,15 @@ internal fun AddProfileSheet(
                                             tint = MiuixTheme.colorScheme.onPrimary,
                                             modifier =
                                                 Modifier.fillMaxSize()
-                                                    .clip(
-                                                        RoundedCornerShape(
-                                                            ProfileSheetMetrics
-                                                                .CompletedIconCornerRadius
-                                                        )
-                                                    )
+                                                    .clip(RoundedCornerShape(radii.xl))
                                                     .background(MiuixTheme.colorScheme.primary)
-                                                    .padding(
-                                                        ProfileSheetMetrics.CompletedIconPadding
-                                                    ),
+                                                    .padding(spacing.sm),
                                         )
                                     } else {
                                         InfiniteProgressIndicator(
                                             modifier =
                                                 Modifier.size(
-                                                    ProfileSheetMetrics.ProgressIndicatorSize
+                                                    pageMetrics.profileAddSheetProgressIndicatorSize
                                                 )
                                         )
                                     }
@@ -510,8 +494,7 @@ internal fun AddProfileSheet(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement =
-                            Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing),
+                        verticalArrangement = Arrangement.spacedBy(spacing.lg),
                     ) {
                         top.yukonga.miuix.kmp.basic.Card {
                             Box(
@@ -564,8 +547,7 @@ internal fun AddProfileSheet(
                         ) { typeIndex ->
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement =
-                                    Arrangement.spacedBy(ProfileSheetMetrics.ContentSpacing),
+                                verticalArrangement = Arrangement.spacedBy(spacing.lg),
                             ) {
                                 when (typeIndex) {
                                     2 -> {
@@ -573,7 +555,7 @@ internal fun AddProfileSheet(
                                             modifier =
                                                 Modifier.fillMaxWidth()
                                                     .height(qrPreviewHeight)
-                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .clip(RoundedCornerShape(radii.lg))
                                                     .background(
                                                         MiuixTheme.colorScheme.surfaceVariant
                                                     ),
@@ -607,8 +589,8 @@ internal fun AddProfileSheet(
                                                 CircularProgressIndicator(
                                                     modifier =
                                                         Modifier.size(
-                                                            ProfileSheetMetrics
-                                                                .ProgressIndicatorSize
+                                                            pageMetrics
+                                                                .profileAddSheetProgressIndicatorSize
                                                         )
                                                 )
                                             }

@@ -39,9 +39,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.theme.SpeedChartLayoutDefaults
 import com.github.yumelira.yumebox.presentation.theme.TrafficChartConfig
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -55,8 +55,6 @@ private const val SPEED_CHART_IDLE_WAVE_SPAN = 4f
 private const val SPEED_CHART_CALM_WAVE_AMPLITUDE = 0.012f
 private const val SPEED_CHART_CALM_WAVE_SPAN = 3.2f
 private const val SPEED_CHART_CALM_VARIANCE_THRESHOLD = 0.028f
-private val SPEED_CHART_BAR_GAP = 5.dp
-private val SPEED_CHART_BAR_CORNER_RADIUS = 6.dp
 
 @Composable
 fun SpeedChart(
@@ -121,7 +119,7 @@ fun SpeedChart(
                     onClick = onClick,
                 )
     ) {
-        val barGapPx = SPEED_CHART_BAR_GAP.toPx()
+        val barGapPx = SpeedChartLayoutDefaults.BarGap.toPx()
         val chartBarCount = SPEED_CHART_SAMPLE_LIMIT
 
         val totalGapWidth = barGapPx * (chartBarCount - 1)
@@ -296,7 +294,7 @@ private fun DrawScope.drawCalmBars(
 }
 
 private fun DrawScope.createBarCornerRadius(barWidthPx: Float): CornerRadius {
-    val cornerRadiusPx = SPEED_CHART_BAR_CORNER_RADIUS.toPx()
+    val cornerRadiusPx = SpeedChartLayoutDefaults.BarCornerRadius.toPx()
     return CornerRadius(
         x = cornerRadiusPx.coerceAtMost(barWidthPx / 2f),
         y = cornerRadiusPx.coerceAtMost(size.height / 2f),

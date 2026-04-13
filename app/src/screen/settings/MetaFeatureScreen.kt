@@ -26,16 +26,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.state.ToggleableState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.GeoFileType
 import com.github.yumelira.yumebox.core.model.GeoXItem
 import com.github.yumelira.yumebox.core.model.geoXItems
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
+import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
@@ -53,8 +53,8 @@ import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDe
 import com.ramcosta.composedestinations.generated.destinations.RawTraceDetailScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.RuleSetInspectorScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.RuntimeHealthDetailScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.SourceRegistryOverviewScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.SnapshotHistoryScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.SourceRegistryOverviewScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
@@ -78,9 +78,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val externalResourceBanner = remember(uiState.externalResources) {
-        uiState.externalResources.toBannerState()
-    }
+    val externalResourceBanner =
+        remember(uiState.externalResources) { uiState.externalResources.toBannerState() }
     val recentFailureSummary =
         remember(uiState.recentFailures) {
             if (uiState.recentFailures.isEmpty()) {
@@ -97,71 +96,71 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     val showGeoXDownloadSheet = remember { mutableStateOf(false) }
     var runtimeConfigLoading by remember { mutableStateOf(false) }
     val openRuntimeConfigPreview: () -> Unit = {
-        if (!runtimeConfigLoading) scope.launch {
-            runtimeConfigLoading = true
-            try {
-                ServiceClient.connect(context)
-                val activeProfile = ServiceClient.profile().queryActive()
-                val runtimeConfig = ServiceClient.clash().queryConfiguration()
-                if (activeProfile == null) {
-                    context.toast(MLang.MetaFeature.RuntimeConfig.NoActiveProfile)
-                    return@launch
-                }
-
-                val configPath = runtimeConfig.configPath?.trim().orEmpty()
-                if (configPath.isBlank()) {
-                    context.toast(MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning)
-                    return@launch
-                }
-
-                val runtimeYaml =
-                    withContext(Dispatchers.IO) {
-                        val file = File(configPath)
-                        if (!file.exists() || !file.isFile) null else file.readText()
+        if (!runtimeConfigLoading)
+            scope.launch {
+                runtimeConfigLoading = true
+                try {
+                    ServiceClient.connect(context)
+                    val activeProfile = ServiceClient.profile().queryActive()
+                    val runtimeConfig = ServiceClient.clash().queryConfiguration()
+                    if (activeProfile == null) {
+                        context.toast(MLang.MetaFeature.RuntimeConfig.NoActiveProfile)
+                        return@launch
                     }
 
-                if (runtimeYaml.isNullOrBlank()) {
-                    context.toast(MLang.MetaFeature.RuntimeConfig.ConfigNotFound)
-                    return@launch
-                }
+                    val configPath = runtimeConfig.configPath?.trim().orEmpty()
+                    if (configPath.isBlank()) {
+                        context.toast(MLang.MetaFeature.RuntimeConfig.RuntimeConfigNotRunning)
+                        return@launch
+                    }
 
-                val previewTitle =
-                    activeProfile.name
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let {
-                            MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it)
-                        }
-                        ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
-
-                OverrideStructuredEditorStore.setupConfigPreview(
-                    title = previewTitle,
-                    content = decodeEscapedUnicode(runtimeYaml),
-                    language = LanguageScope.Yaml,
-                    callback = null,
-                )
-                navigator.navigate(OverrideConfigPreviewRouteDestination) {
-                    launchSingleTop = true
-                }
-            } catch (error: Throwable) {
-                val message =
-                    when {
-                        error.message?.contains("unauthorized", ignoreCase = true) == true -> {
-                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigUnauthorized
+                    val runtimeYaml =
+                        withContext(Dispatchers.IO) {
+                            val file = File(configPath)
+                            if (!file.exists() || !file.isFile) null else file.readText()
                         }
 
-                        else -> {
-                            MLang.MetaFeature.RuntimeConfig.RuntimeConfigFetchFailed.format(
-                                error.runtimeGatewayMessage(
-                                    MLang.MetaFeature.RuntimeConfig.LoadFailed
+                    if (runtimeYaml.isNullOrBlank()) {
+                        context.toast(MLang.MetaFeature.RuntimeConfig.ConfigNotFound)
+                        return@launch
+                    }
+
+                    val previewTitle =
+                        activeProfile.name
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let {
+                                MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it)
+                            } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
+
+                    OverrideStructuredEditorStore.setupConfigPreview(
+                        title = previewTitle,
+                        content = decodeEscapedUnicode(runtimeYaml),
+                        language = LanguageScope.Yaml,
+                        callback = null,
+                    )
+                    navigator.navigate(OverrideConfigPreviewRouteDestination) {
+                        launchSingleTop = true
+                    }
+                } catch (error: Throwable) {
+                    val message =
+                        when {
+                            error.message?.contains("unauthorized", ignoreCase = true) == true -> {
+                                MLang.MetaFeature.RuntimeConfig.RuntimeConfigUnauthorized
+                            }
+
+                            else -> {
+                                MLang.MetaFeature.RuntimeConfig.RuntimeConfigFetchFailed.format(
+                                    error.runtimeGatewayMessage(
+                                        MLang.MetaFeature.RuntimeConfig.LoadFailed
+                                    )
                                 )
-                            )
+                            }
                         }
-                    }
-                context.toast(message)
-            } finally {
-                runtimeConfigLoading = false
+                    context.toast(message)
+                } finally {
+                    runtimeConfigLoading = false
+                }
             }
-        }
     }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
@@ -212,7 +211,9 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         tone = buildRuntimeTone(uiState.runtimeSnapshot),
                                         tier = DiagnosticLang.DetailPages.Console.BeginnerTier,
                                         onClick = {
-                                            navigator.navigate(RuntimeHealthDetailScreenDestination) {
+                                            navigator.navigate(
+                                                RuntimeHealthDetailScreenDestination
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         },
@@ -241,7 +242,9 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         tone = externalResourceBanner.tone,
                                         tier = DiagnosticLang.DetailPages.Console.BeginnerTier,
                                         onClick = {
-                                            navigator.navigate(SourceRegistryOverviewScreenDestination) {
+                                            navigator.navigate(
+                                                SourceRegistryOverviewScreenDestination
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         },
@@ -258,19 +261,23 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         title = DiagnosticLang.DetailPages.ExplanationChain.Title,
                                         summary =
                                             uiState.recentFailures.lastOrNull()?.message
-                                                ?: DiagnosticLang.DetailPages.ExplanationChain.Summary,
+                                                ?: DiagnosticLang.DetailPages.ExplanationChain
+                                                    .Summary,
                                         imageVector = Yume.Sparkles,
                                         tone = SemanticTone.Info,
                                         tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
                                         onClick = {
-                                            navigator.navigate(ExplanationChainDetailScreenDestination) {
+                                            navigator.navigate(
+                                                ExplanationChainDetailScreenDestination
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         },
                                     ),
                                     MetaCapabilityEntry(
                                         title = DiagnosticLang.DetailPages.RuleSetInspector.Title,
-                                        summary = DiagnosticLang.DetailPages.RuleSetInspector.Summary,
+                                        summary =
+                                            DiagnosticLang.DetailPages.RuleSetInspector.Summary,
                                         imageVector = Yume.ListCollapse,
                                         tone = SemanticTone.Info,
                                         tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
@@ -282,7 +289,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     ),
                                     MetaCapabilityEntry(
                                         title = DiagnosticLang.DetailPages.SnapshotHistory.Title,
-                                        summary = DiagnosticLang.DetailPages.SnapshotHistory.Summary,
+                                        summary =
+                                            DiagnosticLang.DetailPages.SnapshotHistory.Summary,
                                         imageVector = Yume.Save,
                                         tone = SemanticTone.Brand,
                                         tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
@@ -477,10 +485,7 @@ private fun MetaOverviewSection(
 }
 
 @Composable
-private fun MetaCapabilitySection(
-    title: String,
-    entries: List<MetaCapabilityEntry>,
-) {
+private fun MetaCapabilitySection(title: String, entries: List<MetaCapabilityEntry>) {
     SmallTitle(title)
     Card {
         entries.forEachIndexed { index, entry ->
@@ -505,10 +510,11 @@ private fun buildRuntimeTone(
 ): SemanticTone {
     return when {
         failureCount > 0 || runtimeSnapshot.phase == RuntimePhase.Failed -> SemanticTone.Danger
-        runtimeSnapshot.phase == RuntimePhase.Running && runtimeSnapshot.payloadReady -> SemanticTone.Success
+        runtimeSnapshot.phase == RuntimePhase.Running && runtimeSnapshot.payloadReady ->
+            SemanticTone.Success
         runtimeSnapshot.phase == RuntimePhase.Running -> SemanticTone.Warning
-        runtimeSnapshot.phase == RuntimePhase.Starting || runtimeSnapshot.phase == RuntimePhase.Stopping ->
-            SemanticTone.Info
+        runtimeSnapshot.phase == RuntimePhase.Starting ||
+            runtimeSnapshot.phase == RuntimePhase.Stopping -> SemanticTone.Info
         else -> SemanticTone.Neutral
     }
 }
@@ -519,7 +525,8 @@ private fun buildRuntimeSummary(runtimeSnapshot: RuntimeSnapshot, failureCount: 
             DiagnosticLang.DetailPages.Console.RuntimeAttention
         runtimeSnapshot.phase == RuntimePhase.Running && runtimeSnapshot.payloadReady ->
             DiagnosticLang.DetailPages.Console.RuntimeStable
-        runtimeSnapshot.phase == RuntimePhase.Running -> DiagnosticLang.DetailPages.RuntimeHealth.RunningDegraded
+        runtimeSnapshot.phase == RuntimePhase.Running ->
+            DiagnosticLang.DetailPages.RuntimeHealth.RunningDegraded
         else -> DiagnosticLang.DetailPages.Console.RuntimeIdle
     }
 }

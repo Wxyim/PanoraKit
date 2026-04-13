@@ -29,8 +29,5 @@ import top.yukonga.miuix.kmp.basic.SmallTitle
 
 @Composable
 fun SmallTitle(text: String) {
-    SmallTitle(
-        modifier = Modifier.topPadding().semantics { heading() },
-        text = text,
-    )
+    SmallTitle(modifier = Modifier.topPadding().semantics { heading() }, text = text)
 }

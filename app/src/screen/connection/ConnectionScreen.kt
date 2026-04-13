@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.core.model.ConnectionInfo
 import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionCard
@@ -48,6 +47,8 @@ import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.ConnectionScreenLayoutDefaults
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
@@ -63,16 +64,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Search
 import top.yukonga.miuix.kmp.icon.extended.Sort
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object ConnectionPageSpacing {
-    val ContentTop = 20.dp
-    val ContentHorizontal = 12.dp
-    val ItemVertical = 6.dp
-    val TopBarActionInner = 8.dp
-    val TopBarActionOuter = 24.dp
-    val SearchVerticalPadding = 8.dp
-    val EmptyStatePadding = 32.dp
-}
 
 private val SortModes =
     listOf(ConnectionSort.Time, ConnectionSort.Upload, ConnectionSort.Download, ConnectionSort.Host)
@@ -105,6 +96,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val spacing = AppTheme.spacing
 
     val pcapExportLauncher =
         rememberLauncherForActivityResult(
@@ -154,8 +146,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                 actions = {
                     Box {
                         IconButton(
-                            modifier =
-                                Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
+                            modifier = Modifier.padding(end = spacing.sm),
                             onClick = { showSortPopup = true },
                         ) {
                             Icon(
@@ -187,7 +178,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                         }
                     }
                     IconButton(
-                        modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionInner),
+                        modifier = Modifier.padding(end = spacing.sm),
                         onClick = {
                             if (state.isCapturing) {
                                 viewModel.stopCapture()
@@ -213,7 +204,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                                 Box(
                                     modifier =
                                         Modifier.align(Alignment.TopEnd)
-                                            .size(8.dp)
+                                            .size(spacing.sm)
                                             .clip(CircleShape)
                                             .background(MiuixTheme.colorScheme.primary)
                                 )
@@ -221,7 +212,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                         }
                     }
                     IconButton(
-                        modifier = Modifier.padding(end = ConnectionPageSpacing.TopBarActionOuter),
+                        modifier = Modifier.padding(end = spacing.xxxl),
                         onClick = { showSearchBar = !showSearchBar },
                     ) {
                         Icon(
@@ -246,9 +237,9 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                 innerPadding = innerPadding,
                 contentPadding =
                     PaddingValues(
-                        start = ConnectionPageSpacing.ContentHorizontal,
-                        end = ConnectionPageSpacing.ContentHorizontal,
-                        top = innerPadding.calculateTopPadding() + ConnectionPageSpacing.ContentTop,
+                        start = spacing.md,
+                        end = spacing.md,
+                        top = innerPadding.calculateTopPadding() + spacing.xl,
                         bottom = innerPadding.calculateBottomPadding(),
                     ),
             ) {
@@ -275,11 +266,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                             ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)),
                     ) {
                         Row(
-                            modifier =
-                                Modifier.fillMaxWidth()
-                                    .padding(
-                                        vertical = ConnectionPageSpacing.SearchVerticalPadding
-                                    ),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = spacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             TextField(
@@ -296,9 +283,7 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                 if (filteredConnections.isEmpty()) {
                     item {
                         Box(
-                            modifier =
-                                Modifier.fillMaxWidth()
-                                    .padding(ConnectionPageSpacing.EmptyStatePadding),
+                            modifier = Modifier.fillMaxWidth().padding(spacing.xxxl),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -325,7 +310,9 @@ fun ConnectionScreen(navigator: DestinationsNavigator) {
                                 showDetailSheet = true
                             },
                             modifier =
-                                Modifier.padding(vertical = ConnectionPageSpacing.ItemVertical),
+                                Modifier.padding(
+                                    vertical = ConnectionScreenLayoutDefaults.ItemVerticalPadding
+                                ),
                         )
                     }
                 }

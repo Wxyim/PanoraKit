@@ -50,9 +50,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.common.util.formatBytesForDisplay
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -61,7 +58,11 @@ import com.github.yumelira.yumebox.presentation.component.TestTags
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.HomeTrafficMetrics
+import com.github.yumelira.yumebox.presentation.theme.HomeTrafficMetricsDefaults
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.yumelira.yumebox.presentation.theme.rememberHomeTrafficMetrics
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
@@ -94,14 +95,26 @@ fun TrafficDisplay(
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth)
-        val metrics = remember(maxWidth) { HomeTrafficMetrics.from(maxWidth) }
+        val metrics = rememberHomeTrafficMetrics(maxWidth)
         val shouldEmphasizeProfileSelection =
             runtimeVisualState == HomeRuntimeVisualState.Idle && !canStartProxy
         val controlColumnWidth =
             when {
-                availableAdaptiveInfo.isExpandedWidth -> (maxWidth * 0.34f).coerceIn(224.dp, 292.dp)
-                availableAdaptiveInfo.isMediumWidth -> (maxWidth * 0.40f).coerceIn(196.dp, 244.dp)
-                else -> (maxWidth * 0.46f).coerceIn(176.dp, 212.dp)
+                availableAdaptiveInfo.isExpandedWidth ->
+                    (maxWidth * 0.34f).coerceIn(
+                        HomeTrafficMetricsDefaults.ControlColumnExpandedMin,
+                        HomeTrafficMetricsDefaults.ControlColumnExpandedMax,
+                    )
+                availableAdaptiveInfo.isMediumWidth ->
+                    (maxWidth * 0.40f).coerceIn(
+                        HomeTrafficMetricsDefaults.ControlColumnMediumMin,
+                        HomeTrafficMetricsDefaults.ControlColumnMediumMax,
+                    )
+                else ->
+                    (maxWidth * 0.46f).coerceIn(
+                        HomeTrafficMetricsDefaults.ControlColumnCompactMin,
+                        HomeTrafficMetricsDefaults.ControlColumnCompactMax,
+                    )
             }
 
         Column(
@@ -539,7 +552,10 @@ private fun HomeControlTextBlock(
         horizontalArrangement = Arrangement.spacedBy(metrics.controlInnerSpacing),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xxs),
+        ) {
             Text(
                 text = caption,
                 style =
@@ -627,86 +643,3 @@ private fun ProxyMode.toTransportLabel(): String =
         ProxyMode.RootTun -> "TUN"
         ProxyMode.Http -> "HTTP"
     }
-
-private data class HomeTrafficMetrics(
-    val topPadding: Dp,
-    val bottomPadding: Dp,
-    val sectionSpacing: Dp,
-    val capsuleSectionSpacing: Dp,
-    val controlStackSpacing: Dp,
-    val labelFontSize: androidx.compose.ui.unit.TextUnit,
-    val trafficFontSize: androidx.compose.ui.unit.TextUnit,
-    val trafficLetterSpacing: androidx.compose.ui.unit.TextUnit,
-    val trafficUnitFontSize: androidx.compose.ui.unit.TextUnit,
-    val unitBottomPadding: Dp,
-    val unitStartPadding: Dp,
-    val uploadSectionSpacing: Dp,
-    val uploadValueSpacing: Dp,
-    val uploadValueFontSize: androidx.compose.ui.unit.TextUnit,
-    val capsuleHeight: Dp,
-    val capsuleHorizontalPadding: Dp,
-    val capsuleInnerSpacing: Dp,
-    val capsuleIconSpacing: Dp,
-    val capsuleIconSize: Dp,
-    val capsuleDotSize: Dp,
-    val capsuleTextSize: androidx.compose.ui.unit.TextUnit,
-    val controlTouchTargetHeight: Dp,
-    val controlCornerRadius: Dp,
-    val controlHorizontalPadding: Dp,
-    val controlVerticalPadding: Dp,
-    val controlInnerSpacing: Dp,
-    val controlIconSize: Dp,
-    val controlChevronSize: Dp,
-    val controlTextSize: androidx.compose.ui.unit.TextUnit,
-    val modeCaptionTextSize: androidx.compose.ui.unit.TextUnit,
-    val controlPressedScale: Float,
-    val modeBadgeHeight: Dp,
-    val modeBadgeMinWidth: Dp,
-    val modeBadgeMaxWidth: Dp,
-    val statusCapsuleHeight: Dp,
-    val statusCapsuleMinWidth: Dp,
-) {
-    companion object {
-        fun from(width: Dp): HomeTrafficMetrics {
-            val scale = (width / 390.dp).coerceIn(0.9f, 1f)
-            return HomeTrafficMetrics(
-                topPadding = (36.dp * scale).coerceIn(30.dp, 36.dp),
-                bottomPadding = (8.dp * scale).coerceIn(6.dp, 8.dp),
-                sectionSpacing = (16.dp * scale).coerceIn(12.dp, 16.dp),
-                capsuleSectionSpacing = (12.dp * scale).coerceIn(8.dp, 12.dp),
-                controlStackSpacing = (12.dp * scale).coerceIn(10.dp, 12.dp),
-                labelFontSize = (14f * scale).coerceIn(13f, 14f).sp,
-                trafficFontSize = (96f * scale).coerceIn(80f, 96f).sp,
-                trafficLetterSpacing = 0.sp,
-                trafficUnitFontSize = (24f * scale).coerceIn(20f, 24f).sp,
-                unitBottomPadding = (14.dp * scale).coerceIn(10.dp, 14.dp),
-                unitStartPadding = (8.dp * scale).coerceIn(6.dp, 8.dp),
-                uploadSectionSpacing = (10.dp * scale).coerceIn(8.dp, 10.dp),
-                uploadValueSpacing = (12.dp * scale).coerceIn(10.dp, 12.dp),
-                uploadValueFontSize = (20f * scale).coerceIn(18f, 20f).sp,
-                capsuleHeight = (28.dp * scale).coerceIn(26.dp, 28.dp),
-                capsuleHorizontalPadding = (12.dp * scale).coerceIn(10.dp, 12.dp),
-                capsuleInnerSpacing = (8.dp * scale).coerceIn(6.dp, 8.dp),
-                capsuleIconSpacing = (6.dp * scale).coerceIn(5.dp, 6.dp),
-                capsuleIconSize = (12.dp * scale).coerceIn(11.dp, 12.dp),
-                capsuleDotSize = (4.dp * scale).coerceIn(3.dp, 4.dp),
-                capsuleTextSize = (12f * scale).coerceIn(11f, 12f).sp,
-                controlTouchTargetHeight = (56.dp * scale).coerceIn(52.dp, 56.dp),
-                controlCornerRadius = (22.dp * scale).coerceIn(20.dp, 22.dp),
-                controlHorizontalPadding = (18.dp * scale).coerceIn(16.dp, 18.dp),
-                controlVerticalPadding = (10.dp * scale).coerceIn(8.dp, 10.dp),
-                controlInnerSpacing = (10.dp * scale).coerceIn(8.dp, 10.dp),
-                controlIconSize = (18.dp * scale).coerceIn(16.dp, 18.dp),
-                controlChevronSize = (16.dp * scale).coerceIn(14.dp, 16.dp),
-                controlTextSize = (15f * scale).coerceIn(14f, 15f).sp,
-                modeCaptionTextSize = (12f * scale).coerceIn(11f, 12f).sp,
-                controlPressedScale = 0.985f,
-                modeBadgeHeight = (52.dp * scale).coerceIn(48.dp, 52.dp),
-                modeBadgeMinWidth = (184.dp * scale).coerceIn(170.dp, 184.dp),
-                modeBadgeMaxWidth = (248.dp * scale).coerceIn(220.dp, 248.dp),
-                statusCapsuleHeight = (52.dp * scale).coerceIn(48.dp, 52.dp),
-                statusCapsuleMinWidth = (164.dp * scale).coerceIn(148.dp, 164.dp),
-            )
-        }
-    }
-}

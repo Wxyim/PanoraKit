@@ -53,7 +53,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +74,8 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
@@ -88,24 +89,13 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private object AccessControlMetrics {
-    val SearchOverlayMaxWidth = 760.dp
-    val SearchHorizontalPadding = 16.dp
-    val SearchTopPadding = 12.dp
-    val SearchResultCornerRadius = 16.dp
-    val ListCardVerticalPadding = 4.dp
-    val SearchEntryVerticalPadding = 6.dp
-    val SearchResultAppIconSize = 40.dp
-    val AppCardIconSize = 45.dp
-    val AppIconBitmapBaseSize = 80
-    val AppIconEndPadding = 12.dp
-}
-
 @Composable
 @Destination<RootGraph>
 fun AccessControlScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
     val viewModel = koinViewModel<AccessControlViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val filteredApps by viewModel.filteredApps.collectAsStateWithLifecycle()
@@ -145,7 +135,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     },
                     actions = {
                         IconButton(
-                            modifier = Modifier.padding(end = 24.dp),
+                            modifier = Modifier.padding(end = spacing.xxl),
                             onClick = { showSettingsSheet.value = true },
                         ) {
                             Icon(
@@ -175,14 +165,14 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                         modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                         scrollBehavior = scrollBehavior,
                         innerPadding = innerPadding,
-                        topPadding = 20.dp,
+                        topPadding = spacing.xl,
                     ) {
                         if (uiState.needsMiuiPermission) {
                             item {
                                 Card {
                                     Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.padding(spacing.lg),
+                                        verticalArrangement = Arrangement.spacedBy(spacing.md),
                                     ) {
                                         Text(MLang.Onboarding.Permission.AppList.Title)
                                         Text(
@@ -220,7 +210,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(spacing.md))
                             }
                         }
 
@@ -228,8 +218,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             item {
                                 Card {
                                     Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.padding(spacing.lg),
+                                        verticalArrangement = Arrangement.spacedBy(spacing.md),
                                     ) {
                                         Text(
                                             if (uiState.needsMiuiPermission) {
@@ -242,19 +232,13 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(spacing.md))
                             }
                         }
 
                         item {
                             if (uiState.canBrowseApps) {
-                                Card(
-                                    modifier =
-                                        Modifier.padding(
-                                            vertical =
-                                                AccessControlMetrics.SearchEntryVerticalPadding
-                                        )
-                                ) {
+                                Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                                     BasicComponent(
                                         title =
                                             uiState.searchQuery.ifBlank {
@@ -282,8 +266,8 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             item {
                                 Card {
                                     Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.padding(spacing.lg),
+                                        verticalArrangement = Arrangement.spacedBy(spacing.md),
                                     ) {
                                         Text(MLang.AccessControl.AppList.ManualAddTitle)
                                         TextField(
@@ -324,7 +308,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(spacing.md))
                             }
 
                             item {
@@ -338,9 +322,13 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             if (sortedSelectedPackages.isEmpty()) {
                                 item {
                                     Card {
-                                        Column(
-                                            modifier = Modifier.padding(16.dp),
-                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        Box(
+                                            modifier =
+                                                Modifier.fillMaxWidth()
+                                                    .padding(
+                                                        horizontal = spacing.lg,
+                                                        vertical = spacing.xxl,
+                                                    )
                                         ) {
                                             Text(
                                                 MLang.AccessControl.AppList.NoSelectedPackages,
@@ -352,13 +340,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                 }
                             } else {
                                 items(items = sortedSelectedPackages, key = { it }) { packageName ->
-                                    Card(
-                                        modifier =
-                                            Modifier.padding(
-                                                vertical =
-                                                    AccessControlMetrics.ListCardVerticalPadding
-                                            )
-                                    ) {
+                                    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
                                         BasicComponent(
                                             title = packageName,
                                             summary = MLang.Connection.Detail.PackageName,
@@ -413,7 +395,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     val clipboardManager =
                         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(spacing.xxl)) {
                         top.yukonga.miuix.kmp.basic.Card {
                             SuperSwitch(
                                 title = MLang.AccessControl.Settings.ShowSystemApps,
@@ -604,8 +586,6 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
                     DialogButtonRow(
                         onCancel = { showSettingsSheet.value = false },
                         onConfirm = { showSettingsSheet.value = false },
@@ -667,6 +647,10 @@ private fun ExpandedSearchOverlay(
     onAppSelectionChange: (String, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    val pageMetrics = LocalPageMetrics.current
+
     Box(
         modifier =
             Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(
@@ -681,7 +665,7 @@ private fun ExpandedSearchOverlay(
                 Modifier.align(Alignment.TopCenter)
                     .fillMaxHeight()
                     .fillMaxWidth()
-                    .widthIn(max = AccessControlMetrics.SearchOverlayMaxWidth)
+                    .widthIn(max = pageMetrics.accessControlSearchOverlayMaxWidth)
                     .statusBarsPadding()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -694,23 +678,14 @@ private fun ExpandedSearchOverlay(
                 label = MLang.AccessControl.Search.Placeholder,
                 singleLine = true,
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .padding(
-                            horizontal = AccessControlMetrics.SearchHorizontalPadding,
-                            vertical = AccessControlMetrics.SearchTopPadding,
-                        ),
+                    Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.md),
             )
 
             LazyColumn(
                 modifier =
                     Modifier.fillMaxSize()
-                        .padding(horizontal = AccessControlMetrics.SearchHorizontalPadding)
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = AccessControlMetrics.SearchResultCornerRadius,
-                                topEnd = AccessControlMetrics.SearchResultCornerRadius,
-                            )
-                        )
+                        .padding(horizontal = spacing.lg)
+                        .clip(RoundedCornerShape(topStart = radii.xl, topEnd = radii.xl))
                         .background(MiuixTheme.colorScheme.surface)
             ) {
                 if (filteredApps.isEmpty()) {
@@ -729,8 +704,8 @@ private fun ExpandedSearchOverlay(
                             AppIcon(
                                 packageName = app.packageName,
                                 contentDescription = app.label,
-                                imageSize = AccessControlMetrics.SearchResultAppIconSize,
-                                bitmapSize = AccessControlMetrics.AppIconBitmapBaseSize,
+                                imageSize = pageMetrics.accessControlSearchResultAppIconSize,
+                                bitmapSize = pageMetrics.accessControlAppIconBitmapBaseSize,
                             )
                         },
                         endActions = {
@@ -753,7 +728,10 @@ private fun AppCard(
     onSelectionChange: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
-    Card(modifier = Modifier.padding(vertical = AccessControlMetrics.ListCardVerticalPadding)) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
+
+    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
         BasicComponent(
             title = app.label,
             summary = app.packageName,
@@ -761,9 +739,9 @@ private fun AppCard(
                 AppIcon(
                     packageName = app.packageName,
                     contentDescription = app.label,
-                    imageSize = AccessControlMetrics.AppCardIconSize,
-                    bitmapSize = AccessControlMetrics.AppIconBitmapBaseSize,
-                    modifier = Modifier.padding(end = AccessControlMetrics.AppIconEndPadding),
+                    imageSize = pageMetrics.accessControlAppCardIconSize,
+                    bitmapSize = pageMetrics.accessControlAppIconBitmapBaseSize,
+                    modifier = Modifier.padding(end = spacing.md),
                 )
             },
             endActions = {

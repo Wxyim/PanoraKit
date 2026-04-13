@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.BuildConfig
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.presentation.component.Card
@@ -38,6 +37,8 @@ import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
 import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -46,17 +47,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object AboutPageMetrics {
-    val HeroTopSpacing = 24.dp
-    val HeroIconSize = 120.dp
-    val HeroIconCornerRadius = 24.dp
-    val HeroSectionSpacing = 24.dp
-    val HeroMetaSpacing = 8.dp
-    val FooterTopPadding = 32.dp
-    val FooterBottomSpacing = 32.dp
-    val ContentMaxWidth = 840.dp
-}
 
 private object AboutProjectLinks {
     const val MonadBoxRepo = "https://github.com/NomadBoxLab/NomadBox"
@@ -69,6 +59,9 @@ private object AboutProjectLinks {
 @Destination<RootGraph>
 fun AboutScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    val pageMetrics = LocalPageMetrics.current
 
     Scaffold(
         topBar = {
@@ -86,33 +79,32 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             ScreenLazyColumn(
-                modifier = Modifier.adaptiveContentWidth(AboutPageMetrics.ContentMaxWidth),
+                modifier = Modifier.adaptiveContentWidth(pageMetrics.contentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
+                bottomPadding = spacing.xxxl,
             ) {
                 item {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroTopSpacing))
+                        Spacer(modifier = Modifier.height(spacing.xxl))
 
                         Icon(
                             painter = painterResource(id = R.drawable.monadbox_about_logo),
                             contentDescription = null,
                             modifier =
-                                Modifier.size(AboutPageMetrics.HeroIconSize)
-                                    .clip(
-                                        RoundedCornerShape(AboutPageMetrics.HeroIconCornerRadius)
-                                    ),
+                                Modifier.size(pageMetrics.aboutHeroIconSize)
+                                    .clip(RoundedCornerShape(radii.xxl)),
                             tint = Color.Unspecified,
                         )
 
-                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroSectionSpacing))
+                        Spacer(modifier = Modifier.height(spacing.xxl))
 
                         Text(text = MLang.About.App.Name, style = MiuixTheme.textStyles.title1)
 
-                        Spacer(modifier = Modifier.height(AboutPageMetrics.HeroMetaSpacing))
+                        Spacer(modifier = Modifier.height(spacing.sm))
 
                         Text(
                             text =
@@ -124,7 +116,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
 
-                        Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
+                        Spacer(modifier = Modifier.height(spacing.xxxl))
                     }
 
                     Card {
@@ -175,14 +167,11 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
                 item {
                     Column(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(top = AboutPageMetrics.FooterTopPadding),
+                        modifier = Modifier.fillMaxWidth().padding(top = spacing.xxxl),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
                     }
-                    Spacer(modifier = Modifier.height(AboutPageMetrics.FooterBottomSpacing))
                 }
             }
         }

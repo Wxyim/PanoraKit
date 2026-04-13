@@ -87,6 +87,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
@@ -111,10 +112,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private object LocalProfileConfigEditMetrics {
-    val OverrideBindingListMaxHeight = 420.dp
-}
-
 @Composable
 fun LocalProfileConfigEditScreen(
     navigator: DestinationsNavigator,
@@ -125,6 +122,7 @@ fun LocalProfileConfigEditScreen(
     onOpenObjectMapEditor: OpenObjectMapEditor,
     onOpenSubRulesEditor: OpenSubRulesEditor,
 ) {
+    val pageMetrics = LocalPageMetrics.current
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
@@ -567,12 +565,13 @@ private fun LocalProfileOverrideBindingSection(
     onOverrideRemoved: (String) -> Unit,
     onOverrideMoved: (fromIndex: Int, toIndex: Int) -> Unit,
 ) {
+    val pageMetrics = LocalPageMetrics.current
+
     if (systemPreset == null && userConfigs.isEmpty()) return
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(
-            modifier =
-                Modifier.adaptiveContentWidth(contentMaxWidth).padding(horizontal = 20.dp),
+            modifier = Modifier.adaptiveContentWidth(contentMaxWidth).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Spacer(Modifier.height(8.dp))
@@ -620,9 +619,7 @@ private fun LocalProfileOverrideBindingSection(
                         state = overridesListState,
                         modifier =
                             Modifier.fillMaxWidth()
-                                .heightIn(
-                                    max = LocalProfileConfigEditMetrics.OverrideBindingListMaxHeight
-                                ),
+                                .heightIn(max = pageMetrics.overrideBindingListMaxHeight),
                     ) {
                         items(items = selectedConfigs, key = { "sel-${it.id}" }) { config ->
                             ReorderableItem(reorderState, key = "sel-${config.id}") { isDragging ->

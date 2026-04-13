@@ -34,15 +34,17 @@ internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> 
 fun YumeTheme(
     themeMode: ThemeMode? = null,
     themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
-    spacing: Spacing = Spacing(),
-    radii: Radii = Radii(),
-    strokes: Strokes = Strokes(),
-    elevations: Elevations = Elevations(),
+    spacing: Spacing = DefaultSpacing,
+    radii: Radii = DefaultRadii,
+    strokes: Strokes = DefaultStrokes,
+    elevations: Elevations = DefaultElevations,
     typography: AppTypography = AppTypography(),
     windowAdaptiveInfo: WindowAdaptiveInfo = WindowAdaptiveInfo(),
+    pageMetrics: PageMetrics? = null,
     content: @Composable () -> Unit,
 ) {
     LocalPlatformSystemUiEffect.current()
+    val effectivePageMetrics = pageMetrics ?: rememberAdaptivePageMetrics(windowAdaptiveInfo)
     val effectiveThemeMode = themeMode ?: ThemeMode.Auto
     val isDark =
         when (effectiveThemeMode) {
@@ -71,6 +73,7 @@ fun YumeTheme(
         LocalRadii provides radii,
         LocalStrokes provides strokes,
         LocalElevations provides elevations,
+        LocalPageMetrics provides effectivePageMetrics,
         LocalAppTypography provides typography,
         LocalSemanticColors provides semanticColors,
         LocalWindowAdaptiveInfo provides windowAdaptiveInfo,

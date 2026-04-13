@@ -31,21 +31,13 @@ import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.EnumSelector
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object ProfileLinkSheetMetrics {
-    val BottomPadding = 16.dp
-    val SectionSpacing = 12.dp
-    val FormSpacing = 16.dp
-    val LinkRowHorizontalPadding = 16.dp
-    val LinkRowVerticalPadding = 12.dp
-    val DividerHorizontalPadding = 16.dp
-    val LinkListMaxHeight = 360.dp
-}
 
 @Composable
 internal fun LinkSettingsDialog(
@@ -59,6 +51,8 @@ internal fun LinkSettingsDialog(
     onDeleteLink: (String) -> Unit,
     onOpenLink: (ProfileLink) -> Unit,
 ) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
     val openModeOptions =
         listOf(
             MLang.ProfilesPage.LinkSettings.OpenModeInApp,
@@ -85,9 +79,8 @@ internal fun LinkSettingsDialog(
         enableNestedScroll = true,
         content = {
             Column(
-                modifier =
-                    Modifier.fillMaxWidth().padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
-                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
+                modifier = Modifier.fillMaxWidth().padding(bottom = spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(spacing.md),
             ) {
                 top.yukonga.miuix.kmp.basic.Card {
                     EnumSelector(
@@ -119,7 +112,9 @@ internal fun LinkSettingsDialog(
                         Column(
                             modifier =
                                 Modifier.fillMaxWidth()
-                                    .heightIn(max = ProfileLinkSheetMetrics.LinkListMaxHeight)
+                                    .heightIn(
+                                        max = pageMetrics.profileLinkSettingsLinkListMaxHeight
+                                    )
                         ) {
                             links.forEachIndexed { index, link ->
                                 Row(
@@ -127,11 +122,8 @@ internal fun LinkSettingsDialog(
                                         Modifier.fillMaxWidth()
                                             .clickable { onOpenLink(link) }
                                             .padding(
-                                                horizontal =
-                                                    ProfileLinkSheetMetrics
-                                                        .LinkRowHorizontalPadding,
-                                                vertical =
-                                                    ProfileLinkSheetMetrics.LinkRowVerticalPadding,
+                                                horizontal = spacing.lg,
+                                                vertical = spacing.md,
                                             ),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
@@ -160,11 +152,7 @@ internal fun LinkSettingsDialog(
 
                                 if (index < links.size - 1) {
                                     HorizontalDivider(
-                                        modifier =
-                                            Modifier.padding(
-                                                horizontal =
-                                                    ProfileLinkSheetMetrics.DividerHorizontalPadding
-                                            ),
+                                        modifier = Modifier.padding(horizontal = spacing.lg),
                                         thickness = 0.5.dp,
                                         color = MiuixTheme.colorScheme.outline.copy(alpha = 0.3f),
                                     )
@@ -176,8 +164,7 @@ internal fun LinkSettingsDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
                 ) {
                     TextButton(
                         text = MLang.ProfilesPage.LinkSettings.Close,
@@ -211,6 +198,7 @@ internal fun AddLinkDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    val spacing = AppTheme.spacing
     var error by remember { mutableStateOf("") }
     var currentName by remember { mutableStateOf(linkName) }
     var currentUrl by remember { mutableStateOf(linkUrl) }
@@ -238,9 +226,8 @@ internal fun AddLinkDialog(
         enableNestedScroll = true,
         content = {
             Column(
-                modifier =
-                    Modifier.fillMaxWidth().padding(bottom = ProfileLinkSheetMetrics.BottomPadding),
-                verticalArrangement = Arrangement.spacedBy(ProfileLinkSheetMetrics.FormSpacing),
+                modifier = Modifier.fillMaxWidth().padding(bottom = spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(spacing.lg),
             ) {
                 TextField(
                     value = currentName,
@@ -272,8 +259,7 @@ internal fun AddLinkDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(ProfileLinkSheetMetrics.SectionSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
                 ) {
                     Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                         Text(MLang.ProfilesPage.Button.Cancel)

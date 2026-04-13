@@ -32,9 +32,16 @@ import com.github.yumelira.yumebox.data.repository.NetworkInfoService
 import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
+import com.github.yumelira.yumebox.domain.model.ErrorImpact
+import com.github.yumelira.yumebox.domain.model.ErrorPhase
+import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
 import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionFeedbackStatus
+import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationCoordinator
+import com.github.yumelira.yumebox.presentation.diagnostic.reloadRuntimeAction
+import com.github.yumelira.yumebox.presentation.diagnostic.startRuntimeAction
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
@@ -279,6 +286,7 @@ class HomeViewModel(
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val networkSettingsStorage: NetworkSettingsStorage,
     private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val diagnosticRemediationCoordinator: DiagnosticRemediationCoordinator,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : ViewModel() {
 
@@ -633,18 +641,22 @@ class HomeViewModel(
             }
 
             profilesRepository.updateProfile(activeProfile.uuid)
-            val outcome =
-                runtimeActionExecutor.reloadCurrentProfile(
-                    operation = "home:reload-profile",
-                    presentation =
-                        RuntimeActionFailurePresentation.Global(
-                            message = { reason ->
-                                MLang.Home.Message.ConfigSwitchFailed.format(reason)
-                            }
-                        ),
-                )
-            if (outcome !is RuntimeActionOutcome.Success) {
+            val result =
+                diagnosticRemediationCoordinator.execute(reloadRuntimeAction(isPrimary = true))
+
+            result.permissionIntent?.let { intent ->
+                vpnPermissionCoordinator.requestPermission(intent) {
+                    viewModelScope.launch { reloadProfile() }
+                }
                 return
+            }
+
+            if (result.feedback.status == DiagnosticActionFeedbackStatus.Failed) {
+                return
+            }
+
+            if (result.shouldRefresh) {
+                reconcileRuntimeState(expectRunning = isRunning.value)
             }
             showMessage(MLang.Home.Message.ConfigSwitched)
         } catch (e: Exception) {
@@ -681,45 +693,51 @@ class HomeViewModel(
                 }
                 Timber.d("Home startProxy kickoff: mode=$proxyMode profileId=$profileId")
 
-                val startOutcome =
+                val result =
                     withContext(Dispatchers.IO) {
-                        runtimeActionExecutor.startProxy(
-                            operation = "home:start-proxy",
-                            profileId = profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
-                            mode = proxyMode,
-                            fallbackMessage = MLang.ProfilesVM.Error.Unknown,
+                        diagnosticRemediationCoordinator.execute(
+                            startRuntimeAction(
+                                isPrimary = true,
+                                profileId = profileId,
+                                requestedMode = proxyMode,
+                            )
                         )
                     }
 
-                when (startOutcome) {
-                    is RuntimeActionOutcome.Success -> Unit
-                    is RuntimeActionOutcome.PermissionRequired -> {
-                        chromeStateMutable.update { current ->
-                            current.copy(
-                                isToggling = false,
-                                ui =
-                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                            )
-                        }
-                        vpnPermissionCoordinator.requestPermission(startOutcome.intent) {
-                            startProxy(profileId = profileId, mode = proxyMode)
-                        }
-                        Timber.i("VPN permission required")
-                        return@launch
+                result.permissionIntent?.let { intent ->
+                    chromeStateMutable.update { current ->
+                        current.copy(
+                            isToggling = false,
+                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
+                        )
                     }
-                    RuntimeActionOutcome.FailureHandled -> {
-                        chromeStateMutable.update { current ->
-                            current.copy(
-                                isToggling = false,
-                                ui =
-                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                            )
-                        }
-                        return@launch
+                    vpnPermissionCoordinator.requestPermission(intent) {
+                        startProxy(profileId = profileId, mode = proxyMode)
                     }
+                    Timber.i("VPN permission required")
+                    return@launch
                 }
 
-                reconcileRuntimeState(expectRunning = true)
+                if (result.feedback.status == DiagnosticActionFeedbackStatus.Failed) {
+                    chromeStateMutable.update { current ->
+                        current.copy(
+                            isToggling = false,
+                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
+                        )
+                    }
+                    return@launch
+                }
+
+                if (result.shouldRefresh) {
+                    reconcileRuntimeState(expectRunning = true)
+                } else {
+                    chromeStateMutable.update { current ->
+                        current.copy(
+                            isToggling = false,
+                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
+                        )
+                    }
+                }
 
                 Timber.i(
                     "Home startProxy completed in ${System.currentTimeMillis() - startedAt}ms, mode=$proxyMode"
@@ -860,7 +878,7 @@ class HomeViewModel(
             if (current.ui.message == message) {
                 current
             } else {
-                current.copy(ui = current.ui.copy(message = message))
+                current.copy(ui = current.ui.copy(message = message, structuredError = null))
             }
         }
     }
@@ -870,7 +888,35 @@ class HomeViewModel(
             if (current.ui.error == error) {
                 current
             } else {
-                current.copy(ui = current.ui.copy(error = error))
+                current.copy(
+                    ui =
+                        current.ui.copy(
+                            error = error,
+                            structuredError =
+                                StructuredError.runtime(
+                                    phase =
+                                        when (current.runtimeVisualState) {
+                                            HomeRuntimeVisualState.Idle -> ErrorPhase.Init
+                                            HomeRuntimeVisualState.Starting -> ErrorPhase.Preparing
+                                            HomeRuntimeVisualState.Running -> ErrorPhase.Running
+                                            HomeRuntimeVisualState.Stopping -> ErrorPhase.Stopping
+                                        },
+                                    userVisibleMessage = error,
+                                    rawCause = error,
+                                    impact =
+                                        when (current.runtimeVisualState) {
+                                            HomeRuntimeVisualState.Running -> ErrorImpact.Degraded
+                                            HomeRuntimeVisualState.Starting ->
+                                                ErrorImpact.FeatureUnavailable
+                                            HomeRuntimeVisualState.Stopping ->
+                                                ErrorImpact.FeatureUnavailable
+                                            HomeRuntimeVisualState.Idle ->
+                                                ErrorImpact.FeatureUnavailable
+                                        },
+                                    retryability = ErrorRetryability.RetryableAfterAction,
+                                ),
+                        )
+                )
             }
         }
     }

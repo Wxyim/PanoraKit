@@ -47,6 +47,8 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
@@ -57,16 +59,8 @@ import top.yukonga.miuix.kmp.extra.DialogDefaults
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private const val PROFILE_SETTINGS_MIN_HEIGHT_FRACTION = 0.5f
-private const val PROFILE_SETTINGS_MAX_HEIGHT_FRACTION = 0.7f
-private val PROFILE_SETTINGS_LIST_MAX_HEIGHT = 420.dp
 private const val SYSTEM_OVERRIDE_PREFIX = "preset-"
 private const val BLANK_LOCAL_PROFILE_SOURCE = "blank://local-config"
-
-private object ProfileDialogMetrics {
-    val BottomPadding = 16.dp
-    val SectionSpacing = 16.dp
-}
 
 @Composable
 internal fun EditProfileNameDialog(
@@ -221,6 +215,8 @@ internal fun ProfileSettingsDialog(
     onSaveProfileMeta: (String, String) -> Unit,
     onSaveOverrideSettings: (Boolean, List<String>) -> Unit,
 ) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
     val initialOverrideIds = binding?.overrideIds.orEmpty().filterNot(::isBuiltinPresetOverrideId)
     val initialSystemPresetEnabled = binding?.enabled ?: false
     val appliedOverrideIds = initialOverrideIds
@@ -315,15 +311,15 @@ internal fun ProfileSettingsDialog(
         enableNestedScroll = true,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val minimumSheetHeight = maxHeight * PROFILE_SETTINGS_MIN_HEIGHT_FRACTION
-            val maximumSheetHeight = maxHeight * PROFILE_SETTINGS_MAX_HEIGHT_FRACTION
+            val minimumSheetHeight = maxHeight * pageMetrics.profileSettingsMinHeightFraction
+            val maximumSheetHeight = maxHeight * pageMetrics.profileSettingsMaxHeightFraction
 
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
                         .heightIn(min = minimumSheetHeight, max = maximumSheetHeight)
-                        .padding(bottom = ProfileDialogMetrics.BottomPadding),
-                verticalArrangement = Arrangement.spacedBy(ProfileDialogMetrics.SectionSpacing),
+                        .padding(bottom = spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(spacing.lg),
             ) {
                 TextField(
                     value = editName,
@@ -404,7 +400,7 @@ internal fun ProfileSettingsDialog(
                             state = overridesListState,
                             modifier =
                                 Modifier.fillMaxWidth()
-                                    .heightIn(max = PROFILE_SETTINGS_LIST_MAX_HEIGHT),
+                                    .heightIn(max = pageMetrics.overrideBindingListMaxHeight),
                         ) {
                             // Selected overrides (draggable via long-press handle)
                             items(items = selectedConfigs, key = { "sel-${it.id}" }) { config ->

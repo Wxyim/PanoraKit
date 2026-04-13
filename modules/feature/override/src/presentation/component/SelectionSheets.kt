@@ -26,15 +26,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object SelectionSheetMetrics {
-    val ListMaxHeight = 420.dp
     val BottomPadding = 16.dp
     val SectionSpacing = 12.dp
 }
@@ -52,6 +53,7 @@ fun OverrideSingleValueSelectionSheet(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
+    val pageMetrics = AppTheme.pageMetrics
     val knownValues = remember(groups) { collectSelectionItems(groups) }
     var selectedValue by remember(show, value, knownValues) { mutableStateOf(value.trim()) }
     var showCustomInputDialog by remember(show) { mutableStateOf(false) }
@@ -89,6 +91,7 @@ fun OverrideSingleValueSelectionSheet(
                 SelectionValueListCard(
                     items = listOf(value),
                     selectedValues = listOf(value),
+                    listMaxHeight = pageMetrics.overrideBindingListMaxHeight,
                     onItemClick = { itemValue ->
                         if (selectedValue == itemValue) {
                             selectedValue = ""
@@ -100,6 +103,7 @@ fun OverrideSingleValueSelectionSheet(
                 SelectionValueListCard(
                     items = knownValues,
                     selectedValues = selectedKnownValues,
+                    listMaxHeight = pageMetrics.overrideBindingListMaxHeight,
                     onItemClick = { itemValue ->
                         selectedValue =
                             if (selectedValue == itemValue) {
@@ -135,6 +139,7 @@ fun OverrideMultiValueSelectionSheet(
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit,
 ) {
+    val pageMetrics = AppTheme.pageMetrics
     val knownValues = remember(groups) { collectSelectionItems(groups) }
     val selectedValues = remember { mutableStateListOf<String>() }
     var showCustomInputDialog by remember(show) { mutableStateOf(false) }
@@ -175,6 +180,7 @@ fun OverrideMultiValueSelectionSheet(
                 SelectionValueListCard(
                     items = customValues,
                     selectedValues = customValues,
+                    listMaxHeight = pageMetrics.overrideBindingListMaxHeight,
                     onItemClick = { itemValue -> selectedValues.remove(itemValue) },
                 )
             }
@@ -182,6 +188,7 @@ fun OverrideMultiValueSelectionSheet(
                 SelectionValueListCard(
                     items = knownValues,
                     selectedValues = selectedValues,
+                    listMaxHeight = pageMetrics.overrideBindingListMaxHeight,
                     onItemClick = { itemValue ->
                         if (itemValue in selectedValues) {
                             selectedValues.remove(itemValue)
@@ -230,12 +237,11 @@ private fun SelectionAddCustomCard(title: String, onClick: () -> Unit) {
 private fun SelectionValueListCard(
     items: List<String>,
     selectedValues: List<String>,
+    listMaxHeight: Dp,
     onItemClick: (String) -> Unit,
 ) {
     Card(applyHorizontalPadding = false) {
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().heightIn(max = SelectionSheetMetrics.ListMaxHeight)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = listMaxHeight)) {
             items(items = items, key = { itemValue -> itemValue }) { itemValue ->
                 BasicComponent(
                     title = itemValue,

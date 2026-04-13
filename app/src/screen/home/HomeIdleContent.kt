@@ -29,8 +29,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.github.yumelira.yumebox.presentation.theme.HomeIdleLayoutDefaults
+import com.github.yumelira.yumebox.presentation.theme.rememberHomeIdleLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -40,27 +40,34 @@ fun HomeIdleContent(oneWord: String, author: String, modifier: Modifier = Modifi
     val authorColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val topSpacing = (maxHeight * 0.14f).coerceIn(72.dp, 122.dp)
-        val bottomSpacing = (maxHeight * 0.05f).coerceIn(24.dp, 40.dp)
+        val layoutMetrics = rememberHomeIdleLayoutMetrics(maxHeight)
 
         Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = bottomSpacing),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = layoutMetrics.bottomSpacing),
+            verticalArrangement = Arrangement.spacedBy(HomeIdleLayoutDefaults.SectionSpacing),
             horizontalAlignment = Alignment.Start,
         ) {
-            Spacer(modifier = Modifier.height(topSpacing))
+            Spacer(modifier = Modifier.height(layoutMetrics.topSpacing))
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.fillMaxWidth().padding(top = 18.dp, start = 8.dp)) {
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(
+                                top = HomeIdleLayoutDefaults.TitleTopPadding,
+                                start = HomeIdleLayoutDefaults.TitleStartPadding,
+                            )
+                ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(HomeIdleLayoutDefaults.TitleRowSpacing),
                         verticalAlignment = Alignment.Top,
                     ) {
                         Box(
                             modifier =
-                                Modifier.padding(top = 12.dp)
-                                    .width(2.dp)
-                                    .height(36.dp)
+                                Modifier.padding(top = HomeIdleLayoutDefaults.AccentBarTopPadding)
+                                    .width(HomeIdleLayoutDefaults.AccentBarWidth)
+                                    .height(HomeIdleLayoutDefaults.AccentBarHeight)
                                     .background(
                                         Brush.verticalGradient(
                                             colors =
@@ -75,9 +82,9 @@ fun HomeIdleContent(oneWord: String, author: String, modifier: Modifier = Modifi
                             text = oneWord,
                             style =
                                 MiuixTheme.textStyles.headline1.copy(
-                                    fontSize = 28.sp,
-                                    lineHeight = 50.sp,
-                                    letterSpacing = 0.8.sp,
+                                    fontSize = HomeIdleLayoutDefaults.TitleFontSize,
+                                    lineHeight = HomeIdleLayoutDefaults.TitleLineHeight,
+                                    letterSpacing = HomeIdleLayoutDefaults.TitleLetterSpacing,
                                     fontWeight = FontWeight.Medium,
                                 ),
                             color = MiuixTheme.colorScheme.onSurface,
@@ -95,17 +102,17 @@ fun HomeIdleContent(oneWord: String, author: String, modifier: Modifier = Modifi
             ) {
                 Box(
                     modifier =
-                        Modifier.width(30.dp)
-                            .height(1.dp)
+                        Modifier.width(HomeIdleLayoutDefaults.AuthorLineWidth)
+                            .height(HomeIdleLayoutDefaults.AuthorLineHeight)
                             .background(authorColor.copy(alpha = 0.35f))
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(HomeIdleLayoutDefaults.AuthorSpacing))
                 Text(
                     text = author,
                     style =
                         MiuixTheme.textStyles.title3.copy(
-                            fontSize = 15.sp,
-                            letterSpacing = 1.6.sp,
+                            fontSize = HomeIdleLayoutDefaults.AuthorFontSize,
+                            letterSpacing = HomeIdleLayoutDefaults.AuthorLetterSpacing,
                             fontWeight = FontWeight.Medium,
                         ),
                     color = authorColor,

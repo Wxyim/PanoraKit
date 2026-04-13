@@ -60,7 +60,9 @@ import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -108,6 +110,15 @@ fun ConfigPreviewScreen(
         editorState.editor?.let { TextMateInitializer.setTheme(editorThemeState.isDark) }
     }
 
+    fun showSaveFailure(error: Throwable) {
+        Timber.e(error, "Failed to save edited config preview")
+        context.toast(
+            error.message?.takeIf { it.isNotBlank() }
+                ?: error.cause?.message?.takeIf { it.isNotBlank() }
+                ?: MLang.Component.Editor.Error.SaveFailed
+        )
+    }
+
     fun saveAndExit() {
         if (isSaving || onSave == null) return
         editorState.syncContentFromEditor()
@@ -128,11 +139,17 @@ fun ConfigPreviewScreen(
                             ConfigPreviewSaveOutcome.ResumeEditing -> Unit
                         }
                     }
-                    .onFailure {
-                        context.toast(it.message ?: MLang.Component.Editor.Error.SaveFailed)
+                    .onFailure { error ->
+                        if (error is CancellationException) {
+                            throw error
+                        }
+                        showSaveFailure(error)
                     }
-            } catch (e: Exception) {
-                context.toast(e.message ?: MLang.Component.Editor.Error.SaveFailed)
+            } catch (error: Throwable) {
+                if (error is CancellationException) {
+                    throw error
+                }
+                showSaveFailure(error)
             } finally {
                 isSaving = false
                 savePhase = null
@@ -169,6 +186,8 @@ fun ConfigPreviewScreen(
                     MLang.Component.Editor.Error.Unknown
                 }
             )
+        } else {
+            context.toast(MLang.Component.Editor.Dialog.ValidationPassed)
         }
     }
 
@@ -199,35 +218,32 @@ fun ConfigPreviewScreen(
 
     BackHandler(enabled = !isSaving) { requestExit() }
 
-    Scaffold(
-        topBar = {
-            SmallTopAppBar(
-                title = title,
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(
-                        modifier = Modifier.padding(start = 24.dp),
-                        enabled = !isSaving,
-                        onClick = { requestExit() },
-                    ) {
-                        Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
-                    }
-                },
-                actions = {},
-            )
-        }
-    ) { paddingValues ->
-        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding()) {
-            val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-            val isWideLayout = !availableAdaptiveInfo.isCompactWidth
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
+        val isWideLayout = !availableAdaptiveInfo.isCompactWidth
 
-            Column(modifier = Modifier.fillMaxSize()) {
-                CodeEditor(
-                    state = editorState,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    onTextChange = { editorState.syncContentFromEditor() },
+        Scaffold(
+            modifier = Modifier.fillMaxSize().imePadding(),
+            topBar = {
+                SmallTopAppBar(
+                    title = title,
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        IconButton(
+                            modifier = Modifier.padding(start = 24.dp),
+                            enabled = !isSaving,
+                            onClick = { requestExit() },
+                        ) {
+                            Icon(
+                                Yume.ArrowLeft,
+                                contentDescription = MLang.Component.Navigation.Back,
+                            )
+                        }
+                    },
+                    actions = {},
                 )
-
+            },
+            bottomBar = {
                 if (onSave != null) {
                     EditorCommandBar(
                         language = language,
@@ -239,64 +255,69 @@ fun ConfigPreviewScreen(
                         onSave = ::saveAndExit,
                     )
                 }
-            }
+            },
+        ) { paddingValues ->
+            CodeEditor(
+                state = editorState,
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                onTextChange = { editorState.syncContentFromEditor() },
+            )
+        }
 
-            AppDialog(
-                show = showExitDialog,
-                title = MLang.Component.Editor.Dialog.DiscardTitle,
-                summary = MLang.Component.Editor.Dialog.DiscardMessage,
-                onDismissRequest = { showExitDialog = false },
-            ) {
-                DialogButtonRow(
-                    onCancel = { showExitDialog = false },
-                    onConfirm = {
-                        showExitDialog = false
-                        navigator.navigateUp()
-                    },
-                    cancelText = MLang.Component.Button.Cancel,
-                    confirmText = MLang.Component.Editor.Action.Discard,
-                )
-            }
+        AppDialog(
+            show = showExitDialog,
+            title = MLang.Component.Editor.Dialog.DiscardTitle,
+            summary = MLang.Component.Editor.Dialog.DiscardMessage,
+            onDismissRequest = { showExitDialog = false },
+        ) {
+            DialogButtonRow(
+                onCancel = { showExitDialog = false },
+                onConfirm = {
+                    showExitDialog = false
+                    navigator.navigateUp()
+                },
+                cancelText = MLang.Component.Button.Cancel,
+                confirmText = MLang.Component.Editor.Action.Discard,
+            )
+        }
 
-            AppDialog(
-                show = isSaving,
-                title = MLang.Component.Editor.Action.Save,
-                summary =
-                    when (savePhase) {
-                        ConfigPreviewSavePhase.LocalSaving ->
-                            MLang.Component.Editor.Dialog.LocalSaving
-                        ConfigPreviewSavePhase.Validating ->
-                            MLang.Component.Editor.Dialog.ValidatingConfig
-                        ConfigPreviewSavePhase.FetchingRemoteResources ->
-                            MLang.Component.Editor.Dialog.FetchingRemoteResources
-                        null -> MLang.Component.Loading.Starting
-                    },
-                onDismissRequest = {},
+        AppDialog(
+            show = isSaving,
+            title = MLang.Component.Editor.Action.Save,
+            summary =
+                when (savePhase) {
+                    ConfigPreviewSavePhase.LocalSaving -> MLang.Component.Editor.Dialog.LocalSaving
+                    ConfigPreviewSavePhase.Validating ->
+                        MLang.Component.Editor.Dialog.ValidatingConfig
+                    ConfigPreviewSavePhase.FetchingRemoteResources ->
+                        MLang.Component.Editor.Dialog.FetchingRemoteResources
+                    null -> MLang.Component.Loading.Starting
+                },
+            onDismissRequest = {},
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.lg),
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.lg),
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    CircularProgressIndicator()
+                }
 
-                    if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
-                        DialogButtonRow(
-                            onCancel = { saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
-                            onConfirm = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
-                            cancelText = MLang.Component.Editor.Action.ContinueEditing,
-                            confirmText =
-                                if (isRuntimeRunning) {
-                                    MLang.Component.Editor.Action.SaveAndStop
-                                } else {
-                                    MLang.Component.Editor.Action.SaveLocally
-                                },
-                        )
-                    }
+                if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
+                    DialogButtonRow(
+                        onCancel = { saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
+                        onConfirm = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
+                        cancelText = MLang.Component.Editor.Action.ContinueEditing,
+                        confirmText =
+                            if (isRuntimeRunning) {
+                                MLang.Component.Editor.Action.SaveAndStop
+                            } else {
+                                MLang.Component.Editor.Action.SaveLocally
+                            },
+                    )
                 }
             }
         }

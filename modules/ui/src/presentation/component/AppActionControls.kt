@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -157,11 +156,7 @@ fun AppCircularIconAction(
                 .clip(CircleShape)
                 .background(resolvedContainer, CircleShape)
                 .border(AppTheme.strokes.default, resolvedBorder, CircleShape)
-                .appClickable(
-                    enabled = enabled,
-                    pressedAlpha = 0.78f,
-                    onClick = onClick,
-                ),
+                .appClickable(enabled = enabled, pressedAlpha = 0.78f, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -235,10 +230,7 @@ fun AppActionTile(
                     .clip(shape)
                     .background(resolvedContainer, shape)
                     .border(AppTheme.strokes.default, resolvedBorder, shape)
-                    .appClickable(
-                        enabled = enabled,
-                        onClick = onClick,
-                    )
+                    .appClickable(enabled = enabled, onClick = onClick)
                     .padding(horizontal = 12.dp, vertical = 13.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterVertically),
@@ -274,10 +266,7 @@ fun AppActionTile(
                     .clip(shape)
                     .background(resolvedContainer, shape)
                     .border(AppTheme.strokes.default, resolvedBorder, shape)
-                    .appClickable(
-                        enabled = enabled,
-                        onClick = onClick,
-                    )
+                    .appClickable(enabled = enabled, onClick = onClick)
                     .padding(horizontal = 15.dp, vertical = 13.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -346,10 +335,7 @@ fun AppCommandButton(
                 .clip(shape)
                 .background(actionStyle.containerColor, shape)
                 .border(AppTheme.strokes.default, actionStyle.borderColor, shape)
-                .appClickable(
-                    enabled = enabled,
-                    onClick = onClick,
-                )
+                .appClickable(enabled = enabled, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -485,61 +471,6 @@ fun SettingsRow(
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.72f),
             modifier = Modifier.size(18.dp),
         )
-    }
-}
-
-@Composable
-fun MetricCard(
-    title: String,
-    value: String,
-    tone: SemanticTone,
-    modifier: Modifier = Modifier,
-    summary: String? = null,
-) {
-    val style = SemanticActionDefaults.style(tone = tone)
-    val shape = RoundedCornerShape(24.dp)
-    val semanticDescription =
-        buildSemanticDescription(title, value, summary, tone.accessibilityDescription())
-
-    Column(
-        modifier =
-            modifier
-                .widthIn(min = 132.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = semanticDescription
-                    stateDescription = value
-                }
-                .clip(shape)
-                .background(style.containerColor, shape)
-                .border(AppTheme.strokes.default, style.borderColor, shape)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = title,
-            color = style.contentColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = value,
-            color = MiuixTheme.colorScheme.onSurface,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (!summary.isNullOrBlank()) {
-            Text(
-                text = summary,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 

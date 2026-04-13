@@ -56,6 +56,9 @@ import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.appClickable
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.*
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.DefaultRadii
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerItem
 import com.github.yumelira.yumebox.screen.settings.component.ThemeModeSelectorItem
 import dev.oom_wg.purejoy.mlang.MLang
@@ -67,22 +70,10 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val PagePadding = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING
-private val DetailWidth = 560.dp
-private val SectionShape = RoundedCornerShape(36.dp)
+private val SectionShape = RoundedCornerShape(DefaultRadii.display)
 private const val RevealDurationMs = 420
 private const val LinkPolicyTag = "policy"
 
-private object StartupHeroMetrics {
-    val TopSpacerMin = 128.dp
-    val TopSpacerMax = 212.dp
-    const val TopSpacerFraction = 0.18f
-    val TitleSpacing = 18.dp
-    val DetailTopSpacing = 20.dp
-    val ActionBottomPadding = 24.dp
-}
-
-private val DetailPreviewBadgeSize = 108.dp
-private val DetailPreviewIconSize = 68.dp
 private val StartupTypewriterPhrases = listOf("MonadBox", "Hello Word")
 
 @Composable
@@ -198,13 +189,16 @@ internal fun RevealScaleBlock(
 
 @Composable
 internal fun StartupHeroShell(enabled: Boolean, onStart: (View) -> Unit) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
 
         val heroTopSpacer =
-            (maxHeight * StartupHeroMetrics.TopSpacerFraction).coerceIn(
-                StartupHeroMetrics.TopSpacerMin,
-                StartupHeroMetrics.TopSpacerMax,
+            (maxHeight * pageMetrics.onboardingTopSpacerFraction).coerceIn(
+                pageMetrics.onboardingTopSpacerMin,
+                pageMetrics.onboardingTopSpacerMax,
             )
 
         Column(
@@ -212,18 +206,18 @@ internal fun StartupHeroShell(enabled: Boolean, onStart: (View) -> Unit) {
                 Modifier.fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = PagePadding, vertical = 12.dp)
+                    .padding(horizontal = PagePadding, vertical = spacing.md)
         ) {
             Spacer(modifier = Modifier.height(heroTopSpacer))
 
             RevealBlock(delayMillis = 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 StartupTypewriterWord(
                     phrases = StartupTypewriterPhrases,
-                    modifier = Modifier.widthIn(max = 320.dp),
+                    modifier = Modifier.widthIn(max = pageMetrics.onboardingWordmarkMaxWidth),
                 )
             }
 
-            Spacer(modifier = Modifier.height(StartupHeroMetrics.TitleSpacing))
+            Spacer(modifier = Modifier.height(spacing.xl))
 
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -231,21 +225,21 @@ internal fun StartupHeroShell(enabled: Boolean, onStart: (View) -> Unit) {
             ) {
                 Column(
                     modifier =
-                        Modifier.widthIn(max = DetailWidth)
+                        Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                 ) {
-                    Spacer(modifier = Modifier.height(StartupHeroMetrics.DetailTopSpacing))
+                    Spacer(modifier = Modifier.height(spacing.xl))
                 }
             }
 
             RevealScaleBlock(
                 delayMillis = 680,
                 modifier =
-                    Modifier.widthIn(max = DetailWidth)
+                    Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally)
-                        .padding(bottom = StartupHeroMetrics.ActionBottomPadding),
+                        .padding(bottom = spacing.xxl),
             ) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     HeroStartButton(enabled = enabled, onStart = onStart)
@@ -332,6 +326,8 @@ internal fun ProvisionDetailShell(
     onBack: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val pageMetrics = LocalPageMetrics.current
+
     Box(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
 
@@ -352,7 +348,7 @@ internal fun ProvisionDetailShell(
 
             Column(
                 modifier =
-                    Modifier.widthIn(max = DetailWidth)
+                    Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -388,7 +384,7 @@ internal fun ProvisionDetailShell(
             ) {
                 Column(
                     modifier =
-                        Modifier.widthIn(max = DetailWidth)
+                        Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -403,7 +399,7 @@ internal fun ProvisionDetailShell(
             RevealBlock(
                 delayMillis = 220,
                 modifier =
-                    Modifier.widthIn(max = DetailWidth)
+                    Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally)
                         .padding(bottom = 12.dp),
@@ -573,6 +569,8 @@ internal fun FinishHeroShell(
     onPrimaryClick: () -> Unit,
     onGithubClick: () -> Unit,
 ) {
+    val pageMetrics = LocalPageMetrics.current
+
     Box(modifier = Modifier.fillMaxSize()) {
         DetailBackdrop()
 
@@ -593,7 +591,7 @@ internal fun FinishHeroShell(
 
             Column(
                 modifier =
-                    Modifier.widthIn(max = DetailWidth)
+                    Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -629,7 +627,7 @@ internal fun FinishHeroShell(
             ) {
                 Column(
                     modifier =
-                        Modifier.widthIn(max = DetailWidth)
+                        Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -651,7 +649,7 @@ internal fun FinishHeroShell(
             RevealBlock(
                 delayMillis = 220,
                 modifier =
-                    Modifier.widthIn(max = DetailWidth)
+                    Modifier.widthIn(max = pageMetrics.onboardingDetailMaxWidth)
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally)
                         .padding(bottom = 12.dp),
@@ -732,12 +730,17 @@ private fun HeroStartButton(
 
 @Composable
 private fun DetailPreviewBadge(icon: ImageVector) {
-    Box(modifier = Modifier.size(DetailPreviewBadgeSize), contentAlignment = Alignment.Center) {
+    val pageMetrics = LocalPageMetrics.current
+
+    Box(
+        modifier = Modifier.size(pageMetrics.onboardingDetailPreviewBadgeSize),
+        contentAlignment = Alignment.Center,
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MiuixTheme.colorScheme.primary,
-            modifier = Modifier.size(DetailPreviewIconSize),
+            modifier = Modifier.size(pageMetrics.onboardingDetailPreviewIconSize),
         )
     }
 }
@@ -873,19 +876,32 @@ private fun PrimaryFooterAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val containerColor =
+        if (enabled) {
+            MiuixTheme.colorScheme.primary
+        } else {
+            MiuixTheme.colorScheme.primary.copy(alpha = 0.45f)
+        }
+    val contentColor =
+        if (enabled) {
+            MiuixTheme.colorScheme.onPrimary
+        } else {
+            MiuixTheme.colorScheme.onPrimary.copy(alpha = 0.72f)
+        }
+
     Box(
         modifier =
             modifier
                 .clip(RoundedCornerShape(24.dp))
-                .background(MiuixTheme.colorScheme.primary)
-                .appClickable(enabled = enabled, disabledAlpha = 0.45f, onClick = onClick)
+                .background(containerColor)
+                .clickable(enabled = enabled, onClick = onClick)
                 .padding(horizontal = 20.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             style = MiuixTheme.textStyles.body1.copy(fontWeight = FontWeight.Bold),
-            color = MiuixTheme.colorScheme.onPrimary,
+            color = contentColor,
         )
     }
 }

@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.LogMessage
@@ -273,9 +272,9 @@ fun LogScreen(navigator: DestinationsNavigator) {
                 secondLine =
                     if (showWaitingEmptyState) {
                         MLang.Log.Detail.WillShowWhenGenerated
-                } else {
-                    MLang.Log.Empty.AutoRecordHint
-                },
+                    } else {
+                        MLang.Log.Empty.AutoRecordHint
+                    },
                 innerPadding = innerPadding,
                 remediationPlan = remediationPlan,
                 actionUiState = diagnosticActions.uiState,
@@ -340,7 +339,10 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                 isRecording = isRecording,
                             )
                         }
-                        if (remediationPlan.actions.isNotEmpty() || diagnosticActions.uiState.feedback != null) {
+                        if (
+                            remediationPlan.actions.isNotEmpty() ||
+                                diagnosticActions.uiState.feedback != null
+                        ) {
                             item(key = "diagnostic_actions_title") {
                                 SmallTitle(DiagnosticLang.DetailPages.Common.RepairLoop)
                             }
@@ -490,7 +492,8 @@ private fun LogEmptyStateContent(
     innerPadding: PaddingValues,
     remediationPlan: com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationPlan,
     actionUiState: com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionUiState,
-    onAction: (com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationAction) -> Unit,
+    onAction:
+        (com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationAction) -> Unit,
     onExportDebugBundle: () -> Unit,
     liveCount: Int,
     failureCount: Int,

@@ -59,11 +59,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
+import com.github.yumelira.yumebox.presentation.theme.HomeModeSwitchOverlayLayoutDefaults
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
@@ -134,12 +133,24 @@ fun HomeModeSwitchOverlay(
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val density = LocalDensity.current
-            val horizontalMargin = 14.dp
+            val horizontalMargin = HomeModeSwitchOverlayLayoutDefaults.HorizontalMargin
             val anchorWidth = anchorBounds?.let { bounds -> with(density) { bounds.width.toDp() } }
             val anchorHeight =
                 anchorBounds?.let { bounds -> with(density) { bounds.height.toDp() } }
-            val panelWidth = ((anchorWidth ?: 188.dp) * 1.06f).coerceIn(208.dp, 244.dp)
-            val panelSpacing = ((anchorHeight ?: 44.dp) * 0.24f).coerceIn(8.dp, 12.dp)
+            val panelWidth =
+                ((anchorWidth ?: HomeModeSwitchOverlayLayoutDefaults.FallbackAnchorWidth) *
+                        HomeModeSwitchOverlayLayoutDefaults.PanelWidthFactor)
+                    .coerceIn(
+                        HomeModeSwitchOverlayLayoutDefaults.PanelMinWidth,
+                        HomeModeSwitchOverlayLayoutDefaults.PanelMaxWidth,
+                    )
+            val panelSpacing =
+                ((anchorHeight ?: HomeModeSwitchOverlayLayoutDefaults.FallbackAnchorHeight) *
+                        HomeModeSwitchOverlayLayoutDefaults.PanelSpacingFactor)
+                    .coerceIn(
+                        HomeModeSwitchOverlayLayoutDefaults.PanelSpacingMin,
+                        HomeModeSwitchOverlayLayoutDefaults.PanelSpacingMax,
+                    )
             val panelX =
                 anchorBounds?.let { bounds ->
                     with(density) {
@@ -153,7 +164,7 @@ fun HomeModeSwitchOverlay(
             val panelY =
                 anchorBounds?.let { bounds ->
                     with(density) { bounds.bottom.toDp() + panelSpacing }
-                } ?: 0.dp
+                } ?: HomeModeSwitchOverlayLayoutDefaults.PanelFallbackTop
 
             Surface(
                 modifier =
@@ -170,10 +181,14 @@ fun HomeModeSwitchOverlay(
                             interactionSource = remember { MutableInteractionSource() },
                             onClick = {},
                         ),
-                shape = RoundedCornerShape(30.dp),
+                shape = RoundedCornerShape(HomeModeSwitchOverlayLayoutDefaults.PanelCornerRadius),
             ) {
                 androidx.compose.foundation.layout.Column(
-                    modifier = Modifier.selectableGroup().padding(vertical = 10.dp)
+                    modifier =
+                        Modifier.selectableGroup()
+                            .padding(
+                                vertical = HomeModeSwitchOverlayLayoutDefaults.PanelVerticalPadding
+                            )
                 ) {
                     modeItems.forEach { (mode, label) ->
                         HomeModeMenuItem(
@@ -217,20 +232,28 @@ private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Uni
 
     Surface(
         color = containerColor,
-        shape = RoundedCornerShape(22.dp),
-        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp).scale(itemScale),
+        shape = RoundedCornerShape(HomeModeSwitchOverlayLayoutDefaults.ItemCornerRadius),
+        modifier =
+            Modifier.padding(
+                    horizontal = HomeModeSwitchOverlayLayoutDefaults.ItemOuterHorizontalPadding,
+                    vertical = HomeModeSwitchOverlayLayoutDefaults.ItemOuterVerticalPadding,
+                )
+                .scale(itemScale),
     ) {
         Row(
             modifier =
                 Modifier.fillMaxWidth()
-                    .heightIn(min = 56.dp)
+                    .heightIn(min = HomeModeSwitchOverlayLayoutDefaults.ItemMinHeight)
                     .selectable(
                         selected = selected,
                         interactionSource = interactionSource,
                         role = Role.RadioButton,
                         onClick = onClick,
                     )
-                    .padding(horizontal = 18.dp, vertical = 4.dp),
+                    .padding(
+                        horizontal = HomeModeSwitchOverlayLayoutDefaults.ItemInnerHorizontalPadding,
+                        vertical = HomeModeSwitchOverlayLayoutDefaults.ItemInnerVerticalPadding,
+                    ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -238,7 +261,7 @@ private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Uni
                 text = text,
                 style =
                     MiuixTheme.textStyles.body2.copy(
-                        fontSize = 16.sp,
+                        fontSize = HomeModeSwitchOverlayLayoutDefaults.ItemTextSize,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     ),
                 color = if (selected) primary else MiuixTheme.colorScheme.onSurface,
@@ -248,7 +271,7 @@ private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Uni
                     imageVector = Yume.Check,
                     contentDescription = null,
                     tint = primary,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(HomeModeSwitchOverlayLayoutDefaults.ItemIconSize),
                 )
             }
         }

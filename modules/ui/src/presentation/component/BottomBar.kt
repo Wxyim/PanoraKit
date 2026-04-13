@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -75,6 +76,38 @@ val LocalHandlePageChange =
 val LocalNavigator =
     compositionLocalOf<DestinationsNavigator> { error("LocalNavigator is not provided") }
 val LocalBottomBarLiquidState = compositionLocalOf<LiquidState?> { null }
+
+object BottomBarLayoutDefaults {
+    val NoOverlayPadding = 0.dp
+
+    val ContainerHeight = 60.dp
+    val BottomSpacing = 14.dp
+    val ReservedHeight = ContainerHeight + BottomSpacing
+    val TopSpacing = 8.dp
+    const val HorizontalInsetFraction = 0.10f
+    val HorizontalInsetMin = 18.dp
+    val HorizontalInsetMax = 40.dp
+    val TabIconContainerSize = 20.dp
+    val TabIconSize = 22.dp
+    val SideRailWidth = 92.dp
+    val SideRailShadowElevation = 22.dp
+    val SideRailHorizontalPadding = 10.dp
+    val SideRailVerticalPadding = 14.dp
+    val SideRailSectionSpacing = 8.dp
+    val SideRailItemHorizontalPadding = 8.dp
+    val SideRailItemVerticalPadding = 10.dp
+    val SideRailItemSpacing = 4.dp
+    val ContentInset = 4.dp
+    val LiquidFrost = 3.dp
+    val BarShadowElevation = 24.dp
+    val TabTouchTargetHeight = 52.dp
+    val InnerBorderInset = 1.dp
+
+    fun overlayPadding(useRailNavigation: Boolean): Dp =
+        if (useRailNavigation) NoOverlayPadding else ReservedHeight
+}
+
+val LocalBottomBarOverlayPadding = compositionLocalOf { BottomBarLayoutDefaults.NoOverlayPadding }
 
 @Composable
 fun BottomBarContent(isVisible: Boolean = true) {
@@ -134,7 +167,11 @@ fun BottomBarContent(isVisible: Boolean = true) {
         }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val horizontalInset = (maxWidth * 0.10f).coerceIn(18.dp, 40.dp)
+        val horizontalInset =
+            (maxWidth * BottomBarLayoutDefaults.HorizontalInsetFraction).coerceIn(
+                BottomBarLayoutDefaults.HorizontalInsetMin,
+                BottomBarLayoutDefaults.HorizontalInsetMax,
+            )
 
         BottomNavigationBar(
             selectedIndex = navigationState.page,
@@ -149,8 +186,8 @@ fun BottomBarContent(isVisible: Boolean = true) {
                     .padding(
                         start = horizontalInset,
                         end = horizontalInset,
-                        top = 8.dp,
-                        bottom = bottomSafeInset + 14.dp,
+                        top = BottomBarLayoutDefaults.TopSpacing,
+                        bottom = bottomSafeInset + BottomBarLayoutDefaults.BottomSpacing,
                     )
                     .graphicsLayer {
                         alpha = animatedAlpha
@@ -167,7 +204,10 @@ fun BottomBarContent(isVisible: Boolean = true) {
                     enabled = bottomBarVisible,
                     onClick = { navigationState.onItemClick(index) },
                 ) {
-                    Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.size(BottomBarLayoutDefaults.TabIconContainerSize),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(
                             imageVector = destination.icon,
                             contentDescription = null,
@@ -233,7 +273,7 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                 .testTag(TestTags.Navigation.BottomBar)
                 .selectableGroup()
                 .shadow(
-                    elevation = 22.dp,
+                    elevation = BottomBarLayoutDefaults.SideRailShadowElevation,
                     shape = Capsule(),
                     ambientColor =
                         if (isLightTheme) {
@@ -248,12 +288,15 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                             Black.copy(alpha = 0.24f)
                         },
                 )
-                .width(92.dp)
+                .width(BottomBarLayoutDefaults.SideRailWidth)
                 .clip(Capsule())
                 .background(containerColor, Capsule())
                 .border(width = AppTheme.strokes.default, color = borderColor, shape = Capsule())
-                .padding(horizontal = 10.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(
+                    horizontal = BottomBarLayoutDefaults.SideRailHorizontalPadding,
+                    vertical = BottomBarLayoutDefaults.SideRailVerticalPadding,
+                ),
+        verticalArrangement = Arrangement.spacedBy(BottomBarLayoutDefaults.SideRailSectionSpacing),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BottomBarDestination.entries.forEachIndexed { index, destination ->
@@ -274,15 +317,19 @@ fun SideRailContent(modifier: Modifier = Modifier) {
                             pressedAlpha = AppInteractionFeedbackDefaults.NavigationPressedAlpha,
                             onClick = { navigationState.onItemClick(index) },
                         )
-                        .padding(vertical = 10.dp, horizontal = 8.dp),
+                        .padding(
+                            vertical = BottomBarLayoutDefaults.SideRailItemVerticalPadding,
+                            horizontal = BottomBarLayoutDefaults.SideRailItemHorizontalPadding,
+                        ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(BottomBarLayoutDefaults.SideRailItemSpacing),
             ) {
                 Icon(
                     imageVector = destination.icon,
                     contentDescription = null,
                     tint = itemColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(BottomBarLayoutDefaults.TabIconSize),
                 )
                 BasicText(
                     destination.label(),
@@ -315,7 +362,7 @@ private fun BottomNavigationBar(
     val density = LocalDensity.current
     val safeSelectedIndex = selectedIndex.coerceIn(0, tabsCount - 1)
 
-    val contentInset = 4.dp
+    val contentInset = BottomBarLayoutDefaults.ContentInset
     val contentInsetPx = with(density) { (contentInset * 2).toPx() }
 
     var indicatorIndex by remember { mutableIntStateOf(safeSelectedIndex) }
@@ -341,7 +388,7 @@ private fun BottomNavigationBar(
         modifier =
             modifier
                 .shadow(
-                    elevation = 24.dp,
+                    elevation = BottomBarLayoutDefaults.BarShadowElevation,
                     shape = Capsule(),
                     ambientColor =
                         if (isLightTheme) {
@@ -356,12 +403,12 @@ private fun BottomNavigationBar(
                             Black.copy(alpha = 0.28f)
                         },
                 )
-                .height(60.dp)
+                .height(BottomBarLayoutDefaults.ContainerHeight)
                 .clip(Capsule())
                 .then(
                     if (liquidState != null) {
                         Modifier.liquid(liquidState) {
-                                frost = 3.dp
+                                frost = BottomBarLayoutDefaults.LiquidFrost
                                 refraction = 0.5f
                                 curve = 0.6f
                                 edge = 0.4f
@@ -392,13 +439,15 @@ private fun BottomNavigationBar(
                         scaleX = indicatorScale.value
                         scaleY = indicatorScale.value
                     }
-                    .height(52.dp)
+                    .height(BottomBarLayoutDefaults.TabTouchTargetHeight)
                     .fillMaxWidth(1f / tabsCount)
                     .background(indicatorContainerColor, Capsule())
             )
 
             Row(
-                Modifier.height(52.dp).fillMaxWidth().selectableGroup(),
+                Modifier.height(BottomBarLayoutDefaults.TabTouchTargetHeight)
+                    .fillMaxWidth()
+                    .selectableGroup(),
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
             )
@@ -415,7 +464,7 @@ private fun BottomNavigationBar(
 
         Box(
             Modifier.matchParentSize()
-                .padding(1.dp)
+                .padding(BottomBarLayoutDefaults.InnerBorderInset)
                 .border(
                     width = AppTheme.strokes.thin,
                     color = innerHighlightColor,
@@ -445,7 +494,8 @@ private fun RowScope.BottomNavigationTabItem(
             )
             .fillMaxHeight()
             .weight(1f),
-        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+        verticalArrangement =
+            Arrangement.spacedBy(AppTheme.spacing.xxs, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
         content = content,
     )

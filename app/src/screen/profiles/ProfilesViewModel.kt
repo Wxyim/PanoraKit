@@ -54,6 +54,7 @@ import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import java.util.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -140,7 +141,7 @@ class ProfilesViewModel(
 
     private fun launchWithLoading(
         failureLog: String,
-        failureMessage: (Exception) -> String,
+        failureMessage: (Throwable) -> String,
         onFailure: (() -> Unit)? = null,
         block: suspend () -> Unit,
     ) {
@@ -150,9 +151,12 @@ class ProfilesViewModel(
                 block()
             } catch (_: HandledRuntimeActionFailure) {
                 onFailure?.invoke()
-            } catch (e: Exception) {
-                Timber.e(e, failureLog)
-                showError(failureMessage(e))
+            } catch (error: Throwable) {
+                if (error is CancellationException) {
+                    throw error
+                }
+                Timber.e(error, failureLog)
+                showError(failureMessage(error))
                 onFailure?.invoke()
             } finally {
                 setLoading(false)

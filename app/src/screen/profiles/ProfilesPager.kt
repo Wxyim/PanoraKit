@@ -86,6 +86,7 @@ rules: []
 @Composable
 fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val navigator = LocalNavigator.current
+    val spacing = LocalSpacing.current
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
     val homeViewModel = koinViewModel<HomeViewModel>()
     val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
@@ -203,12 +204,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             !showSettingsDialog.value &&
             !isDeleteDialogVisible &&
             moreActionsProfileId == null
-    val addFabBottomPadding =
-        if (mainInnerPadding.calculateBottomPadding() > 40.dp) {
-            56.dp
-        } else {
-            0.dp
-        }
     LaunchedEffect(profilesUiState.message, pendingRuntimeReloadProfileId) {
         pendingRuntimeReloadProfileId ?: return@LaunchedEffect
         if (profilesUiState.message != null) {
@@ -308,7 +303,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                         visible = showAddFab,
                         imageVector = Yume.Cloud,
                         contentDescription = MLang.ProfilesPage.Action.AddProfile,
-                        extraBottomPadding = addFabBottomPadding,
                         label = MLang.ProfilesPage.Action.AddProfile,
                         supportingText =
                             "${MLang.ProfilesPage.Type.Subscription} / ${MLang.ProfilesPage.Type.LocalFile}",
@@ -379,6 +373,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     topPadding = 20.dp,
                     modifier =
                         Modifier.adaptiveContentWidth(profileContentMaxWidth)
+                            .padding(horizontal = spacing.gutter)
                             .align(Alignment.TopCenter),
                 ) {
                     items(items = profiles, key = { it.uuid.toString() }) { profile ->

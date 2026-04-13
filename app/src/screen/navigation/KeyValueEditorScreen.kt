@@ -33,6 +33,8 @@ import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
@@ -43,15 +45,6 @@ import top.yukonga.miuix.kmp.icon.extended.AddCircle
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Reset
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object KeyValueEditorMetrics {
-    val CardVerticalPadding = 4.dp
-    val RowHorizontalPadding = 16.dp
-    val RowVerticalPadding = 12.dp
-    val IndexWidth = 40.dp
-    val ContentHorizontalPadding = 8.dp
-    val DeleteButtonSize = 40.dp
-}
 
 object EditorDataHolder {
     var listEditorTitle: String = ""
@@ -658,33 +651,31 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 
 @Composable
 private fun ListItem(index: Int, text: String, onClick: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
+
+    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
         Row(
             modifier =
                 Modifier.fillMaxWidth()
                     .appClickable(onClick = onClick)
-                    .padding(
-                        horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
-                        vertical = KeyValueEditorMetrics.RowVerticalPadding,
-                    ),
+                    .padding(horizontal = spacing.lg, vertical = spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "$index.",
                 style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.width(KeyValueEditorMetrics.IndexWidth),
+                modifier = Modifier.width(pageMetrics.editorIndexWidth),
             )
             Text(
                 text = text,
                 style = MiuixTheme.textStyles.body1,
-                modifier =
-                    Modifier.weight(1f)
-                        .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding),
+                modifier = Modifier.weight(1f).padding(horizontal = spacing.sm),
             )
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(KeyValueEditorMetrics.DeleteButtonSize),
+                modifier = Modifier.size(pageMetrics.editorDeleteButtonSize),
             ) {
                 Icon(
                     imageVector = MiuixIcons.Delete,
@@ -704,28 +695,24 @@ private fun KeyValueItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.padding(vertical = KeyValueEditorMetrics.CardVerticalPadding)) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = LocalPageMetrics.current
+
+    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
         Row(
             modifier =
                 Modifier.fillMaxWidth()
                     .appClickable(onClick = onClick)
-                    .padding(
-                        horizontal = KeyValueEditorMetrics.RowHorizontalPadding,
-                        vertical = KeyValueEditorMetrics.RowVerticalPadding,
-                    ),
+                    .padding(horizontal = spacing.lg, vertical = spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "$index.",
                 style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.width(KeyValueEditorMetrics.IndexWidth),
+                modifier = Modifier.width(pageMetrics.editorIndexWidth),
             )
-            Column(
-                modifier =
-                    Modifier.weight(1f)
-                        .padding(horizontal = KeyValueEditorMetrics.ContentHorizontalPadding)
-            ) {
+            Column(modifier = Modifier.weight(1f).padding(horizontal = spacing.sm)) {
                 Text(text = key, style = MiuixTheme.textStyles.body1)
                 Text(
                     text = value,
@@ -735,7 +722,7 @@ private fun KeyValueItem(
             }
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(KeyValueEditorMetrics.DeleteButtonSize),
+                modifier = Modifier.size(pageMetrics.editorDeleteButtonSize),
             ) {
                 Icon(
                     imageVector = MiuixIcons.Delete,

@@ -43,8 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
@@ -58,6 +56,8 @@ import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.TrafficBarChart
 import com.github.yumelira.yumebox.presentation.component.appClickable
+import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.yumelira.yumebox.presentation.theme.TrafficStatisticsScreenLayoutDefaults
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
 import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
@@ -74,25 +74,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private object TrafficStatisticsMetrics {
-    val TopPadding = 16.dp
-    val BottomPadding = 32.dp
-    val CardHorizontalPadding = 16.dp
-    val CardSpacing = 14.dp
-    val CardInnerPadding = 16.dp
-    val SummarySpacing = 14.dp
-    val ChartInfoSpacing = 10.dp
-    val SummaryBlockHeight = 66.dp
-    val SummaryValueFontSize = 26.sp
-    val ChartHeight = 132.dp
-    val SelectedLabelHeight = 24.dp
-    val SectionSpacing = 14.dp
-    val RecentRequestCardPadding = 16.dp
-    val RecentRequestItemPadding = 12.dp
-    val RecentRequestItemSpacing = 10.dp
-    val RecentRequestChipCorner = 100.dp
-}
 
 private enum class TrafficDetailSection {
     RecentRequests,
@@ -159,17 +140,13 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
-                topPadding = TrafficStatisticsMetrics.TopPadding,
-                bottomPadding = TrafficStatisticsMetrics.BottomPadding,
+                topPadding = AppTheme.spacing.lg,
+                bottomPadding = AppTheme.spacing.xxxl,
                 modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
             ) {
                 item {
                     BoxWithConstraints(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(
-                                    horizontal = TrafficStatisticsMetrics.CardHorizontalPadding
-                                )
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = AppTheme.spacing.lg)
                     ) {
                         val availableAdaptiveInfo =
                             rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
@@ -178,7 +155,9 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement =
-                                    Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                                    Arrangement.spacedBy(
+                                        TrafficStatisticsScreenLayoutDefaults.CardSpacing
+                                    ),
                                 verticalAlignment = Alignment.Top,
                             ) {
                                 OverviewCard(
@@ -196,7 +175,15 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                                         )
                                     },
                                     modifier = Modifier.weight(1f),
-                                    selectorModifier = Modifier.widthIn(min = 200.dp, max = 248.dp),
+                                    selectorModifier =
+                                        Modifier.widthIn(
+                                            min =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorWideOverviewMinWidth,
+                                            max =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorWideOverviewMaxWidth,
+                                        ),
                                 )
                                 DetailsCard(
                                     selectedDetailSection = selectedDetailSection,
@@ -208,14 +195,24 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                                         showConnectionDetail = true
                                     },
                                     modifier = Modifier.weight(1f),
-                                    selectorModifier = Modifier.widthIn(min = 240.dp, max = 320.dp),
+                                    selectorModifier =
+                                        Modifier.widthIn(
+                                            min =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorWideDetailMinWidth,
+                                            max =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorWideDetailMaxWidth,
+                                        ),
                                 )
                             }
                         } else {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement =
-                                    Arrangement.spacedBy(TrafficStatisticsMetrics.CardSpacing),
+                                    Arrangement.spacedBy(
+                                        TrafficStatisticsScreenLayoutDefaults.CardSpacing
+                                    ),
                             ) {
                                 OverviewCard(
                                     selectedTimeRange = selectedTimeRange,
@@ -232,7 +229,15 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    selectorModifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
+                                    selectorModifier =
+                                        Modifier.widthIn(
+                                            min =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorCompactOverviewMinWidth,
+                                            max =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorCompactOverviewMaxWidth,
+                                        ),
                                 )
                                 DetailsCard(
                                     selectedDetailSection = selectedDetailSection,
@@ -244,7 +249,15 @@ fun TrafficStatisticsScreen(navigator: DestinationsNavigator) {
                                         showConnectionDetail = true
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    selectorModifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+                                    selectorModifier =
+                                        Modifier.widthIn(
+                                            min =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorCompactDetailMinWidth,
+                                            max =
+                                                TrafficStatisticsScreenLayoutDefaults
+                                                    .SelectorCompactDetailMaxWidth,
+                                        ),
                                 )
                             }
                         }
@@ -276,8 +289,10 @@ private fun OverviewCard(
     modifier: Modifier = Modifier,
     selectorModifier: Modifier = Modifier,
 ) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = AppTheme.pageMetrics
     top.yukonga.miuix.kmp.basic.Card(modifier = modifier) {
-        Column(modifier = Modifier.padding(TrafficStatisticsMetrics.CardInnerPadding)) {
+        Column(modifier = Modifier.padding(spacing.lg)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -295,7 +310,7 @@ private fun OverviewCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.SummarySpacing))
+            Spacer(modifier = Modifier.height(TrafficStatisticsScreenLayoutDefaults.CardSpacing))
 
             CompactTrafficSummary(
                 selectedTimeRange = selectedTimeRange,
@@ -316,13 +331,14 @@ private fun OverviewCard(
                     selectedTimeRange == StatisticsTimeRange.TODAY && it.isNotBlank()
                 }
 
-            Spacer(modifier = Modifier.height(TrafficStatisticsMetrics.ChartInfoSpacing))
+            Spacer(
+                modifier = Modifier.height(TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing)
+            )
 
             Column(
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .heightIn(min = TrafficStatisticsMetrics.SelectedLabelHeight),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                    Modifier.fillMaxWidth().heightIn(min = pageMetrics.trafficSelectedLabelHeight),
+                verticalArrangement = Arrangement.spacedBy(spacing.xs),
             ) {
                 if (timeContextText != null) {
                     Text(
@@ -351,9 +367,9 @@ private fun OverviewCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(TrafficStatisticsScreenLayoutDefaults.CardSpacing))
 
-            Box(modifier = Modifier.fillMaxWidth().height(TrafficStatisticsMetrics.ChartHeight)) {
+            Box(modifier = Modifier.fillMaxWidth().height(pageMetrics.trafficChartHeight)) {
                 TrafficBarChart(
                     items = chartItems,
                     selectedIndex = selectedBarIndex,
@@ -374,10 +390,12 @@ private fun DetailsCard(
     modifier: Modifier = Modifier,
     selectorModifier: Modifier = Modifier,
 ) {
+    val spacing = AppTheme.spacing
     top.yukonga.miuix.kmp.basic.Card(modifier = modifier) {
         Column(
-            modifier = Modifier.padding(TrafficStatisticsMetrics.RecentRequestCardPadding),
-            verticalArrangement = Arrangement.spacedBy(TrafficStatisticsMetrics.SectionSpacing),
+            modifier = Modifier.padding(spacing.lg),
+            verticalArrangement =
+                Arrangement.spacedBy(TrafficStatisticsScreenLayoutDefaults.DetailSectionSpacing),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -427,7 +445,7 @@ private fun DetailsCard(
                             Column(
                                 verticalArrangement =
                                     Arrangement.spacedBy(
-                                        TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                        TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing
                                     )
                             ) {
                                 recentRequests.forEach { request ->
@@ -451,7 +469,7 @@ private fun DetailsCard(
                             Column(
                                 verticalArrangement =
                                     Arrangement.spacedBy(
-                                        TrafficStatisticsMetrics.RecentRequestItemSpacing
+                                        TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing
                                     )
                             ) {
                                 targetSites.forEach { site -> TargetSiteItem(record = site) }
@@ -470,7 +488,12 @@ private fun DetailSectionSelector(
     onSectionSelected: (TrafficDetailSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
         TrafficDetailSection.entries.forEach { section ->
             val isSelected = section == selectedSection
             val label =
@@ -482,7 +505,7 @@ private fun DetailSectionSelector(
             Surface(
                 modifier =
                     Modifier.weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(radii.md))
                         .selectable(
                             selected = isSelected,
                             role = Role.Tab,
@@ -496,7 +519,7 @@ private fun DetailSectionSelector(
                     },
             ) {
                 Box(
-                    modifier = Modifier.padding(vertical = 8.dp),
+                    modifier = Modifier.padding(vertical = spacing.sm),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -519,13 +542,20 @@ private fun DetailSectionSelector(
 
 @Composable
 private fun TargetSiteItem(record: TargetSiteRecord) {
+    val spacing = AppTheme.spacing
     Surface(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(
+                        TrafficStatisticsScreenLayoutDefaults.RequestCardCornerRadius
+                    )
+                ),
         color = MiuixTheme.colorScheme.background,
     ) {
         Column(
-            modifier = Modifier.padding(TrafficStatisticsMetrics.RecentRequestItemPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(spacing.md),
+            verticalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -534,7 +564,7 @@ private fun TargetSiteItem(record: TargetSiteRecord) {
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(spacing.xs),
                 ) {
                     Text(
                         text = record.displayName,
@@ -560,7 +590,10 @@ private fun TargetSiteItem(record: TargetSiteRecord) {
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        TrafficStatisticsScreenLayoutDefaults.RequestChipRowSpacing
+                    ),
             ) {
                 RequestChip(
                     text =
@@ -587,13 +620,18 @@ private fun TimeRangeSelector(
     onRangeSelected: (StatisticsTimeRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
         StatisticsTimeRange.entries.forEach { range ->
             val isSelected = range == selectedRange
             Surface(
                 modifier =
                     Modifier.weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(radii.md))
                         .selectable(
                             selected = isSelected,
                             role = Role.Tab,
@@ -607,7 +645,7 @@ private fun TimeRangeSelector(
                     },
             ) {
                 Box(
-                    modifier = Modifier.padding(vertical = 8.dp),
+                    modifier = Modifier.padding(vertical = spacing.sm),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -633,6 +671,8 @@ private fun CompactTrafficSummary(
     weekSummary: Long,
     trafficDifference: Long,
 ) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = AppTheme.pageMetrics
     val displayTotal =
         when (selectedTimeRange) {
             StatisticsTimeRange.TODAY -> todaySummary
@@ -658,8 +698,8 @@ private fun CompactTrafficSummary(
         }
 
     Column(
-        modifier = Modifier.heightIn(min = TrafficStatisticsMetrics.SummaryBlockHeight),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.heightIn(min = pageMetrics.trafficSummaryBlockHeight),
+        verticalArrangement = Arrangement.spacedBy(spacing.xxs),
     ) {
         Text(
             text =
@@ -674,7 +714,7 @@ private fun CompactTrafficSummary(
             text = formatBytes(displayTotal),
             style =
                 MiuixTheme.textStyles.headline1.copy(
-                    fontSize = TrafficStatisticsMetrics.SummaryValueFontSize
+                    fontSize = pageMetrics.trafficSummaryValueFontSize
                 ),
             color = MiuixTheme.colorScheme.onSurface,
         )
@@ -688,18 +728,26 @@ private fun CompactTrafficSummary(
 
 @Composable
 private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) {
+    val spacing = AppTheme.spacing
     val connection = record.connection
     val displayAddress = remember(connection) { connection.toDisplayAddress() }
     val totalTraffic = connection.upload + connection.download
 
     Surface(
         modifier =
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).appClickable(onClick = onClick),
+            Modifier.fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(
+                        TrafficStatisticsScreenLayoutDefaults.RequestCardCornerRadius
+                    )
+                )
+                .appClickable(onClick = onClick),
         color = MiuixTheme.colorScheme.background,
     ) {
         Column(
-            modifier = Modifier.padding(TrafficStatisticsMetrics.RecentRequestItemPadding),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(spacing.md),
+            verticalArrangement =
+                Arrangement.spacedBy(TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -708,7 +756,7 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(spacing.xs),
                 ) {
                     Text(
                         text =
@@ -736,7 +784,7 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                 }
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(spacing.xs),
                 ) {
                     Text(
                         text = formatConnectionTime(connection.start),
@@ -753,12 +801,18 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        TrafficStatisticsScreenLayoutDefaults.RequestChipRowSpacing
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            TrafficStatisticsScreenLayoutDefaults.RequestChipRowSpacing
+                        ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val topLevelGroupName = record.topLevelGroupName
@@ -794,6 +848,8 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
 
 @Composable
 private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color) {
+    val spacing = AppTheme.spacing
+    val pageMetrics = AppTheme.pageMetrics
     Text(
         text = text,
         style = MiuixTheme.textStyles.footnote1,
@@ -801,9 +857,12 @@ private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color)
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier =
-            Modifier.clip(RoundedCornerShape(TrafficStatisticsMetrics.RecentRequestChipCorner))
+            Modifier.clip(RoundedCornerShape(pageMetrics.trafficRecentRequestChipCorner))
                 .background(color.copy(alpha = 0.12f))
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+                .padding(
+                    horizontal = spacing.sm,
+                    vertical = TrafficStatisticsScreenLayoutDefaults.RequestChipVerticalPadding,
+                ),
     )
 }
 

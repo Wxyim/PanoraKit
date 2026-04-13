@@ -51,114 +51,107 @@ fun ConnectionInfo.toDiagnostics(
     processName: String,
     displayAddress: ConnectionDisplayAddress,
 ): ConnectionDiagnostics {
-    val healthItems =
-        buildList {
+    val healthItems = buildList {
+        add(
+            HealthCheckItem(
+                checkId = "$id-protocol",
+                label = network.uppercase(),
+                severity = HealthCheckSeverity.Ok,
+                detail = displayAddress.destinationAddress.ifBlank { displayAddress.title },
+                category = "connection",
+            )
+        )
+
+        if (sourceAppName.isNotBlank()) {
             add(
                 HealthCheckItem(
-                    checkId = "$id-protocol",
-                    label = network.uppercase(),
-                    severity = HealthCheckSeverity.Ok,
-                    detail = displayAddress.destinationAddress.ifBlank { displayAddress.title },
-                    category = "connection",
+                    checkId = "$id-source-app",
+                    label = sourceAppName,
+                    severity = HealthCheckSeverity.Info,
+                    detail = sourcePackageName?.takeIf { it.isNotBlank() } ?: processName,
+                    category = "identity",
                 )
-            )
-
-            if (sourceAppName.isNotBlank()) {
-                add(
-                    HealthCheckItem(
-                        checkId = "$id-source-app",
-                        label = sourceAppName,
-                        severity = HealthCheckSeverity.Info,
-                        detail = sourcePackageName?.takeIf { it.isNotBlank() } ?: processName,
-                        category = "identity",
-                    )
-                )
-            }
-
-            add(
-                if (rule.isNotBlank()) {
-                    HealthCheckItem(
-                        checkId = "$id-rule",
-                        label = rule,
-                        severity = HealthCheckSeverity.Ok,
-                        detail = rulePayload.takeIf { it.isNotBlank() },
-                        category = "routing",
-                    )
-                } else {
-                    HealthCheckItem(
-                        checkId = "$id-rule-missing",
-                        label = MLang.Connection.Detail.Rule,
-                        severity = HealthCheckSeverity.Warning,
-                        detail = displayAddress.title.ifBlank { displayAddress.destinationAddress },
-                        category = "routing",
-                    )
-                }
-            )
-
-            add(
-                if (chains.isNotEmpty()) {
-                    HealthCheckItem(
-                        checkId = "$id-chain",
-                        label = chains.last(),
-                        severity = HealthCheckSeverity.Ok,
-                        detail = chains.dropLast(1).joinToString(" → ").takeIf { it.isNotBlank() },
-                        category = "outbound",
-                    )
-                } else {
-                    HealthCheckItem(
-                        checkId = "$id-chain-missing",
-                        label = displayAddress.destinationAddress.ifBlank { displayAddress.title },
-                        severity = HealthCheckSeverity.Warning,
-                        detail = network.uppercase(),
-                        category = "outbound",
-                    )
-                }
             )
         }
 
-    val explanationSteps =
-        buildList {
-            if (sourceAppName.isNotBlank()) {
-                add(
-                    ExplanationStep(
-                        stage = MLang.Connection.Detail.SourceApp,
-                        label = sourceAppName,
-                        detail = sourcePackageName?.takeIf { it.isNotBlank() } ?: processName,
-                    )
-                )
-            }
-            add(
-                ExplanationStep(
-                    stage = MLang.Connection.Detail.Protocol,
-                    label = network.uppercase(),
-                )
-            )
-            if (displayAddress.sourceAddress.isNotBlank()) {
-                add(
-                    ExplanationStep(
-                        stage = MLang.Connection.Detail.SourceAddress,
-                        label = displayAddress.sourceAddress,
-                    )
-                )
-            }
+        add(
             if (rule.isNotBlank()) {
-                add(
-                    ExplanationStep(
-                        stage = MLang.Connection.Detail.Rule,
-                        label = rule,
-                        detail = rulePayload.takeIf { it.isNotBlank() },
-                    )
+                HealthCheckItem(
+                    checkId = "$id-rule",
+                    label = rule,
+                    severity = HealthCheckSeverity.Ok,
+                    detail = rulePayload.takeIf { it.isNotBlank() },
+                    category = "routing",
+                )
+            } else {
+                HealthCheckItem(
+                    checkId = "$id-rule-missing",
+                    label = MLang.Connection.Detail.Rule,
+                    severity = HealthCheckSeverity.Warning,
+                    detail = displayAddress.title.ifBlank { displayAddress.destinationAddress },
+                    category = "routing",
                 )
             }
+        )
+
+        add(
+            if (chains.isNotEmpty()) {
+                HealthCheckItem(
+                    checkId = "$id-chain",
+                    label = chains.last(),
+                    severity = HealthCheckSeverity.Ok,
+                    detail = chains.dropLast(1).joinToString(" → ").takeIf { it.isNotBlank() },
+                    category = "outbound",
+                )
+            } else {
+                HealthCheckItem(
+                    checkId = "$id-chain-missing",
+                    label = displayAddress.destinationAddress.ifBlank { displayAddress.title },
+                    severity = HealthCheckSeverity.Warning,
+                    detail = network.uppercase(),
+                    category = "outbound",
+                )
+            }
+        )
+    }
+
+    val explanationSteps = buildList {
+        if (sourceAppName.isNotBlank()) {
             add(
                 ExplanationStep(
-                    stage = MLang.Connection.Detail.DestinationAddress,
-                    label = displayAddress.destinationAddress.ifBlank { displayAddress.title },
-                    detail = chains.joinToString(" → ").takeIf { it.isNotBlank() },
-                    matched = chains.isNotEmpty() || rule.isNotBlank(),
+                    stage = MLang.Connection.Detail.SourceApp,
+                    label = sourceAppName,
+                    detail = sourcePackageName?.takeIf { it.isNotBlank() } ?: processName,
                 )
             )
         }
+        add(ExplanationStep(stage = MLang.Connection.Detail.Protocol, label = network.uppercase()))
+        if (displayAddress.sourceAddress.isNotBlank()) {
+            add(
+                ExplanationStep(
+                    stage = MLang.Connection.Detail.SourceAddress,
+                    label = displayAddress.sourceAddress,
+                )
+            )
+        }
+        if (rule.isNotBlank()) {
+            add(
+                ExplanationStep(
+                    stage = MLang.Connection.Detail.Rule,
+                    label = rule,
+                    detail = rulePayload.takeIf { it.isNotBlank() },
+                )
+            )
+        }
+        add(
+            ExplanationStep(
+                stage = MLang.Connection.Detail.DestinationAddress,
+                label = displayAddress.destinationAddress.ifBlank { displayAddress.title },
+                detail = chains.joinToString(" → ").takeIf { it.isNotBlank() },
+                matched = chains.isNotEmpty() || rule.isNotBlank(),
+            )
+        )
+    }
 
     return ConnectionDiagnostics(
         healthReport =

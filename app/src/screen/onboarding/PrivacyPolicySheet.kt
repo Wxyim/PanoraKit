@@ -31,9 +31,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.R
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
+import com.github.yumelira.yumebox.presentation.theme.PrivacyPolicySheetLayoutDefaults
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Text
@@ -64,7 +64,10 @@ internal fun PrivacyPolicySheet(show: MutableState<Boolean>) {
         onDismissRequest = { show.value = false },
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp).verticalScroll(scrollState)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .heightIn(max = PrivacyPolicySheetLayoutDefaults.MaxHeight)
+                    .verticalScroll(scrollState)
         ) {
             Text(
                 text = policyText,

@@ -50,7 +50,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.domain.model.SuggestedAction
 import com.github.yumelira.yumebox.presentation.icon.Yume

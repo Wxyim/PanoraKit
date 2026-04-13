@@ -25,12 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
- * Returns an adaptive [Spacing] instance tuned for the current window size class:
- * - **Compact**: narrow phone or split-window layouts → `screenH = 12 dp`
- * - **Medium**: landscape phones / foldables / narrow tablets → `screenH = 24 dp`
- * - **Expanded**: wide tablets or desktop-like windows → constrain content toward a ~680 dp column.
+ * Returns the shared app [Spacing] with only viewport-level insets adapted to window size.
+ *
+ * The rhythm scale itself remains centralized in [DefaultSpacing]. This function only adjusts the
+ * outer page frame so wide layouts gain stronger horizontal containment without introducing a
+ * second spacing system.
  */
 @Composable
 fun rememberAdaptiveSpacing(
@@ -53,16 +55,76 @@ fun rememberAdaptiveSpacing(
                             840.dp
                         }
                     val inset = ((effectiveWidth - 680.dp) / 2f).coerceAtLeast(32.dp)
-                    Spacing(screenH = inset, gutter = 24.dp)
+                    DefaultSpacing.copy(screenH = inset, gutter = 24.dp)
                 }
                 androidx.compose.material3.windowsizeclass.WindowWidthSizeClass.Medium ->
-                    Spacing(screenH = 24.dp, gutter = 20.dp)
-                else -> Spacing()
+                    DefaultSpacing.copy(screenH = 24.dp, gutter = 20.dp)
+                else -> DefaultSpacing
             }
         baseSpacing.scaleBy(normalizedScale)
     }
 }
 
+/**
+ * Returns adaptive page metrics for viewport-dependent caps and sheet/list constraints.
+ *
+ * This does not redefine shared spacing or radii semantics. It only adapts page-specific bounds
+ * that should respond to available width and height.
+ */
+@Composable
+fun rememberAdaptivePageMetrics(windowAdaptiveInfo: WindowAdaptiveInfo): PageMetrics {
+    return remember(
+        windowAdaptiveInfo.widthSizeClass,
+        windowAdaptiveInfo.heightSizeClass,
+        windowAdaptiveInfo.windowWidth,
+        windowAdaptiveInfo.windowHeight,
+    ) {
+        val singlePaneMaxWidth = windowAdaptiveInfo.preferredSinglePaneMaxWidth
+        val heightAwareMetrics =
+            when (windowAdaptiveInfo.heightSizeClass) {
+                androidx.compose.material3.windowsizeclass.WindowHeightSizeClass.Compact ->
+                    DefaultPageMetrics.copy(
+                        openSourceLicenseSheetMaxHeight = 360.dp,
+                        profileAddSheetFallbackHeight = 560.dp,
+                        profileAddSheetQrPreviewMinHeight = 160.dp,
+                        profileAddSheetQrPreviewMaxHeight = 220.dp,
+                        profileSettingsMaxHeightFraction = 0.8f,
+                        profileLinkSettingsLinkListMaxHeight = 280.dp,
+                        overrideBindingListMaxHeight = 320.dp,
+                        overridePresetTemplateListMaxHeight = 420.dp,
+                        proxyFloatingPanelMaxHeight = 560.dp,
+                        proxyFloatingPanelListMaxHeight = 360.dp,
+                    )
+
+                androidx.compose.material3.windowsizeclass.WindowHeightSizeClass.Expanded ->
+                    DefaultPageMetrics.copy(
+                        openSourceLicenseSheetMaxHeight = 520.dp,
+                        profileAddSheetFallbackHeight = 720.dp,
+                        profileAddSheetQrPreviewMinHeight = 208.dp,
+                        profileAddSheetQrPreviewMaxHeight = 320.dp,
+                        profileLinkSettingsLinkListMaxHeight = 420.dp,
+                        overrideBindingListMaxHeight = 520.dp,
+                        overridePresetTemplateListMaxHeight = 680.dp,
+                        proxyFloatingPanelMaxHeight = 720.dp,
+                        proxyFloatingPanelListMaxHeight = 520.dp,
+                    )
+
+                else -> DefaultPageMetrics
+            }
+
+        heightAwareMetrics.copy(
+            contentMaxWidth = singlePaneMaxWidth,
+            accessControlSearchOverlayMaxWidth = windowAdaptiveInfo.preferredBottomSheetMaxWidth,
+        )
+    }
+}
+
+/**
+ * Shared spacing tokens.
+ *
+ * `xxs..xxxl` define the global rhythm scale. `gutter` and `screenH/screenV` are page-frame insets,
+ * not an additional semantic spacing ladder.
+ */
 data class Spacing(
     val none: Dp = 0.dp,
     val xxs: Dp = 2.dp,
@@ -85,6 +147,8 @@ data class Radii(
     val lg: Dp = 12.dp,
     val xl: Dp = 16.dp,
     val xxl: Dp = 24.dp,
+    val xxxl: Dp = 32.dp,
+    val display: Dp = 36.dp,
     val pill: Dp = 999.dp,
 )
 
@@ -104,10 +168,15 @@ data class Elevations(
     val navigationBar: Dp = 22.dp,
 )
 
-val LocalSpacing = staticCompositionLocalOf { Spacing() }
-val LocalRadii = staticCompositionLocalOf { Radii() }
-val LocalStrokes = staticCompositionLocalOf { Strokes() }
-val LocalElevations = staticCompositionLocalOf { Elevations() }
+val DefaultSpacing = Spacing()
+val DefaultRadii = Radii()
+val DefaultStrokes = Strokes()
+val DefaultElevations = Elevations()
+
+val LocalSpacing = staticCompositionLocalOf { DefaultSpacing }
+val LocalRadii = staticCompositionLocalOf { DefaultRadii }
+val LocalStrokes = staticCompositionLocalOf { DefaultStrokes }
+val LocalElevations = staticCompositionLocalOf { DefaultElevations }
 
 object AppTheme {
     val spacing: Spacing
@@ -122,9 +191,83 @@ object AppTheme {
     val elevations: Elevations
         @Composable get() = LocalElevations.current
 
+    val pageMetrics: PageMetrics
+        @Composable get() = LocalPageMetrics.current
+
     val typography: AppTypography
         @Composable get() = LocalAppTypography.current
 }
+
+/**
+ * Exceptional page-level metrics.
+ *
+ * This is intentionally not a second generic spacing/radius system. Shared layout semantics MUST
+ * come from [Spacing], [Radii], [Strokes], or [Elevations]. [PageMetrics] is reserved for values
+ * that cannot be expressed as shared tokens without losing meaning, such as page-specific viewport
+ * caps, hero artwork sizes, chart heights, or sheet sizing rules.
+ */
+data class PageMetrics(
+    // Shared page viewport/layout caps.
+    val contentMaxWidth: Dp = 840.dp,
+
+    // About / licenses.
+    val aboutHeroIconSize: Dp = 120.dp,
+    val openSourceLicenseSheetMaxHeight: Dp = 450.dp,
+
+    // Traffic statistics.
+    val trafficSummaryBlockHeight: Dp = 66.dp,
+    val trafficSummaryValueFontSize: androidx.compose.ui.unit.TextUnit = 26.sp,
+    val trafficChartHeight: Dp = 132.dp,
+    val trafficSelectedLabelHeight: Dp = 24.dp,
+    val trafficRecentRequestChipCorner: Dp = 100.dp,
+
+    // Editors.
+    val editorIndexWidth: Dp = 40.dp,
+    val editorDeleteButtonSize: Dp = 40.dp,
+
+    // Logs.
+    val logMetaFontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    val logMessageFontSize: androidx.compose.ui.unit.TextUnit = 12.sp,
+
+    // Onboarding.
+    val onboardingTopSpacerMin: Dp = 128.dp,
+    val onboardingTopSpacerMax: Dp = 212.dp,
+    val onboardingTopSpacerFraction: Float = 0.18f,
+    val onboardingDetailMaxWidth: Dp = 560.dp,
+    val onboardingWordmarkMaxWidth: Dp = 320.dp,
+    val onboardingDetailPreviewBadgeSize: Dp = 108.dp,
+    val onboardingDetailPreviewIconSize: Dp = 68.dp,
+
+    // Access control.
+    val accessControlSearchOverlayMaxWidth: Dp = 760.dp,
+    val accessControlSearchResultAppIconSize: Dp = 40.dp,
+    val accessControlAppCardIconSize: Dp = 45.dp,
+    val accessControlAppIconBitmapBaseSize: Int = 80,
+
+    // Profiles.
+    val profileAddSheetFallbackHeight: Dp = 640.dp,
+    val profileAddSheetProgressIconContainer: Dp = 48.dp,
+    val profileAddSheetProgressIndicatorSize: Dp = 32.dp,
+    val profileAddSheetQrPreviewMinHeight: Dp = 188.dp,
+    val profileAddSheetQrPreviewMaxHeight: Dp = 256.dp,
+    val profileAddSheetQrPreviewHeightFraction: Float = 0.28f,
+    val profileSettingsMinHeightFraction: Float = 0.5f,
+    val profileSettingsMaxHeightFraction: Float = 0.7f,
+    val profileLinkSettingsLinkListMaxHeight: Dp = 360.dp,
+    val overrideBindingListMaxHeight: Dp = 420.dp,
+
+    // Override.
+    val overridePresetTemplateListMaxHeight: Dp = 560.dp,
+
+    // Proxy.
+    val proxyNotificationSheetHeightFraction: Float = 0.55f,
+    val proxyFloatingPanelWidthFraction: Float = 0.84f,
+    val proxyFloatingPanelMaxWidth: Dp = 520.dp,
+    val proxyFloatingPanelMaxHeight: Dp = 640.dp,
+    val proxyFloatingPanelListMaxHeight: Dp = 460.dp,
+)
+
+val DefaultPageMetrics = PageMetrics()
 
 private fun Spacing.scaleBy(scale: Float): Spacing {
     if (scale == 1f) return this
@@ -142,3 +285,5 @@ private fun Spacing.scaleBy(scale: Float): Spacing {
         screenV = screenV * scale,
     )
 }
+
+val LocalPageMetrics = staticCompositionLocalOf { DefaultPageMetrics }

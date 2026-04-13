@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,7 +75,8 @@ import com.github.yumelira.yumebox.presentation.icon.yume.Delete
 import com.github.yumelira.yumebox.presentation.icon.yume.Edit
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
 import com.github.yumelira.yumebox.presentation.icon.yume.Share
-import com.github.yumelira.yumebox.presentation.theme.horizontalPadding
+import com.github.yumelira.yumebox.presentation.theme.DefaultRadii
+import com.github.yumelira.yumebox.presentation.theme.DefaultSpacing
 import com.github.yumelira.yumebox.presentation.util.*
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.github.yumelira.yumebox.service.runtime.entity.toProductProfileObject
@@ -89,21 +91,21 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object ProfileCardMetrics {
-    val OuterBottomPadding = 8.dp
-    val InnerPadding = 16.dp
-    val HeaderSpacing = 8.dp
+    val OuterBottomPadding = DefaultSpacing.sm
+    val InnerPadding = DefaultSpacing.lg
+    val HeaderSpacing = DefaultSpacing.sm
     val TrailingActionSpacing = 10.dp
     val TrailingColumnSpacing = 12.dp
-    val TrailingColumnStartPadding = 8.dp
+    val TrailingColumnStartPadding = DefaultSpacing.sm
     val HeaderEndPaddingTwoActions = 126.dp
     val HeaderEndPaddingThreeActions = 188.dp
     val InfoEndPadding = 18.dp
     val ProviderTopPadding = 2.dp
     val ContentTopPadding = 10.dp
-    val ActiveContentStartPadding = 12.dp
-    val ActiveRailWidth = 4.dp
+    val ActiveContentStartPadding = DefaultSpacing.md
+    val ActiveRailWidth = DefaultSpacing.xs
     val ActiveRailHeight = 48.dp
-    val ActiveRailCornerRadius = 999.dp
+    val ActiveRailCornerRadius = DefaultRadii.pill
     val SmallActionSize = 52.dp
     val ActionIconSize = 22.dp
     val ActionLabelFontSize = 12.sp
@@ -115,7 +117,7 @@ private object ProfileCardMetrics {
     val SwipeActionHeight = 96.dp
     val SwipeActionCornerRadius = 26.dp
     val SwipeActionSpacing = 10.dp
-    val SwipeActionEndPadding = 12.dp
+    val SwipeActionEndPadding = DefaultSpacing.md
     val CardBorderRadius = 28.dp
 }
 
@@ -178,6 +180,13 @@ fun ProfileCard(
         animateFloatAsState(targetValue = swipeOffsetPx, label = "profile_card_swipe")
     val revealProgress = (-animatedOffsetPx / revealWidthPx).coerceIn(0f, 1f)
     val actionsInteractable = revealProgress > 0.06f && !isDownloading
+    val selectionProgress by
+        animateFloatAsState(
+            targetValue = if (isSelected) 1f else 0f,
+            label = "profile_card_selection",
+        )
+    val selectionShape = RoundedCornerShape(ProfileCardMetrics.CardBorderRadius)
+    val selectionShadowElevation = (10f * selectionProgress).dp
 
     fun closeActions() {
         swipeOffsetPx = 0f
@@ -217,10 +226,7 @@ fun ProfileCard(
         }
 
     Box(
-        modifier =
-            Modifier.fillMaxWidth()
-                .horizontalPadding()
-                .padding(bottom = ProfileCardMetrics.OuterBottomPadding)
+        modifier = Modifier.fillMaxWidth().padding(bottom = ProfileCardMetrics.OuterBottomPadding)
     ) {
         Box(
             modifier = Modifier.matchParentSize().zIndex(0f),
@@ -265,15 +271,22 @@ fun ProfileCard(
                     .fillMaxWidth()
                     .zIndex(1f)
                     .offset { IntOffset(animatedOffsetPx.roundToInt(), 0) }
+                    .shadow(
+                        elevation = selectionShadowElevation,
+                        shape = selectionShape,
+                        ambientColor =
+                            activeStyle.contentColor.copy(alpha = 0.08f * selectionProgress),
+                        spotColor = activeStyle.borderColor.copy(alpha = 0.12f * selectionProgress),
+                    )
                     .border(
-                        width = if (isSelected) 1.dp else 0.dp,
+                        width = if (isSelected) 0.8.dp else 0.dp,
                         color =
                             if (isSelected) {
-                                activeStyle.borderColor.copy(alpha = 0.95f)
+                                activeStyle.borderColor.copy(alpha = 0.62f)
                             } else {
                                 Color.Transparent
                             },
-                        shape = RoundedCornerShape(ProfileCardMetrics.CardBorderRadius),
+                        shape = selectionShape,
                     )
                     .nestedScroll(swipeNestedScrollConnection),
             insideMargin = PaddingValues(ProfileCardMetrics.InnerPadding),
@@ -311,9 +324,7 @@ fun ProfileCard(
                                     },
                                 onDragStopped = { velocity -> settleActions(velocity) },
                             )
-                            .appClickable(
-                                enabled = !isDownloading,
-                            ) {
+                            .appClickable(enabled = !isDownloading) {
                                 if (swipeOffsetPx < -1f) {
                                     closeActions()
                                 } else {
