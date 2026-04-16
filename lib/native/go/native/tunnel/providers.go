@@ -18,6 +18,7 @@ type Provider struct {
 	Type        string `json:"type"`
 	UpdatedAt   int64  `json:"updatedAt"`
 	Path        string `json:"path"`
+	Count       int    `json:"count"`
 }
 
 type UpdatableProvider interface {
@@ -26,6 +27,10 @@ type UpdatableProvider interface {
 
 type VehicleProvider interface {
 	Vehicle() provider.Vehicle
+}
+
+type CountableProvider interface {
+	Count() int
 }
 
 func QueryProviders() []*Provider {
@@ -64,12 +69,18 @@ func QueryProviders() []*Provider {
 			path = v.Vehicle().Path()
 		}
 
+		count := 0
+		if c, ok := p.(CountableProvider); ok {
+			count = c.Count()
+		}
+
 		result = append(result, &Provider{
 			Name:        p.Name(),
 			VehicleType: p.VehicleType().String(),
 			Type:        p.Type().String(),
 			UpdatedAt:   updatedAt.UnixNano() / 1000 / 1000,
 			Path:        path,
+			Count:       count,
 		})
 	}
 

@@ -366,7 +366,7 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
-    implementation("org.yaml:snakeyaml:2.2")
+    implementation(libs.snakeyaml)
 
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)

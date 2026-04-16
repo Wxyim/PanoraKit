@@ -33,6 +33,7 @@ mmkv64 = "2.2.4"
 mmkv32 = "1.3.14"
 libsu = "6.0.0"
 xz = "1.12"
+snakeyaml = "2.2"
 kyantShapes = "1.2.0"
 work = "2.10.0"
 baselineProfile = "1.4.1"
@@ -100,6 +101,7 @@ navigationevent-compose = { module = "androidx.navigationevent:navigationevent-c
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 kyant-shapes = { module = "io.github.kyant0:shapes", version.ref = "kyantShapes" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "baselineProfile" }
