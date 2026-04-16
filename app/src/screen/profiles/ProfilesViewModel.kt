@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,43 +14,44 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.profiles
+package com.github.nomadboxlab.monadbox.screen.profiles
 
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.model.CompileRequest
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.core.model.FetchStatus
-import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
-import com.github.yumelira.yumebox.data.store.AppSettingsStorage
-import com.github.yumelira.yumebox.data.store.LinkOpenMode
-import com.github.yumelira.yumebox.data.store.Preference
-import com.github.yumelira.yumebox.data.store.ProfileLink
-import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
-import com.github.yumelira.yumebox.domain.model.ProfileBinding
-import com.github.yumelira.yumebox.domain.model.StructuredError
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
-import com.github.yumelira.yumebox.presentation.runtime.HandledRuntimeActionFailure
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
-import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
-import com.github.yumelira.yumebox.presentation.runtime.getOrThrowHandled
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
-import com.github.yumelira.yumebox.service.remote.IFetchObserver
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
-import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.core.model.CompileRequest
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.core.model.FetchStatus
+import com.github.nomadboxlab.monadbox.data.repository.ActiveProfileOverrideReloader
+import com.github.nomadboxlab.monadbox.data.repository.ProfileBindingProvider
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
+import com.github.nomadboxlab.monadbox.data.store.LinkOpenMode
+import com.github.nomadboxlab.monadbox.data.store.Preference
+import com.github.nomadboxlab.monadbox.data.store.ProfileLink
+import com.github.nomadboxlab.monadbox.data.store.ProfileLinksStorage
+import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveDecision
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSavePhase
+import com.github.nomadboxlab.monadbox.presentation.runtime.HandledRuntimeActionFailure
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
+import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
+import com.github.nomadboxlab.monadbox.presentation.runtime.getOrThrowHandled
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
+import com.github.nomadboxlab.monadbox.service.remote.IFetchObserver
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendProfileChanged
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import java.util.*

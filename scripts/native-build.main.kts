@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,7 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
@@ -549,7 +550,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DGO_SOURCE:STRING=${goSourceDir.absolutePath}",
                 "-DGO_OUTPUT:STRING=${goOutputDir.absolutePath}",
-                "-DYUMEBOX_LINKER_FLAGS:STRING=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
+                "-DMONADBOX_LINKER_FLAGS:STRING=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
                 "-DGIT_INFO_FILE:STRING=${gitInfoFile.absolutePath}",
             )
         val configureResult =
@@ -686,7 +687,7 @@ class ResourceDownloader(private val config: ProjectConfig) {
 fun printUsage() {
     println(
         """
-        YumeBox Native Build Tool
+        MonadBox Native Build Tool
 
         Usage: kotlin scripts/native-build.main.kts [options]
 
@@ -737,7 +738,7 @@ fun main(args: Array<String>) {
     }
 
     println(message)
-    println("=== YumeBox Native Build Tool ===")
+    println("=== MonadBox Native Build Tool ===")
     println("OS: ${SystemDetector.os}, Host: ${SystemDetector.hostTag}")
 
     if (args.contains("--clean")) {

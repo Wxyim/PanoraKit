@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,27 +14,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
+package com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import com.github.nomadboxlab.monadbox.data.model.DailyTrafficSummary
+import com.github.nomadboxlab.monadbox.data.model.StatisticsTimeRange
+import com.github.nomadboxlab.monadbox.data.model.TargetSiteTrafficUsage
+import com.github.nomadboxlab.monadbox.data.model.TimeSlot
+import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
+import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
+import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
-import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.data.model.DailyTrafficSummary
-import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
-import com.github.yumelira.yumebox.data.model.TargetSiteTrafficUsage
-import com.github.yumelira.yumebox.data.model.TimeSlot
-import com.github.yumelira.yumebox.data.repository.ConnectionActivityRepository
-import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
-import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
-import com.github.yumelira.yumebox.presentation.component.BarChartItem
-import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.presentation.component.BarChartItem
+import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -280,7 +281,7 @@ class TrafficStatisticsViewModel(
 
     private fun resolveTopLevelGroupName(
         connection: ConnectionInfo,
-        proxyGroups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
+        proxyGroups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
     ): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return null
@@ -296,7 +297,7 @@ class TrafficStatisticsViewModel(
 
     private fun resolveBottomNodeName(
         connection: ConnectionInfo,
-        proxyGroups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
+        proxyGroups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
     ): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return localizeBuiltInProxyName("DIRECT")

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.feature.editor.screen
+package com.github.nomadboxlab.monadbox.feature.editor.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -38,30 +39,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.feature.editor.component.ConfigSaveProgressDialog
-import com.github.yumelira.yumebox.feature.editor.editor.CodeEditor
-import com.github.yumelira.yumebox.feature.editor.editor.CodeEditorState
-import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedback
-import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedbackLevel
-import com.github.yumelira.yumebox.feature.editor.editor.EditorActionType
-import com.github.yumelira.yumebox.feature.editor.format.CodeFormatter
-import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.feature.editor.language.TextMateInitializer
-import com.github.yumelira.yumebox.feature.editor.theme.EditorThemeManager
-import com.github.yumelira.yumebox.presentation.component.AppCommandButton
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
-import com.github.yumelira.yumebox.presentation.component.SemanticActionDefaults
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.StatusBadge
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
-import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
-import com.github.yumelira.yumebox.presentation.icon.yume.Sparkles
-import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.feature.editor.component.ConfigSaveProgressDialog
+import com.github.nomadboxlab.monadbox.feature.editor.editor.CodeEditor
+import com.github.nomadboxlab.monadbox.feature.editor.editor.CodeEditorState
+import com.github.nomadboxlab.monadbox.feature.editor.editor.EditorActionFeedback
+import com.github.nomadboxlab.monadbox.feature.editor.editor.EditorActionFeedbackLevel
+import com.github.nomadboxlab.monadbox.feature.editor.editor.EditorActionType
+import com.github.nomadboxlab.monadbox.feature.editor.format.CodeFormatter
+import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
+import com.github.nomadboxlab.monadbox.feature.editor.language.TextMateInitializer
+import com.github.nomadboxlab.monadbox.feature.editor.theme.EditorThemeManager
+import com.github.nomadboxlab.monadbox.presentation.component.AppCommandButton
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
+import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticActionDefaults
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowLeft
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleCheckBig
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Save
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Sparkles
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.CancellationException
@@ -209,7 +210,7 @@ fun ConfigPreviewScreen(
                             onClick = { requestExit() },
                         ) {
                             Icon(
-                                Yume.ArrowLeft,
+                                MonadIcons.ArrowLeft,
                                 contentDescription = MLang.Component.Navigation.Back,
                             )
                         }
@@ -319,7 +320,7 @@ private fun EditorCommandBar(
                 ) {
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Format,
-                        imageVector = Yume.Sparkles,
+                        imageVector = MonadIcons.Sparkles,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onFormat,
@@ -328,7 +329,7 @@ private fun EditorCommandBar(
 
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Check,
-                        imageVector = Yume.CircleCheckBig,
+                        imageVector = MonadIcons.CircleCheckBig,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onValidate,
@@ -337,7 +338,7 @@ private fun EditorCommandBar(
 
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Save,
-                        imageVector = Yume.Save,
+                        imageVector = MonadIcons.Save,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = isModified && !isSaving,
                         onClick = onSave,
@@ -366,7 +367,7 @@ private fun EditorCommandBar(
                 ) {
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Format,
-                        imageVector = Yume.Sparkles,
+                        imageVector = MonadIcons.Sparkles,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onFormat,
@@ -375,7 +376,7 @@ private fun EditorCommandBar(
 
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Check,
-                        imageVector = Yume.CircleCheckBig,
+                        imageVector = MonadIcons.CircleCheckBig,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = !isSaving,
                         onClick = onValidate,
@@ -384,7 +385,7 @@ private fun EditorCommandBar(
 
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Save,
-                        imageVector = Yume.Save,
+                        imageVector = MonadIcons.Save,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = isModified && !isSaving,
                         onClick = onSave,

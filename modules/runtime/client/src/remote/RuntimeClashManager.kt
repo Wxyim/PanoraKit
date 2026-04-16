@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,21 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.remote
+package com.github.nomadboxlab.monadbox.remote
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.model.*
-import com.github.yumelira.yumebox.runtime.client.root.RootTunController
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.remote.IClashManager
-import com.github.yumelira.yumebox.service.remote.ILogObserver
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
-import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
+import com.github.nomadboxlab.monadbox.core.model.*
+import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunController
+import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.remote.IClashManager
+import com.github.nomadboxlab.monadbox.service.remote.ILogObserver
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.service.runtime.util.runSuspendBlocking
 import java.io.Closeable
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
@@ -218,7 +219,7 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) :
                                 if (chunk.items.isNotEmpty()) {
                                     chunk.items.forEach { raw ->
                                         observer.newItem(
-                                            com.github.yumelira.yumebox.service.root.RootTunJson
+                                            com.github.nomadboxlab.monadbox.service.root.RootTunJson
                                                 .Default
                                                 .decodeFromString(LogMessage.serializer(), raw)
                                         )

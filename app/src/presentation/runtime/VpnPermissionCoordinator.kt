@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.runtime
+package com.github.nomadboxlab.monadbox.presentation.runtime
 
 import android.app.Activity
 import android.content.Intent
@@ -32,7 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
+import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicLong

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.connection
+package com.github.nomadboxlab.monadbox.screen.connection
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -29,20 +30,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionCard
-import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
-import com.github.yumelira.yumebox.feature.meta.presentation.component.TabRowWithContour
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionSort
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionTab
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.ConnectionViewModel
-import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.ConnectionScreenLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionCard
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionDetailSheet
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.TabRowWithContour
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionSort
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionTab
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionViewModel
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.ConnectionScreenLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator

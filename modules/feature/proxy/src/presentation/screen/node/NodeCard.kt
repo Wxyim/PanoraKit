@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen.node
+package com.github.nomadboxlab.monadbox.presentation.screen.node
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -43,21 +44,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowRight
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.BadgeDollarSign
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Cancel
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleGauge
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Rocket
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldMinus
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyNodeCardLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
+import com.github.nomadboxlab.monadbox.presentation.util.extractNodeTags
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.state.IntColorDrawableStateImage
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.ArrowRight
-import com.github.yumelira.yumebox.presentation.icon.yume.BadgeDollarSign
-import com.github.yumelira.yumebox.presentation.icon.yume.Cancel
-import com.github.yumelira.yumebox.presentation.icon.yume.CircleGauge
-import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
-import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
-import com.github.yumelira.yumebox.presentation.icon.yume.Speed
-import com.github.yumelira.yumebox.presentation.theme.ProxyNodeCardLayoutDefaults
-import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
-import com.github.yumelira.yumebox.presentation.util.extractNodeTags
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -117,7 +118,7 @@ internal fun RotatingCircleGauge(
         )
 
     Icon(
-        imageVector = Yume.CircleGauge,
+        imageVector = MonadIcons.CircleGauge,
         contentDescription = contentDescription,
         tint = tint,
         modifier = if (isRotating) modifier.rotate(rotation) else modifier,
@@ -290,7 +291,7 @@ internal fun NodeCard(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Yume.Speed,
+                                    imageVector = MonadIcons.Speed,
                                     contentDescription = MLang.Proxy.Action.TestDelay,
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     modifier =
@@ -397,7 +398,7 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
     return when {
         normalizedType == "DIRECT" || normalizedName == "DIRECT" || normalizedName == "直连" -> {
             BuiltInNodeVisual(
-                icon = Yume.ArrowRight,
+                icon = MonadIcons.ArrowRight,
                 iconTint = Color(0xFF0A8F6A),
                 containerColor = Color(0xFF0A8F6A),
             )
@@ -409,7 +410,7 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
             normalizedName == "REJECT-DROP" ||
             normalizedName == "拦截" -> {
             BuiltInNodeVisual(
-                icon = Yume.ShieldMinus,
+                icon = MonadIcons.ShieldMinus,
                 iconTint = Color(0xFFE53935),
                 containerColor = Color(0xFFE53935),
             )
@@ -419,7 +420,7 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
             normalizedName == "COMPATIBLE" ||
             normalizedName == "PROXY" -> {
             BuiltInNodeVisual(
-                icon = Yume.Rocket,
+                icon = MonadIcons.Rocket,
                 iconTint = Color(0xFF2E6FF2),
                 containerColor = Color(0xFF2E6FF2),
             )
@@ -427,7 +428,7 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
 
         normalizedType == "PASS" || normalizedName == "PASS" -> {
             BuiltInNodeVisual(
-                icon = Yume.Cancel,
+                icon = MonadIcons.Cancel,
                 iconTint = Color(0xFF7A7A7A),
                 containerColor = Color(0xFF7A7A7A),
             )
@@ -478,7 +479,7 @@ private fun NodeMultiplierChip(multiplier: Float) {
         horizontalArrangement = Arrangement.spacedBy(NodeCardDefaults.MultiplierChipSpacing),
     ) {
         Icon(
-            imageVector = Yume.BadgeDollarSign,
+            imageVector = MonadIcons.BadgeDollarSign,
             contentDescription = null,
             tint = chipColor,
             modifier = Modifier.size(NodeCardDefaults.MultiplierIconSize),

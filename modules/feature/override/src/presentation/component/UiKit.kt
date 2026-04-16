@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
@@ -40,10 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.icon.yume.chevron
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.chevron
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -190,7 +191,7 @@ fun OverrideEmptyStateCard(
     title: String,
     hint: String,
     actionLabel: String? = null,
-    actionIcon: ImageVector = Yume.`Badge-plus`,
+    actionIcon: ImageVector = MonadIcons.`Badge-plus`,
     modifier: Modifier = Modifier,
     onAction: (() -> Unit)? = null,
 ) {
@@ -236,7 +237,7 @@ fun OverrideSectionCardHeader(
     expanded: Boolean,
     onClick: () -> Unit,
     showIndicator: Boolean = true,
-    imageVector: ImageVector = Yume.`Settings-2`,
+    imageVector: ImageVector = MonadIcons.`Settings-2`,
     tone: SemanticTone = SemanticTone.Neutral,
     active: Boolean = false,
 ) {
@@ -308,7 +309,7 @@ fun OverrideSectionCardHeader(
 
         if (showIndicator) {
             Icon(
-                imageVector = Yume.chevron,
+                imageVector = MonadIcons.chevron,
                 contentDescription = null,
                 tint =
                     if (emphasized) {

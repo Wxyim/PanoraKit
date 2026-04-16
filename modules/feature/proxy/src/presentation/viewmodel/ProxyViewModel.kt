@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,22 +14,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.viewmodel
+package com.github.nomadboxlab.monadbox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
-import com.github.yumelira.yumebox.data.repository.OverrideRepository
-import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
-import com.github.yumelira.yumebox.domain.model.*
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
+import com.github.nomadboxlab.monadbox.data.repository.OverrideRepository
+import com.github.nomadboxlab.monadbox.data.store.ProxyDisplaySettingsStore
+import com.github.nomadboxlab.monadbox.domain.model.*
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException

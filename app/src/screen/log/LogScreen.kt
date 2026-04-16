@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.log
+package com.github.nomadboxlab.monadbox.screen.log
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,26 +40,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.AppDialogDefaults
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.ConfigSettingRow
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
-import com.github.yumelira.yumebox.presentation.component.InfoSettingRow
-import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.Save
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.LogMessage
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialogDefaults
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.component.ConfigSettingRow
+import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.InfoSettingRow
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Save
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -174,7 +175,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                             }
                         ) {
                             Icon(
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 contentDescription = MLang.Log.Action.Cleanup,
                             )
                         }
@@ -319,7 +320,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                                         }
                                     ) {
                                         Icon(
-                                            imageVector = Yume.Delete,
+                                            imageVector = MonadIcons.Delete,
                                             contentDescription =
                                                 MLang.Component.Editor.Action.Delete,
                                         )
@@ -460,7 +461,7 @@ private fun LogOverviewSection(
         ConfigSettingRow(
             title = MLang.Log.Action.ExportDebugBundle,
             summary = MLang.Log.Action.ExportDebugBundleWarning,
-            imageVector = Yume.Save,
+            imageVector = MonadIcons.Save,
             tone = SemanticTone.Info,
             showDivider = false,
             onClick = onExportDebugBundle,

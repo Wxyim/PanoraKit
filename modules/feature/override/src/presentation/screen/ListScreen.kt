@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -40,16 +41,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.ToastMode
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.domain.model.OverrideConfig
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.common.util.ToastMode
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
@@ -199,7 +200,7 @@ fun OverrideListScreen(
                         val imported = importResult.getOrNull()
                         val importMessage =
                             when (imported?.kind) {
-                                com.github.yumelira.yumebox.presentation.viewmodel
+                                com.github.nomadboxlab.monadbox.presentation.viewmodel
                                     .OverrideImportKind
                                     .PluginRules -> {
                                     MLang.Override.Import.SurgeSuccessDefault.format(imported.count)
@@ -274,7 +275,7 @@ fun OverrideListScreen(
             OverrideAnimatedFab(
                 controller = createFabController,
                 visible = !showCreateDialog.value,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 contentDescription = MLang.Override.Action.Create,
                 label = MLang.Override.Action.Create,
                 onClick = { showCreateDialog.value = true },
@@ -330,14 +331,14 @@ fun OverrideListScreen(
                                     ) {
                                         AppCommandButton(
                                             title = MLang.Override.Action.New,
-                                            imageVector = Yume.`Badge-plus`,
+                                            imageVector = MonadIcons.`Badge-plus`,
                                             onClick = { showCreateDialog.value = true },
                                             tone = SemanticTone.Brand,
                                             highEmphasis = true,
                                         )
                                         AppCommandButton(
                                             title = MLang.Override.Action.Import,
-                                            imageVector = Yume.List,
+                                            imageVector = MonadIcons.List,
                                             onClick = { importAutoLauncher.launch("*/*") },
                                             tone = SemanticTone.Info,
                                         )
@@ -449,7 +450,7 @@ fun OverrideListScreen(
                             val imported = result.getOrNull()
                             context.toast(
                                 when (imported?.kind) {
-                                    com.github.yumelira.yumebox.presentation.viewmodel
+                                    com.github.nomadboxlab.monadbox.presentation.viewmodel
                                         .OverrideImportKind
                                         .PluginRules -> {
                                         MLang.Override.Import.SurgeSuccessDefault.format(
@@ -546,13 +547,13 @@ private fun ReorderableCollectionItemScope.OverrideConfigCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OverrideCardActionIconButton(
-                        imageVector = Yume.Copy,
+                        imageVector = MonadIcons.Copy,
                         contentDescription = MLang.Override.Card.Copy,
                         onClick = onCopy,
                     )
 
                     OverrideCardActionIconButton(
-                        imageVector = Yume.Share,
+                        imageVector = MonadIcons.Share,
                         contentDescription = MLang.Override.Card.Export,
                         onClick = onExport,
                     )
@@ -577,7 +578,7 @@ private fun ReorderableCollectionItemScope.OverrideConfigCard(
                     ) {
                         Icon(
                             modifier = Modifier.size(OverrideListMetrics.ActionIconSize),
-                            imageVector = Yume.Edit,
+                            imageVector = MonadIcons.Edit,
                             tint = accentTintColor,
                             contentDescription = MLang.Override.Card.Edit,
                         )
@@ -609,7 +610,7 @@ private fun ReorderableCollectionItemScope.OverrideConfigCard(
                     ) {
                         Icon(
                             modifier = Modifier.size(OverrideListMetrics.ActionIconSize),
-                            imageVector = Yume.Delete,
+                            imageVector = MonadIcons.Delete,
                             tint = colorScheme.onSurface.copy(alpha = 0.85f),
                             contentDescription = MLang.Override.Card.Delete,
                         )
@@ -641,7 +642,7 @@ private fun OverrideConfigStateIndicator(inUse: Boolean) {
         }
 
     OverrideStatusBadge(
-        imageVector = if (inUse) Yume.ShieldCheck else Yume.ShieldMinus,
+        imageVector = if (inUse) MonadIcons.ShieldCheck else MonadIcons.ShieldMinus,
         contentDescription =
             if (inUse) MLang.Override.Status.InUse else MLang.Override.Status.NotInUse,
         tint = tint,
@@ -705,7 +706,7 @@ private fun CreateConfigDialog(
                     startAction = {
                         Icon(
                             modifier = Modifier.padding(end = 16.dp),
-                            imageVector = Yume.Share,
+                            imageVector = MonadIcons.Share,
                             contentDescription = MLang.Override.Action.ImportFile,
                             tint = MiuixTheme.colorScheme.onBackground,
                         )
@@ -725,7 +726,7 @@ private fun CreateConfigDialog(
                     startAction = {
                         Icon(
                             modifier = Modifier.padding(end = 16.dp),
-                            imageVector = Yume.Link,
+                            imageVector = MonadIcons.Link,
                             contentDescription = MLang.Override.Action.ImportFromUrl,
                             tint = MiuixTheme.colorScheme.onBackground,
                         )
@@ -800,13 +801,13 @@ private fun EditOptionsDialog(
         ) {
             AppCommandButton(
                 title = MLang.Override.Dialog.EditOptions.CodeEditor,
-                imageVector = Yume.List,
+                imageVector = MonadIcons.List,
                 onClick = onCodeEditor,
                 tone = SemanticTone.Neutral,
             )
             AppCommandButton(
                 title = MLang.Override.Dialog.EditOptions.VisualEditor,
-                imageVector = Yume.Edit,
+                imageVector = MonadIcons.Edit,
                 onClick = onVisualEdit,
                 tone = SemanticTone.Brand,
                 highEmphasis = true,

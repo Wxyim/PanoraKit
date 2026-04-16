@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -30,14 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
-import com.github.yumelira.yumebox.presentation.icon.yume.List
-import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Git-merge`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.List
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -59,7 +60,7 @@ fun PortInputContent(
     title: String,
     value: Int?,
     onValueChange: (Int?) -> Unit,
-    imageVector: ImageVector = Yume.`Wifi-cog`,
+    imageVector: ImageVector = MonadIcons.`Wifi-cog`,
     unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     val showDialog = remember { mutableStateOf(false) }
@@ -102,7 +103,7 @@ fun StringInputContent(
     title: String,
     value: String?,
     placeholder: String = "",
-    imageVector: ImageVector = Yume.Edit,
+    imageVector: ImageVector = MonadIcons.Edit,
     unsetLabel: String = MLang.Component.Selector.UseDefault,
     onValueChange: (String?) -> Unit,
 ) {
@@ -140,7 +141,7 @@ fun StringListInputContent(
     title: String,
     value: List<String>?,
     onClick: () -> Unit,
-    imageVector: ImageVector = Yume.List,
+    imageVector: ImageVector = MonadIcons.List,
     unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     val itemCount = value?.size ?: 0
@@ -165,7 +166,7 @@ fun StringMapInputContent(
     title: String,
     value: Map<String, String>?,
     onClick: () -> Unit,
-    imageVector: ImageVector = Yume.`Git-merge`,
+    imageVector: ImageVector = MonadIcons.`Git-merge`,
     unsetLabel: String = MLang.Component.Selector.UseDefault,
 ) {
     val itemCount = value?.size ?: 0
@@ -218,7 +219,7 @@ private fun ConfigTextInputDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppCommandButton(
                     title = MLang.Component.Button.Clear,
-                    imageVector = Yume.Delete,
+                    imageVector = MonadIcons.Delete,
                     onClick = {
                         onClear()
                         show.value = false
@@ -228,7 +229,7 @@ private fun ConfigTextInputDialog(
                 )
                 AppCommandButton(
                     title = MLang.Component.Button.Confirm,
-                    imageVector = Yume.Check,
+                    imageVector = MonadIcons.Check,
                     onClick = {
                         onConfirm()
                         show.value = false
@@ -249,7 +250,7 @@ fun StringListWithModifiersInput(
     startValue: List<String>?,
     endValue: List<String>?,
     placeholder: String = "",
-    imageVector: ImageVector = Yume.List,
+    imageVector: ImageVector = MonadIcons.List,
     unsetLabel: String = MLang.Component.Selector.NotModify,
     onReplaceChange: (List<String>?) -> Unit,
     onStartChange: (List<String>?) -> Unit,
@@ -318,7 +319,7 @@ fun StringMapWithModifiersInput(
     mergeValue: Map<String, String>?,
     keyPlaceholder: String = "",
     valuePlaceholder: String = "",
-    imageVector: ImageVector = Yume.`Git-merge`,
+    imageVector: ImageVector = MonadIcons.`Git-merge`,
     unsetLabel: String = MLang.Component.Selector.NotModify,
     compactSingleMode: Boolean = false,
     onReplaceChange: (Map<String, String>?) -> Unit,
@@ -545,7 +546,7 @@ private fun ModifierModeCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AppCommandButton(
                 title = MLang.Component.Button.Edit,
-                imageVector = Yume.Edit,
+                imageVector = MonadIcons.Edit,
                 onClick = onEdit,
                 modifier = Modifier.weight(1f),
                 tone = tone,
@@ -554,7 +555,7 @@ private fun ModifierModeCard(
             if (onClear != null) {
                 AppCommandButton(
                     title = MLang.Component.Button.Clear,
-                    imageVector = Yume.Delete,
+                    imageVector = MonadIcons.Delete,
                     onClick = onClear,
                     modifier = Modifier.weight(1f),
                     tone = SemanticTone.Danger,

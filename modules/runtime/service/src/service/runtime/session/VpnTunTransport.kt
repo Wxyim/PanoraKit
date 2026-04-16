@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.runtime.session
+package com.github.nomadboxlab.monadbox.service.runtime.session
 
 import android.annotation.TargetApi
 import android.app.PendingIntent
@@ -26,13 +27,13 @@ import android.content.Intent
 import android.net.ProxyInfo
 import android.net.VpnService
 import android.os.Build
-import com.github.yumelira.yumebox.core.util.parseInetSocketAddress
-import com.github.yumelira.yumebox.runtime.service.R
-import com.github.yumelira.yumebox.service.common.compat.pendingIntentFlags
-import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.runtime.config.AccessControlMode
-import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
-import com.github.yumelira.yumebox.service.runtime.util.parseCIDR
+import com.github.nomadboxlab.monadbox.core.util.parseInetSocketAddress
+import com.github.nomadboxlab.monadbox.runtime.service.R
+import com.github.nomadboxlab.monadbox.service.common.compat.pendingIntentFlags
+import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.runtime.config.AccessControlMode
+import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
+import com.github.nomadboxlab.monadbox.service.runtime.util.parseCIDR
 import java.security.SecureRandom
 
 class VpnTunTransport(
@@ -146,7 +147,7 @@ class VpnTunTransport(
                 )
             }
 
-        com.github.yumelira.yumebox.core.Clash.startTun(
+        com.github.nomadboxlab.monadbox.core.Clash.startTun(
             fd = device.fd,
             stack = device.stack,
             gateway = device.gateway,
@@ -159,8 +160,8 @@ class VpnTunTransport(
     }
 
     override fun stop() {
-        com.github.yumelira.yumebox.core.Clash.stopLocalProxyHttpListener()
-        com.github.yumelira.yumebox.core.Clash.stopTun()
+        com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener()
+        com.github.nomadboxlab.monadbox.core.Clash.stopTun()
     }
 
     override fun onNetworkChanged() {
@@ -172,7 +173,8 @@ class VpnTunTransport(
     private fun listenHttp(): java.net.InetSocketAddress? {
         val r = { 1 + random.nextInt(199) }
         val listenAt = "127.${r()}.${r()}.${r()}:0"
-        val address = com.github.yumelira.yumebox.core.Clash.startLocalProxyHttpListener(listenAt)
+        val address =
+            com.github.nomadboxlab.monadbox.core.Clash.startLocalProxyHttpListener(listenAt)
         return address?.let(::parseInetSocketAddress)
     }
 

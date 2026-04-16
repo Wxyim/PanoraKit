@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.home
+package com.github.nomadboxlab.monadbox.screen.home
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
@@ -39,10 +39,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.domain.model.TrafficData
-import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.domain.model.TrafficData
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -79,14 +79,14 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val requestProxyToggle:
         (
             Boolean,
-            com.github.yumelira.yumebox.service.runtime.entity.Profile?,
-            com.github.yumelira.yumebox.data.model.ProxyMode,
+            com.github.nomadboxlab.monadbox.service.runtime.entity.Profile?,
+            com.github.nomadboxlab.monadbox.data.model.ProxyMode,
         ) -> Unit =
         remember(context, coroutineScope, screenState) {
             proxyToggleRequest@{
                 isRunning: Boolean,
-                profile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
-                proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode ->
+                profile: com.github.nomadboxlab.monadbox.service.runtime.entity.Profile?,
+                proxyMode: com.github.nomadboxlab.monadbox.data.model.ProxyMode ->
                 if (!screenState.profilesLoaded || screenState.isToggling) return@proxyToggleRequest
                 if (
                     !screenState.hasEnabledProfile ||

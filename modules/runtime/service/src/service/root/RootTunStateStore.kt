@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,15 +14,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.root
+package com.github.nomadboxlab.monadbox.service.root
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.tencent.mmkv.MMKV
 
 class RootTunStateStore(context: Context) {

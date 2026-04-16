@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.util
+package com.github.nomadboxlab.monadbox.presentation.util
 
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.github.yumelira.yumebox.core.model.Provider
-import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
-import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
+import com.github.nomadboxlab.monadbox.core.model.Provider
+import com.github.nomadboxlab.monadbox.domain.model.RemoteOverrideResource
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Link
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Rocket
 import dev.oom_wg.purejoy.mlang.MLang
 import dev.oom_wg.purejoy.mlang.MLangStatus
 
@@ -38,8 +38,8 @@ data class ExternalResourceBadgeUi(
 
 fun Provider.headerIcon(): ImageVector {
     return when (type) {
-        Provider.Type.Proxy -> Yume.Rocket
-        Provider.Type.Rule -> Yume.Link
+        Provider.Type.Proxy -> MonadIcons.Rocket
+        Provider.Type.Rule -> MonadIcons.Link
     }
 }
 

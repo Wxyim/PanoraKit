@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.common.util
+package com.github.nomadboxlab.monadbox.common.util
 
 import android.app.Application
-import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
-import com.github.yumelira.yumebox.data.model.CleanupPolicy
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
-import com.github.yumelira.yumebox.data.repository.LogProvider
-import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
-import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
+import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
+import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
+import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
+import com.github.nomadboxlab.monadbox.data.repository.LogProvider
+import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
+import com.github.nomadboxlab.monadbox.service.runtime.records.ImportedDao
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers

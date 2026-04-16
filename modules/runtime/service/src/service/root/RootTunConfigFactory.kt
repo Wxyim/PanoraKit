@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.root
+package com.github.nomadboxlab.monadbox.service.root
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.model.RootTunConfig
-import com.github.yumelira.yumebox.core.model.RootTunDnsMode
-import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
-import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
-import com.github.yumelira.yumebox.service.runtime.util.directoryLastModified
-import com.github.yumelira.yumebox.service.runtime.util.importedDir
+import com.github.nomadboxlab.monadbox.core.model.RootTunConfig
+import com.github.nomadboxlab.monadbox.core.model.RootTunDnsMode
+import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
+import com.github.nomadboxlab.monadbox.service.runtime.records.ImportedDao
+import com.github.nomadboxlab.monadbox.service.runtime.util.directoryLastModified
+import com.github.nomadboxlab.monadbox.service.runtime.util.importedDir
 import java.io.File
 import java.util.*
 
@@ -289,13 +290,14 @@ class RootTunConfigFactory(
         val values = buildList {
             addAll(
                 context.resources.getStringArray(
-                    com.github.yumelira.yumebox.runtime.service.R.array.bypass_private_route
+                    com.github.nomadboxlab.monadbox.runtime.service.R.array.bypass_private_route
                 )
             )
             if (allowIpv6) {
                 addAll(
                     context.resources.getStringArray(
-                        com.github.yumelira.yumebox.runtime.service.R.array.bypass_private_route6
+                        com.github.nomadboxlab.monadbox.runtime.service.R.array
+                            .bypass_private_route6
                     )
                 )
             }

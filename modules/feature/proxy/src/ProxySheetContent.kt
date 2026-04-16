@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox
+package com.github.nomadboxlab.monadbox
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateIntAsState
@@ -30,21 +31,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetAction
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetIconAction
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.Speed
-import com.github.yumelira.yumebox.presentation.screen.node.NodeGroupSheetContent
-import com.github.yumelira.yumebox.presentation.screen.node.NodeSheetContent
-import com.github.yumelira.yumebox.presentation.screen.node.NodeSortPopup
-import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
-import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.WindowBlurEffect
-import com.github.yumelira.yumebox.presentation.util.resolveAdaptiveProxyDisplayMode
-import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetAction
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetIconAction
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
+import com.github.nomadboxlab.monadbox.presentation.screen.node.NodeGroupSheetContent
+import com.github.nomadboxlab.monadbox.presentation.screen.node.NodeSheetContent
+import com.github.nomadboxlab.monadbox.presentation.screen.node.NodeSortPopup
+import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.WindowBlurEffect
+import com.github.nomadboxlab.monadbox.presentation.util.resolveAdaptiveProxyDisplayMode
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -153,7 +154,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                     AppBottomSheetIconAction(
                         action =
                             AppBottomSheetAction(
-                                icon = Yume.`List-chevrons-up-down`,
+                                icon = MonadIcons.`List-chevrons-up-down`,
                                 contentDescription = MLang.Proxy.Action.SortMode,
                                 onClick = { showSortPopup.value = true },
                             )
@@ -172,7 +173,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             AppBottomSheetIconAction(
                 action =
                     AppBottomSheetAction(
-                        icon = Yume.Speed,
+                        icon = MonadIcons.Speed,
                         contentDescription = MLang.Proxy.Action.Test,
                         onClick = {
                             val group = selectedGroup

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.traffic
+package com.github.nomadboxlab.monadbox.screen.traffic
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -44,22 +45,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.formatBytes
-import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
-import com.github.yumelira.yumebox.feature.meta.presentation.component.ConnectionDetailSheet
-import com.github.yumelira.yumebox.feature.meta.presentation.component.toDisplayAddress
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.RecentRequestRecord
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TargetSiteRecord
-import com.github.yumelira.yumebox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
-import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.component.TrafficBarChart
-import com.github.yumelira.yumebox.presentation.component.appClickable
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.TrafficStatisticsScreenLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.common.util.formatBytes
+import com.github.nomadboxlab.monadbox.data.model.StatisticsTimeRange
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionDetailSheet
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.toDisplayAddress
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.RecentRequestRecord
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.TargetSiteRecord
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.TrafficBarChart
+import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.TrafficStatisticsScreenLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -281,7 +282,7 @@ private fun OverviewCard(
     todaySummary: Long,
     weekSummary: Long,
     trafficDifference: Long,
-    chartItems: List<com.github.yumelira.yumebox.presentation.component.BarChartItem>,
+    chartItems: List<com.github.nomadboxlab.monadbox.presentation.component.BarChartItem>,
     todayTimeContext: String,
     selectedBarIndex: Int,
     onRangeSelected: (StatisticsTimeRange) -> Unit,

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,29 +49,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Activity
-import com.github.yumelira.yumebox.presentation.icon.yume.`Chart-column`
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.icon.yume.Folders
-import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
-import com.github.yumelira.yumebox.presentation.icon.yume.Github
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
-import com.github.yumelira.yumebox.presentation.icon.yume.Message
-import com.github.yumelira.yumebox.presentation.icon.yume.Meta
-import com.github.yumelira.yumebox.presentation.icon.yume.Play
-import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.icon.yume.Tun
-import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
-import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
-import com.github.yumelira.yumebox.presentation.icon.yume.chevron
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.LocalSemanticColors
-import com.github.yumelira.yumebox.presentation.theme.SemanticColorToken
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Activity
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Chart-column`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Cloud
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Folders
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Git-merge`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Github
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Link
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Message
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Meta
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Play
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Rocket
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Tun
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.UserKey
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.chevron
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
+import com.github.nomadboxlab.monadbox.presentation.theme.SemanticColorToken
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -508,7 +508,7 @@ fun SettingsRow(
             content = endContent,
         )
         Icon(
-            imageVector = Yume.chevron,
+            imageVector = MonadIcons.chevron,
             contentDescription = null,
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.72f),
             modifier = Modifier.size(18.dp),
@@ -528,27 +528,27 @@ private fun SemanticTone.accessibilityDescription(): String =
 
 private fun ImageVector.defaultSettingsIconTone(rowTone: SemanticTone): SemanticTone {
     return when (this) {
-        Yume.Message,
-        Yume.Activity,
-        Yume.`Git-merge` -> SemanticTone.Warning
+        MonadIcons.Message,
+        MonadIcons.Activity,
+        MonadIcons.`Git-merge` -> SemanticTone.Warning
 
-        Yume.Link,
-        Yume.`Scan-eye`,
-        Yume.Meta,
-        Yume.`Scroll-text`,
-        Yume.Github,
-        Yume.UserKey -> SemanticTone.Brand
+        MonadIcons.Link,
+        MonadIcons.`Scan-eye`,
+        MonadIcons.Meta,
+        MonadIcons.`Scroll-text`,
+        MonadIcons.Github,
+        MonadIcons.UserKey -> SemanticTone.Brand
 
-        Yume.Cloud,
-        Yume.Rocket,
-        Yume.Tun,
-        Yume.Play -> SemanticTone.Success
+        MonadIcons.Cloud,
+        MonadIcons.Rocket,
+        MonadIcons.Tun,
+        MonadIcons.Play -> SemanticTone.Success
 
-        Yume.`Settings-2`,
-        Yume.`Wifi-cog`,
-        Yume.`Chart-column`,
-        Yume.Edit,
-        Yume.Folders -> SemanticTone.Info
+        MonadIcons.`Settings-2`,
+        MonadIcons.`Wifi-cog`,
+        MonadIcons.`Chart-column`,
+        MonadIcons.Edit,
+        MonadIcons.Folders -> SemanticTone.Info
 
         else ->
             when (rowTone) {

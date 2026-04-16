@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,16 +14,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.runtime.records
+package com.github.nomadboxlab.monadbox.service.runtime.records
 
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.model.ProxySort
-import com.github.yumelira.yumebox.service.common.log.Log
-import com.github.yumelira.yumebox.service.runtime.entity.Selection
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.core.model.ProxySort
+import com.github.nomadboxlab.monadbox.service.common.log.Log
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 import java.util.*
 import kotlinx.coroutines.delay
 
@@ -73,7 +74,7 @@ internal object SelectionRestoreExecutor {
 
     private suspend fun queryGroupWithRetry(
         group: String
-    ): com.github.yumelira.yumebox.core.model.ProxyGroup? {
+    ): com.github.nomadboxlab.monadbox.core.model.ProxyGroup? {
         repeat(queryRetryCount) { attempt ->
             val result = runCatching { Clash.queryGroup(group, ProxySort.Default) }.getOrNull()
             if (result != null) {

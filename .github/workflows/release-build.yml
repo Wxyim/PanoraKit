@@ -154,10 +154,10 @@ jobs:
       - name: Build Release APKs
         shell: bash
         env:
-          YUMEBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
-          YUMEBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          YUMEBOX_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          YUMEBOX_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          MONADBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          MONADBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          MONADBOX_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          MONADBOX_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           chmod +x gradlew

@@ -1,4 +1,5 @@
-// Copyright (c) YumeYuka 2025.
+// Copyright (c) YumeLira 2025 - 2026
+// Copyright (c) MonadBox Contributors 2026 - Present
 //
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
@@ -11,7 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define TAG "YumeBox"
+#define TAG "MonadBox"
 
 typedef const char* c_string;
 

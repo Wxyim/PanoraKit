@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings.component
+package com.github.nomadboxlab.monadbox.screen.settings.component
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -27,15 +28,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.data.model.ThemeMode
-import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetCloseAction
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmAction
-import com.github.yumelira.yumebox.presentation.component.EnumSelector
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Palette
-import com.github.yumelira.yumebox.presentation.theme.colorFromArgb
-import com.github.yumelira.yumebox.presentation.theme.colorToArgbLong
+import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetCloseAction
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetConfirmAction
+import com.github.nomadboxlab.monadbox.presentation.component.EnumSelector
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
+import com.github.nomadboxlab.monadbox.presentation.theme.colorFromArgb
+import com.github.nomadboxlab.monadbox.presentation.theme.colorToArgbLong
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 
@@ -121,7 +122,7 @@ internal fun ThemeColorPickerItem(
                     runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
                 }
             Icon(
-                Yume.Palette,
+                MonadIcons.Palette,
                 tint = previewColor,
                 contentDescription = null,
                 modifier = Modifier.padding(end = 12.dp),

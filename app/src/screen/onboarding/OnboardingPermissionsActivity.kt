@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,17 +14,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.onboarding
+package com.github.nomadboxlab.monadbox.screen.onboarding
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.UserKey
 import dev.oom_wg.purejoy.mlang.MLang
 
 internal class OnboardingPermissionsActivity : OnboardingBaseActivity() {
@@ -47,7 +48,7 @@ internal class OnboardingPermissionsActivity : OnboardingBaseActivity() {
                 rememberPermissionState(context = this, lifecycleOwner = lifecycleOwner)
 
             ProvisionDetailShell(
-                previewIcon = Yume.UserKey,
+                previewIcon = MonadIcons.UserKey,
                 title = MLang.Onboarding.Permission.Title,
                 subtitle = MLang.Onboarding.Permission.Subtitle,
                 primaryText = MLang.Onboarding.Navigation.Next,

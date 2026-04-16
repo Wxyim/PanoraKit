@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.home
+package com.github.nomadboxlab.monadbox.screen.home
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -27,19 +28,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
-import com.github.yumelira.yumebox.common.AppConstants
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.repository.IpMonitoringState
-import com.github.yumelira.yumebox.domain.model.TrafficData
-import com.github.yumelira.yumebox.presentation.component.LocalNavigator
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.HomePagerLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.common.AppConstants
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
+import com.github.nomadboxlab.monadbox.domain.model.TrafficData
+import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.combinePaddingValues
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.HomePagerLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -57,7 +58,7 @@ fun HomePager(
     profilesLoaded: Boolean,
     hasProfiles: Boolean,
     hasEnabledProfile: Boolean,
-    recommendedProfile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
+    recommendedProfile: com.github.nomadboxlab.monadbox.service.runtime.entity.Profile?,
     currentProfileName: String?,
     currentTunnelMode: TunnelState.Mode,
     selectedServer: HomeSelectedServerState?,
@@ -71,8 +72,8 @@ fun HomePager(
     onProxyToggleRequest:
         (
             isRunning: Boolean,
-            recommendedProfile: com.github.yumelira.yumebox.service.runtime.entity.Profile?,
-            proxyMode: com.github.yumelira.yumebox.data.model.ProxyMode,
+            recommendedProfile: com.github.nomadboxlab.monadbox.service.runtime.entity.Profile?,
+            proxyMode: com.github.nomadboxlab.monadbox.data.model.ProxyMode,
         ) -> Unit =
         { _, _, _ ->
         },

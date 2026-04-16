@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,21 +35,21 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Bolt
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
-import com.github.yumelira.yumebox.presentation.icon.yume.Folders
-import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
-import com.github.yumelira.yumebox.presentation.icon.yume.LayoutPanelLeft
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
-import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
-import com.github.yumelira.yumebox.presentation.icon.yume.Tun
-import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.util.*
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Bolt
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Cloud
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Folders
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Git-merge`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.LayoutPanelLeft
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Link
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Rocket
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Tun
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.util.*
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -62,24 +63,26 @@ private data class OverrideSectionVisualSpec(val icon: ImageVector, val tone: Se
 
 private fun OverrideEditorSection.visualSpec(): OverrideSectionVisualSpec {
     return when (this) {
-        OverrideEditorSection.General -> OverrideSectionVisualSpec(Yume.Bolt, SemanticTone.Brand)
-        OverrideEditorSection.Dns -> OverrideSectionVisualSpec(Yume.Cloud, SemanticTone.Info)
+        OverrideEditorSection.General ->
+            OverrideSectionVisualSpec(MonadIcons.Bolt, SemanticTone.Brand)
+        OverrideEditorSection.Dns -> OverrideSectionVisualSpec(MonadIcons.Cloud, SemanticTone.Info)
         OverrideEditorSection.Sniffer ->
-            OverrideSectionVisualSpec(Yume.`Scan-eye`, SemanticTone.Info)
+            OverrideSectionVisualSpec(MonadIcons.`Scan-eye`, SemanticTone.Info)
         OverrideEditorSection.Inbound ->
-            OverrideSectionVisualSpec(Yume.`Wifi-cog`, SemanticTone.Info)
-        OverrideEditorSection.Tun -> OverrideSectionVisualSpec(Yume.Tun, SemanticTone.Success)
+            OverrideSectionVisualSpec(MonadIcons.`Wifi-cog`, SemanticTone.Info)
+        OverrideEditorSection.Tun -> OverrideSectionVisualSpec(MonadIcons.Tun, SemanticTone.Success)
         OverrideEditorSection.Rules ->
-            OverrideSectionVisualSpec(Yume.`Scroll-text`, SemanticTone.Warning)
-        OverrideEditorSection.Proxies -> OverrideSectionVisualSpec(Yume.Rocket, SemanticTone.Info)
+            OverrideSectionVisualSpec(MonadIcons.`Scroll-text`, SemanticTone.Warning)
+        OverrideEditorSection.Proxies ->
+            OverrideSectionVisualSpec(MonadIcons.Rocket, SemanticTone.Info)
         OverrideEditorSection.ProxyProviders ->
-            OverrideSectionVisualSpec(Yume.Link, SemanticTone.Info)
+            OverrideSectionVisualSpec(MonadIcons.Link, SemanticTone.Info)
         OverrideEditorSection.ProxyGroups ->
-            OverrideSectionVisualSpec(Yume.LayoutPanelLeft, SemanticTone.Brand)
+            OverrideSectionVisualSpec(MonadIcons.LayoutPanelLeft, SemanticTone.Brand)
         OverrideEditorSection.RuleProviders ->
-            OverrideSectionVisualSpec(Yume.`Git-merge`, SemanticTone.Warning)
+            OverrideSectionVisualSpec(MonadIcons.`Git-merge`, SemanticTone.Warning)
         OverrideEditorSection.SubRules ->
-            OverrideSectionVisualSpec(Yume.Folders, SemanticTone.Warning)
+            OverrideSectionVisualSpec(MonadIcons.Folders, SemanticTone.Warning)
     }
 }
 

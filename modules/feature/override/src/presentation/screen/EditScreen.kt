@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,16 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.data.util.defaultOverridePresetTemplateSelection
-import com.github.yumelira.yumebox.data.util.inferPresetTemplateSelection
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveEvent
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveState
-import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.data.util.defaultOverridePresetTemplateSelection
+import com.github.nomadboxlab.monadbox.data.util.inferPresetTemplateSelection
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveEvent
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveState
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel

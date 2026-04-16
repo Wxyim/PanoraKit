@@ -1,4 +1,4 @@
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

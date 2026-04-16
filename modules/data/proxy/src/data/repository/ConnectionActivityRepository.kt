@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.data.repository
+package com.github.nomadboxlab.monadbox.data.repository
 
-import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
-import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.remote.ServiceClient
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
+import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.remote.ServiceClient
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

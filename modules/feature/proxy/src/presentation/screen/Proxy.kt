@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -70,45 +70,45 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
-import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumelira.yumebox.domain.model.ProxyGroupStyle
-import com.github.yumelira.yumebox.domain.model.ProxySortMode
-import com.github.yumelira.yumebox.presentation.component.AppActionTile
-import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.CenteredText
-import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SemanticActionDefaults
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.StatusBadge
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Close
-import com.github.yumelira.yumebox.presentation.icon.yume.LayoutPanelLeft
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.icon.yume.Speed
-import com.github.yumelira.yumebox.presentation.screen.node.NodeCard
-import com.github.yumelira.yumebox.presentation.screen.node.RotatingCircleGauge
-import com.github.yumelira.yumebox.presentation.screen.node.adaptiveNodeGroupItems
-import com.github.yumelira.yumebox.presentation.screen.node.proxyLatencyVisual
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
-import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.theme.ProxyDisplaySettingsLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.ProxyFloatingPanelHeaderLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.ProxyFloatingPanelLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.ProxyPageLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.ProxyRuntimePreviewLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
-import com.github.yumelira.yumebox.presentation.util.resolveAdaptiveProxyDisplayMode
-import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.domain.model.ProxyDisplayMode
+import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo
+import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupStyle
+import com.github.nomadboxlab.monadbox.domain.model.ProxySortMode
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionTile
+import com.github.nomadboxlab.monadbox.presentation.component.AppCircularIconAction
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
+import com.github.nomadboxlab.monadbox.presentation.component.CenteredText
+import com.github.nomadboxlab.monadbox.presentation.component.LocalTopBarHazeState
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticActionDefaults
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.LayoutPanelLeft
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
+import com.github.nomadboxlab.monadbox.presentation.screen.node.NodeCard
+import com.github.nomadboxlab.monadbox.presentation.screen.node.RotatingCircleGauge
+import com.github.nomadboxlab.monadbox.presentation.screen.node.adaptiveNodeGroupItems
+import com.github.nomadboxlab.monadbox.presentation.screen.node.proxyLatencyVisual
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyDisplaySettingsLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyFloatingPanelHeaderLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyFloatingPanelLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyPageLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.ProxyRuntimePreviewLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
+import com.github.nomadboxlab.monadbox.presentation.util.resolveAdaptiveProxyDisplayMode
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
@@ -427,7 +427,7 @@ private fun ProxyTopBar(
         actions = {
             if (onTestDelay != null) {
                 AppCircularIconAction(
-                    imageVector = Yume.Speed,
+                    imageVector = MonadIcons.Speed,
                     contentDescription = MLang.Proxy.Action.Test,
                     onClick = { onTestDelay.invoke() },
                     tone = SemanticTone.Info,
@@ -439,7 +439,7 @@ private fun ProxyTopBar(
                 )
             }
             AppCircularIconAction(
-                imageVector = Yume.`Settings-2`,
+                imageVector = MonadIcons.`Settings-2`,
                 contentDescription = MLang.Proxy.Action.More,
                 onClick = onOpenDisplaySettings,
                 tone = if (showHiddenGroups) SemanticTone.Info else SemanticTone.Neutral,
@@ -579,7 +579,7 @@ private fun ProxyDisplaySettingsDialog(
             AppActionTile(
                 title = MLang.Proxy.Action.Resources,
                 summary = MLang.Providers.Title,
-                imageVector = Yume.`Settings-2`,
+                imageVector = MonadIcons.`Settings-2`,
                 tone = SemanticTone.Info,
                 onClick = {
                     onDismiss()
@@ -593,7 +593,7 @@ private fun ProxyDisplaySettingsDialog(
                 ProxyGroupStyle.entries.forEach { style ->
                     ProxyChoiceTile(
                         title = style.displayName,
-                        icon = Yume.LayoutPanelLeft,
+                        icon = MonadIcons.LayoutPanelLeft,
                         selected = style == groupStyle,
                         modifier = Modifier.weight(1f),
                         onClick = { onGroupStyleSelected(style) },
@@ -609,7 +609,7 @@ private fun ProxyDisplaySettingsDialog(
                 ProxySortMode.entries.forEach { mode ->
                     ProxyChoiceTile(
                         title = mode.displayName,
-                        icon = Yume.`List-chevrons-up-down`,
+                        icon = MonadIcons.`List-chevrons-up-down`,
                         selected = mode == sortMode,
                         modifier = Modifier.fillMaxWidth(),
                         compact = false,
@@ -720,7 +720,7 @@ private fun ProxyHiddenGroupsToggle(showHiddenGroups: Boolean, onClick: () -> Un
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Yume.`Scan-eye`,
+                imageVector = MonadIcons.`Scan-eye`,
                 contentDescription = null,
                 tint = style.contentColor,
                 modifier = Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconSize),
@@ -1095,7 +1095,7 @@ private fun FloatingGroupHeader(
                             )
                         } else {
                             Icon(
-                                Yume.Speed,
+                                MonadIcons.Speed,
                                 contentDescription = MLang.Proxy.Action.TestDelay,
                                 tint = primary,
                                 modifier = Modifier.size(FloatingPanelMetrics.HeaderCloseIconSize),
@@ -1105,7 +1105,7 @@ private fun FloatingGroupHeader(
                 }
 
                 AppCircularIconAction(
-                    imageVector = Yume.Close,
+                    imageVector = MonadIcons.Close,
                     contentDescription = MLang.Proxy.Action.Close,
                     onClick = onDismiss,
                     tone = SemanticTone.Neutral,

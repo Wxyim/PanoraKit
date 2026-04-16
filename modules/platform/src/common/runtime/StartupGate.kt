@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.common.runtime
+package com.github.nomadboxlab.monadbox.common.runtime
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
@@ -27,7 +28,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
 import com.android.apksig.ApkVerifier
-import com.github.yumelira.yumebox.core.android.BuildConfig
+import com.github.nomadboxlab.monadbox.core.android.BuildConfig
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.security.MessageDigest

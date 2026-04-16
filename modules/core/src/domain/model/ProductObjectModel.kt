@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.domain.model
+package com.github.nomadboxlab.monadbox.domain.model
 
 import kotlinx.serialization.Serializable
 
@@ -92,94 +92,3 @@ data class ProductProfileObject(
     val expiresAtMillis: Long,
     val configSaved: Boolean,
 ) : ProductObjectContract
-
-object ProductLifecycleTransitions {
-    private val allowedTransitions: Map<ProductLifecycleState, Set<ProductLifecycleState>> =
-        mapOf(
-            ProductLifecycleState.Idle to
-                setOf(
-                    ProductLifecycleState.Preparing,
-                    ProductLifecycleState.Active,
-                    ProductLifecycleState.Failed,
-                    ProductLifecycleState.Stopped,
-                ),
-            ProductLifecycleState.Preparing to
-                setOf(
-                    ProductLifecycleState.Active,
-                    ProductLifecycleState.Degraded,
-                    ProductLifecycleState.Failed,
-                    ProductLifecycleState.Stopping,
-                ),
-            ProductLifecycleState.Active to
-                setOf(
-                    ProductLifecycleState.Degraded,
-                    ProductLifecycleState.Failed,
-                    ProductLifecycleState.Stopping,
-                ),
-            ProductLifecycleState.Degraded to
-                setOf(
-                    ProductLifecycleState.Active,
-                    ProductLifecycleState.Failed,
-                    ProductLifecycleState.Stopping,
-                ),
-            ProductLifecycleState.Failed to
-                setOf(
-                    ProductLifecycleState.Idle,
-                    ProductLifecycleState.Preparing,
-                    ProductLifecycleState.Stopped,
-                ),
-            ProductLifecycleState.Stopping to
-                setOf(
-                    ProductLifecycleState.Idle,
-                    ProductLifecycleState.Failed,
-                    ProductLifecycleState.Stopped,
-                ),
-            ProductLifecycleState.Stopped to
-                setOf(ProductLifecycleState.Idle, ProductLifecycleState.Preparing),
-        )
-
-    fun canTransition(from: ProductLifecycleState, to: ProductLifecycleState): Boolean {
-        return from == to || allowedTransitions[from].orEmpty().contains(to)
-    }
-
-    fun requireTransition(from: ProductLifecycleState, to: ProductLifecycleState) {
-        require(canTransition(from, to)) { "Invalid product lifecycle transition: $from -> $to" }
-    }
-}
-
-object ProductChangeTransitions {
-    private val allowedTransitions: Map<ProductChangeState, Set<ProductChangeState>> =
-        mapOf(
-            ProductChangeState.Synced to setOf(ProductChangeState.Modified),
-            ProductChangeState.Modified to
-                setOf(
-                    ProductChangeState.Synced,
-                    ProductChangeState.Conflicted,
-                    ProductChangeState.Applying,
-                    ProductChangeState.Invalid,
-                    ProductChangeState.Reverted,
-                ),
-            ProductChangeState.Conflicted to
-                setOf(ProductChangeState.Modified, ProductChangeState.Reverted),
-            ProductChangeState.Applying to
-                setOf(
-                    ProductChangeState.Applied,
-                    ProductChangeState.Invalid,
-                    ProductChangeState.Conflicted,
-                ),
-            ProductChangeState.Applied to
-                setOf(ProductChangeState.Synced, ProductChangeState.Modified),
-            ProductChangeState.Invalid to
-                setOf(ProductChangeState.Modified, ProductChangeState.Reverted),
-            ProductChangeState.Reverted to
-                setOf(ProductChangeState.Synced, ProductChangeState.Modified),
-        )
-
-    fun canTransition(from: ProductChangeState, to: ProductChangeState): Boolean {
-        return from == to || allowedTransitions[from].orEmpty().contains(to)
-    }
-
-    fun requireTransition(from: ProductChangeState, to: ProductChangeState) {
-        require(canTransition(from, to)) { "Invalid product change transition: $from -> $to" }
-    }
-}

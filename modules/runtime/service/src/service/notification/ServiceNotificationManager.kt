@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.notification
+package com.github.nomadboxlab.monadbox.service.notification
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -31,14 +32,14 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.github.yumelira.yumebox.common.util.formatBytes
-import com.github.yumelira.yumebox.common.util.formatSpeed
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.runtime.service.R
-import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
-import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
+import com.github.nomadboxlab.monadbox.common.util.formatBytes
+import com.github.nomadboxlab.monadbox.common.util.formatSpeed
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.runtime.service.R
+import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
+import com.github.nomadboxlab.monadbox.service.runtime.records.ImportedDao
 import com.tencent.mmkv.MMKV
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,31 +14,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.common.util.InstalledAppsAccess
-import com.github.yumelira.yumebox.core.model.RootTunDnsMode
-import com.github.yumelira.yumebox.data.model.AccessControlMode
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.model.TunStack
-import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
-import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
-import com.github.yumelira.yumebox.data.store.Preference
-import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
-import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
-import com.github.yumelira.yumebox.service.root.RootPackageShell
+import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccess
+import com.github.nomadboxlab.monadbox.core.model.RootTunDnsMode
+import com.github.nomadboxlab.monadbox.data.model.AccessControlMode
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.model.TunStack
+import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
+import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
+import com.github.nomadboxlab.monadbox.data.store.Preference
+import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
+import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +70,7 @@ enum class ServiceState {
 }
 
 private object RootTunDraftFormatter {
-    const val DefaultRootTunIfName = "Yume"
+    const val DefaultRootTunIfName = "monad"
     const val DefaultFakeIpRange = "198.18.0.1/16"
     const val DefaultFakeIpRange6 = "fc00::/18"
 
@@ -110,7 +111,7 @@ private object NetworkSettingsUiStateFactory {
     fun create(
         serviceState: ServiceState,
         configuredMode: ProxyMode,
-        runtimeSnapshot: com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot,
+        runtimeSnapshot: com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot,
         dnsMode: RootTunDnsMode,
     ): NetworkSettingsUiState {
         val effectiveMode = RuntimeStateMapper.resolveDisplayMode(runtimeSnapshot, configuredMode)

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,11 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.util.*
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.util.*
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import sh.calvin.reorderable.ReorderableCollectionItemScope
@@ -120,7 +121,7 @@ fun OverrideRuleListEditorScreen(
             OverrideAnimatedFab(
                 controller = addFabController,
                 visible = showAddFab,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 contentDescription = MLang.Override.Editor.NewRule,
                 label = addFabLabel,
                 onClick = handleAddClick,
@@ -151,7 +152,7 @@ fun OverrideRuleListEditorScreen(
                             modifier = Modifier.padding(end = 24.dp),
                         ) {
                             Icon(
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 contentDescription = MLang.Override.Editor.DeleteSelectedRules,
                             )
                         }
@@ -161,7 +162,7 @@ fun OverrideRuleListEditorScreen(
                             modifier = Modifier.padding(end = 8.dp),
                         ) {
                             Icon(
-                                imageVector = Yume.Undo,
+                                imageVector = MonadIcons.Undo,
                                 contentDescription = MLang.Override.Editor.ClearMode,
                             )
                         }
@@ -173,7 +174,7 @@ fun OverrideRuleListEditorScreen(
                             modifier = Modifier.padding(end = 24.dp),
                         ) {
                             Icon(
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 contentDescription = MLang.Override.Editor.EnterDeleteMode,
                             )
                         }
@@ -336,7 +337,7 @@ private fun ReorderableCollectionItemScope.RuleListCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Yume.List,
+                    imageVector = MonadIcons.List,
                     contentDescription = MLang.Override.Editor.DragToSort,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -351,7 +352,7 @@ private fun ReorderableCollectionItemScope.RuleListCard(
                         )
                     } else {
                         Icon(
-                            imageVector = Yume.chevron,
+                            imageVector = MonadIcons.chevron,
                             contentDescription = MLang.Override.Editor.EditRule,
                             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )

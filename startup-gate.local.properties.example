@@ -3,7 +3,7 @@
 
 # Expected identifiers for startup verification.
 startup.gate.expectedPackage=com.github.nomadboxlab.monadbox
-startup.gate.expectedAppClass=com.github.yumelira.yumebox.App
+startup.gate.expectedAppClass=com.github.nomadboxlab.monadbox.App
 startup.gate.expectedAppParent=android.app.Application
 
 # Release signer SHA-256 fingerprint, uppercase with ':' separator.

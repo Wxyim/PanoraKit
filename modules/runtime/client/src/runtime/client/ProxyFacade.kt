@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.runtime.client
+package com.github.nomadboxlab.monadbox.runtime.client
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -28,39 +29,39 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.VpnService
 import android.os.Build
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.core.controller.ControllerError
-import com.github.yumelira.yumebox.core.controller.MihomoControllerEndpoint
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.core.model.ProxyGroup
-import com.github.yumelira.yumebox.core.model.ProxySort
-import com.github.yumelira.yumebox.core.model.Traffic
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.core.model.UiConfiguration
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
-import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
-import com.github.yumelira.yumebox.domain.model.ProxyLatencyState
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.remote.ServiceClient
-import com.github.yumelira.yumebox.remote.VpnPermissionRequired
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.runtime.client.root.RootTunController
-import com.github.yumelira.yumebox.service.ClashService
-import com.github.yumelira.yumebox.service.StatusProvider
-import com.github.yumelira.yumebox.service.TunService
-import com.github.yumelira.yumebox.service.common.constants.Intents
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunState
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
-import com.github.yumelira.yumebox.service.root.RootTunStatus
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeServiceLauncher
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.core.controller.ControllerError
+import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
+import com.github.nomadboxlab.monadbox.core.model.ProxySort
+import com.github.nomadboxlab.monadbox.core.model.Traffic
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.core.model.UiConfiguration
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
+import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo
+import com.github.nomadboxlab.monadbox.domain.model.ProxyLatencyState
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.remote.ServiceClient
+import com.github.nomadboxlab.monadbox.remote.VpnPermissionRequired
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunController
+import com.github.nomadboxlab.monadbox.service.ClashService
+import com.github.nomadboxlab.monadbox.service.StatusProvider
+import com.github.nomadboxlab.monadbox.service.TunService
+import com.github.nomadboxlab.monadbox.service.common.constants.Intents
+import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunState
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeServiceLauncher
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import com.tencent.mmkv.MMKV
 import java.io.Closeable
 import java.net.HttpURLConnection
@@ -1010,7 +1011,7 @@ class ProxyFacade(
         val errorCode =
             errorCodeRaw?.let { raw ->
                 runCatching {
-                        com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode.valueOf(raw)
+                        com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode.valueOf(raw)
                     }
                     .getOrNull()
             }

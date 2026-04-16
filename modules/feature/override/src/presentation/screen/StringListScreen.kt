@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -28,20 +29,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.List
-import com.github.yumelira.yumebox.presentation.icon.yume.Undo
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSemantics
-import com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode
-import com.github.yumelira.yumebox.presentation.util.OverrideListModeValues
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
-import com.github.yumelira.yumebox.presentation.util.modeTitle
-import com.github.yumelira.yumebox.presentation.util.reorderDraftList
-import com.github.yumelira.yumebox.presentation.util.resolveLabel
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.List
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Undo
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSemantics
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideListModeValues
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
+import com.github.nomadboxlab.monadbox.presentation.util.modeTitle
+import com.github.nomadboxlab.monadbox.presentation.util.reorderDraftList
+import com.github.nomadboxlab.monadbox.presentation.util.resolveLabel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.ArrayDeque
@@ -145,7 +146,7 @@ fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
             OverrideAnimatedFab(
                 controller = addFabController,
                 visible = showAddFab,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 contentDescription = MLang.Override.Editor.AddItem,
                 label = addFabLabel,
                 onClick = handleAddClick,
@@ -161,7 +162,7 @@ fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
                         modifier = Modifier.padding(end = 24.dp),
                     ) {
                         Icon(
-                            imageVector = Yume.Undo,
+                            imageVector = MonadIcons.Undo,
                             contentDescription = MLang.Override.Editor.ClearCurrentMode,
                         )
                     }
@@ -355,7 +356,7 @@ private fun ReorderableCollectionItemScope.StringListEntryCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Yume.List,
+                imageVector = MonadIcons.List,
                 contentDescription = MLang.Override.Editor.DragToSort,
                 tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
@@ -372,7 +373,7 @@ private fun ReorderableCollectionItemScope.StringListEntryCard(
                     Modifier.weight(1f).padding(end = OverrideStringListMetrics.ValueEndPadding),
             )
             OverrideCardActionIconButton(
-                imageVector = Yume.Delete,
+                imageVector = MonadIcons.Delete,
                 contentDescription = MLang.Override.Card.Delete,
                 onClick = onDelete,
             )

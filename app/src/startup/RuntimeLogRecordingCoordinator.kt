@@ -1,4 +1,23 @@
-package com.github.yumelira.yumebox.startup
+/*
+ * This file is part of MonadBox.
+ *
+ * MonadBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ */
+
+package com.github.nomadboxlab.monadbox.startup
 
 import android.annotation.SuppressLint
 import android.app.Application
@@ -7,12 +26,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.repository.LogRecordGateway
-import com.github.yumelira.yumebox.service.StatusProvider
-import com.github.yumelira.yumebox.service.common.constants.Intents
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
+import com.github.nomadboxlab.monadbox.service.StatusProvider
+import com.github.nomadboxlab.monadbox.service.common.constants.Intents
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 
 class RuntimeLogRecordingCoordinator(
     private val application: Application,

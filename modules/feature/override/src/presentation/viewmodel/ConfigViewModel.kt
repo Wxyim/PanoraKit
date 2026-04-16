@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,29 +14,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.viewmodel
+package com.github.nomadboxlab.monadbox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
-import com.github.yumelira.yumebox.data.repository.OverrideResolver
-import com.github.yumelira.yumebox.data.repository.ProfileBindingProvider
-import com.github.yumelira.yumebox.data.util.OverridePresetTemplateSelection
-import com.github.yumelira.yumebox.data.util.RemoteContentFetcher
-import com.github.yumelira.yumebox.data.util.RemoteFetchException
-import com.github.yumelira.yumebox.data.util.RemoteFetchFailureReason
-import com.github.yumelira.yumebox.data.util.applyPresetTemplateToConfig
-import com.github.yumelira.yumebox.domain.model.OverrideConfig
-import com.github.yumelira.yumebox.domain.model.OverrideMetadata
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveEvent
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveState
-import com.github.yumelira.yumebox.presentation.util.encodeOverrideConfigForDiff
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.data.repository.ActiveProfileOverrideReloader
+import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
+import com.github.nomadboxlab.monadbox.data.repository.OverrideResolver
+import com.github.nomadboxlab.monadbox.data.repository.ProfileBindingProvider
+import com.github.nomadboxlab.monadbox.data.util.OverridePresetTemplateSelection
+import com.github.nomadboxlab.monadbox.data.util.RemoteContentFetcher
+import com.github.nomadboxlab.monadbox.data.util.RemoteFetchException
+import com.github.nomadboxlab.monadbox.data.util.RemoteFetchFailureReason
+import com.github.nomadboxlab.monadbox.data.util.applyPresetTemplateToConfig
+import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
+import com.github.nomadboxlab.monadbox.domain.model.OverrideMetadata
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveEvent
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveState
+import com.github.nomadboxlab.monadbox.presentation.util.encodeOverrideConfigForDiff
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -95,7 +96,7 @@ class OverrideConfigViewModel(
     private val bindingProvider: ProfileBindingProvider,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
     private val structuredLogCollector:
-        com.github.yumelira.yumebox.domain.model.StructuredLogCollector,
+        com.github.nomadboxlab.monadbox.domain.model.StructuredLogCollector,
 ) : ViewModel() {
 
     companion object {
@@ -329,16 +330,18 @@ class OverrideConfigViewModel(
                     _saveState.value = OverrideSaveState.Idle
                 }
                 val error =
-                    com.github.yumelira.yumebox.domain.model.StructuredError.configuration(
-                        phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Saving,
+                    com.github.nomadboxlab.monadbox.domain.model.StructuredError.configuration(
+                        phase = com.github.nomadboxlab.monadbox.domain.model.ErrorPhase.Saving,
                         userVisibleMessage = MLang.Override.Save.PresetNotModifiable,
                         impact =
-                            com.github.yumelira.yumebox.domain.model.ErrorImpact.FeatureUnavailable,
+                            com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
+                                .FeatureUnavailable,
                         retryability =
-                            com.github.yumelira.yumebox.domain.model.ErrorRetryability.NonRetryable,
+                            com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
+                                .NonRetryable,
                     )
                 structuredLogCollector.append(
-                    com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                    com.github.nomadboxlab.monadbox.domain.model.StructuredLogEntry.failure(
                         action = "override.save",
                         message = error.userVisibleMessage,
                         objectId = config.id,
@@ -364,13 +367,15 @@ class OverrideConfigViewModel(
                     _events.emit(OverrideSaveEvent.Saved(config.id))
                 } else {
                     val error =
-                        com.github.yumelira.yumebox.domain.model.StructuredError.runtime(
-                            phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Reloading,
+                        com.github.nomadboxlab.monadbox.domain.model.StructuredError.runtime(
+                            phase =
+                                com.github.nomadboxlab.monadbox.domain.model.ErrorPhase.Reloading,
                             userVisibleMessage = MLang.Override.Save.ApplyFailed,
-                            impact = com.github.yumelira.yumebox.domain.model.ErrorImpact.Degraded,
+                            impact =
+                                com.github.nomadboxlab.monadbox.domain.model.ErrorImpact.Degraded,
                         )
                     structuredLogCollector.append(
-                        com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                        com.github.nomadboxlab.monadbox.domain.model.StructuredLogEntry.failure(
                             action = "override.save.apply",
                             message = error.userVisibleMessage,
                             objectId = config.id,
@@ -384,16 +389,16 @@ class OverrideConfigViewModel(
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to update config")
             val error =
-                com.github.yumelira.yumebox.domain.model.StructuredError.fromThrowable(
+                com.github.nomadboxlab.monadbox.domain.model.StructuredError.fromThrowable(
                     throwable = e,
-                    phase = com.github.yumelira.yumebox.domain.model.ErrorPhase.Saving,
-                    category = com.github.yumelira.yumebox.domain.model.ErrorCategory.Storage,
+                    phase = com.github.nomadboxlab.monadbox.domain.model.ErrorPhase.Saving,
+                    category = com.github.nomadboxlab.monadbox.domain.model.ErrorCategory.Storage,
                     impact =
-                        com.github.yumelira.yumebox.domain.model.ErrorImpact.FeatureUnavailable,
+                        com.github.nomadboxlab.monadbox.domain.model.ErrorImpact.FeatureUnavailable,
                     userVisibleMessage = e.message ?: MLang.Override.Save.Failed,
                 )
             structuredLogCollector.append(
-                com.github.yumelira.yumebox.domain.model.StructuredLogEntry.failure(
+                com.github.nomadboxlab.monadbox.domain.model.StructuredLogEntry.failure(
                     action = "override.save",
                     message = error.userVisibleMessage,
                     objectId = config.id,

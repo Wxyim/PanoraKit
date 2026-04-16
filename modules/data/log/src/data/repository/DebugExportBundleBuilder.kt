@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,16 +14,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.data.repository
+package com.github.nomadboxlab.monadbox.data.repository
 
 import android.app.Application
 import android.net.Uri
 import android.os.Build
-import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
+import com.github.nomadboxlab.monadbox.domain.model.StructuredLogEntry
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service
+package com.github.nomadboxlab.monadbox.service
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -28,22 +29,22 @@ import android.net.VpnService
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.store.MMKVProvider
-import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.runtime.service.R
-import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
-import com.github.yumelira.yumebox.service.root.RootTunState
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
-import com.github.yumelira.yumebox.service.root.RootTunStatus
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeServiceLauncher
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.store.MMKVProvider
+import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.runtime.service.R
+import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunServiceBridge
+import com.github.nomadboxlab.monadbox.service.root.RootTunState
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
+import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeServiceLauncher
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.LazyThreadSafetyMode
 import kotlinx.coroutines.*

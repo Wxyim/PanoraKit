@@ -1,4 +1,4 @@
-package com.github.yumelira.yumebox.ui
+package com.github.nomadboxlab.monadbox.ui
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -8,8 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
-import com.github.yumelira.yumebox.presentation.component.TestTags
+import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.TestTags
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test

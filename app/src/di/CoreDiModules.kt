@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,27 +14,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.di
+package com.github.nomadboxlab.monadbox.di
 
-import com.github.yumelira.yumebox.common.util.StorageCleanupManager
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.data.repository.*
-import com.github.yumelira.yumebox.data.store.*
-import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
-import com.github.yumelira.yumebox.runtime.client.ProfilesProvider
-import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
-import com.github.yumelira.yumebox.runtime.client.RuntimeMutationCoordinator
-import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadDispatcher
-import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
-import com.github.yumelira.yumebox.startup.RuntimeLogRecordingCoordinator
-import com.github.yumelira.yumebox.startup.StartupConfigRefreshCoordinator
-import com.github.yumelira.yumebox.startup.StorageCleanupScheduler
+import com.github.nomadboxlab.monadbox.common.util.StorageCleanupManager
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.data.repository.*
+import com.github.nomadboxlab.monadbox.data.store.*
+import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
+import com.github.nomadboxlab.monadbox.runtime.client.ProfilesProvider
+import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeMutationCoordinator
+import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadDispatcher
+import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadScheduler
+import com.github.nomadboxlab.monadbox.startup.RuntimeLogRecordingCoordinator
+import com.github.nomadboxlab.monadbox.startup.StartupConfigRefreshCoordinator
+import com.github.nomadboxlab.monadbox.startup.StorageCleanupScheduler
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -89,7 +90,7 @@ val appDataRuntimeModule = module {
     single { AppSettingsRepository(get()) }
     single { LogRepository(androidApplication(), get()) }
     single<LogProvider> { get<LogRepository>() }
-    single { com.github.yumelira.yumebox.domain.model.StructuredLogCollector() }
+    single { com.github.nomadboxlab.monadbox.domain.model.StructuredLogCollector() }
     single { DebugExportBundleBuilder(androidApplication(), get(), get()) }
     single { StorageCleanupManager(androidApplication(), get(), get(), get()) }
     single { StorageCleanupScheduler(androidContext()) }
@@ -114,7 +115,7 @@ val appDataRuntimeModule = module {
     single { ActiveProfileOverrideReloader(get(), get(), get()) }
     single { StartupConfigRefreshCoordinator(get(), get(), get(), get(), get(), get(), get()) }
 
-    single { com.github.yumelira.yumebox.remote.ServiceClient }
+    single { com.github.nomadboxlab.monadbox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single { ProfilesRepository(androidContext(), get()) }
     single<ProfilesProvider> { get<ProfilesRepository>() }

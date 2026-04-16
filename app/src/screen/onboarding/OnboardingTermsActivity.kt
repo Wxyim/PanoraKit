@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.onboarding
+package com.github.nomadboxlab.monadbox.screen.onboarding
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.ShieldCheck
-import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldCheck
+import com.github.nomadboxlab.monadbox.screen.settings.AppSettingsViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 
@@ -50,7 +51,7 @@ internal class OnboardingTermsActivity : OnboardingBaseActivity() {
             val showPrivacySheet = remember { mutableStateOf(false) }
 
             ProvisionDetailShell(
-                previewIcon = Yume.ShieldCheck,
+                previewIcon = MonadIcons.ShieldCheck,
                 title = MLang.Onboarding.Privacy.Title,
                 subtitle = MLang.Onboarding.Privacy.Subtitle,
                 primaryText = MLang.Onboarding.Navigation.Next,

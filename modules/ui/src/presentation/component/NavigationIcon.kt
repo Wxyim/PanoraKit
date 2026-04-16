@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
@@ -36,7 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.github.yumelira.yumebox.presentation.theme.AppTheme.spacing
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme.spacing
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -56,7 +57,7 @@ fun NavigationBackIcon(
         animateFloatAsState(
             targetValue = if (pressed) 0.92f else 1f,
             animationSpec =
-                com.github.yumelira.yumebox.presentation.theme.AnimationSpecs.ButtonPress,
+                com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs.ButtonPress,
             label = "back_icon_scale",
         )
 

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.profiles
+package com.github.nomadboxlab.monadbox.screen.profiles
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -57,44 +57,44 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.domain.model.OverrideConfig
-import com.github.yumelira.yumebox.domain.model.ProfileBinding
-import com.github.yumelira.yumebox.feature.editor.component.ConfigSaveProgressDialog
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
-import com.github.yumelira.yumebox.presentation.component.AppCommandButton
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.JsonTextEditorDialog
-import com.github.yumelira.yumebox.presentation.component.LocalOverrideCardHorizontalPadding
-import com.github.yumelira.yumebox.presentation.component.LocalProfileConfigEditContent
-import com.github.yumelira.yumebox.presentation.component.OpenObjectMapEditor
-import com.github.yumelira.yumebox.presentation.component.OpenRuleListEditor
-import com.github.yumelira.yumebox.presentation.component.OpenStringListModifiersEditor
-import com.github.yumelira.yumebox.presentation.component.OpenStructuredObjectListEditor
-import com.github.yumelira.yumebox.presentation.component.OpenSubRulesEditor
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.StringMapEditorDialog
-import com.github.yumelira.yumebox.presentation.component.StringMapValidationMode
-import com.github.yumelira.yumebox.presentation.component.StructuredErrorSection
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.component.resolveStringMapValidationMode
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.ArrowLeft
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.Close
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
-import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
-import com.github.yumelira.yumebox.screen.home.HomeViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
+import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.feature.editor.component.ConfigSaveProgressDialog
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveDecision
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSavePhase
+import com.github.nomadboxlab.monadbox.presentation.component.AppCommandButton
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
+import com.github.nomadboxlab.monadbox.presentation.component.JsonTextEditorDialog
+import com.github.nomadboxlab.monadbox.presentation.component.LocalOverrideCardHorizontalPadding
+import com.github.nomadboxlab.monadbox.presentation.component.LocalProfileConfigEditContent
+import com.github.nomadboxlab.monadbox.presentation.component.OpenObjectMapEditor
+import com.github.nomadboxlab.monadbox.presentation.component.OpenRuleListEditor
+import com.github.nomadboxlab.monadbox.presentation.component.OpenStringListModifiersEditor
+import com.github.nomadboxlab.monadbox.presentation.component.OpenStructuredObjectListEditor
+import com.github.nomadboxlab.monadbox.presentation.component.OpenSubRulesEditor
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
+import com.github.nomadboxlab.monadbox.presentation.component.StringMapEditorDialog
+import com.github.nomadboxlab.monadbox.presentation.component.StringMapValidationMode
+import com.github.nomadboxlab.monadbox.presentation.component.StructuredErrorSection
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.resolveStringMapValidationMode
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowLeft
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.screen.home.HomeViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
@@ -290,7 +290,10 @@ fun LocalProfileConfigEditScreen(
                         enabled = !editState.isSaving,
                         onClick = { requestExit() },
                     ) {
-                        Icon(Yume.ArrowLeft, contentDescription = MLang.Component.Navigation.Back)
+                        Icon(
+                            MonadIcons.ArrowLeft,
+                            contentDescription = MLang.Component.Navigation.Back,
+                        )
                     }
                 },
                 actions = {},
@@ -492,7 +495,7 @@ fun LocalProfileConfigEditScreen(
             ) {
                 AppCommandButton(
                     title = MLang.Component.Button.Confirm,
-                    imageVector = Yume.Check,
+                    imageVector = MonadIcons.Check,
                     onClick = { editState.showRuntimeStoppedDialog = false },
                     tone = SemanticTone.Brand,
                     highEmphasis = true,
@@ -601,7 +604,7 @@ private fun LocalProfileOverrideBindingSection(
                                     startAction = {
                                         Icon(
                                             modifier = Modifier.size(20.dp),
-                                            imageVector = Yume.`List-chevrons-up-down`,
+                                            imageVector = MonadIcons.`List-chevrons-up-down`,
                                             tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
                                             contentDescription = null,
                                         )
@@ -613,7 +616,7 @@ private fun LocalProfileOverrideBindingSection(
                                             minWidth = 32.dp,
                                         ) {
                                             Icon(
-                                                imageVector = Yume.Close,
+                                                imageVector = MonadIcons.Close,
                                                 tint =
                                                     MiuixTheme.colorScheme.onSurfaceVariantActions,
                                                 contentDescription = null,
@@ -643,7 +646,7 @@ private fun LocalProfileOverrideBindingSection(
                                     ) {
                                         Icon(
                                             modifier = Modifier.size(18.dp),
-                                            imageVector = Yume.`Badge-plus`,
+                                            imageVector = MonadIcons.`Badge-plus`,
                                             tint = MiuixTheme.colorScheme.primary,
                                             contentDescription = null,
                                         )

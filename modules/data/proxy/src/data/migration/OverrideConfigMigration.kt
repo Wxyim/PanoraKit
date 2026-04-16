@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.data.migration
+package com.github.nomadboxlab.monadbox.data.migration
 
 import android.content.Context
-import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
-import com.github.yumelira.yumebox.data.repository.ProfileBindingRepository
-import com.github.yumelira.yumebox.domain.model.OverrideConfig
-import com.github.yumelira.yumebox.domain.model.OverrideMetadata
-import com.github.yumelira.yumebox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
+import com.github.nomadboxlab.monadbox.data.repository.ProfileBindingRepository
+import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
+import com.github.nomadboxlab.monadbox.domain.model.OverrideMetadata
+import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
 import com.tencent.mmkv.MMKV
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -233,7 +234,9 @@ object OverrideConfigMigration {
         try {
             val content = legacyFile.readText()
             val config =
-                json.decodeFromString<com.github.yumelira.yumebox.core.model.ConfigurationOverride>(
+                json.decodeFromString<
+                    com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+                >(
                     content
                 )
 
@@ -269,7 +272,7 @@ object OverrideConfigMigration {
         val id: String,
         val name: String,
         val description: String? = null,
-        val config: com.github.yumelira.yumebox.core.model.ConfigurationOverride,
+        val config: com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride,
         val isSystem: Boolean = false,
         val createdAt: Long,
         val updatedAt: Long,
@@ -279,7 +282,7 @@ object OverrideConfigMigration {
     private data class OldProfileOverrideBinding(
         val profileId: String,
         val templateId: String? = null,
-        val customConfig: com.github.yumelira.yumebox.core.model.ConfigurationOverride? = null,
+        val customConfig: com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride? = null,
         val enabled: Boolean = true,
         val groupIds: List<String> = emptyList(),
         val templateIds: List<String> = emptyList(),

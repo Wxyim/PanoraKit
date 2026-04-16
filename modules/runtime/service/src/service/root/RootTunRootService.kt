@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,34 +14,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.root
+package com.github.nomadboxlab.monadbox.service.root
 
 import android.content.Intent
 import android.os.IBinder
-import com.github.yumelira.yumebox.core.Global
-import com.github.yumelira.yumebox.core.StoreIds
-import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.service.StatusProvider
-import com.github.yumelira.yumebox.service.common.util.initializeServiceGlobal
-import com.github.yumelira.yumebox.service.runtime.session.RootTunTransport
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeFailure
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeHost
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeSpec
-import com.github.yumelira.yumebox.service.runtime.session.SessionRuntime
-import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
-import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
-import com.github.yumelira.yumebox.service.runtime.util.sendClashStarted
-import com.github.yumelira.yumebox.service.runtime.util.sendClashStopped
-import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
+import com.github.nomadboxlab.monadbox.core.Global
+import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.core.model.LogMessage
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.service.StatusProvider
+import com.github.nomadboxlab.monadbox.service.common.util.initializeServiceGlobal
+import com.github.nomadboxlab.monadbox.service.runtime.session.RootTunTransport
+import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeFailure
+import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeHost
+import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeSpec
+import com.github.nomadboxlab.monadbox.service.runtime.session.SessionRuntime
+import com.github.nomadboxlab.monadbox.service.runtime.session.SessionRuntimeSpecFactory
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.service.runtime.util.runSuspendBlocking
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendProfileLoaded
 import com.tencent.mmkv.MMKV
 import com.topjohnwu.superuser.ipc.RootService
 import java.util.*
@@ -221,7 +222,7 @@ class RootTunRootService : RootService() {
                 return RootTunJson.encode(
                     runtime.queryProxyGroup(
                         name,
-                        com.github.yumelira.yumebox.core.model.ProxySort.valueOf(sort),
+                        com.github.nomadboxlab.monadbox.core.model.ProxySort.valueOf(sort),
                     )
                 )
             }
@@ -379,7 +380,7 @@ class RootTunRootService : RootService() {
     }
 
     private fun encodeResult(
-        result: com.github.yumelira.yumebox.service.runtime.session.RuntimeOperationResult
+        result: com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeOperationResult
     ): String {
         return RootTunJson.encode(
             RootTunOperationResult(

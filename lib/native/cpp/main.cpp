@@ -1,3 +1,23 @@
+/*
+ * This file is part of MonadBox - A customized edition of YumeBox.
+ *
+ * MonadBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ */
+
 #include <jni.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -28,7 +48,7 @@ static jstring take_owned_string(JNIEnv* env, char* value) {
   return result;
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInit(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeInit(
     JNIEnv* env, jobject thiz, jstring home, jstring version_name, jint sdk_version) {
   TRACE_METHOD();
 
@@ -40,20 +60,20 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeReset(JNIEnv* env, jobject thiz) {
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeReset(JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   reset();
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeForceGc(JNIEnv* env, jobject thiz) {
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeForceGc(JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   forceGc();
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeSuspend(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeSuspend(
     JNIEnv* env, jobject thiz, jboolean suspended) {
   TRACE_METHOD();
 
@@ -61,7 +81,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryTunnelState(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryTunnelState(JNIEnv* env,
                                                                            jobject thiz) {
   TRACE_METHOD();
 
@@ -70,7 +90,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryTunnelState(JNIEn
   return new_string(response);
 }
 
-JNIEXPORT jlong JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryTrafficNow(
+JNIEXPORT jlong JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryTrafficNow(
     JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
@@ -81,7 +101,7 @@ JNIEXPORT jlong JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nati
   return (jlong)(down_scale_traffic(upload) << 32u | down_scale_traffic(download));
 }
 
-JNIEXPORT jlong JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryTrafficTotal(
+JNIEXPORT jlong JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryTrafficTotal(
     JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
@@ -93,7 +113,7 @@ JNIEXPORT jlong JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nati
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryConnections(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryConnections(JNIEnv* env,
                                                                            jobject thiz) {
   TRACE_METHOD();
 
@@ -103,7 +123,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryConnections(JNIEn
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeCloseConnection(JNIEnv* env, jobject thiz,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeCloseConnection(JNIEnv* env, jobject thiz,
                                                                           jstring id) {
   TRACE_METHOD();
 
@@ -113,14 +133,14 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeCloseConnection(JNIEnv
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeCloseAllConnections(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeCloseAllConnections(JNIEnv* env,
                                                                               jobject thiz) {
   TRACE_METHOD();
 
   closeAllConnections();
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeNotifyDnsChanged(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeNotifyDnsChanged(
     JNIEnv* env, jobject thiz, jstring dns_list) {
   TRACE_METHOD();
 
@@ -130,7 +150,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeNotifyTimeZoneChanged(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeNotifyTimeZoneChanged(JNIEnv* env,
                                                                                 jobject thiz,
                                                                                 jstring name,
                                                                                 jint offset) {
@@ -142,7 +162,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeNotifyTimeZoneChanged(
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeNotifyInstalledAppChanged(
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeNotifyInstalledAppChanged(
     JNIEnv* env, jobject thiz, jstring uid_list) {
   TRACE_METHOD();
 
@@ -151,7 +171,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeNotifyInstalledAppChan
   notifyInstalledAppsChanged(_uid_list);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStartTun(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStartTun(
     JNIEnv* env, jobject thiz, jint fd, jstring stack, jstring gateway, jstring portal, jstring dns,
     jobject cb) {
   TRACE_METHOD();
@@ -166,13 +186,13 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStopTun(JNIEnv* env, jobject thiz) {
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStopTun(JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   stopTun();
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStartRootTun(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStartRootTun(
     JNIEnv* env, jobject thiz, jstring config_json) {
   TRACE_METHOD();
 
@@ -183,13 +203,13 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStopRootTun(JNIEnv* env, jobject thiz) {
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStopRootTun(JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   stopRootTun();
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStartHttp(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStartHttp(
     JNIEnv* env, jobject thiz, jstring listen_at) {
   TRACE_METHOD();
 
@@ -201,13 +221,13 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
 }
 
 JNIEXPORT void JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStopHttp(JNIEnv* env, jobject thiz) {
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStopHttp(JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   stopHttp();
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryGroupNames(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryGroupNames(
     JNIEnv* env, jobject thiz, jboolean exclude_not_selectable) {
   TRACE_METHOD();
 
@@ -216,7 +236,7 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
   return new_string(response);
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryGroup(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryGroup(
     JNIEnv* env, jobject thiz, jstring name, jstring mode) {
   TRACE_METHOD();
 
@@ -228,7 +248,7 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
   return new_nullable_string(env, response);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeHealthCheck(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeHealthCheck(
     JNIEnv* env, jobject thiz, jobject completable, jstring name) {
   TRACE_METHOD();
 
@@ -238,14 +258,14 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
   healthCheck(_completable, _name);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeHealthCheckAll(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeHealthCheckAll(
     JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
   healthCheckAll();
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeHealthCheckProxy(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeHealthCheckProxy(
     JNIEnv* env, jobject thiz, jobject completable, jstring proxy_name) {
   TRACE_METHOD();
 
@@ -255,7 +275,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
   healthCheckProxy(_completable, _proxy_name);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativePatchSelector(
+JNIEXPORT jboolean JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativePatchSelector(
     JNIEnv* env, jobject thiz, jstring selector, jstring name) {
   TRACE_METHOD();
 
@@ -265,7 +285,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_n
   return (jboolean)patchSelector(_selector, _name);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeLoadCompiledConfig(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeLoadCompiledConfig(
     JNIEnv* env, jobject thiz, jobject completable, jstring path) {
   TRACE_METHOD();
 
@@ -275,7 +295,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
   loadCompiledConfig(_completable, _path);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeFetchAndValid(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeFetchAndValid(
     JNIEnv* env, jobject thiz, jobject callback, jstring path, jstring url, jboolean force) {
   TRACE_METHOD();
 
@@ -286,7 +306,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
   fetchAndValid(_completable, _path, _url, force);
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryProviders(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryProviders(
     JNIEnv* env, jobject thiz) {
   TRACE_METHOD();
 
@@ -295,7 +315,7 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
   return new_string(response);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeUpdateProvider(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeUpdateProvider(
     JNIEnv* env, jobject thiz, jobject completable, jstring type, jstring name) {
   TRACE_METHOD();
 
@@ -307,7 +327,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryConfiguration(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryConfiguration(JNIEnv* env,
                                                                              jobject thiz) {
   TRACE_METHOD();
 
@@ -317,7 +337,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryConfiguration(JNI
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInspectCompiledConfig(JNIEnv* env,
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeInspectCompiledConfig(JNIEnv* env,
                                                                                 jobject thiz,
                                                                                 jstring yaml_text) {
   TRACE_METHOD();
@@ -329,7 +349,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInspectCompiledConfig(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInspectCompiledGroups(
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeInspectCompiledGroups(
     JNIEnv* env, jobject thiz, jstring yaml_text, jstring profile_dir,
     jboolean exclude_not_selectable) {
   TRACE_METHOD();
@@ -342,7 +362,7 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInspectCompiledGroups(
   return new_nullable_string(env, response);
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeSubscribeLogcat(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeSubscribeLogcat(
     JNIEnv* env, jobject thiz, jobject callback) {
   TRACE_METHOD();
 
@@ -495,12 +515,12 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 
   initialize_jni(vm, env);
 
-  jclass c_tun_interface = find_class("com/github/yumelira/yumebox/core/bridge/TunInterface");
+  jclass c_tun_interface = find_class("com/github/nomadboxlab/monadbox/core/bridge/TunInterface");
   jclass c_completable = find_class("kotlinx/coroutines/CompletableDeferred");
-  jclass c_fetch_callback = find_class("com/github/yumelira/yumebox/core/bridge/FetchCallback");
-  jclass c_logcat_interface = find_class("com/github/yumelira/yumebox/core/bridge/LogcatInterface");
-  jclass _c_clash_exception = find_class("com/github/yumelira/yumebox/core/bridge/ClashException");
-  jclass _c_content = find_class("com/github/yumelira/yumebox/core/bridge/Content");
+  jclass c_fetch_callback = find_class("com/github/nomadboxlab/monadbox/core/bridge/FetchCallback");
+  jclass c_logcat_interface = find_class("com/github/nomadboxlab/monadbox/core/bridge/LogcatInterface");
+  jclass _c_clash_exception = find_class("com/github/nomadboxlab/monadbox/core/bridge/ClashException");
+  jclass _c_content = find_class("com/github/nomadboxlab/monadbox/core/bridge/Content");
   jclass c_throwable = find_class("java/lang/Throwable");
   jclass c_unit = find_class("kotlin/Unit");
 
@@ -538,7 +558,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
   return JNI_VERSION_1_6;
 }
 
-JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeSetCustomUserAgent(
+JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeSetCustomUserAgent(
     JNIEnv* env, jobject thiz, jstring user_agent) {
   TRACE_METHOD();
 
@@ -547,7 +567,7 @@ JNIEXPORT void JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativ
   setCustomUserAgent(ua);
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeCompilePreview(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeCompilePreview(
     JNIEnv* env, jobject thiz, jstring request_json) {
   TRACE_METHOD();
 
@@ -558,7 +578,7 @@ JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_na
   return take_owned_string(env, result);
 }
 
-JNIEXPORT jstring JNICALL Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeCompileToFile(
+JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeCompileToFile(
     JNIEnv* env, jobject thiz, jstring request_json) {
   TRACE_METHOD();
 

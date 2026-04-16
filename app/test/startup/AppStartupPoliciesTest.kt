@@ -1,4 +1,4 @@
-package com.github.yumelira.yumebox.startup
+package com.github.nomadboxlab.monadbox.startup
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

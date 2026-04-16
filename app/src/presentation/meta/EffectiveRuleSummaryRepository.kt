@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.meta
+package com.github.nomadboxlab.monadbox.presentation.meta
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.remote.ServiceClient
-import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.remote.ServiceClient
+import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLangStatus
 import java.io.File
 import kotlinx.coroutines.Dispatchers

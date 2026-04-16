@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.onboarding
+package com.github.nomadboxlab.monadbox.screen.onboarding
 
 import android.app.Activity
 import android.app.ActivityOptions
@@ -133,11 +134,11 @@ internal object OnboardingTransitionLauncher {
     }
 
     const val EXTRA_TRANSITION_FOREGROUND_COLOR: String =
-        "com.github.yumelira.yumebox.screen.onboarding.TRANSITION_FOREGROUND_COLOR"
+        "com.github.nomadboxlab.monadbox.screen.onboarding.TRANSITION_FOREGROUND_COLOR"
 
     const val EXTRA_SCALE_UP_ENTER: String =
-        "com.github.yumelira.yumebox.screen.onboarding.SCALE_UP_ENTER"
+        "com.github.nomadboxlab.monadbox.screen.onboarding.SCALE_UP_ENTER"
 
     const val EXTRA_SCALE_DOWN_RETURN: String =
-        "com.github.yumelira.yumebox.screen.onboarding.SCALE_DOWN_RETURN"
+        "com.github.nomadboxlab.monadbox.screen.onboarding.SCALE_DOWN_RETURN"
 }

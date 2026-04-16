@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
@@ -28,9 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.Close
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import dev.oom_wg.purejoy.mlang.MLang
 
 @Composable
@@ -48,7 +49,7 @@ fun DialogButtonRow(
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         AppCommandButton(
             title = cancelText,
-            imageVector = Yume.Close,
+            imageVector = MonadIcons.Close,
             onClick = onCancel,
             modifier = Modifier.weight(1f).testTag(TestTags.Dialog.CancelButton),
             tone = cancelTone,
@@ -56,7 +57,7 @@ fun DialogButtonRow(
         )
         AppCommandButton(
             title = confirmText,
-            imageVector = Yume.Check,
+            imageVector = MonadIcons.Check,
             onClick = onConfirm,
             modifier = Modifier.weight(1f).testTag(TestTags.Dialog.ConfirmButton),
             tone = confirmTone,

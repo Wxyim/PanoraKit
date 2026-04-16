@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service
+package com.github.nomadboxlab.monadbox.service
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -34,15 +35,15 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.runtime.service.R
-import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.common.constants.Intents
-import com.github.yumelira.yumebox.service.remote.ILogObserver
-import com.github.yumelira.yumebox.service.root.RootTunJson
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.core.model.LogMessage
+import com.github.nomadboxlab.monadbox.runtime.service.R
+import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.common.constants.Intents
+import com.github.nomadboxlab.monadbox.service.remote.ILogObserver
+import com.github.nomadboxlab.monadbox.service.root.RootTunJson
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunServiceBridge
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.BufferedWriter
 import java.io.File
@@ -62,8 +63,8 @@ class LogRecordService : Service() {
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "log_record_channel"
 
-        private const val ACTION_START = "com.github.yumelira.yumebox.LOG_START"
-        private const val ACTION_STOP = "com.github.yumelira.yumebox.LOG_STOP"
+        private const val ACTION_START = "com.github.nomadboxlab.monadbox.LOG_START"
+        private const val ACTION_STOP = "com.github.nomadboxlab.monadbox.LOG_STOP"
 
         const val LOG_DIR = "logs"
         const val LOG_PREFIX = ""

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service
+package com.github.nomadboxlab.monadbox.service
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -34,20 +35,20 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.github.yumelira.yumebox.common.util.formatBytes
-import com.github.yumelira.yumebox.common.util.formatSpeed
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.runtime.service.R
-import com.github.yumelira.yumebox.service.common.constants.Components
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.root.RootTunRuntimeRecovery
-import com.github.yumelira.yumebox.service.root.RootTunServiceBridge
-import com.github.yumelira.yumebox.service.root.RootTunState
-import com.github.yumelira.yumebox.service.root.RootTunStateStore
-import com.github.yumelira.yumebox.service.root.RootTunStatus
-import com.github.yumelira.yumebox.service.runtime.util.sendClashStarted
-import com.github.yumelira.yumebox.service.runtime.util.sendClashStopped
+import com.github.nomadboxlab.monadbox.common.util.formatBytes
+import com.github.nomadboxlab.monadbox.common.util.formatSpeed
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.runtime.service.R
+import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
+import com.github.nomadboxlab.monadbox.service.root.RootTunServiceBridge
+import com.github.nomadboxlab.monadbox.service.root.RootTunState
+import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
+import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
@@ -334,8 +335,8 @@ class RootTunService : BaseService() {
     }
 
     companion object {
-        private const val ACTION_START = "com.github.yumelira.yumebox.ROOT_TUN_SERVICE_START"
-        private const val ACTION_STOP = "com.github.yumelira.yumebox.ROOT_TUN_SERVICE_STOP"
+        private const val ACTION_START = "com.github.nomadboxlab.monadbox.ROOT_TUN_SERVICE_START"
+        private const val ACTION_STOP = "com.github.nomadboxlab.monadbox.ROOT_TUN_SERVICE_STOP"
         private const val NOTIFICATION_ID = 1003
         private const val CHANNEL_ID = "clash_root_tun_service"
         private const val CHANNEL_NAME = "Clash RootTun Service"

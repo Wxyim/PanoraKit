@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.home
+package com.github.nomadboxlab.monadbox.screen.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
@@ -50,19 +51,19 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import com.github.yumelira.yumebox.common.util.formatBytesForDisplay
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.domain.model.TrafficData
-import com.github.yumelira.yumebox.presentation.component.TestTags
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.HomeTrafficMetrics
-import com.github.yumelira.yumebox.presentation.theme.HomeTrafficMetricsDefaults
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.theme.rememberHomeTrafficMetrics
+import com.github.nomadboxlab.monadbox.common.util.formatBytesForDisplay
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.domain.model.TrafficData
+import com.github.nomadboxlab.monadbox.presentation.component.TestTags
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.HomeTrafficMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.HomeTrafficMetricsDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberHomeTrafficMetrics
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
@@ -281,7 +282,7 @@ private fun ProfileModeBadge(
                     ),
                 trailing = {
                     Icon(
-                        imageVector = Yume.chevron,
+                        imageVector = MonadIcons.chevron,
                         contentDescription = null,
                         tint = accentColor.copy(alpha = 0.70f),
                         modifier = Modifier.size(metrics.controlChevronSize),
@@ -526,10 +527,10 @@ private fun statusIconFor(
 ): ImageVector {
     return when {
         state == HomeRuntimeVisualState.Idle && !canStartProxy -> tunnelMode.toDisplayIcon()
-        state == HomeRuntimeVisualState.Starting -> Yume.Play
-        state == HomeRuntimeVisualState.Running -> Yume.Activity
-        state == HomeRuntimeVisualState.Stopping -> Yume.Square
-        else -> Yume.Rocket
+        state == HomeRuntimeVisualState.Starting -> MonadIcons.Play
+        state == HomeRuntimeVisualState.Running -> MonadIcons.Activity
+        state == HomeRuntimeVisualState.Stopping -> MonadIcons.Square
+        else -> MonadIcons.Rocket
     }
 }
 
@@ -627,10 +628,10 @@ private fun TunnelState.Mode?.toDisplayName(): String =
 
 private fun TunnelState.Mode?.toDisplayIcon(): ImageVector =
     when (this) {
-        TunnelState.Mode.Direct -> Yume.ShieldCheck
-        TunnelState.Mode.Global -> Yume.Cloud
-        TunnelState.Mode.Rule -> Yume.List
-        else -> Yume.List
+        TunnelState.Mode.Direct -> MonadIcons.ShieldCheck
+        TunnelState.Mode.Global -> MonadIcons.Cloud
+        TunnelState.Mode.Rule -> MonadIcons.List
+        else -> MonadIcons.List
     }
 
 private fun ProxyMode.toTransportLabel(): String =

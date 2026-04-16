@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.feature.meta.presentation.component
+package com.github.nomadboxlab.monadbox.feature.meta.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -35,9 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.core.model.ConnectionInfo
-import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumelira.yumebox.runtime.client.AppIdentityResolver
+import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
+import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.jsonPrimitive
 import org.koin.compose.koinInject

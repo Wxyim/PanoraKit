@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,19 +14,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.data.repository
+package com.github.nomadboxlab.monadbox.data.repository
 
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.data.model.AppColorTheme
-import com.github.yumelira.yumebox.data.model.AppLanguage
-import com.github.yumelira.yumebox.data.model.CleanupPolicy
-import com.github.yumelira.yumebox.data.model.ThemeMode
-import com.github.yumelira.yumebox.data.store.AppSettingsStorage
-import com.github.yumelira.yumebox.data.store.Preference
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.data.model.AppColorTheme
+import com.github.nomadboxlab.monadbox.data.model.AppLanguage
+import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
+import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
+import com.github.nomadboxlab.monadbox.data.store.Preference
 
 class AppSettingsRepository(private val storage: AppSettingsStorage) {
     val initialSetupCompleted: Preference<Boolean> = storage.initialSetupCompleted

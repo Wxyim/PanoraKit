@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,21 +14,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
-import com.github.yumelira.yumebox.data.repository.ProvidersRepository
-import com.github.yumelira.yumebox.presentation.meta.EffectiveRuleSummaryRepository
-import com.github.yumelira.yumebox.presentation.util.ExternalResourceDiagnostics
-import com.github.yumelira.yumebox.presentation.util.buildExternalResourceDiagnostics
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
+import com.github.nomadboxlab.monadbox.data.repository.ProvidersRepository
+import com.github.nomadboxlab.monadbox.presentation.meta.EffectiveRuleSummaryRepository
+import com.github.nomadboxlab.monadbox.presentation.util.ExternalResourceDiagnostics
+import com.github.nomadboxlab.monadbox.presentation.util.buildExternalResourceDiagnostics
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLangStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,7 +86,7 @@ class MetaFeatureViewModel(
     }
 }
 
-private fun com.github.yumelira.yumebox.presentation.meta.EffectiveRuleSummary.toUiState():
+private fun com.github.nomadboxlab.monadbox.presentation.meta.EffectiveRuleSummary.toUiState():
     EffectiveRuleSummaryState {
     return EffectiveRuleSummaryState(count = count, summary = summary)
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of MonadBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
  * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
@@ -28,13 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.BuildConfig
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
@@ -184,7 +185,7 @@ private fun UiSettingsCard(
         SettingsRow(
             title = MLang.Settings.UiSettings.App,
             summary = MLang.Settings.UiSettings.AppSummary,
-            imageVector = Yume.`Settings-2`,
+            imageVector = MonadIcons.`Settings-2`,
             tone = SemanticTone.Neutral,
             onClick = {
                 navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true }
@@ -194,7 +195,7 @@ private fun UiSettingsCard(
         SettingsRow(
             title = MLang.Settings.UiSettings.Network,
             summary = MLang.Settings.UiSettings.NetworkSummary,
-            imageVector = Yume.`Wifi-cog`,
+            imageVector = MonadIcons.`Wifi-cog`,
             tone = SemanticTone.Info,
             onClick = {
                 navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true }
@@ -213,7 +214,7 @@ private fun AdvancedSettingsCard(
         SettingsRow(
             title = MLang.Settings.UiSettings.Override,
             summary = MLang.Settings.UiSettings.OverrideSummary,
-            imageVector = Yume.`Git-merge`,
+            imageVector = MonadIcons.`Git-merge`,
             tone = SemanticTone.Warning,
             onClick = { navigator.navigate(OverrideScreenDestination) { launchSingleTop = true } },
         )
@@ -221,7 +222,7 @@ private fun AdvancedSettingsCard(
         SettingsRow(
             title = MLang.Settings.UiSettings.MetaFeatures,
             summary = MLang.Settings.UiSettings.MetaFeaturesSummary,
-            imageVector = Yume.Meta,
+            imageVector = MonadIcons.Meta,
             tone = SemanticTone.Brand,
             onClick = {
                 navigator.navigate(MetaFeatureScreenDestination) { launchSingleTop = true }
@@ -231,7 +232,7 @@ private fun AdvancedSettingsCard(
         SettingsRow(
             title = MLang.NetworkSettings.ProxyOptions.ManageAccessControlTitle,
             summary = MLang.NetworkSettings.ProxyOptions.ManageAccessControlSummary,
-            imageVector = Yume.UserKey,
+            imageVector = MonadIcons.UserKey,
             tone = SemanticTone.Info,
             onClick = {
                 navigator.navigate(AccessControlScreenDestination) { launchSingleTop = true }
@@ -251,7 +252,7 @@ private fun MoreSettingsCard(
         SettingsRow(
             title = MLang.Settings.More.TrafficStatistics,
             summary = MLang.Settings.More.TrafficStatisticsSummary,
-            imageVector = Yume.`Chart-column`,
+            imageVector = MonadIcons.`Chart-column`,
             tone = SemanticTone.Info,
             onClick = {
                 navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true }
@@ -261,7 +262,7 @@ private fun MoreSettingsCard(
         SettingsRow(
             title = MLang.Connection.Title,
             summary = MLang.Connection.Summary,
-            imageVector = Yume.`Scan-eye`,
+            imageVector = MonadIcons.`Scan-eye`,
             tone = SemanticTone.Info,
             onClick = { navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true } },
         )
@@ -269,7 +270,7 @@ private fun MoreSettingsCard(
         SettingsRow(
             title = MLang.Settings.More.Logs,
             summary = MLang.Settings.More.LogsSummary,
-            imageVector = Yume.Activity,
+            imageVector = MonadIcons.Activity,
             tone = SemanticTone.Neutral,
             onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
         )
@@ -277,7 +278,7 @@ private fun MoreSettingsCard(
         SettingsRow(
             title = MLang.Settings.More.About,
             summary = MLang.Settings.More.AboutSummary,
-            imageVector = Yume.Github,
+            imageVector = MonadIcons.Github,
             tone = SemanticTone.Brand,
             onClick = { navigator.navigate(AboutScreenDestination) { launchSingleTop = true } },
             endContent = { VersionBadge(versionInfo) },

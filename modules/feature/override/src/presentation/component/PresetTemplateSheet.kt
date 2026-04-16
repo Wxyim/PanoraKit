@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,10 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.data.util.OverridePresetItem
-import com.github.yumelira.yumebox.data.util.OverridePresetRegion
-import com.github.yumelira.yumebox.data.util.OverridePresetTemplateSelection
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.data.util.OverridePresetItem
+import com.github.nomadboxlab.monadbox.data.util.OverridePresetRegion
+import com.github.nomadboxlab.monadbox.data.util.OverridePresetTemplateSelection
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text

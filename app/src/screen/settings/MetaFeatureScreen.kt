@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -28,21 +29,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.GeoFileType
-import com.github.yumelira.yumebox.core.model.GeoXItem
-import com.github.yumelira.yumebox.core.model.geoXItems
-import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
-import com.github.yumelira.yumebox.remote.ServiceClient
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.GeoFileType
+import com.github.nomadboxlab.monadbox.core.model.GeoXItem
+import com.github.nomadboxlab.monadbox.core.model.geoXItems
+import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
+import com.github.nomadboxlab.monadbox.remote.ServiceClient
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
@@ -193,7 +194,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     MetaCapabilityEntry(
                                         title = MLang.Settings.More.Logs,
                                         summary = MLang.Settings.More.LogsSummary,
-                                        imageVector = Yume.Message,
+                                        imageVector = MonadIcons.Message,
                                         tone = SemanticTone.Neutral,
                                         iconTone = SemanticTone.Warning,
                                         onClick = {
@@ -205,7 +206,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     MetaCapabilityEntry(
                                         title = MLang.Connection.Title,
                                         summary = MLang.Connection.Summary,
-                                        imageVector = Yume.Link,
+                                        imageVector = MonadIcons.Link,
                                         tone = SemanticTone.Neutral,
                                         iconTone = SemanticTone.Brand,
                                         onClick = {
@@ -217,7 +218,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     MetaCapabilityEntry(
                                         title = MLang.Providers.Title,
                                         summary = sourceSummary,
-                                        imageVector = Yume.`Settings-2`,
+                                        imageVector = MonadIcons.`Settings-2`,
                                         tone = externalResourceBanner.tone,
                                         iconTone = SemanticTone.Info,
                                         onClick = {
@@ -229,7 +230,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     MetaCapabilityEntry(
                                         title = MLang.MetaFeature.RuntimeConfig.Title,
                                         summary = MLang.MetaFeature.RuntimeConfig.Summary,
-                                        imageVector = Yume.`Scroll-text`,
+                                        imageVector = MonadIcons.`Scroll-text`,
                                         tone = SemanticTone.Neutral,
                                         iconTone = SemanticTone.Brand,
                                         onClick = openRuntimeConfigPreview,
@@ -237,7 +238,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                     MetaCapabilityEntry(
                                         title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
                                         summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
-                                        imageVector = Yume.Cloud,
+                                        imageVector = MonadIcons.Cloud,
                                         tone = SemanticTone.Neutral,
                                         iconTone = SemanticTone.Success,
                                         onClick = { showGeoXDownloadSheet.value = true },
@@ -461,7 +462,7 @@ private fun downloadGeoXFiles(
                         // sets a default.
                         .header(
                             "User-Agent",
-                            com.github.yumelira.yumebox.core.NetworkConstants.DEFAULT_USER_AGENT,
+                            com.github.nomadboxlab.monadbox.core.NetworkConstants.DEFAULT_USER_AGENT,
                         )
                         .build()
 

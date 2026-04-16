@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,18 +14,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.runtime.client.root
+package com.github.nomadboxlab.monadbox.runtime.client.root
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.model.*
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.root.*
+import com.github.nomadboxlab.monadbox.core.model.*
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.root.*
 
 object RootTunController {
     suspend fun start(context: Context): RootTunOperationResult {
@@ -34,7 +34,8 @@ object RootTunController {
             request = RootTunStartRequest(source = "controller.start"),
             callerTag = "controller",
             fallbackCode =
-                com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode.ROOT_TUN_START_FAILED,
+                com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+                    .ROOT_TUN_START_FAILED,
             fallbackMessage = "RootTun start failed",
         )
     }

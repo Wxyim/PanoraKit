@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.screen
+package com.github.nomadboxlab.monadbox.presentation.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -40,31 +41,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.core.model.Provider
-import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
-import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.CenteredText
-import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
-import com.github.yumelira.yumebox.presentation.component.ReadonlyInfoField
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.StatusBadge
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.util.canUpdateFromRemote
-import com.github.yumelira.yumebox.presentation.util.itemCountLabel
-import com.github.yumelira.yumebox.presentation.util.statusLabel
-import com.github.yumelira.yumebox.presentation.util.statusTone
-import com.github.yumelira.yumebox.presentation.util.transportTone
-import com.github.yumelira.yumebox.presentation.util.updatedAtLabel
-import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.core.model.Provider
+import com.github.nomadboxlab.monadbox.domain.model.RemoteOverrideResource
+import com.github.nomadboxlab.monadbox.presentation.component.AppCircularIconAction
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.component.CenteredText
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
+import com.github.nomadboxlab.monadbox.presentation.component.ReadonlyInfoField
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
+import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Circle-fading-arrow-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Link
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.util.canUpdateFromRemote
+import com.github.nomadboxlab.monadbox.presentation.util.itemCountLabel
+import com.github.nomadboxlab.monadbox.presentation.util.statusLabel
+import com.github.nomadboxlab.monadbox.presentation.util.statusTone
+import com.github.nomadboxlab.monadbox.presentation.util.transportTone
+import com.github.nomadboxlab.monadbox.presentation.util.updatedAtLabel
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
@@ -170,7 +171,7 @@ fun ProvidersContent(
                 actions = {
                     if (canRefreshAll) {
                         AppCircularIconAction(
-                            imageVector = Yume.`Circle-fading-arrow-up`,
+                            imageVector = MonadIcons.`Circle-fading-arrow-up`,
                             contentDescription = MLang.Providers.Action.UpdateAll,
                             onClick = onRefreshSourcesRequest,
                             enabled = !refreshSourcesInProgress,
@@ -257,7 +258,7 @@ private fun RemoteOverrideCard(
             }
 
             ReadonlyInfoField(
-                imageVector = Yume.Link,
+                imageVector = MonadIcons.Link,
                 value = resource.sourceUrl,
                 summary = null,
                 tone = resource.transportTone(),
@@ -355,7 +356,7 @@ private fun ResourceCardFooter(
                 modifier = Modifier.padding(start = 8.dp),
             ) {
                 AppCircularIconAction(
-                    imageVector = Yume.`Circle-fading-arrow-up`,
+                    imageVector = MonadIcons.`Circle-fading-arrow-up`,
                     contentDescription = MLang.Providers.Action.Update,
                     onClick = onUpdate,
                     enabled = !isUpdating,

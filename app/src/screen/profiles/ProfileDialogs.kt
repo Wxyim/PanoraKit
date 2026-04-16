@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.profiles
+package com.github.nomadboxlab.monadbox.screen.profiles
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,26 +30,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.domain.model.OverrideConfig
-import com.github.yumelira.yumebox.domain.model.ProfileBinding
-import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumelira.yumebox.presentation.component.AppActionTile
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetCloseAction
-import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmAction
-import com.github.yumelira.yumebox.presentation.component.AppDialog
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.Close
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
+import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionTile
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetCloseAction
+import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetConfirmAction
+import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
+import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -88,7 +89,7 @@ internal fun EditProfileNameDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppActionTile(
                     title = MLang.ProfilesPage.Button.Cancel,
-                    imageVector = Yume.Close,
+                    imageVector = MonadIcons.Close,
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                     compact = true,
@@ -97,7 +98,7 @@ internal fun EditProfileNameDialog(
                 )
                 AppActionTile(
                     title = MLang.ProfilesPage.Button.Confirm,
-                    imageVector = Yume.Check,
+                    imageVector = MonadIcons.Check,
                     onClick = { onConfirm(editName) },
                     modifier = Modifier.weight(1f),
                     compact = true,
@@ -285,7 +286,7 @@ internal fun ProfileSettingsDialog(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             AppActionTile(
                                 title = MLang.ProfilesPage.SettingsDialog.EditSettings,
-                                imageVector = Yume.`Settings-2`,
+                                imageVector = MonadIcons.`Settings-2`,
                                 summary = guiSectionSummary,
                                 onClick = onOpenConfigOptionsEditor,
                                 modifier = Modifier.fillMaxWidth(),
@@ -308,7 +309,7 @@ internal fun ProfileSettingsDialog(
                             )
                             AppActionTile(
                                 title = MLang.ProfilesPage.SettingsDialog.OpenConfig,
-                                imageVector = Yume.`Scroll-text`,
+                                imageVector = MonadIcons.`Scroll-text`,
                                 summary =
                                     MLang.ProfilesPage.SettingsDialog.LocalConfigEditorSummary,
                                 onClick = onOpenConfigTextEditor,
@@ -359,7 +360,7 @@ internal fun ProfileSettingsDialog(
                                         startAction = {
                                             Icon(
                                                 modifier = Modifier.size(20.dp),
-                                                imageVector = Yume.`List-chevrons-up-down`,
+                                                imageVector = MonadIcons.`List-chevrons-up-down`,
                                                 tint =
                                                     MiuixTheme.colorScheme.onSurfaceVariantActions,
                                                 contentDescription = null,
@@ -375,7 +376,7 @@ internal fun ProfileSettingsDialog(
                                                 minWidth = 32.dp,
                                             ) {
                                                 Icon(
-                                                    imageVector = Yume.Close,
+                                                    imageVector = MonadIcons.Close,
                                                     tint =
                                                         MiuixTheme.colorScheme
                                                             .onSurfaceVariantActions,
@@ -411,7 +412,7 @@ internal fun ProfileSettingsDialog(
                                             minWidth = 32.dp,
                                         ) {
                                             Icon(
-                                                imageVector = Yume.`Badge-plus`,
+                                                imageVector = MonadIcons.`Badge-plus`,
                                                 tint = MiuixTheme.colorScheme.primary,
                                                 contentDescription = null,
                                             )

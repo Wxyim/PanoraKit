@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,41 +14,42 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.home
+package com.github.nomadboxlab.monadbox.screen.home
 
 import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.data.repository.IpMonitoringState
-import com.github.yumelira.yumebox.data.repository.LogRecordGateway
-import com.github.yumelira.yumebox.data.repository.NetworkInfoService
-import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
-import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
-import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
-import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorPhase
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
-import com.github.yumelira.yumebox.domain.model.StructuredError
-import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
-import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
-import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
-import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
-import com.github.yumelira.yumebox.remote.VpnPermissionRequired
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.runtime.client.ProfilesRepository
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
+import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
+import com.github.nomadboxlab.monadbox.data.repository.NetworkInfoService
+import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
+import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
+import com.github.nomadboxlab.monadbox.data.store.ProxyDisplaySettingsStore
+import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
+import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
+import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
+import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
+import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogPresenter
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
+import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
+import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
+import com.github.nomadboxlab.monadbox.remote.VpnPermissionRequired
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -156,7 +157,7 @@ private object HomeSpeedSampler {
             phase == RuntimePhase.Starting && !trafficReady -> previousSample
             phase.running -> {
                 val traffic =
-                    com.github.yumelira.yumebox.domain.model.TrafficData.from(latestTraffic)
+                    com.github.nomadboxlab.monadbox.domain.model.TrafficData.from(latestTraffic)
                 (traffic.upload + traffic.download).coerceAtLeast(0L)
             }
 
@@ -197,8 +198,8 @@ private data class HomeTrafficSample(
 
 private object HomeProxySelectionResolver {
     fun resolveGlobalDisplayGroup(
-        groups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>
-    ): com.github.yumelira.yumebox.domain.model.ProxyGroupInfo? {
+        groups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>
+    ): com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo? {
         return listOf("GLOBAL", "Global", "Proxy").firstNotNullOfOrNull { candidate ->
             groups.firstOrNull { group ->
                 group.name.equals(candidate, ignoreCase = true) &&
@@ -208,9 +209,9 @@ private object HomeProxySelectionResolver {
     }
 
     fun resolveFirstStrategyGroup(
-        groups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
+        groups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
         visibleGroupNames: Set<String>,
-    ): com.github.yumelira.yumebox.domain.model.ProxyGroupInfo? {
+    ): com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo? {
         groups
             .firstOrNull { group ->
                 group.name in visibleGroupNames &&
@@ -227,12 +228,12 @@ private object HomeProxySelectionResolver {
     }
 
     fun buildSelectedServerState(
-        mainGroup: com.github.yumelira.yumebox.domain.model.ProxyGroupInfo,
-        groups: List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
+        mainGroup: com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo,
+        groups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
         resolveEndNode:
             (
-                String, List<com.github.yumelira.yumebox.domain.model.ProxyGroupInfo>,
-            ) -> com.github.yumelira.yumebox.core.model.Proxy?,
+                String, List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
+            ) -> com.github.nomadboxlab.monadbox.core.model.Proxy?,
     ): HomeSelectedServerState {
         val selectedProxy =
             mainGroup.proxies.firstOrNull { it.name == mainGroup.now && !it.type.group }

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,28 +14,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.service.runtime.session
+package com.github.nomadboxlab.monadbox.service.runtime.session
 
 import android.os.SystemClock
-import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.controller.MihomoControllerEndpoint
-import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
-import com.github.yumelira.yumebox.core.model.*
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayException
-import com.github.yumelira.yumebox.service.ServiceNetworkObserver
-import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
-import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecutor
-import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreScope
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
-import com.github.yumelira.yumebox.service.runtime.util.runSuspendBlocking
+import com.github.nomadboxlab.monadbox.core.Clash
+import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
+import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
+import com.github.nomadboxlab.monadbox.core.model.*
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.service.ServiceNetworkObserver
+import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionRestoreExecutor
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionRestoreScope
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
+import com.github.nomadboxlab.monadbox.service.runtime.util.runSuspendBlocking
 import java.io.File
 import java.security.MessageDigest
 import java.util.TimeZone
@@ -319,7 +320,7 @@ class SessionRuntime(
                     .also { refreshRuntimeSnapshot() }
             }
             .getOrElse {
-                """{"delay":-1,"error":${com.github.yumelira.yumebox.service.root.RootTunJson.Default.encodeToString(String.serializer(), it.message ?: "health check proxy failed")}}"""
+                """{"delay":-1,"error":${com.github.nomadboxlab.monadbox.service.root.RootTunJson.Default.encodeToString(String.serializer(), it.message ?: "health check proxy failed")}}"""
             }
     }
 
@@ -765,7 +766,7 @@ class SessionRuntime(
                         localLogObserver?.invoke(item)
                         host.onLogItem(item)
                         val encoded =
-                            com.github.yumelira.yumebox.service.root.RootTunJson.Default
+                            com.github.nomadboxlab.monadbox.service.root.RootTunJson.Default
                                 .encodeToString(LogMessage.serializer(), item)
                         val seq = logSeq.incrementAndGet()
                         synchronized(recentLogsLock) {

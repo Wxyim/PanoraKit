@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox
+package com.github.nomadboxlab.monadbox
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -65,38 +66,38 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import com.github.yumelira.yumebox.common.runtime.StartupGate
-import com.github.yumelira.yumebox.common.util.IntentController
-import com.github.yumelira.yumebox.presentation.component.BottomBarContent
-import com.github.yumelira.yumebox.presentation.component.BottomBarLayoutDefaults
-import com.github.yumelira.yumebox.presentation.component.LocalBottomBarLiquidState
-import com.github.yumelira.yumebox.presentation.component.LocalBottomBarOverlayPadding
-import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBehavior
-import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
-import com.github.yumelira.yumebox.presentation.component.LocalNavigator
-import com.github.yumelira.yumebox.presentation.component.LocalPagerState
-import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
-import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
-import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogEffect
-import com.github.yumelira.yumebox.presentation.component.SideRailContent
-import com.github.yumelira.yumebox.presentation.component.ToastDialogHost
-import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
-import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
-import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionHost
-import com.github.yumelira.yumebox.presentation.screen.ProxyPager
-import com.github.yumelira.yumebox.presentation.theme.LocalWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
-import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
-import com.github.yumelira.yumebox.presentation.theme.YumeTheme
-import com.github.yumelira.yumebox.presentation.theme.rememberAdaptiveSpacing
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.screen.home.HomeRoute
-import com.github.yumelira.yumebox.screen.onboarding.OnboardingLauncher
-import com.github.yumelira.yumebox.screen.profiles.ProfilesPager
-import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
-import com.github.yumelira.yumebox.screen.settings.SettingPager
-import com.github.yumelira.yumebox.service.StatusProvider
-import com.github.yumelira.yumebox.startup.StartupConfigRefreshCoordinator
+import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
+import com.github.nomadboxlab.monadbox.common.util.IntentController
+import com.github.nomadboxlab.monadbox.presentation.component.BottomBarContent
+import com.github.nomadboxlab.monadbox.presentation.component.BottomBarLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarLiquidState
+import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarOverlayPadding
+import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarScrollBehavior
+import com.github.nomadboxlab.monadbox.presentation.component.LocalHandlePageChange
+import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
+import com.github.nomadboxlab.monadbox.presentation.component.LocalPagerState
+import com.github.nomadboxlab.monadbox.presentation.component.LocalTopBarHazeState
+import com.github.nomadboxlab.monadbox.presentation.component.LocalTopBarHazeStyle
+import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogEffect
+import com.github.nomadboxlab.monadbox.presentation.component.SideRailContent
+import com.github.nomadboxlab.monadbox.presentation.component.ToastDialogHost
+import com.github.nomadboxlab.monadbox.presentation.component.rememberBottomBarScrollBehavior
+import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
+import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionHost
+import com.github.nomadboxlab.monadbox.presentation.screen.ProxyPager
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.theme.MonadTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.NavigationTransitions
+import com.github.nomadboxlab.monadbox.presentation.theme.ProvideAndroidPlatformTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAdaptiveSpacing
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.screen.home.HomeRoute
+import com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingLauncher
+import com.github.nomadboxlab.monadbox.screen.profiles.ProfilesPager
+import com.github.nomadboxlab.monadbox.screen.settings.AppSettingsViewModel
+import com.github.nomadboxlab.monadbox.screen.settings.SettingPager
+import com.github.nomadboxlab.monadbox.service.StatusProvider
+import com.github.nomadboxlab.monadbox.startup.StartupConfigRefreshCoordinator
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -133,14 +134,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val appSettingsStorage: com.github.yumelira.yumebox.data.store.AppSettingsStorage by
+    private val appSettingsStorage: com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage by
         inject()
-    private val profilesRepository: com.github.yumelira.yumebox.runtime.client.ProfilesRepository by
+    private val profilesRepository:
+        com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository by
         inject()
     private val runtimeControlCoordinator:
-        com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator by
+        com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator by
         inject()
-    private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
+    private val proxyFacade: com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade by inject()
     private val startupConfigRefreshCoordinator: StartupConfigRefreshCoordinator by inject()
     private val vpnPermissionCoordinator: VpnPermissionCoordinator by inject()
 
@@ -200,7 +202,7 @@ class MainActivity : ComponentActivity() {
                                 windowAdaptiveInfo = windowAdaptiveInfo,
                                 pageScale = pageScale,
                             )
-                        YumeTheme(
+                        MonadTheme(
                             themeMode = themeMode,
                             themeSeedColorArgb = themeSeedColorArgb,
                             spacing = adaptiveSpacing,

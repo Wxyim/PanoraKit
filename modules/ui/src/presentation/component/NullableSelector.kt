@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,11 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.PowerOff
-import com.github.yumelira.yumebox.presentation.icon.yume.Square
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleCheckBig
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.PowerOff
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Square
 import dev.oom_wg.purejoy.mlang.MLang
 
 @Composable
@@ -38,7 +39,7 @@ fun NullableBooleanSelector(
     title: String,
     summary: String? = null,
     value: Boolean?,
-    imageVector: ImageVector = Yume.CircleCheckBig,
+    imageVector: ImageVector = MonadIcons.CircleCheckBig,
     unsetLabel: String = MLang.Component.Selector.NotModify,
     onValueChange: (Boolean?) -> Unit,
 ) {
@@ -80,21 +81,21 @@ fun NullableBooleanSelector(
             listOf(
                 ConfigEntryActionOption(
                     title = items[0],
-                    icon = Yume.Square,
+                    icon = MonadIcons.Square,
                     tone = SemanticTone.Neutral,
                     selected = selectedIndex == 0,
                     onClick = { onValueChange(null) },
                 ),
                 ConfigEntryActionOption(
                     title = items[1],
-                    icon = Yume.CircleCheckBig,
+                    icon = MonadIcons.CircleCheckBig,
                     tone = SemanticTone.Success,
                     selected = selectedIndex == 1,
                     onClick = { onValueChange(true) },
                 ),
                 ConfigEntryActionOption(
                     title = items[2],
-                    icon = Yume.PowerOff,
+                    icon = MonadIcons.PowerOff,
                     tone = SemanticTone.Warning,
                     selected = selectedIndex == 2,
                     onClick = { onValueChange(false) },
@@ -111,7 +112,7 @@ fun <T> NullableEnumSelector(
     value: T?,
     items: List<String>,
     values: List<T?>,
-    imageVector: ImageVector = Yume.`List-chevrons-up-down`,
+    imageVector: ImageVector = MonadIcons.`List-chevrons-up-down`,
     onValueChange: (T?) -> Unit,
 ) {
     val selectedIndex = values.indexOf(value).coerceAtLeast(0)
@@ -135,7 +136,7 @@ fun <T> NullableEnumSelector(
             items.mapIndexed { index, item ->
                 ConfigEntryActionOption(
                     title = item,
-                    icon = if (index == 0) Yume.Square else imageVector,
+                    icon = if (index == 0) MonadIcons.Square else imageVector,
                     tone = if (index == 0) SemanticTone.Neutral else SemanticTone.Brand,
                     selected = index == selectedIndex,
                     onClick = {

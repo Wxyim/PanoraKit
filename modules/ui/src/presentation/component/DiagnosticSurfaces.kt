@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,22 +14,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.github.yumelira.yumebox.domain.model.ErrorCategory
-import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorPhase
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
-import com.github.yumelira.yumebox.domain.model.ExplanationChain
-import com.github.yumelira.yumebox.domain.model.HealthCheckSeverity
-import com.github.yumelira.yumebox.domain.model.HealthReport
-import com.github.yumelira.yumebox.domain.model.StructuredError
-import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
+import com.github.nomadboxlab.monadbox.domain.model.ErrorCategory
+import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
+import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
+import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
+import com.github.nomadboxlab.monadbox.domain.model.StructuredError
 import dev.oom_wg.purejoy.mlang.MLangStatus
 
 data class DiagnosticBannerState(
@@ -83,30 +79,6 @@ fun ErrorRetryability.toDisplayLabel(): String {
     }
 }
 
-fun HealthCheckSeverity.toSemanticTone(): SemanticTone {
-    return when (this) {
-        HealthCheckSeverity.Ok -> SemanticTone.Success
-        HealthCheckSeverity.Info -> SemanticTone.Info
-        HealthCheckSeverity.Warning -> SemanticTone.Warning
-        HealthCheckSeverity.Error -> SemanticTone.Danger
-        HealthCheckSeverity.Critical -> SemanticTone.Danger
-    }
-}
-
-fun HealthReport.toBannerState(
-    headline: String,
-    subtitle: String? = null,
-    icon: ImageVector? = null,
-): DiagnosticBannerState {
-    val attentionCount = warningCount + errorCount
-    return DiagnosticBannerState(
-        headline = headline,
-        subtitle = subtitle ?: attentionSummary(attentionCount),
-        tone = overallSeverity.toSemanticTone(),
-        icon = icon,
-    )
-}
-
 fun StructuredError?.orFallback(
     message: String?,
     category: ErrorCategory = ErrorCategory.Unknown,
@@ -128,60 +100,4 @@ fun StructuredError?.orFallback(
         userVisibleMessage = visibleMessage,
         technicalDetail = technicalDetail ?: visibleMessage,
     )
-}
-
-fun ExplanationChain.toTraceEntries(): List<TraceEntry> {
-    return steps.mapIndexed { index, step ->
-        val tone =
-            when {
-                !step.matched -> SemanticTone.Warning
-                index == steps.lastIndex && isSuccess -> SemanticTone.Success
-                else -> SemanticTone.Info
-            }
-
-        TraceEntry(
-            stage = step.stage,
-            label = step.label,
-            detail = step.detail.orContent(step.output).orContent(step.input),
-            tone = tone,
-            isTerminal = index == steps.lastIndex,
-        )
-    }
-}
-
-fun StructuredLogEntry.toTraceEntry(): TraceEntry {
-    val stage = phase.contentOr(status).contentOr(action)
-    val detail =
-        listOfNotNull(
-                message.takeIf { it.isNotBlank() },
-                errorCategory.takeIf { !it.isNullOrBlank() },
-                detail.takeIf { !it.isNullOrBlank() },
-            )
-            .distinct()
-            .joinToString(" · ")
-            .takeIf { it.isNotBlank() }
-
-    return TraceEntry(
-        stage = stage,
-        label = action.contentOr(status),
-        detail = detail,
-        tone = if (isFailure) SemanticTone.Danger else SemanticTone.Info,
-        isTerminal = isFailure,
-    )
-}
-
-private fun attentionSummary(attentionCount: Int): String {
-    return if (attentionCount > 0) {
-        MLangStatus.AttentionItems.format(attentionCount)
-    } else {
-        MLangStatus.NoActiveIssues
-    }
-}
-
-private fun String?.orContent(fallback: String?): String? {
-    return this?.takeIf { it.isNotBlank() } ?: fallback?.takeIf { it.isNotBlank() }
-}
-
-private fun String?.contentOr(fallback: String): String {
-    return this?.takeIf { it.isNotBlank() } ?: fallback
 }

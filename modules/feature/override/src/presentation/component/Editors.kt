@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,60 +14,61 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.presentation.component.NullableBooleanSelector as BaseNullableBooleanSelector
-import com.github.yumelira.yumebox.presentation.component.NullableEnumSelector as BaseNullableEnumSelector
-import com.github.yumelira.yumebox.presentation.component.StringListWithModifiersInput as BaseStringListWithModifiersInput
-import com.github.yumelira.yumebox.presentation.component.StringMapWithModifiersInput as BaseStringMapWithModifiersInput
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Atom
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.CircleCheckBig
-import com.github.yumelira.yumebox.presentation.icon.yume.CircleGauge
-import com.github.yumelira.yumebox.presentation.icon.yume.ClipboardCopy
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.icon.yume.Folders
-import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
-import com.github.yumelira.yumebox.presentation.icon.yume.House
-import com.github.yumelira.yumebox.presentation.icon.yume.`LayoutPanelLeft`
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
-import com.github.yumelira.yumebox.presentation.icon.yume.List
-import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.Message
-import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
-import com.github.yumelira.yumebox.presentation.icon.yume.PlaneTakeoff
-import com.github.yumelira.yumebox.presentation.icon.yume.`Redo-dot`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.icon.yume.ShieldCheck
-import com.github.yumelira.yumebox.presentation.icon.yume.ShieldMinus
-import com.github.yumelira.yumebox.presentation.icon.yume.Sparkles
-import com.github.yumelira.yumebox.presentation.icon.yume.Speed
-import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
-import com.github.yumelira.yumebox.presentation.icon.yume.Tun
-import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
-import com.github.yumelira.yumebox.presentation.icon.yume.Wifi
-import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
-import com.github.yumelira.yumebox.presentation.icon.yume.Zap
-import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
+import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
+import com.github.nomadboxlab.monadbox.core.model.LogMessage
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
+import com.github.nomadboxlab.monadbox.presentation.component.NullableBooleanSelector as BaseNullableBooleanSelector
+import com.github.nomadboxlab.monadbox.presentation.component.NullableEnumSelector as BaseNullableEnumSelector
+import com.github.nomadboxlab.monadbox.presentation.component.StringListWithModifiersInput as BaseStringListWithModifiersInput
+import com.github.nomadboxlab.monadbox.presentation.component.StringMapWithModifiersInput as BaseStringMapWithModifiersInput
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Arrow-down-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Atom
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Circle-fading-arrow-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleCheckBig
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleGauge
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ClipboardCopy
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Cloud
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Folders
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Git-merge`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.House
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`LayoutPanelLeft`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Link
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.List
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Message
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Package-check`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.PlaneTakeoff
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Redo-dot`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldCheck
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldMinus
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Sparkles
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Squares-exclude`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Tun
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.UserKey
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Wifi
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Zap
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Zashboard
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.TextField
 
@@ -95,57 +96,57 @@ private fun overrideFieldIcon(title: String, defaultIcon: ImageVector): ImageVec
     when (title) {
         MLang.Override.General.ProxyMode,
         MLang.Override.Dns.Policy,
-        MLang.Override.Dns.EnhancedMode -> Yume.Zashboard
+        MLang.Override.Dns.EnhancedMode -> MonadIcons.Zashboard
 
         MLang.Override.General.Ipv6,
         MLang.Override.Dns.Ipv6,
         MLang.Override.Label.ParsePureIp,
         MLang.Override.Label.FakeIpRange,
-        MLang.Override.Dns.FakeipRange6 -> Yume.Atom
+        MLang.Override.Dns.FakeipRange6 -> MonadIcons.Atom
 
         MLang.Override.General.LogLevel,
-        MLang.Override.General.HttpPort -> Yume.Message
+        MLang.Override.General.HttpPort -> MonadIcons.Message
 
         MLang.Override.Form.ProcessMode,
         MLang.Override.Dns.FakeipFilterMode,
         MLang.Override.Dns.FakeipFilter,
         MLang.Override.Label.SkipDomain,
-        MLang.Override.Form.ExcludePackage -> Yume.`Squares-exclude`
+        MLang.Override.Form.ExcludePackage -> MonadIcons.`Squares-exclude`
 
         MLang.Override.Form.UnifiedDelay,
-        MLang.Override.Dns.PreferH3 -> Yume.Speed
+        MLang.Override.Dns.PreferH3 -> MonadIcons.Speed
 
         MLang.Override.Form.TcpConcurrent,
         MLang.Override.Form.AutoRoute,
         MLang.Override.Form.RoutingMark,
         MLang.Override.Form.CorsAllowOrigins,
-        MLang.Override.General.MixedPort -> Yume.`Arrow-down-up`
+        MLang.Override.General.MixedPort -> MonadIcons.`Arrow-down-up`
 
         MLang.Override.Form.GeodataMode,
-        MLang.Override.Dns.FallbackGeosite -> Yume.Folders
+        MLang.Override.Dns.FallbackGeosite -> MonadIcons.Folders
 
         MLang.Override.Label.KeepAliveInterval,
         MLang.Override.Label.KeepAliveIdle,
         MLang.Override.Dns.Ipv6Timeout,
         MLang.Override.Form.GeoUpdateInterval,
-        MLang.Override.Dns.FakeipTtl -> Yume.`Circle-fading-arrow-up`
+        MLang.Override.Dns.FakeipTtl -> MonadIcons.`Circle-fading-arrow-up`
 
         MLang.Override.Form.OutboundInterface,
         MLang.Override.Dns.Listen,
         MLang.Override.General.SocksPort,
-        MLang.Override.Form.EndpointIndependentNat -> Yume.Wifi
+        MLang.Override.Form.EndpointIndependentNat -> MonadIcons.Wifi
 
         MLang.Override.Form.GeositeMatcher,
         MLang.Override.Label.ForceDomain,
         MLang.Override.Dns.FallbackDomain,
         MLang.Override.Dns.FallbackGeoipCode,
-        MLang.Override.Label.RespectRules -> Yume.`Scroll-text`
+        MLang.Override.Label.RespectRules -> MonadIcons.`Scroll-text`
 
-        MLang.Override.Form.GlobalClientFingerprint -> Yume.`Scan-eye`
+        MLang.Override.Form.GlobalClientFingerprint -> MonadIcons.`Scan-eye`
 
         MLang.Override.General.AllowLan,
         MLang.Override.Form.AutoDetectInterface,
-        MLang.Override.General.TproxyPort -> Yume.`Wifi-cog`
+        MLang.Override.General.TproxyPort -> MonadIcons.`Wifi-cog`
 
         MLang.Override.Form.AllowedIPs,
         MLang.Override.Form.RouteAddress,
@@ -153,7 +154,7 @@ private fun overrideFieldIcon(title: String, defaultIcon: ImageVector): ImageVec
         MLang.Override.Form.StrictRoute,
         MLang.Override.General.TlsPort,
         MLang.Override.Form.ExternalControllerHttps,
-        MLang.Override.Form.AllowPrivateNetwork -> Yume.ShieldCheck
+        MLang.Override.Form.AllowPrivateNetwork -> MonadIcons.ShieldCheck
 
         MLang.Override.Form.DisallowedIPs,
         MLang.Override.Form.SkipAuthIPs,
@@ -161,17 +162,17 @@ private fun overrideFieldIcon(title: String, defaultIcon: ImageVector): ImageVec
         MLang.Override.Dns.FallbackIpcidr,
         MLang.Override.Form.DisableIcmpForward,
         MLang.Override.Form.SkipSrcAddress,
-        MLang.Override.Form.SkipDstAddress -> Yume.ShieldMinus
+        MLang.Override.Form.SkipDstAddress -> MonadIcons.ShieldMinus
 
         MLang.Override.Form.BindAddress,
         MLang.Override.Dns.Hosts,
         MLang.Override.Dns.UseHosts,
-        MLang.Override.Label.UseSystemHosts -> Yume.House
+        MLang.Override.Label.UseSystemHosts -> MonadIcons.House
 
         MLang.Override.Form.UserAuth,
-        MLang.Override.Form.ApiSecret -> Yume.UserKey
+        MLang.Override.Form.ApiSecret -> MonadIcons.UserKey
 
-        MLang.Override.Form.ExternalController -> Yume.`Settings-2`
+        MLang.Override.Form.ExternalController -> MonadIcons.`Settings-2`
 
         MLang.Override.Form.ExternalDoH,
         MLang.Override.Dns.Servers,
@@ -182,36 +183,36 @@ private fun overrideFieldIcon(title: String, defaultIcon: ImageVector): ImageVec
         MLang.Override.Form.GeoipUrl,
         MLang.Override.Form.GeositeUrl,
         MLang.Override.Form.MmdbUrl,
-        MLang.Override.Form.DnsHijack -> Yume.Cloud
+        MLang.Override.Form.DnsHijack -> MonadIcons.Cloud
 
         MLang.Override.Form.SaveGroupSelection,
-        MLang.Override.Form.CacheLimit -> Yume.`Package-check`
+        MLang.Override.Form.CacheLimit -> MonadIcons.`Package-check`
 
-        MLang.Override.Form.SaveFakeIpMapping -> Yume.ClipboardCopy
+        MLang.Override.Form.SaveFakeIpMapping -> MonadIcons.ClipboardCopy
 
         MLang.Override.Form.AutoUpdateGeo,
         MLang.Override.Form.AutoRedirect,
-        MLang.Override.General.RedirectPort -> Yume.`Redo-dot`
+        MLang.Override.General.RedirectPort -> MonadIcons.`Redo-dot`
 
         MLang.Override.Dns.NameserverPolicy,
-        MLang.Override.Dns.ProxyServerNameserverPolicy -> Yume.`Git-merge`
+        MLang.Override.Dns.ProxyServerNameserverPolicy -> MonadIcons.`Git-merge`
 
         MLang.Override.Label.ForceDnsMapping,
-        MLang.Override.Dns.AppendSystem -> Yume.Link
+        MLang.Override.Dns.AppendSystem -> MonadIcons.Link
 
-        MLang.Override.Form.Stack -> Yume.`LayoutPanelLeft`
+        MLang.Override.Form.Stack -> MonadIcons.`LayoutPanelLeft`
 
         MLang.Override.Dns.DirectFollowPolicy,
         MLang.Override.Label.OverrideDestination,
         MLang.Override.Label.HttpOverride,
         MLang.Override.Label.TlsOverride,
-        MLang.Override.Label.QuicOverride -> Yume.PlaneTakeoff
+        MLang.Override.Label.QuicOverride -> MonadIcons.PlaneTakeoff
 
-        MLang.Override.Label.CacheAlgorithm -> Yume.Sparkles
+        MLang.Override.Label.CacheAlgorithm -> MonadIcons.Sparkles
 
         MLang.Override.Form.EnableGso,
         MLang.Override.Form.GsoMaxSize,
-        MLang.Override.General.QuicPort -> Yume.Zap
+        MLang.Override.General.QuicPort -> MonadIcons.Zap
 
         else -> defaultIcon
     }
@@ -223,7 +224,7 @@ private fun OverrideBooleanSelector(
     value: Boolean?,
     unsetLabel: String = MLang.Component.Selector.UseDefault,
     onValueChange: (Boolean?) -> Unit,
-    imageVector: ImageVector = overrideFieldIcon(title, Yume.CircleCheckBig),
+    imageVector: ImageVector = overrideFieldIcon(title, MonadIcons.CircleCheckBig),
 ) {
     BaseNullableBooleanSelector(
         title = title,
@@ -243,7 +244,7 @@ private fun <T> OverrideEnumSelector(
     items: List<String>,
     values: List<T?>,
     onValueChange: (T?) -> Unit,
-    imageVector: ImageVector = overrideFieldIcon(title, Yume.`List-chevrons-up-down`),
+    imageVector: ImageVector = overrideFieldIcon(title, MonadIcons.`List-chevrons-up-down`),
 ) {
     BaseNullableEnumSelector(
         title = title,
@@ -268,7 +269,7 @@ private fun OverrideStringListWithModifiersInput(
     onStartChange: (List<String>?) -> Unit,
     onEndChange: (List<String>?) -> Unit,
     onEditListGroup: OpenStringListModifiersEditor,
-    imageVector: ImageVector = overrideFieldIcon(title, Yume.List),
+    imageVector: ImageVector = overrideFieldIcon(title, MonadIcons.List),
 ) {
     BaseStringListWithModifiersInput(
         title = title,
@@ -305,7 +306,7 @@ private fun OverrideStringMapWithModifiersInput(
             value: Map<String, String>?,
             onValueChange: (Map<String, String>?) -> Unit,
         ) -> Unit,
-    imageVector: ImageVector = overrideFieldIcon(title, Yume.`Git-merge`),
+    imageVector: ImageVector = overrideFieldIcon(title, MonadIcons.`Git-merge`),
 ) {
     BaseStringMapWithModifiersInput(
         title = title,
@@ -334,7 +335,7 @@ private fun OverrideTextInputContent(
         title = title,
         value = value,
         placeholder = placeholder,
-        imageVector = overrideFieldIcon(title, Yume.Edit),
+        imageVector = overrideFieldIcon(title, MonadIcons.Edit),
         unsetLabel = unsetLabel,
         onValueChange = onValueChange,
     )
@@ -354,7 +355,7 @@ private fun OverrideIntInputContent(
     ConfigSettingRow(
         title = title,
         valueLabel = value?.toString() ?: unsetLabel,
-        imageVector = overrideFieldIcon(title, Yume.CircleGauge),
+        imageVector = overrideFieldIcon(title, MonadIcons.CircleGauge),
         tone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
         badgeTone = if (value == null) SemanticTone.Neutral else SemanticTone.Info,
         onClick = {
@@ -383,7 +384,7 @@ private fun OverrideIntInputContent(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppCommandButton(
                     title = MLang.Component.Button.Clear,
-                    imageVector = Yume.Delete,
+                    imageVector = MonadIcons.Delete,
                     onClick = {
                         onValueChange(null)
                         showDialog.value = false
@@ -393,7 +394,7 @@ private fun OverrideIntInputContent(
                 )
                 AppCommandButton(
                     title = MLang.Component.Button.Confirm,
-                    imageVector = Yume.Check,
+                    imageVector = MonadIcons.Check,
                     onClick = {
                         onValueChange(textValue.takeIf(String::isNotBlank)?.toIntOrNull())
                         showDialog.value = false
@@ -418,7 +419,7 @@ private fun OverridePortInputContent(
         title = title,
         value = value,
         onValueChange = onValueChange,
-        imageVector = overrideFieldIcon(title, Yume.`Wifi-cog`),
+        imageVector = overrideFieldIcon(title, MonadIcons.`Wifi-cog`),
         unsetLabel = unsetLabel,
     )
 }
@@ -803,7 +804,7 @@ fun TunEditor(
             OverrideBooleanSelector(
                 title = MLang.Override.Label.Enable,
                 value = config.tun.enable,
-                imageVector = Yume.Tun,
+                imageVector = MonadIcons.Tun,
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(enable = it))) },
             )
             OverrideEnumSelector(
@@ -1502,7 +1503,7 @@ fun SnifferEditor(
             OverrideBooleanSelector(
                 title = MLang.Override.Label.Enable,
                 value = config.sniffer.enable,
-                imageVector = Yume.`Scan-eye`,
+                imageVector = MonadIcons.`Scan-eye`,
                 onValueChange = {
                     onConfigChange(config.copy(sniffer = config.sniffer.copy(enable = it)))
                 },

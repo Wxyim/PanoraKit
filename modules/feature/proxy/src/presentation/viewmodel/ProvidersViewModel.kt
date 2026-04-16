@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,28 +14,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.viewmodel
+package com.github.nomadboxlab.monadbox.presentation.viewmodel
 
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.Provider
-import com.github.yumelira.yumebox.data.repository.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
-import com.github.yumelira.yumebox.data.repository.ProvidersRepository
-import com.github.yumelira.yumebox.domain.model.ErrorCategory
-import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorPhase
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
-import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
-import com.github.yumelira.yumebox.domain.model.StructuredError
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
+import com.github.nomadboxlab.monadbox.core.model.Provider
+import com.github.nomadboxlab.monadbox.data.repository.ActiveProfileOverrideReloader
+import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
+import com.github.nomadboxlab.monadbox.data.repository.ProvidersRepository
+import com.github.nomadboxlab.monadbox.domain.model.ErrorCategory
+import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
+import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
+import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
+import com.github.nomadboxlab.monadbox.domain.model.RemoteOverrideResource
+import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

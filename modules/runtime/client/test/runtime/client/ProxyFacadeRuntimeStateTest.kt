@@ -1,15 +1,34 @@
-package com.github.yumelira.yumebox.runtime.client
+/*
+ * This file is part of MonadBox.
+ *
+ * MonadBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ */
 
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.core.model.ProxyGroup
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.domain.model.ProxyLatencyState
-import com.github.yumelira.yumebox.service.root.RootTunState
-import com.github.yumelira.yumebox.service.root.RootTunStatus
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
-import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
-import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+package com.github.nomadboxlab.monadbox.runtime.client
+
+import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.domain.model.ProxyLatencyState
+import com.github.nomadboxlab.monadbox.service.root.RootTunState
+import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

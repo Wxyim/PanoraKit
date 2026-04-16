@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -32,12 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.ToastDialogBridge
-import com.github.yumelira.yumebox.common.util.ToastDialogEvent
-import com.github.yumelira.yumebox.common.util.ToastMode
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.Copy
+import com.github.nomadboxlab.monadbox.common.util.ToastDialogBridge
+import com.github.nomadboxlab.monadbox.common.util.ToastDialogEvent
+import com.github.nomadboxlab.monadbox.common.util.ToastMode
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Copy
 import dev.oom_wg.purejoy.mlang.MLang
 
 @Composable
@@ -89,7 +90,7 @@ fun ToastDialogHost() {
                 ) {
                     AppCommandButton(
                         title = MLang.Component.Button.Confirm,
-                        imageVector = Yume.Check,
+                        imageVector = MonadIcons.Check,
                         tone = SemanticTone.Brand,
                         highEmphasis = true,
                         onClick = { showDialog.value = false },

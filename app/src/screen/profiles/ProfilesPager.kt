@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.profiles
+package com.github.nomadboxlab.monadbox.screen.profiles
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -39,26 +40,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.MainActivity
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.domain.model.ProfileBinding
-import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
-import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.component.LocalNavigator
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
-import com.github.yumelira.yumebox.presentation.icon.yume.Share
-import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
-import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
-import com.github.yumelira.yumebox.screen.home.HomeViewModel
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.MainActivity
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Circle-fading-arrow-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Cloud
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Share
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.screen.home.HomeViewModel
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.ramcosta.composedestinations.generated.destinations.LocalProfileConfigEditRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import dev.oom_wg.purejoy.mlang.MLang
@@ -198,7 +199,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                     label = compactProfileUpdateFailedLabel(),
                                 )
                         )
-                    com.github.yumelira.yumebox.App.instance.toast(
+                    com.github.nomadboxlab.monadbox.App.instance.toast(
                         MLang.ProfilesVM.Message.UpdateFailed.format(reason)
                     )
                     false
@@ -288,7 +289,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     configFile.readText()
                 }
                 .getOrElse {
-                    com.github.yumelira.yumebox.App.instance.toast(
+                    com.github.nomadboxlab.monadbox.App.instance.toast(
                         it.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
                     )
                     return@openProfileEditor
@@ -359,7 +360,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     OverrideAnimatedFab(
                         controller = addFabController,
                         visible = showAddFab,
-                        imageVector = Yume.Cloud,
+                        imageVector = MonadIcons.Cloud,
                         contentDescription = MLang.ProfilesPage.Action.AddProfile,
                         label = MLang.ProfilesPage.Action.AddProfile,
                         supportingText =
@@ -445,7 +446,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                 profile = profile,
                                 workDir =
                                     File(
-                                        com.github.yumelira.yumebox.App.instance.filesDir,
+                                        com.github.nomadboxlab.monadbox.App.instance.filesDir,
                                         "imported",
                                     ),
                                 isSelected = activeProfile?.uuid == profile.uuid,
@@ -466,13 +467,16 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                                     )
                                                 }
                                                 .onFailure {
-                                                    com.github.yumelira.yumebox.App.instance.toast(
-                                                        it.message
-                                                            ?: MLang.ProfilesVM.Message.ToggleFailed
-                                                                .format(
-                                                                    MLang.ProfilesVM.Error.Unknown
-                                                                )
-                                                    )
+                                                    com.github.nomadboxlab.monadbox.App.instance
+                                                        .toast(
+                                                            it.message
+                                                                ?: MLang.ProfilesVM.Message
+                                                                    .ToggleFailed
+                                                                    .format(
+                                                                        MLang.ProfilesVM.Error
+                                                                            .Unknown
+                                                                    )
+                                                        )
                                                 }
                                         }
                                     }
@@ -587,7 +591,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                     )
                                 }
                                 .onFailure {
-                                    com.github.yumelira.yumebox.App.instance.toast(
+                                    com.github.nomadboxlab.monadbox.App.instance.toast(
                                         it.message ?: MLang.ProfilesPage.SettingsDialog.SaveFailed
                                     )
                                 }
@@ -630,7 +634,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 },
                 onShare = {
                     moreActionsProfileId = null
-                    val context = com.github.yumelira.yumebox.App.instance
+                    val context = com.github.nomadboxlab.monadbox.App.instance
                     val file =
                         File(File(context.filesDir, "imported"), "${profile.uuid}/config.yaml")
                             .takeIf { it.exists() }
@@ -702,7 +706,7 @@ private fun ProfileUpdateAllChip(
     ) {
         Icon(
             modifier = Modifier.size(16.dp),
-            imageVector = Yume.`Circle-fading-arrow-up`,
+            imageVector = MonadIcons.`Circle-fading-arrow-up`,
             tint = style.contentColor,
             contentDescription = MLang.ProfilesPage.Action.UpdateAll,
         )
@@ -734,7 +738,7 @@ private fun ProfileAddTopBarChip(onClick: () -> Unit, modifier: Modifier = Modif
     ) {
         Icon(
             modifier = Modifier.size(16.dp),
-            imageVector = Yume.Cloud,
+            imageVector = MonadIcons.Cloud,
             tint = style.contentColor,
             contentDescription = MLang.ProfilesPage.Action.AddProfile,
         )
@@ -749,7 +753,7 @@ private fun ProfileAddTopBarChip(onClick: () -> Unit, modifier: Modifier = Modif
 }
 
 private fun resolveProfileConfigFile(profileUuid: UUID): File {
-    val filesDir = com.github.yumelira.yumebox.App.instance.filesDir
+    val filesDir = com.github.nomadboxlab.monadbox.App.instance.filesDir
     val importedFile = File(filesDir, "imported/${profileUuid}/config.yaml")
     return if (importedFile.exists()) {
         importedFile
@@ -777,7 +781,7 @@ private fun ProfileMoreActionsDialog(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AppActionTile(
                 title = MLang.ProfilesPage.SettingsDialog.OpenConfig,
-                imageVector = Yume.`Scroll-text`,
+                imageVector = MonadIcons.`Scroll-text`,
                 onClick = onEditText,
                 modifier = Modifier.fillMaxWidth(),
                 tone = SemanticTone.Info,
@@ -787,7 +791,7 @@ private fun ProfileMoreActionsDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppActionTile(
                     title = MLang.Component.ProfileCard.Export,
-                    imageVector = Yume.Share,
+                    imageVector = MonadIcons.Share,
                     onClick = onShare,
                     modifier = Modifier.weight(1f),
                     compact = true,
@@ -796,7 +800,7 @@ private fun ProfileMoreActionsDialog(
 
                 AppActionTile(
                     title = MLang.Component.ProfileCard.Delete,
-                    imageVector = Yume.Delete,
+                    imageVector = MonadIcons.Delete,
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),
                     compact = true,

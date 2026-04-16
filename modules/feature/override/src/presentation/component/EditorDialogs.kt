@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,16 +29,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Copy
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.util.decodeObjectFields
-import com.github.yumelira.yumebox.presentation.util.encodeObjectFields
-import com.github.yumelira.yumebox.presentation.util.jsonElementToEditorValue
-import com.github.yumelira.yumebox.presentation.util.toOrderedJsonElementMap
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Arrow-down-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Copy
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
+import com.github.nomadboxlab.monadbox.presentation.util.decodeObjectFields
+import com.github.nomadboxlab.monadbox.presentation.util.encodeObjectFields
+import com.github.nomadboxlab.monadbox.presentation.util.jsonElementToEditorValue
+import com.github.nomadboxlab.monadbox.presentation.util.toOrderedJsonElementMap
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.JsonElement
 import top.yukonga.miuix.kmp.basic.Text
@@ -109,7 +110,7 @@ fun JsonTextEditorDialog(
     onValueChange: (String?) -> Unit,
 ) {
 
-    com.github.yumelira.yumebox.feature.editor.component.JsonEditorDialog(
+    com.github.nomadboxlab.monadbox.feature.editor.component.JsonEditorDialog(
         show = show.value,
         title = title,
         subtitle = MLang.Override.Edit.JsonEditHint,
@@ -173,7 +174,7 @@ fun StringMapEditorDialog(
             }
             AppCommandButton(
                 title = MLang.Override.Editor.AddItem,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 tone = SemanticTone.Brand,
                 onClick = {
                     entries.add("" to "")
@@ -183,7 +184,7 @@ fun StringMapEditorDialog(
             Spacer(modifier = Modifier.height(8.dp))
             AppCommandButton(
                 title = MLang.Override.Editor.DeleteLastItem,
-                imageVector = Yume.Delete,
+                imageVector = MonadIcons.Delete,
                 tone = SemanticTone.Danger,
                 onClick = {
                     if (entries.size > 1) {
@@ -352,7 +353,7 @@ fun JsonObjectListEditorDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AppActionTile(
                                 title = MLang.Override.Editor.Edit,
-                                imageVector = Yume.Edit,
+                                imageVector = MonadIcons.Edit,
                                 compact = true,
                                 tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
@@ -363,7 +364,7 @@ fun JsonObjectListEditorDialog(
                             )
                             AppActionTile(
                                 title = MLang.Override.Editor.Copy,
-                                imageVector = Yume.Copy,
+                                imageVector = MonadIcons.Copy,
                                 compact = true,
                                 tone = SemanticTone.Info,
                                 modifier = Modifier.weight(1f),
@@ -371,7 +372,7 @@ fun JsonObjectListEditorDialog(
                             )
                             AppActionTile(
                                 title = MLang.Override.Card.Delete,
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 compact = true,
                                 tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
@@ -382,7 +383,7 @@ fun JsonObjectListEditorDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AppActionTile(
                                 title = MLang.Override.Editor.MoveUp,
-                                imageVector = Yume.`Arrow-down-up`,
+                                imageVector = MonadIcons.`Arrow-down-up`,
                                 compact = true,
                                 enabled = index > 0,
                                 modifier = Modifier.weight(1f),
@@ -390,7 +391,7 @@ fun JsonObjectListEditorDialog(
                             )
                             AppActionTile(
                                 title = MLang.Override.Editor.MoveDown,
-                                imageVector = Yume.`Arrow-down-up`,
+                                imageVector = MonadIcons.`Arrow-down-up`,
                                 compact = true,
                                 enabled = index < drafts.lastIndex,
                                 modifier = Modifier.weight(1f),
@@ -403,7 +404,7 @@ fun JsonObjectListEditorDialog(
             Spacer(modifier = Modifier.height(12.dp))
             AppCommandButton(
                 title = MLang.Override.Editor.AddObject,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 tone = SemanticTone.Brand,
                 highEmphasis = true,
                 onClick = {
@@ -488,7 +489,7 @@ fun JsonObjectMapEditorDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AppActionTile(
                                 title = MLang.Override.Editor.Edit,
-                                imageVector = Yume.Edit,
+                                imageVector = MonadIcons.Edit,
                                 compact = true,
                                 tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
@@ -499,7 +500,7 @@ fun JsonObjectMapEditorDialog(
                             )
                             AppActionTile(
                                 title = MLang.Override.Card.Delete,
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 compact = true,
                                 tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
@@ -512,7 +513,7 @@ fun JsonObjectMapEditorDialog(
             Spacer(modifier = Modifier.height(12.dp))
             AppCommandButton(
                 title = MLang.Proxy.Action.AddProvider,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 tone = SemanticTone.Brand,
                 highEmphasis = true,
                 onClick = {
@@ -605,7 +606,7 @@ fun SubRulesEditorDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AppActionTile(
                                 title = MLang.Override.Editor.EditRule,
-                                imageVector = Yume.Edit,
+                                imageVector = MonadIcons.Edit,
                                 compact = true,
                                 tone = SemanticTone.Neutral,
                                 modifier = Modifier.weight(1f),
@@ -616,7 +617,7 @@ fun SubRulesEditorDialog(
                             )
                             AppActionTile(
                                 title = MLang.Override.Card.Delete,
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 compact = true,
                                 tone = SemanticTone.Danger,
                                 modifier = Modifier.weight(1f),
@@ -635,7 +636,7 @@ fun SubRulesEditorDialog(
             Spacer(modifier = Modifier.height(12.dp))
             AppCommandButton(
                 title = MLang.Override.Editor.AddSubRuleGroup,
-                imageVector = Yume.`Badge-plus`,
+                imageVector = MonadIcons.`Badge-plus`,
                 tone = SemanticTone.Brand,
                 highEmphasis = true,
                 onClick = { drafts.add("" to emptyList()) },

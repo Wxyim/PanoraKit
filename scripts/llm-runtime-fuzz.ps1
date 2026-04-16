@@ -1,5 +1,5 @@
 param(
-    [string]$PackageName = "com.github.yumelira.yumebox",
+    [string]$PackageName = "com.github.nomadboxlab.monadbox",
     [int]$Rounds = 20,
     [int]$EventsPerRound = 300,
     [int]$ThrottleMs = 35,

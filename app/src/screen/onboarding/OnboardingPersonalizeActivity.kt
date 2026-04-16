@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.onboarding
+package com.github.nomadboxlab.monadbox.screen.onboarding
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
@@ -27,12 +28,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Palette
-import com.github.yumelira.yumebox.presentation.theme.colorFromArgb
-import com.github.yumelira.yumebox.presentation.theme.colorToArgbLong
-import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
-import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerSheet
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
+import com.github.nomadboxlab.monadbox.presentation.theme.colorFromArgb
+import com.github.nomadboxlab.monadbox.presentation.theme.colorToArgbLong
+import com.github.nomadboxlab.monadbox.screen.settings.AppSettingsViewModel
+import com.github.nomadboxlab.monadbox.screen.settings.component.ThemeColorPickerSheet
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 
@@ -69,7 +70,7 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
                 }
 
             ProvisionDetailShell(
-                previewIcon = Yume.Palette,
+                previewIcon = MonadIcons.Palette,
                 title = MLang.Onboarding.Personalize.Title,
                 subtitle = MLang.Onboarding.Personalize.Subtitle,
                 primaryText = MLang.Onboarding.Navigation.Next,

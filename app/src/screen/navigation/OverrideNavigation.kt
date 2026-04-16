@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,21 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.navigation
+package com.github.nomadboxlab.monadbox.screen.navigation
 
 import androidx.compose.runtime.Composable
-import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
-import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewScreen
-import com.github.yumelira.yumebox.presentation.screen.*
-import com.github.yumelira.yumebox.presentation.util.OverrideEditorSemantics
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
-import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
-import com.github.yumelira.yumebox.screen.profiles.LocalProfileConfigEditScreen
+import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewScreen
+import com.github.nomadboxlab.monadbox.presentation.screen.*
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSemantics
+import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
+import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.screen.profiles.LocalProfileConfigEditScreen
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
@@ -95,23 +96,24 @@ fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
             onStartChange,
             onEndChange ->
             val values =
-                com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
+                com.github.nomadboxlab.monadbox.presentation.util.OverrideListModeValues(
                     replaceValue = replaceValue,
                     startValue = startValue,
                     endValue = endValue,
                 )
             val availableModes =
                 listOf(
-                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
-                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Start,
-                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.End,
+                    com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode
+                        .Replace,
+                    com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode.Start,
+                    com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode.End,
                 )
             OverrideStructuredEditorStore.setupStringListEditor(
                 title = title,
                 placeholder = placeholder,
                 availableModes = availableModes,
                 selectedMode =
-                    com.github.yumelira.yumebox.presentation.util.resolveInitialEditorMode(
+                    com.github.nomadboxlab.monadbox.presentation.util.resolveInitialEditorMode(
                         availableModes = availableModes,
                         values = values,
                     ),
@@ -213,17 +215,20 @@ fun LocalProfileConfigEditRoute(navigator: DestinationsNavigator, profileUuid: S
                     }
                     .takeIf { it.isNotEmpty() }
             val values =
-                com.github.yumelira.yumebox.presentation.util.OverrideListModeValues(
+                com.github.nomadboxlab.monadbox.presentation.util.OverrideListModeValues(
                     replaceValue = mergedValue
                 )
             val availableModes =
-                listOf(com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace)
+                listOf(
+                    com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode.Replace
+                )
             OverrideStructuredEditorStore.setupStringListEditor(
                 title = title,
                 placeholder = placeholder,
                 availableModes = availableModes,
                 selectedMode =
-                    com.github.yumelira.yumebox.presentation.util.OverrideListEditorMode.Replace,
+                    com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode
+                        .Replace,
                 values = values,
                 semantics = OverrideEditorSemantics.LocalConfig,
             ) { updatedValues ->

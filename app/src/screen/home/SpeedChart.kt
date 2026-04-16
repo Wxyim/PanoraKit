@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.home
+package com.github.nomadboxlab.monadbox.screen.home
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -39,10 +40,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import com.github.yumelira.yumebox.common.AppConstants
-import com.github.yumelira.yumebox.presentation.component.appClickable
-import com.github.yumelira.yumebox.presentation.theme.SpeedChartLayoutDefaults
-import com.github.yumelira.yumebox.presentation.theme.TrafficChartConfig
+import com.github.nomadboxlab.monadbox.common.AppConstants
+import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.theme.SpeedChartLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.TrafficChartConfig
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 

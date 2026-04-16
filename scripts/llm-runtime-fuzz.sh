@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_NAME="com.github.yumelira.yumebox"
+PACKAGE_NAME="com.github.nomadboxlab.monadbox"
 ROUNDS=20
 EVENTS_PER_ROUND=300
 THROTTLE_MS=35

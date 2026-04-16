@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,22 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.runtime
+package com.github.nomadboxlab.monadbox.presentation.runtime
 
 import android.content.Intent
-import com.github.yumelira.yumebox.data.model.ProxyMode
-import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
-import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
-import com.github.yumelira.yumebox.remote.VpnPermissionRequired
-import com.github.yumelira.yumebox.remote.runtimeGatewayMessage
-import com.github.yumelira.yumebox.runtime.client.ProxyFacade
-import com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator
-import com.github.yumelira.yumebox.runtime.client.RuntimeMutationResult
-import com.github.yumelira.yumebox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
+import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogPresenter
+import com.github.nomadboxlab.monadbox.remote.VpnPermissionRequired
+import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeMutationResult
+import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.CancellationException

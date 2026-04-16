@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,21 +14,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.runtime.client
+package com.github.nomadboxlab.monadbox.runtime.client
 
-import com.github.yumelira.yumebox.core.controller.ControllerError
-import com.github.yumelira.yumebox.domain.model.ErrorCategory
-import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorPhase
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
-import com.github.yumelira.yumebox.domain.model.StructuredError
-import com.github.yumelira.yumebox.domain.model.SuggestedAction
-import com.github.yumelira.yumebox.remote.RuntimeGatewayErrorCode
-import com.github.yumelira.yumebox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.core.controller.ControllerError
+import com.github.nomadboxlab.monadbox.domain.model.ErrorCategory
+import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
+import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
+import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
+import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.domain.model.SuggestedAction
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
+import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 
 fun RuntimeGatewayException.toStructuredError(): StructuredError {
     val (category, phase, impact, retryability) = classifyGatewayError(code)

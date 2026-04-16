@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.settings
+package com.github.nomadboxlab.monadbox.screen.settings
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -56,28 +57,28 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.yumelira.yumebox.common.util.OemPermissionSettingsNavigator
-import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
-import com.github.yumelira.yumebox.presentation.component.AppCommandButton
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.ConfigActionMenuRow
-import com.github.yumelira.yumebox.presentation.component.ConfigEntryActionOption
-import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
-import com.github.yumelira.yumebox.presentation.component.EnumSelector
-import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Check
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
-import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.common.util.OemPermissionSettingsNavigator
+import com.github.nomadboxlab.monadbox.common.util.toast
+import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
+import com.github.nomadboxlab.monadbox.presentation.component.AppCommandButton
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.component.ConfigActionMenuRow
+import com.github.nomadboxlab.monadbox.presentation.component.ConfigEntryActionOption
+import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.EnumSelector
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -139,7 +140,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             onClick = { showSettingsSheet.value = true },
                         ) {
                             Icon(
-                                Yume.`Settings-2`,
+                                MonadIcons.`Settings-2`,
                                 contentDescription = MLang.Component.Navigation.Settings,
                             )
                         }
@@ -181,7 +182,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         )
                                         AppCommandButton(
                                             title = MLang.Onboarding.Permission.AppList.Title,
-                                            imageVector = Yume.Check,
+                                            imageVector = MonadIcons.Check,
                                             onClick = {
                                                 permissionLauncher.launch(
                                                     "com.android.permission.GET_INSTALLED_APPS"
@@ -193,7 +194,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         AppCommandButton(
                                             title =
                                                 MLang.AccessControl.AppList.OpenPermissionSettings,
-                                            imageVector = Yume.`Settings-2`,
+                                            imageVector = MonadIcons.`Settings-2`,
                                             onClick = {
                                                 val opened =
                                                     OemPermissionSettingsNavigator
@@ -294,7 +295,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         )
                                         AppCommandButton(
                                             title = MLang.AccessControl.AppList.AddPackage,
-                                            imageVector = Yume.`Badge-plus`,
+                                            imageVector = MonadIcons.`Badge-plus`,
                                             onClick = {
                                                 if (!viewModel.addManualPackage()) {
                                                     context.toast(
@@ -427,17 +428,17 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         listOf(
                                             ConfigEntryActionOption(
                                                 title = MLang.AccessControl.Settings.SelectAll,
-                                                icon = Yume.`Settings-2`,
+                                                icon = MonadIcons.`Settings-2`,
                                                 onClick = { viewModel.selectAll() },
                                             ),
                                             ConfigEntryActionOption(
                                                 title = MLang.AccessControl.Settings.DeselectAll,
-                                                icon = Yume.`Settings-2`,
+                                                icon = MonadIcons.`Settings-2`,
                                                 onClick = { viewModel.deselectAll() },
                                             ),
                                             ConfigEntryActionOption(
                                                 title = MLang.AccessControl.Settings.Invert,
-                                                icon = Yume.`Settings-2`,
+                                                icon = MonadIcons.`Settings-2`,
                                                 onClick = { viewModel.invertSelection() },
                                             ),
                                         )
@@ -445,7 +446,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         listOf(
                                             ConfigEntryActionOption(
                                                 title = MLang.AccessControl.Settings.CopySelected,
-                                                icon = Yume.`Settings-2`,
+                                                icon = MonadIcons.`Settings-2`,
                                                 onClick = {
                                                     val exportText = viewModel.exportPackages()
                                                     val clip =
@@ -462,7 +463,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                             ),
                                             ConfigEntryActionOption(
                                                 title = MLang.AccessControl.Settings.ClearSelected,
-                                                icon = Yume.`Settings-2`,
+                                                icon = MonadIcons.`Settings-2`,
                                                 onClick = {
                                                     val cleared = viewModel.clearSelectedPackages()
                                                     context.toast(
@@ -487,7 +488,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     listOf(
                                         ConfigEntryActionOption(
                                             title = MLang.AccessControl.Settings.ChinaApps,
-                                            icon = Yume.`Settings-2`,
+                                            icon = MonadIcons.`Settings-2`,
                                             onClick = {
                                                 val selectedCount =
                                                     viewModel.selectChinaAppsInCurrentList()
@@ -502,7 +503,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         ),
                                         ConfigEntryActionOption(
                                             title = MLang.AccessControl.Settings.OverseasApps,
-                                            icon = Yume.`Settings-2`,
+                                            icon = MonadIcons.`Settings-2`,
                                             onClick = {
                                                 val selectedCount =
                                                     viewModel.selectNonChinaAppsInCurrentList()
@@ -530,7 +531,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     listOf(
                                         ConfigEntryActionOption(
                                             title = MLang.AccessControl.Settings.Import,
-                                            icon = Yume.`Settings-2`,
+                                            icon = MonadIcons.`Settings-2`,
                                             onClick = {
                                                 val clipData = clipboardManager.primaryClip
                                                 val text =
@@ -568,7 +569,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                         ),
                                         ConfigEntryActionOption(
                                             title = MLang.AccessControl.Settings.Export,
-                                            icon = Yume.`Settings-2`,
+                                            icon = MonadIcons.`Settings-2`,
                                             onClick = {
                                                 val exportText = viewModel.exportPackages()
                                                 val clip =

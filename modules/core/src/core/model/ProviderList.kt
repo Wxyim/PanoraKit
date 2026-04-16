@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,16 +14,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.core.model
+package com.github.nomadboxlab.monadbox.core.model
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.github.yumelira.yumebox.core.util.createListFromParcelSlice
-import com.github.yumelira.yumebox.core.util.writeToParcelSlice
+import com.github.nomadboxlab.monadbox.core.util.createListFromParcelSlice
+import com.github.nomadboxlab.monadbox.core.util.writeToParcelSlice
 
 class ProviderList(data: List<Provider>) : List<Provider> by data, Parcelable {
     constructor(parcel: Parcel) : this(Provider.createListFromParcelSlice(parcel, 0, 20))

@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,10 +28,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
-import com.github.yumelira.yumebox.presentation.icon.yume.Delete
-import com.github.yumelira.yumebox.presentation.util.*
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
+import com.github.nomadboxlab.monadbox.presentation.util.*
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.booleanOrNull
@@ -61,7 +62,7 @@ fun OverrideExtraFieldsCard(
                     },
                 endActions = {
                     OverrideCardActionIconButton(
-                        imageVector = Yume.`Badge-plus`,
+                        imageVector = MonadIcons.`Badge-plus`,
                         contentDescription = MLang.Override.Draft.AddExtraField,
                         onClick = onAddClick,
                         tone = OverrideActionTone.Primary,
@@ -79,7 +80,7 @@ fun OverrideExtraFieldsCard(
                         onClick = { onEditClick(entry.key, entry.value) },
                         endActions = {
                             OverrideCardActionIconButton(
-                                imageVector = Yume.Delete,
+                                imageVector = MonadIcons.Delete,
                                 contentDescription = MLang.Override.Draft.DeleteExtraField,
                                 onClick = { onDeleteClick(entry.key) },
                             )

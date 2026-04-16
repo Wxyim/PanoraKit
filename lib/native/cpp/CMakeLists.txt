@@ -1,3 +1,23 @@
+#
+# This file is part of MonadBox - A customized edition of YumeBox.
+#
+# MonadBox is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Copyright (c) YumeLira 2025 - 2026
+# Copyright (c) MonadBox Contributors 2026 - Present
+#
+
 cmake_minimum_required(VERSION 3.22.1)
 
 if(POLICY CMP0057)
@@ -38,9 +58,9 @@ message(STATUS "Version Info: ${GIT_VERSION}")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
-set(YUMEBOX_LINKER_FLAG_LIST "")
-if(DEFINED YUMEBOX_LINKER_FLAGS AND NOT "${YUMEBOX_LINKER_FLAGS}" STREQUAL "")
-    separate_arguments(YUMEBOX_LINKER_FLAG_LIST NATIVE_COMMAND "${YUMEBOX_LINKER_FLAGS}")
+set(MONADBOX_LINKER_FLAG_LIST "")
+if(DEFINED MONADBOX_LINKER_FLAGS AND NOT "${MONADBOX_LINKER_FLAGS}" STREQUAL "")
+    separate_arguments(MONADBOX_LINKER_FLAG_LIST NATIVE_COMMAND "${MONADBOX_LINKER_FLAGS}")
 endif()
 
 project(clash-bridge C CXX)
@@ -63,6 +83,6 @@ link_directories("${GO_OUTPUT_BASE}")
 
 add_library(bridge SHARED main.cpp jni_helper.cpp bridge_helper.cpp jni_raii.cpp)
 target_link_libraries(bridge log clash)
-if(YUMEBOX_LINKER_FLAG_LIST)
-    target_link_options(bridge PRIVATE ${YUMEBOX_LINKER_FLAG_LIST})
+if(MONADBOX_LINKER_FLAG_LIST)
+    target_link_options(bridge PRIVATE ${MONADBOX_LINKER_FLAG_LIST})
 endif()

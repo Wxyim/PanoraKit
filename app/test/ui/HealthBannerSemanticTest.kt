@@ -1,12 +1,12 @@
-package com.github.yumelira.yumebox.ui
+package com.github.nomadboxlab.monadbox.ui
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import com.github.yumelira.yumebox.presentation.component.HealthBanner
-import com.github.yumelira.yumebox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.HealthBanner
+import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

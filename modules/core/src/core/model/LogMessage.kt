@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
 @file:UseSerializers(DateSerializer::class)
 
-package com.github.yumelira.yumebox.core.model
+package com.github.nomadboxlab.monadbox.core.model
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.github.yumelira.yumebox.core.util.DateSerializer
-import com.github.yumelira.yumebox.core.util.Parcelizer
+import com.github.nomadboxlab.monadbox.core.util.DateSerializer
+import com.github.nomadboxlab.monadbox.core.util.Parcelizer
 import java.util.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

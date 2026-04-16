@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
@@ -53,13 +54,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Bolt
-import com.github.yumelira.yumebox.presentation.icon.yume.House
-import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
-import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Arrow-down-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Bolt
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.House
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Package-check`
+import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.kyant.shapes.Capsule
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -232,10 +233,10 @@ fun BottomBarContent(isVisible: Boolean = true) {
 }
 
 enum class BottomBarDestination(val icon: ImageVector) {
-    Home(Yume.House),
-    Proxy(Yume.`Arrow-down-up`),
-    Config(Yume.`Package-check`),
-    Setting(Yume.Bolt);
+    Home(MonadIcons.House),
+    Proxy(MonadIcons.`Arrow-down-up`),
+    Config(MonadIcons.`Package-check`),
+    Setting(MonadIcons.Bolt);
 
     @Composable
     fun label(): String =

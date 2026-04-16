@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.screen.onboarding
+package com.github.nomadboxlab.monadbox.screen.onboarding
 
 import android.view.View
 import androidx.compose.animation.AnimatedVisibility
@@ -51,16 +52,16 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.github.yumelira.yumebox.common.AppConstants
-import com.github.yumelira.yumebox.data.model.ThemeMode
-import com.github.yumelira.yumebox.presentation.component.appClickable
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
-import com.github.yumelira.yumebox.presentation.theme.AppTheme
-import com.github.yumelira.yumebox.presentation.theme.DefaultRadii
-import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
-import com.github.yumelira.yumebox.screen.settings.component.ThemeColorPickerItem
-import com.github.yumelira.yumebox.screen.settings.component.ThemeModeSelectorItem
+import com.github.nomadboxlab.monadbox.common.AppConstants
+import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.DefaultRadii
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.screen.settings.component.ThemeColorPickerItem
+import com.github.nomadboxlab.monadbox.screen.settings.component.ThemeModeSelectorItem
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Checkbox
@@ -444,7 +445,7 @@ internal fun PermissionContent(state: PermissionState) {
 
     DetailGroup {
         PermissionRow(
-            icon = Yume.Message,
+            icon = MonadIcons.Message,
             title = MLang.Onboarding.Permission.Notification.Title,
             summary = notificationSummary,
             granted = state.notificationGranted,
@@ -462,7 +463,7 @@ internal fun PermissionContent(state: PermissionState) {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp))
 
         PermissionRow(
-            icon = Yume.List,
+            icon = MonadIcons.List,
             title = MLang.Onboarding.Permission.AppList.Title,
             summary = appListSummary,
             granted = state.appListGranted,
@@ -584,7 +585,7 @@ internal fun FinishHeroShell(
             Spacer(modifier = Modifier.height(88.dp))
 
             RevealBlock(delayMillis = 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                DetailPreviewBadge(icon = Yume.CircleCheckBig)
+                DetailPreviewBadge(icon = MonadIcons.CircleCheckBig)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -635,7 +636,7 @@ internal fun FinishHeroShell(
                     RevealBlock(delayMillis = 160) {
                         DetailGroup {
                             ProjectLinkRow(
-                                icon = Yume.Github,
+                                icon = MonadIcons.Github,
                                 title = MLang.Onboarding.Project.Github.Title,
                                 summary = MLang.Onboarding.Project.Github.Summary,
                                 onClick = onGithubClick,
@@ -707,7 +708,7 @@ private fun HeroStartButton(
                     .background(MiuixTheme.colorScheme.primary)
         )
         Icon(
-            imageVector = Yume.ArrowRight,
+            imageVector = MonadIcons.ArrowRight,
             contentDescription = MLang.Component.Button.Start,
             tint = MiuixTheme.colorScheme.onPrimary,
             modifier = Modifier.size(22.dp),
@@ -821,7 +822,7 @@ private fun PermissionRow(
             )
         } else {
             Icon(
-                imageVector = Yume.ArrowRight,
+                imageVector = MonadIcons.ArrowRight,
                 contentDescription = null,
                 tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.size(18.dp),
@@ -861,7 +862,7 @@ private fun ProjectLinkRow(icon: ImageVector, title: String, summary: String, on
         }
 
         Icon(
-            imageVector = Yume.ArrowRight,
+            imageVector = MonadIcons.ArrowRight,
             contentDescription = null,
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = Modifier.size(18.dp),

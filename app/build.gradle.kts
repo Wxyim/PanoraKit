@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,7 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
@@ -182,24 +183,33 @@ android {
                 }
             }
 
-        fun readSigningValue(propertyKey: String, envKey: String): String? {
+        fun readSigningValue(propertyKey: String, vararg envKeys: String): String? {
             return (project.findProperty(propertyKey) as? String)
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
-                ?: System.getenv(envKey)?.trim()?.takeIf(String::isNotBlank)
+                ?: envKeys.firstNotNullOfOrNull { envKey ->
+                    System.getenv(envKey)?.trim()?.takeIf(String::isNotBlank)
+                }
                 ?: signingProperties.getProperty(propertyKey)?.trim()?.takeIf(String::isNotBlank)
         }
 
-        val configuredKeystorePath = readSigningValue("keystore.path", "YUMEBOX_KEYSTORE_PATH")
+        val configuredKeystorePath =
+            readSigningValue("keystore.path", "MONADBOX_KEYSTORE_PATH", "YUMEBOX_KEYSTORE_PATH")
         val configuredStoreFile =
             configuredKeystorePath?.let { rawPath ->
                 val asFile = file(rawPath)
                 if (asFile.isAbsolute) asFile else rootProject.file(rawPath)
             } ?: rootProject.file("release.keystore").takeIf { it.exists() }
 
-        val storePassword = readSigningValue("keystore.password", "YUMEBOX_KEYSTORE_PASSWORD")
-        val keyAlias = readSigningValue("key.alias", "YUMEBOX_KEY_ALIAS")
-        val keyPassword = readSigningValue("key.password", "YUMEBOX_KEY_PASSWORD")
+        val storePassword =
+            readSigningValue(
+                "keystore.password",
+                "MONADBOX_KEYSTORE_PASSWORD",
+                "YUMEBOX_KEYSTORE_PASSWORD",
+            )
+        val keyAlias = readSigningValue("key.alias", "MONADBOX_KEY_ALIAS", "YUMEBOX_KEY_ALIAS")
+        val keyPassword =
+            readSigningValue("key.password", "MONADBOX_KEY_PASSWORD", "YUMEBOX_KEY_PASSWORD")
 
         if (
             configuredStoreFile?.exists() == true &&
@@ -242,7 +252,8 @@ android {
     ) {
         throw GradleException(
             "Release signing is not configured. Provide signing.properties or env vars " +
-                "(YUMEBOX_KEYSTORE_PATH, YUMEBOX_KEYSTORE_PASSWORD, YUMEBOX_KEY_ALIAS, YUMEBOX_KEY_PASSWORD)."
+                "(MONADBOX_KEYSTORE_PATH, MONADBOX_KEYSTORE_PASSWORD, MONADBOX_KEY_ALIAS, MONADBOX_KEY_PASSWORD). " +
+                "Legacy YUMEBOX_* env vars are still accepted."
         )
     }
 

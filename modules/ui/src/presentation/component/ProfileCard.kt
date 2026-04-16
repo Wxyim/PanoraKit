@@ -1,7 +1,7 @@
 /*
- * This file is part of YumeBox.
+ * This file is part of MonadBox - A customized edition of YumeBox.
  *
- * YumeBox is free software: you can redistribute it and/or modify
+ * MonadBox is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.nomadboxlab.monadbox.presentation.component
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
@@ -48,15 +49,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.theme.DefaultRadii
-import com.github.yumelira.yumebox.presentation.theme.DefaultSpacing
-import com.github.yumelira.yumebox.presentation.util.*
-import com.github.yumelira.yumebox.service.runtime.entity.Profile
-import com.github.yumelira.yumebox.service.runtime.entity.toProductProfileObject
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Circle-fading-arrow-up`
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
+import com.github.nomadboxlab.monadbox.presentation.theme.DefaultRadii
+import com.github.nomadboxlab.monadbox.presentation.theme.DefaultSpacing
+import com.github.nomadboxlab.monadbox.presentation.util.*
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.entity.toProductProfileObject
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import top.yukonga.miuix.kmp.basic.Card
@@ -429,7 +430,7 @@ private fun ProfileActionCluster(
     ) {
         if (showUpdateButton) {
             AppCircularIconAction(
-                imageVector = Yume.`Circle-fading-arrow-up`,
+                imageVector = MonadIcons.`Circle-fading-arrow-up`,
                 contentDescription = MLang.Component.ProfileCard.Update,
                 tone = SemanticTone.Info,
                 highEmphasis = true,
@@ -445,7 +446,7 @@ private fun ProfileActionCluster(
         }
 
         AppCircularIconAction(
-            imageVector = Yume.Edit,
+            imageVector = MonadIcons.Edit,
             contentDescription = MLang.Component.ProfileCard.Edit,
             tone = SemanticTone.Neutral,
             size = ProfileCardMetrics.SmallActionSize,
@@ -459,7 +460,7 @@ private fun ProfileActionCluster(
         )
 
         AppCircularIconAction(
-            imageVector = Yume.`Settings-2`,
+            imageVector = MonadIcons.`Settings-2`,
             contentDescription = MLang.Settings.Section.More,
             tone = SemanticTone.Neutral,
             size = ProfileCardMetrics.SmallActionSize,
