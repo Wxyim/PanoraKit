@@ -18,28 +18,21 @@
  *
  */
 
-package com.github.yumelira.yumebox.feature.editor.screen
+package com.github.yumelira.yumebox.feature.editor.editor
 
-enum class ConfigPreviewSavePhase {
-    LocalSaving,
-    Validating,
-    FetchingRemoteResources,
-    ApplyingRuntime,
+enum class EditorActionType {
+    Format,
+    Validate,
 }
 
-enum class ConfigPreviewSaveDecision {
-    Continue,
-    ContinueEditing,
-    SaveLocally,
+enum class EditorActionFeedbackLevel {
+    Success,
+    Info,
+    Error,
 }
 
-enum class ConfigPreviewSaveOutcome {
-    Saved,
-    SavedLocally,
-    ResumeEditing,
-}
-
-typealias ConfigPreviewSaveCallback =
-    suspend (String, (ConfigPreviewSavePhase) -> Unit, () -> ConfigPreviewSaveDecision) -> Result<
-            ConfigPreviewSaveOutcome
-        >
+data class EditorActionFeedback(
+    val actionType: EditorActionType,
+    val level: EditorActionFeedbackLevel,
+    val message: String,
+)

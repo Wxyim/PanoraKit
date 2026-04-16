@@ -20,6 +20,7 @@
 
 package com.github.yumelira.yumebox.feature.editor.format
 
+import com.github.yumelira.yumebox.feature.editor.diagnostic.CodeLanguageDiagnostics
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import org.json.JSONArray
 import org.json.JSONObject
@@ -35,11 +36,7 @@ object CodeFormatter {
     }
 
     fun validate(content: String, language: LanguageScope): Boolean {
-        return when (language) {
-            LanguageScope.Json -> validateJson(content)
-            LanguageScope.Yaml -> true
-            LanguageScope.Text -> true
-        }
+        return !CodeLanguageDiagnostics.analyze(content, language).hasErrors
     }
 
     private fun formatJson(content: String): String? {

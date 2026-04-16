@@ -39,7 +39,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
+import com.github.yumelira.yumebox.feature.editor.component.ConfigSaveProgressDialog
 import com.github.yumelira.yumebox.feature.editor.editor.CodeEditor
+import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedback
+import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedbackLevel
+import com.github.yumelira.yumebox.feature.editor.editor.EditorActionType
 import com.github.yumelira.yumebox.feature.editor.editor.CodeEditorState
 import com.github.yumelira.yumebox.feature.editor.format.CodeFormatter
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
@@ -177,43 +181,13 @@ fun ConfigPreviewScreen(
     fun validateContent() {
         if (isSaving) return
         editorState.syncContentFromEditor()
-        editorState.updateDiagnostics()
-        if (!editorState.validate()) {
-            context.toast(
-                if (language == LanguageScope.Json) {
-                    MLang.Component.Editor.Error.JsonSyntaxError
-                } else {
-                    MLang.Component.Editor.Error.Unknown
-                }
-            )
-        } else {
-            context.toast(MLang.Component.Editor.Dialog.ValidationPassed)
-        }
+        context.toast(editorState.validateContent().message)
     }
 
     fun formatContent() {
         if (isSaving || isReadOnly) return
         editorState.syncContentFromEditor()
-        val formatted = CodeFormatter.format(editorState.content, language)
-        when {
-            formatted == null -> {
-                context.toast(
-                    if (language == LanguageScope.Json) {
-                        MLang.Component.Editor.Error.JsonSyntaxError
-                    } else {
-                        MLang.Component.Editor.Error.Unknown
-                    }
-                )
-            }
-
-            formatted == editorState.content -> {
-                context.toast(MLang.Override.Modifier.NotModified)
-            }
-
-            else -> {
-                editorState.updateContent(formatted)
-            }
-        }
+        context.toast(editorState.formatContent().message)
     }
 
     BackHandler(enabled = !isSaving) { requestExit() }
@@ -248,6 +222,7 @@ fun ConfigPreviewScreen(
                     EditorCommandBar(
                         language = language,
                         isModified = editorState.isModified,
+                        feedback = editorState.lastActionFeedback,
                         isSaving = isSaving,
                         isWideLayout = isWideLayout,
                         onValidate = ::validateContent,
@@ -281,46 +256,17 @@ fun ConfigPreviewScreen(
             )
         }
 
-        AppDialog(
+        ConfigSaveProgressDialog(
             show = isSaving,
-            title = MLang.Component.Editor.Action.Save,
-            summary =
-                when (savePhase) {
-                    ConfigPreviewSavePhase.LocalSaving -> MLang.Component.Editor.Dialog.LocalSaving
-                    ConfigPreviewSavePhase.Validating ->
-                        MLang.Component.Editor.Dialog.ValidatingConfig
-                    ConfigPreviewSavePhase.FetchingRemoteResources ->
-                        MLang.Component.Editor.Dialog.FetchingRemoteResources
-                    null -> MLang.Component.Loading.Starting
-                },
-            onDismissRequest = {},
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.lg),
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-
-                if (savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
-                    DialogButtonRow(
-                        onCancel = { saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
-                        onConfirm = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
-                        cancelText = MLang.Component.Editor.Action.ContinueEditing,
-                        confirmText =
-                            if (isRuntimeRunning) {
-                                MLang.Component.Editor.Action.SaveAndStop
-                            } else {
-                                MLang.Component.Editor.Action.SaveLocally
-                            },
-                    )
-                }
-            }
-        }
+            phase = savePhase,
+            isRuntimeRunning = isRuntimeRunning,
+            allowUndo =
+                savePhase == ConfigPreviewSavePhase.FetchingRemoteResources ||
+                    savePhase == ConfigPreviewSavePhase.ApplyingRuntime,
+            allowDirectSave = savePhase == ConfigPreviewSavePhase.FetchingRemoteResources,
+            onUndo = { saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
+            onDirectSave = { saveDecision = ConfigPreviewSaveDecision.SaveLocally },
+        )
     }
 }
 
@@ -328,6 +274,7 @@ fun ConfigPreviewScreen(
 private fun EditorCommandBar(
     language: LanguageScope,
     isModified: Boolean,
+    feedback: EditorActionFeedback?,
     isSaving: Boolean,
     isWideLayout: Boolean,
     onValidate: () -> Unit,
@@ -362,6 +309,7 @@ private fun EditorCommandBar(
                 EditorStatusSummary(
                     language = language,
                     isModified = isModified,
+                    feedback = feedback,
                     modifier = Modifier.weight(1f),
                 )
 
@@ -388,7 +336,7 @@ private fun EditorCommandBar(
                     )
 
                     AppCommandButton(
-                        title = MLang.Component.Editor.Action.SaveAndExit,
+                        title = MLang.Component.Editor.Action.Save,
                         imageVector = Yume.Save,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = isModified && !isSaving,
@@ -406,7 +354,11 @@ private fun EditorCommandBar(
                         .padding(horizontal = spacing.lg, vertical = spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(spacing.md),
             ) {
-                EditorStatusSummary(language = language, isModified = isModified)
+                EditorStatusSummary(
+                    language = language,
+                    isModified = isModified,
+                    feedback = feedback,
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -431,7 +383,7 @@ private fun EditorCommandBar(
                     )
 
                     AppCommandButton(
-                        title = MLang.Component.Editor.Action.SaveAndExit,
+                        title = MLang.Component.Editor.Action.Save,
                         imageVector = Yume.Save,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         enabled = isModified && !isSaving,
@@ -449,6 +401,7 @@ private fun EditorCommandBar(
 private fun EditorStatusSummary(
     language: LanguageScope,
     isModified: Boolean,
+    feedback: EditorActionFeedback? = null,
     modifier: Modifier = Modifier,
 ) {
     val tone =
@@ -459,30 +412,57 @@ private fun EditorStatusSummary(
         }
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = isModified)
 
-    Row(
+    Column(
         modifier =
             modifier
                 .background(style.containerColor, RoundedCornerShape(22.dp))
                 .border(0.8.dp, style.borderColor, RoundedCornerShape(22.dp))
                 .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(modifier = Modifier.size(10.dp).background(style.contentColor, CircleShape))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.size(10.dp).background(style.contentColor, CircleShape))
 
-        Text(
-            text =
-                if (isModified) {
-                    MLang.Component.Editor.Dialog.DiscardTitle
-                } else {
-                    MLang.Override.Modifier.NotModified
-                },
-            color = MiuixTheme.colorScheme.onSurface,
-            style = MiuixTheme.textStyles.body1,
-            modifier = Modifier.weight(1f),
-        )
+            Text(
+                text =
+                    if (isModified) {
+                        MLang.Component.Editor.Dialog.DiscardTitle
+                    } else {
+                        MLang.Override.Modifier.NotModified
+                    },
+                color = MiuixTheme.colorScheme.onSurface,
+                style = MiuixTheme.textStyles.body1,
+                modifier = Modifier.weight(1f),
+            )
 
-        StatusBadge(text = editorLanguageLabel(language), tone = SemanticTone.Info, compact = true)
+            StatusBadge(
+                text = editorLanguageLabel(language),
+                tone = SemanticTone.Info,
+                compact = true,
+            )
+        }
+
+        feedback?.let { currentFeedback ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusBadge(
+                    text = currentFeedback.actionType.label(),
+                    tone = currentFeedback.level.toSemanticTone(),
+                    compact = true,
+                )
+                Text(
+                    text = currentFeedback.message,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    style = MiuixTheme.textStyles.body2,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
     }
 }
 
@@ -491,5 +471,20 @@ private fun editorLanguageLabel(language: LanguageScope): String {
         LanguageScope.Json -> "JSON"
         LanguageScope.Yaml -> "YAML"
         LanguageScope.Text -> "TEXT"
+    }
+}
+
+private fun EditorActionType.label(): String {
+    return when (this) {
+        EditorActionType.Format -> MLang.Component.Editor.Action.Format
+        EditorActionType.Validate -> MLang.Component.Editor.Action.Check
+    }
+}
+
+private fun EditorActionFeedbackLevel.toSemanticTone(): SemanticTone {
+    return when (this) {
+        EditorActionFeedbackLevel.Success -> SemanticTone.Success
+        EditorActionFeedbackLevel.Info -> SemanticTone.Info
+        EditorActionFeedbackLevel.Error -> SemanticTone.Danger
     }
 }

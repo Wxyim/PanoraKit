@@ -23,10 +23,12 @@ package com.github.yumelira.yumebox.feature.editor.editor
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.github.yumelira.yumebox.feature.editor.diagnostic.JsonDiagnosticsProvider
-import com.github.yumelira.yumebox.feature.editor.diagnostic.YamlDiagnosticsProvider
+import com.github.yumelira.yumebox.feature.editor.diagnostic.CodeAnalysisResult
+import com.github.yumelira.yumebox.feature.editor.diagnostic.CodeLanguageDiagnostics
 import com.github.yumelira.yumebox.feature.editor.format.CodeFormatter
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
+import dev.oom_wg.purejoy.mlang.MLang
+import dev.oom_wg.purejoy.mlang.MLangStatus
 import io.github.rosemoe.sora.widget.CodeEditor
 
 class CodeEditorState(
@@ -46,10 +48,14 @@ class CodeEditorState(
     var isModified: Boolean by mutableStateOf(false)
         private set
 
+    var lastActionFeedback: EditorActionFeedback? by mutableStateOf(null)
+        private set
+
     fun updateContent(newContent: String) {
         if (content != newContent) {
             content = newContent
             isModified = true
+            lastActionFeedback = null
             editor?.setText(newContent)
         }
     }
@@ -59,6 +65,7 @@ class CodeEditorState(
             if (content != editorContent) {
                 content = editorContent
                 isModified = true
+                lastActionFeedback = null
             }
         }
     }
@@ -71,24 +78,100 @@ class CodeEditorState(
         return CodeFormatter.validate(content, language)
     }
 
-    fun updateDiagnostics() {
-        val editor = editor ?: return
+    fun updateDiagnostics(): CodeAnalysisResult {
+        val analysis = CodeLanguageDiagnostics.analyze(content, language)
+        applyDiagnostics(analysis)
+        return analysis
+    }
 
-        when (language) {
-            LanguageScope.Json -> {
-                editor.diagnostics = JsonDiagnosticsProvider.analyze(content)
+    fun validateContent(): EditorActionFeedback {
+        val analysis = updateDiagnostics()
+        val feedback =
+            if (analysis.hasErrors) {
+                EditorActionFeedback(
+                    actionType = EditorActionType.Validate,
+                    level = EditorActionFeedbackLevel.Error,
+                    message =
+                        analysis.primaryMessage
+                            ?: MLang.Component.Editor.Error.ValidationFailed.format(
+                                MLang.Component.Editor.Error.Unknown
+                            ),
+                )
+            } else {
+                EditorActionFeedback(
+                    actionType = EditorActionType.Validate,
+                    level = EditorActionFeedbackLevel.Success,
+                    message = MLang.Component.Editor.Dialog.ValidationPassed,
+                )
             }
-            LanguageScope.Yaml -> {
-                editor.diagnostics = YamlDiagnosticsProvider.analyze(content)
-            }
-            LanguageScope.Text -> {
+        lastActionFeedback = feedback
+        return feedback
+    }
 
-                editor.diagnostics = null
+    fun formatContent(): EditorActionFeedback {
+        val analysis = CodeLanguageDiagnostics.analyze(content, language)
+        applyDiagnostics(analysis)
+
+        val feedback =
+            when {
+                analysis.hasErrors -> {
+                    EditorActionFeedback(
+                        actionType = EditorActionType.Format,
+                        level = EditorActionFeedbackLevel.Error,
+                        message =
+                            analysis.primaryMessage
+                                ?: MLang.Component.Editor.Error.ValidationFailed.format(
+                                    MLang.Component.Editor.Error.Unknown
+                                ),
+                    )
+                }
+
+                else -> {
+                    val formatted = CodeFormatter.format(content, language)
+                    when {
+                        formatted == null -> {
+                            EditorActionFeedback(
+                                actionType = EditorActionType.Format,
+                                level = EditorActionFeedbackLevel.Error,
+                                message =
+                                    MLang.Component.Editor.Error.ValidationFailed.format(
+                                        MLang.Component.Editor.Error.Unknown
+                                    ),
+                            )
+                        }
+
+                        formatted == content -> {
+                            EditorActionFeedback(
+                                actionType = EditorActionType.Format,
+                                level = EditorActionFeedbackLevel.Info,
+                                message = MLang.Override.Modifier.NotModified,
+                            )
+                        }
+
+                        else -> {
+                            updateContent(formatted)
+                            EditorActionFeedback(
+                                actionType = EditorActionType.Format,
+                                level = EditorActionFeedbackLevel.Success,
+                                message = MLangStatus.Common.Applied,
+                            )
+                        }
+                    }
+                }
             }
-        }
+
+        lastActionFeedback = feedback
+        return feedback
     }
 
     fun clearDiagnostics() {
         editor?.diagnostics = null
+    }
+
+    private fun applyDiagnostics(analysis: CodeAnalysisResult) {
+        when (language) {
+            LanguageScope.Text -> editor?.diagnostics = null
+            else -> editor?.diagnostics = analysis.diagnostics
+        }
     }
 }

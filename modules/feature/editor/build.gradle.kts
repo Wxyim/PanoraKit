@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.compose.destinations.core)
     implementation(libs.timber)
+    implementation(libs.snakeyaml)
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
 }

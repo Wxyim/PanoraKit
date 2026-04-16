@@ -31,11 +31,23 @@ import timber.log.Timber
 
 object JsonDiagnosticsProvider {
 
-    fun analyze(content: String): DiagnosticsContainer {
+    fun analyze(content: String): CodeAnalysisResult {
         val container = DiagnosticsContainer()
 
         if (content.isBlank()) {
-            return container
+            val detail = MLang.Component.Editor.Error.MissingValue
+            addDiagnostic(
+                container = container,
+                start = 0,
+                end = 0,
+                briefMessage = MLang.Component.Editor.Error.JsonSyntaxError,
+                detailedMessage = detail,
+            )
+            return CodeAnalysisResult(
+                diagnostics = container,
+                hasErrors = true,
+                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(detail),
+            )
         }
 
         val trimmed = content.trim()
@@ -46,44 +58,73 @@ object JsonDiagnosticsProvider {
                 trimmed.startsWith("{") -> JSONObject(trimmed)
                 trimmed.startsWith("[") -> JSONArray(trimmed)
                 else -> {
-
-                    container.addDiagnostic(
-                        DiagnosticRegion(
-                            0,
-                            content.length.coerceAtMost(1),
-                            DiagnosticRegion.SEVERITY_ERROR,
-                            0,
-                            DiagnosticDetail(
-                                briefMessage = "JSON 格式错误",
-                                detailedMessage = "JSON 必须以 '{' 或 '[' 开头",
-                            ),
-                        )
+                    val detail = MLang.Component.Editor.Error.JsonRootExpected
+                    addDiagnostic(
+                        container = container,
+                        start = 0,
+                        end = content.length.coerceAtMost(1),
+                        briefMessage = MLang.Component.Editor.Error.JsonSyntaxError,
+                        detailedMessage = detail,
+                    )
+                    return CodeAnalysisResult(
+                        diagnostics = container,
+                        hasErrors = true,
+                        primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
+                            detail
+                        ),
                     )
                 }
             }
         } catch (e: JSONException) {
-
-            val diagnostic = parseJsonException(e, content)
+            val detailMessage = formatErrorMessage(e.message)
+            val diagnostic = parseJsonException(e, content, detailMessage)
             if (diagnostic != null) {
                 container.addDiagnostic(diagnostic)
             }
+            return CodeAnalysisResult(
+                diagnostics = container,
+                hasErrors = true,
+                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
+                    detailMessage
+                ),
+            )
         } catch (e: Exception) {
             Timber.w(e, "JSON analysis failed")
+            return CodeAnalysisResult(
+                diagnostics = container,
+                hasErrors = true,
+                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
+                    MLang.Component.Editor.Error.Unknown
+                ),
+            )
         }
 
-        return container
+        return CodeAnalysisResult(diagnostics = container)
     }
 
-    private fun parseJsonException(e: JSONException, content: String): DiagnosticRegion? {
+    private fun parseJsonException(
+        e: JSONException,
+        content: String,
+        detailMessage: String,
+    ): DiagnosticRegion? {
         val message = e.message ?: return null
-
         val indexPattern = "character (\\d+)".toRegex()
         val match = indexPattern.find(message)
 
         val errorIndex = match?.groupValues?.get(1)?.toIntOrNull() ?: 0
 
-        val safeIndex = errorIndex.coerceIn(0, content.length - 1)
-        val endIndex = (safeIndex + 1).coerceAtMost(content.length)
+        val safeIndex =
+            if (content.isEmpty()) {
+                0
+            } else {
+                errorIndex.coerceIn(0, content.length - 1)
+            }
+        val endIndex =
+            if (content.isEmpty()) {
+                0
+            } else {
+                (safeIndex + 1).coerceAtMost(content.length)
+            }
 
         return DiagnosticRegion(
             safeIndex,
@@ -92,12 +133,16 @@ object JsonDiagnosticsProvider {
             0,
             DiagnosticDetail(
                 briefMessage = MLang.Component.Editor.Error.JsonSyntaxError,
-                detailedMessage = formatErrorMessage(message),
+                detailedMessage = detailMessage,
             ),
         )
     }
 
-    private fun formatErrorMessage(message: String): String {
+    private fun formatErrorMessage(message: String?): String {
+        if (message.isNullOrBlank()) {
+            return MLang.Component.Editor.Error.Unknown
+        }
+
         return when {
             message.contains("Unterminated") -> MLang.Component.Editor.Error.Unterminated
             message.contains("Expected") -> {
@@ -112,5 +157,26 @@ object JsonDiagnosticsProvider {
             message.contains("Duplicate") -> MLang.Component.Editor.Error.DuplicateKey
             else -> message
         }
+    }
+
+    private fun addDiagnostic(
+        container: DiagnosticsContainer,
+        start: Int,
+        end: Int,
+        briefMessage: String,
+        detailedMessage: String,
+    ) {
+        container.addDiagnostic(
+            DiagnosticRegion(
+                start,
+                end.coerceAtLeast(start),
+                DiagnosticRegion.SEVERITY_ERROR,
+                0,
+                DiagnosticDetail(
+                    briefMessage = briefMessage,
+                    detailedMessage = detailedMessage,
+                ),
+            )
+        )
     }
 }
