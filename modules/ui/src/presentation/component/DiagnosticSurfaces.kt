@@ -30,7 +30,7 @@ import com.github.yumelira.yumebox.domain.model.HealthCheckSeverity
 import com.github.yumelira.yumebox.domain.model.HealthReport
 import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
-import dev.oom_wg.purejoy.mlang.DiagnosticLang
+import dev.oom_wg.purejoy.mlang.MLangStatus
 
 data class DiagnosticBannerState(
     val headline: String,
@@ -51,35 +51,35 @@ fun StructuredError.toSemanticTone(): SemanticTone {
 
 fun ErrorPhase.toDisplayLabel(): String {
     return when (this) {
-        ErrorPhase.Init -> DiagnosticLang.Phase.Init
-        ErrorPhase.Preparing -> DiagnosticLang.Phase.Preparing
-        ErrorPhase.Connecting -> DiagnosticLang.Phase.Connecting
-        ErrorPhase.Running -> DiagnosticLang.Phase.Running
-        ErrorPhase.Reloading -> DiagnosticLang.Phase.Reloading
-        ErrorPhase.Stopping -> DiagnosticLang.Phase.Stopping
-        ErrorPhase.Saving -> DiagnosticLang.Phase.Saving
-        ErrorPhase.Importing -> DiagnosticLang.Phase.Importing
-        ErrorPhase.Exporting -> DiagnosticLang.Phase.Exporting
-        ErrorPhase.Compiling -> DiagnosticLang.Phase.Compiling
-        ErrorPhase.Validating -> DiagnosticLang.Phase.Validating
+        ErrorPhase.Init -> MLangStatus.Phase.Init
+        ErrorPhase.Preparing -> MLangStatus.Phase.Preparing
+        ErrorPhase.Connecting -> MLangStatus.Phase.Connecting
+        ErrorPhase.Running -> MLangStatus.Phase.Running
+        ErrorPhase.Reloading -> MLangStatus.Phase.Reloading
+        ErrorPhase.Stopping -> MLangStatus.Phase.Stopping
+        ErrorPhase.Saving -> MLangStatus.Phase.Saving
+        ErrorPhase.Importing -> MLangStatus.Phase.Importing
+        ErrorPhase.Exporting -> MLangStatus.Phase.Exporting
+        ErrorPhase.Compiling -> MLangStatus.Phase.Compiling
+        ErrorPhase.Validating -> MLangStatus.Phase.Validating
     }
 }
 
 fun ErrorImpact.toDisplayLabel(): String {
     return when (this) {
-        ErrorImpact.None -> DiagnosticLang.Impact.None
-        ErrorImpact.Degraded -> DiagnosticLang.Impact.Degraded
-        ErrorImpact.FeatureUnavailable -> DiagnosticLang.Impact.FeatureUnavailable
-        ErrorImpact.ServiceDown -> DiagnosticLang.Impact.ServiceDown
-        ErrorImpact.DataLoss -> DiagnosticLang.Impact.DataLoss
+        ErrorImpact.None -> MLangStatus.Impact.None
+        ErrorImpact.Degraded -> MLangStatus.Impact.Degraded
+        ErrorImpact.FeatureUnavailable -> MLangStatus.Impact.FeatureUnavailable
+        ErrorImpact.ServiceDown -> MLangStatus.Impact.ServiceDown
+        ErrorImpact.DataLoss -> MLangStatus.Impact.DataLoss
     }
 }
 
 fun ErrorRetryability.toDisplayLabel(): String {
     return when (this) {
-        ErrorRetryability.Retryable -> DiagnosticLang.Retryability.Retryable
-        ErrorRetryability.RetryableAfterAction -> DiagnosticLang.Retryability.RetryableAfterAction
-        ErrorRetryability.NonRetryable -> DiagnosticLang.Retryability.NonRetryable
+        ErrorRetryability.Retryable -> MLangStatus.Retryability.Retryable
+        ErrorRetryability.RetryableAfterAction -> MLangStatus.Retryability.RetryableAfterAction
+        ErrorRetryability.NonRetryable -> MLangStatus.Retryability.NonRetryable
     }
 }
 
@@ -172,9 +172,9 @@ fun StructuredLogEntry.toTraceEntry(): TraceEntry {
 
 private fun attentionSummary(attentionCount: Int): String {
     return if (attentionCount > 0) {
-        DiagnosticLang.AttentionItems.format(attentionCount)
+        MLangStatus.AttentionItems.format(attentionCount)
     } else {
-        DiagnosticLang.NoActiveIssues
+        MLangStatus.NoActiveIssues
     }
 }
 

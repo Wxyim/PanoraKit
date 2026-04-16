@@ -42,11 +42,9 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
 import com.github.yumelira.yumebox.presentation.icon.yume.Check
 import com.github.yumelira.yumebox.presentation.icon.yume.Close
-import com.github.yumelira.yumebox.presentation.icon.yume.Link
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
-import com.github.yumelira.yumebox.presentation.icon.yume.Share
 import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.LocalPageMetrics
 import com.github.yumelira.yumebox.presentation.util.OverrideEditorSection
@@ -141,62 +139,6 @@ internal fun DeleteConfirmDialog(
                 cancelText = MLang.ProfilesPage.Button.Cancel,
                 confirmText = MLang.ProfilesPage.DeleteDialog.Confirm,
             )
-        },
-    )
-}
-
-@Composable
-internal fun ShareOptionsDialog(
-    show: MutableState<Boolean>,
-    profile: Profile,
-    onDismiss: () -> Unit,
-    onDismissFinished: (() -> Unit)? = null,
-    onShareFile: (Profile) -> Unit,
-    onShareLink: (Profile) -> Unit,
-) {
-    AppDialog(
-        show = show.value,
-        modifier = Modifier,
-        title = MLang.ProfilesPage.ShareDialog.Title,
-        titleColor = DialogDefaults.titleColor(),
-        summary = null,
-        summaryColor = DialogDefaults.summaryColor(),
-        backgroundColor = DialogDefaults.backgroundColor(),
-        enableWindowDim = true,
-        onDismissRequest = onDismiss,
-        onDismissFinished = onDismissFinished,
-        outsideMargin = DialogDefaults.outsideMargin,
-        insideMargin = DialogDefaults.insideMargin,
-        defaultWindowInsetsPadding = true,
-        content = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (profile.type == Profile.Type.Url) {
-                    AppActionTile(
-                        title = MLang.ProfilesPage.ShareDialog.ShareLink,
-                        imageVector = Yume.Link,
-                        onClick = { onShareLink(profile) },
-                        modifier = Modifier.fillMaxWidth(),
-                        tone = SemanticTone.Info,
-                        highEmphasis = true,
-                    )
-                }
-
-                AppActionTile(
-                    title = MLang.ProfilesPage.ShareDialog.ShareFile,
-                    imageVector = Yume.Share,
-                    onClick = { onShareFile(profile) },
-                    modifier = Modifier.fillMaxWidth(),
-                    tone = SemanticTone.Neutral,
-                )
-
-                AppActionTile(
-                    title = MLang.ProfilesPage.Button.Cancel,
-                    imageVector = Yume.Close,
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    tone = SemanticTone.Neutral,
-                )
-            }
         },
     )
 }

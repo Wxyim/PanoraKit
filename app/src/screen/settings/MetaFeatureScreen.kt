@@ -46,18 +46,12 @@ import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.ExplanationChainDetailScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.RawTraceDetailScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.RuleSetInspectorScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.RuntimeHealthDetailScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.SnapshotHistoryScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.SourceRegistryOverviewScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
+import dev.oom_wg.purejoy.mlang.MLangStatus
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -80,14 +74,6 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val externalResourceBanner =
         remember(uiState.externalResources) { uiState.externalResources.toBannerState() }
-    val recentFailureSummary =
-        remember(uiState.recentFailures) {
-            if (uiState.recentFailures.isEmpty()) {
-                DiagnosticLang.NoActiveIssues
-            } else {
-                DiagnosticLang.RecentFailureItems.format(uiState.recentFailures.size)
-            }
-        }
     val sourceSummary =
         remember(externalResourceBanner.subtitle) {
             externalResourceBanner.subtitle ?: MLang.Providers.Empty.NoProvidersHint
@@ -194,138 +180,24 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                     item {
                         MetaOverviewSection(
                             runtimeSnapshot = uiState.runtimeSnapshot,
-                            failureCount = uiState.recentFailures.size,
+                            effectiveRules = uiState.effectiveRules,
                             sourceCount = uiState.externalResources.subscriptionSources.size,
                             staleCount = uiState.externalResources.staleCount,
                         )
                     }
                     item {
                         MetaCapabilitySection(
-                            title = DiagnosticLang.DetailPages.Console.RepairAndTriage,
+                            title = MLangStatus.Meta.SectionTitle,
                             entries =
                                 listOf(
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.RuntimeHealth.Title,
-                                        summary = recentFailureSummary,
-                                        imageVector = Yume.Activity,
-                                        tone = buildRuntimeTone(uiState.runtimeSnapshot),
-                                        tier = DiagnosticLang.DetailPages.Console.BeginnerTier,
-                                        onClick = {
-                                            navigator.navigate(
-                                                RuntimeHealthDetailScreenDestination
-                                            ) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
                                     MetaCapabilityEntry(
                                         title = MLang.Settings.More.Logs,
-                                        summary = recentFailureSummary,
+                                        summary = MLang.Settings.More.LogsSummary,
                                         imageVector = Yume.Message,
-                                        tone =
-                                            if (uiState.recentFailures.isEmpty()) {
-                                                SemanticTone.Success
-                                            } else {
-                                                SemanticTone.Danger
-                                            },
-                                        tier = DiagnosticLang.DetailPages.Console.BeginnerTier,
+                                        tone = SemanticTone.Neutral,
+                                        iconTone = SemanticTone.Warning,
                                         onClick = {
                                             navigator.navigate(LogScreenDestination) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.SourceRegistry.Title,
-                                        summary = sourceSummary,
-                                        imageVector = Yume.Folders,
-                                        tone = externalResourceBanner.tone,
-                                        tier = DiagnosticLang.DetailPages.Console.BeginnerTier,
-                                        onClick = {
-                                            navigator.navigate(
-                                                SourceRegistryOverviewScreenDestination
-                                            ) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
-                                ),
-                        )
-                    }
-                    item {
-                        MetaCapabilitySection(
-                            title = DiagnosticLang.DetailPages.Console.ExplainAndValidate,
-                            entries =
-                                listOf(
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.ExplanationChain.Title,
-                                        summary =
-                                            uiState.recentFailures.lastOrNull()?.message
-                                                ?: DiagnosticLang.DetailPages.ExplanationChain
-                                                    .Summary,
-                                        imageVector = Yume.Sparkles,
-                                        tone = SemanticTone.Info,
-                                        tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
-                                        onClick = {
-                                            navigator.navigate(
-                                                ExplanationChainDetailScreenDestination
-                                            ) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.RuleSetInspector.Title,
-                                        summary =
-                                            DiagnosticLang.DetailPages.RuleSetInspector.Summary,
-                                        imageVector = Yume.ListCollapse,
-                                        tone = SemanticTone.Info,
-                                        tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
-                                        onClick = {
-                                            navigator.navigate(RuleSetInspectorScreenDestination) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.SnapshotHistory.Title,
-                                        summary =
-                                            DiagnosticLang.DetailPages.SnapshotHistory.Summary,
-                                        imageVector = Yume.Save,
-                                        tone = SemanticTone.Brand,
-                                        tier = DiagnosticLang.DetailPages.Console.IntermediateTier,
-                                        onClick = {
-                                            navigator.navigate(SnapshotHistoryScreenDestination) {
-                                                launchSingleTop = true
-                                            }
-                                        },
-                                    ),
-                                ),
-                        )
-                    }
-                    item {
-                        MetaCapabilitySection(
-                            title = DiagnosticLang.DetailPages.Console.AdvancedAndUtilities,
-                            entries =
-                                listOf(
-                                    MetaCapabilityEntry(
-                                        title = DiagnosticLang.DetailPages.RawTrace.Title,
-                                        summary =
-                                            if (uiState.recentFailures.isEmpty()) {
-                                                DiagnosticLang.DetailPages.RawTrace.Summary
-                                            } else {
-                                                recentFailureSummary
-                                            },
-                                        imageVector = Yume.ClipboardCopy,
-                                        tone =
-                                            if (uiState.recentFailures.isEmpty()) {
-                                                SemanticTone.Neutral
-                                            } else {
-                                                SemanticTone.Warning
-                                            },
-                                        tier = DiagnosticLang.DetailPages.Console.AdvancedTier,
-                                        onClick = {
-                                            navigator.navigate(RawTraceDetailScreenDestination) {
                                                 launchSingleTop = true
                                             }
                                         },
@@ -334,8 +206,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         title = MLang.Connection.Title,
                                         summary = MLang.Connection.Summary,
                                         imageVector = Yume.Link,
-                                        tone = SemanticTone.Info,
-                                        tier = DiagnosticLang.DetailPages.Console.AdvancedTier,
+                                        tone = SemanticTone.Neutral,
+                                        iconTone = SemanticTone.Brand,
                                         onClick = {
                                             navigator.navigate(ConnectionScreenDestination) {
                                                 launchSingleTop = true
@@ -347,7 +219,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         summary = sourceSummary,
                                         imageVector = Yume.`Settings-2`,
                                         tone = externalResourceBanner.tone,
-                                        tier = DiagnosticLang.DetailPages.Console.AdvancedTier,
+                                        iconTone = SemanticTone.Info,
                                         onClick = {
                                             navigator.navigate(ProvidersScreenDestination) {
                                                 launchSingleTop = true
@@ -358,21 +230,16 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                                         title = MLang.MetaFeature.RuntimeConfig.Title,
                                         summary = MLang.MetaFeature.RuntimeConfig.Summary,
                                         imageVector = Yume.`Scroll-text`,
-                                        tone = SemanticTone.Info,
-                                        tier =
-                                            if (runtimeConfigLoading) {
-                                                DiagnosticLang.DetailPages.Remediation.Pending
-                                            } else {
-                                                DiagnosticLang.DetailPages.Console.AdvancedTier
-                                            },
+                                        tone = SemanticTone.Neutral,
+                                        iconTone = SemanticTone.Brand,
                                         onClick = openRuntimeConfigPreview,
                                     ),
                                     MetaCapabilityEntry(
                                         title = MLang.MetaFeature.GeoX.OnlineUpdateTitle,
                                         summary = MLang.MetaFeature.GeoX.OnlineUpdateSummary,
                                         imageVector = Yume.Cloud,
-                                        tone = SemanticTone.Info,
-                                        tier = DiagnosticLang.DetailPages.Console.AdvancedTier,
+                                        tone = SemanticTone.Neutral,
+                                        iconTone = SemanticTone.Success,
                                         onClick = { showGeoXDownloadSheet.value = true },
                                     ),
                                 ),
@@ -419,62 +286,47 @@ private data class MetaCapabilityEntry(
     val summary: String?,
     val imageVector: ImageVector,
     val tone: SemanticTone,
-    val tier: String,
+    val iconTone: SemanticTone,
     val onClick: () -> Unit,
 )
 
 @Composable
 private fun MetaOverviewSection(
     runtimeSnapshot: RuntimeSnapshot,
-    failureCount: Int,
+    effectiveRules: EffectiveRuleSummaryState,
     sourceCount: Int,
     staleCount: Int,
 ) {
-    val readyPayloadCount = runtimeSnapshot.payloadReadyCount()
-    val failureTone = if (failureCount == 0) SemanticTone.Success else SemanticTone.Danger
+    val runtimeTone = buildRuntimeTone(runtimeSnapshot)
+    val ruleTone = if ((effectiveRules.count ?: 0) > 0) SemanticTone.Info else SemanticTone.Neutral
     val sourceTone = if (staleCount > 0) SemanticTone.Warning else SemanticTone.Info
 
-    SmallTitle(DiagnosticLang.DetailPages.Common.StateSummary)
+    SmallTitle(MLangStatus.Meta.StateSummaryTitle)
     Card {
         InfoSettingRow(
             title =
                 runtimeSnapshot.profileName?.takeIf(String::isNotBlank)
-                    ?: DiagnosticLang.DetailPages.Console.Headline,
-            summary = buildRuntimeSummary(runtimeSnapshot, failureCount),
+                    ?: MLangStatus.Meta.RuntimeTitle,
+            summary = buildRuntimeSummary(runtimeSnapshot),
             valueLabel = runtimeSnapshot.phase.toMetaDisplayLabel(),
-            tone = buildRuntimeTone(runtimeSnapshot, failureCount),
-            badgeLeadingDot = failureCount > 0 || runtimeSnapshot.phase == RuntimePhase.Failed,
+            tone = runtimeTone,
+            badgeLeadingDot =
+                runtimeSnapshot.phase == RuntimePhase.Failed ||
+                    (runtimeSnapshot.phase == RuntimePhase.Running && !runtimeSnapshot.payloadReady),
         )
         InfoSettingRow(
-            title = DiagnosticLang.DetailPages.RuntimeHealth.Payload,
-            summary =
-                DiagnosticLang.DetailPages.RuntimeHealth.PayloadReadyFormat.format(
-                    readyPayloadCount,
-                    3,
-                ),
-            valueLabel = "$readyPayloadCount/3",
-            tone = if (runtimeSnapshot.payloadReady) SemanticTone.Success else SemanticTone.Warning,
-            badgeLeadingDot = !runtimeSnapshot.payloadReady,
+            title = MLangStatus.Meta.EffectiveRules,
+            summary = effectiveRules.summary,
+            valueLabel = effectiveRules.count?.toString() ?: MLangStatus.Common.NotAvailable,
+            tone = ruleTone,
         )
         InfoSettingRow(
-            title = DiagnosticLang.DetailPages.RuntimeHealth.Failures,
-            summary =
-                if (failureCount == 0) {
-                    DiagnosticLang.NoActiveIssues
-                } else {
-                    DiagnosticLang.RecentFailureItems.format(failureCount)
-                },
-            valueLabel = failureCount.toString(),
-            tone = failureTone,
-            badgeLeadingDot = failureCount > 0,
-        )
-        InfoSettingRow(
-            title = DiagnosticLang.DetailPages.RuntimeHealth.Sources,
+            title = MLangStatus.Meta.Sources,
             summary =
                 if (staleCount > 0) {
-                    DiagnosticLang.SourceStaleItems.format(staleCount)
+                    MLangStatus.SourceStaleItems.format(staleCount)
                 } else {
-                    DiagnosticLang.SourceReadyItems.format(sourceCount)
+                    MLangStatus.SourceReadyItems.format(sourceCount)
                 },
             valueLabel = sourceCount.toString(),
             tone = sourceTone,
@@ -494,9 +346,7 @@ private fun MetaCapabilitySection(title: String, entries: List<MetaCapabilityEnt
                 summary = entry.summary,
                 imageVector = entry.imageVector,
                 tone = entry.tone,
-                valueLabel = entry.tier,
-                badgeTone = entry.tone,
-                badgeLeadingDot = entry.tone != SemanticTone.Neutral,
+                iconTone = entry.iconTone,
                 showDivider = index != entries.lastIndex,
                 onClick = entry.onClick,
             )
@@ -504,44 +354,39 @@ private fun MetaCapabilitySection(title: String, entries: List<MetaCapabilityEnt
     }
 }
 
-private fun buildRuntimeTone(
-    runtimeSnapshot: RuntimeSnapshot,
-    failureCount: Int = 0,
-): SemanticTone {
-    return when {
-        failureCount > 0 || runtimeSnapshot.phase == RuntimePhase.Failed -> SemanticTone.Danger
-        runtimeSnapshot.phase == RuntimePhase.Running && runtimeSnapshot.payloadReady ->
-            SemanticTone.Success
-        runtimeSnapshot.phase == RuntimePhase.Running -> SemanticTone.Warning
-        runtimeSnapshot.phase == RuntimePhase.Starting ||
-            runtimeSnapshot.phase == RuntimePhase.Stopping -> SemanticTone.Info
-        else -> SemanticTone.Neutral
+private fun buildRuntimeTone(runtimeSnapshot: RuntimeSnapshot): SemanticTone {
+    return when (runtimeSnapshot.phase) {
+        RuntimePhase.Failed -> SemanticTone.Danger
+        RuntimePhase.Running ->
+            if (runtimeSnapshot.payloadReady) SemanticTone.Success else SemanticTone.Warning
+        RuntimePhase.Starting,
+        RuntimePhase.Stopping -> SemanticTone.Info
+        RuntimePhase.Idle -> SemanticTone.Neutral
     }
 }
 
-private fun buildRuntimeSummary(runtimeSnapshot: RuntimeSnapshot, failureCount: Int): String {
-    return when {
-        failureCount > 0 || runtimeSnapshot.phase == RuntimePhase.Failed ->
-            DiagnosticLang.DetailPages.Console.RuntimeAttention
-        runtimeSnapshot.phase == RuntimePhase.Running && runtimeSnapshot.payloadReady ->
-            DiagnosticLang.DetailPages.Console.RuntimeStable
-        runtimeSnapshot.phase == RuntimePhase.Running ->
-            DiagnosticLang.DetailPages.RuntimeHealth.RunningDegraded
-        else -> DiagnosticLang.DetailPages.Console.RuntimeIdle
+private fun buildRuntimeSummary(runtimeSnapshot: RuntimeSnapshot): String {
+    return when (runtimeSnapshot.phase) {
+        RuntimePhase.Idle -> MLangStatus.Meta.RuntimeIdle
+        RuntimePhase.Starting -> MLangStatus.Meta.RuntimeStarting
+        RuntimePhase.Running ->
+            if (runtimeSnapshot.payloadReady) {
+                MLangStatus.Meta.RuntimeStable
+            } else {
+                MLangStatus.Meta.RuntimeRunningDegraded
+            }
+        RuntimePhase.Stopping -> MLangStatus.Meta.RuntimeStopping
+        RuntimePhase.Failed -> MLangStatus.Meta.RuntimeAttention
     }
-}
-
-private fun RuntimeSnapshot.payloadReadyCount(): Int {
-    return listOf(profileReady, groupsReady, trafficReady).count { it }
 }
 
 private fun RuntimePhase.toMetaDisplayLabel(): String {
     return when (this) {
-        RuntimePhase.Idle -> DiagnosticLang.DetailPages.RuntimeHealth.IdleShort
-        RuntimePhase.Starting -> DiagnosticLang.DetailPages.RuntimeHealth.StartingShort
-        RuntimePhase.Running -> DiagnosticLang.Phase.Running
-        RuntimePhase.Stopping -> DiagnosticLang.DetailPages.RuntimeHealth.StoppingShort
-        RuntimePhase.Failed -> DiagnosticLang.DetailPages.RuntimeHealth.FailedShort
+        RuntimePhase.Idle -> MLangStatus.Meta.IdleShort
+        RuntimePhase.Starting -> MLangStatus.Meta.StartingShort
+        RuntimePhase.Running -> MLangStatus.Phase.Running
+        RuntimePhase.Stopping -> MLangStatus.Meta.StoppingShort
+        RuntimePhase.Failed -> MLangStatus.Meta.FailedShort
     }
 }
 

@@ -217,10 +217,10 @@ private fun ProfileModeBadge(
     val controlDescription =
         listOf(profileName ?: MLang.Home.Profile.NoProfile, headline).joinToString(", ")
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
         animateColorAsState(
-            targetValue = accentColor.copy(alpha = tone.containerAlpha(onClick != null, isPressed)),
+            targetValue =
+                accentColor.copy(alpha = tone.containerAlpha(onClick != null, pressed = false)),
             animationSpec =
                 tween(
                     durationMillis = AnimationSpecs.DURATION_INSTANT,
@@ -230,12 +230,7 @@ private fun ProfileModeBadge(
         )
     val controlScale by
         animateFloatAsState(
-            targetValue =
-                if (onClick != null && isPressed) {
-                    metrics.controlPressedScale
-                } else {
-                    1f
-                },
+            targetValue = 1f,
             animationSpec =
                 tween(
                     durationMillis = AnimationSpecs.DURATION_INSTANT,
@@ -264,6 +259,7 @@ private fun ProfileModeBadge(
                             baseModifier.clickable(
                                 role = Role.Button,
                                 interactionSource = interactionSource,
+                                indication = null,
                                 onClickLabel = controlDescription,
                                 onClick = onClick,
                             )

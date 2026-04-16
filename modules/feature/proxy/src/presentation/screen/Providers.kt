@@ -20,55 +20,56 @@
 
 package com.github.yumelira.yumebox.presentation.screen
 
-import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.Provider
-import com.github.yumelira.yumebox.domain.model.ErrorCategory
-import com.github.yumelira.yumebox.domain.model.ErrorImpact
-import com.github.yumelira.yumebox.domain.model.ErrorPhase
-import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.RemoteOverrideResource
-import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.AppCircularIconAction
-import com.github.yumelira.yumebox.presentation.component.AppCommandButton
 import com.github.yumelira.yumebox.presentation.component.Card
 import com.github.yumelira.yumebox.presentation.component.CenteredText
-import com.github.yumelira.yumebox.presentation.component.DiagnosticBannerState
-import com.github.yumelira.yumebox.presentation.component.InfoSettingRow
 import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
+import com.github.yumelira.yumebox.presentation.component.ReadonlyInfoField
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
 import com.github.yumelira.yumebox.presentation.component.SmallTitle
+import com.github.yumelira.yumebox.presentation.component.StatusBadge
 import com.github.yumelira.yumebox.presentation.component.TopBar
-import com.github.yumelira.yumebox.presentation.component.orFallback
-import com.github.yumelira.yumebox.presentation.component.toDisplayLabel
-import com.github.yumelira.yumebox.presentation.component.toSemanticTone
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
-import com.github.yumelira.yumebox.presentation.icon.yume.Edit
-import com.github.yumelira.yumebox.presentation.icon.yume.Folders
+import com.github.yumelira.yumebox.presentation.icon.yume.Link
 import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.adaptiveContentWidth
-import com.github.yumelira.yumebox.presentation.util.ExternalResourceDiagnostics
-import com.github.yumelira.yumebox.presentation.util.buildExternalResourceDiagnostics
+import com.github.yumelira.yumebox.presentation.util.canUpdateFromRemote
+import com.github.yumelira.yumebox.presentation.util.itemCountLabel
+import com.github.yumelira.yumebox.presentation.util.statusLabel
+import com.github.yumelira.yumebox.presentation.util.statusTone
+import com.github.yumelira.yumebox.presentation.util.transportTone
+import com.github.yumelira.yumebox.presentation.util.updatedAtLabel
 import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -88,17 +89,6 @@ fun ProvidersContent(
     viewModel: ProvidersViewModel = koinViewModel(),
     onRefreshSourcesRequest: () -> Unit = {},
     refreshSourcesInProgress: Boolean = false,
-    diagnosticContent:
-        @Composable
-        (
-            ExternalResourceDiagnostics, com.github.yumelira.yumebox.domain.model.StructuredError?,
-        ) -> Unit =
-        { externalDiagnostics, structuredError ->
-            ProvidersDiagnosticSummaryCard(
-                banner = externalDiagnostics.toBannerState(),
-                structuredError = structuredError,
-            )
-        },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
@@ -162,24 +152,10 @@ fun ProvidersContent(
                 }
             }
         }
-    val externalDiagnostics =
+    val canRefreshAll =
         remember(providers, remoteOverrides) {
-            buildExternalResourceDiagnostics(
-                providers = providers,
-                remoteOverrides = remoteOverrides,
-            )
+            providers.any(Provider::canUpdateFromRemote) || remoteOverrides.isNotEmpty()
         }
-    val structuredError =
-        remember(uiState.structuredError, uiState.error) {
-            uiState.structuredError.orFallback(
-                message = uiState.error,
-                category = ErrorCategory.Runtime,
-                phase = ErrorPhase.Running,
-                impact = ErrorImpact.FeatureUnavailable,
-                retryability = ErrorRetryability.Retryable,
-            )
-        }
-
     Scaffold(
         topBar = {
             TopBar(
@@ -192,10 +168,7 @@ fun ProvidersContent(
                     )
                 },
                 actions = {
-                    if (
-                        providers.any { it.vehicleType == Provider.VehicleType.HTTP } ||
-                            remoteOverrides.isNotEmpty()
-                    ) {
+                    if (canRefreshAll) {
                         AppCircularIconAction(
                             imageVector = Yume.`Circle-fading-arrow-up`,
                             contentDescription = MLang.Providers.Action.UpdateAll,
@@ -224,11 +197,6 @@ fun ProvidersContent(
             )
         } else {
             ScreenLazyColumn(scrollBehavior = scrollBehavior, innerPadding = innerPadding) {
-                item(key = "providers_diagnostics") {
-                    ProvidersCenteredContent {
-                        diagnosticContent(externalDiagnostics, structuredError)
-                    }
-                }
                 sections.forEach { section ->
                     providerSection(
                         section = section,
@@ -236,9 +204,6 @@ fun ProvidersContent(
                             uiState.updatingProviders.contains(providerKey)
                         },
                         onUpdate = { provider -> viewModel.updateProvider(provider) },
-                        onUpload = { provider, uri ->
-                            viewModel.uploadProviderFile(context, provider, uri)
-                        },
                     )
                 }
                 remoteSections.forEach { section ->
@@ -256,181 +221,152 @@ fun ProvidersContent(
 }
 
 @Composable
-private fun ProvidersDiagnosticSummaryCard(
-    banner: DiagnosticBannerState,
-    structuredError: com.github.yumelira.yumebox.domain.model.StructuredError?,
-) {
-    Card {
-        InfoSettingRow(
-            title = banner.headline,
-            summary = banner.subtitle,
-            valueLabel = banner.tone.toProviderStateLabel(),
-            tone = banner.tone,
-            badgeLeadingDot =
-                banner.tone == SemanticTone.Warning || banner.tone == SemanticTone.Danger,
-            showDivider = structuredError != null,
-        )
-        structuredError?.let { error ->
-            InfoSettingRow(
-                title = error.userVisibleMessage,
-                summary = error.technicalDetail ?: error.rawCause,
-                valueLabel = error.impact.toDisplayLabel(),
-                tone = error.toSemanticTone(),
-                badgeLeadingDot = true,
-                showDivider = false,
-            )
-        }
-    }
-}
-
-private fun SemanticTone.toProviderStateLabel(): String {
-    return when (this) {
-        SemanticTone.Success,
-        SemanticTone.Brand -> DiagnosticLang.DetailPages.Common.Ready
-        SemanticTone.Info -> DiagnosticLang.DetailPages.Common.Waiting
-        SemanticTone.Warning -> DiagnosticLang.DetailPages.Common.Attention
-        SemanticTone.Danger -> DiagnosticLang.DetailPages.Remediation.Failed
-        SemanticTone.Neutral -> DiagnosticLang.DetailPages.Common.NotAvailable
-    }
-}
-
-@Composable
 private fun RemoteOverrideCard(
     resource: RemoteOverrideResource,
     isUpdating: Boolean,
     onUpdate: () -> Unit,
 ) {
-    Card(modifier = Modifier.padding(vertical = 4.dp)) {
+    val statusTone = resource.statusTone(isUpdating = isUpdating)
+
+    Card(modifier = Modifier.padding(vertical = 4.dp), cornerRadius = 28) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = resource.name,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.size(4.dp))
-                Text(
-                    text = resource.sourceUrl,
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-                Spacer(modifier = Modifier.size(4.dp))
-                Text(
-                    text =
-                        MLang.Providers.Summary.OverrideIntervalAndCount.format(
-                            resource.updateIntervalSeconds,
-                            resource.ruleCount,
-                        ),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+
+                StatusBadge(
+                    text = resource.statusLabel(isUpdating = isUpdating),
+                    tone = statusTone,
+                    leadingDot = true,
+                    compact = true,
                 )
             }
 
-            AppCommandButton(
-                title = MLang.Providers.Action.Update,
-                imageVector = Yume.`Circle-fading-arrow-up`,
-                enabled = !isUpdating,
-                onClick = onUpdate,
-                tone = SemanticTone.Info,
-                highEmphasis = true,
+            ReadonlyInfoField(
+                imageVector = Yume.Link,
+                value = resource.sourceUrl,
+                summary = null,
+                tone = resource.transportTone(),
+                compact = true,
+                maxLines = 1,
+            )
+
+            ResourceCardFooter(
+                badges = {
+                    resource.updatedAtLabel(::formatTimestamp)?.let { label ->
+                        StatusBadge(text = label, tone = SemanticTone.Neutral, compact = true)
+                    }
+                    resource.itemCountLabel()?.let { label ->
+                        StatusBadge(text = label, tone = SemanticTone.Neutral, compact = true)
+                    }
+                },
+                canUpdate = true,
+                isUpdating = isUpdating,
+                onUpdate = onUpdate,
             )
         }
     }
 }
 
 @Composable
-private fun ProviderCard(
-    provider: Provider,
-    isUpdating: Boolean,
-    onUpdate: () -> Unit,
-    onUpload: (Uri) -> Unit,
-) {
-    var showActionsSheet by remember { mutableStateOf(false) }
+private fun ProviderCard(provider: Provider, isUpdating: Boolean, onUpdate: () -> Unit) {
+    val statusTone = provider.statusTone(isUpdating = isUpdating)
+    val canUpdate = provider.canUpdateFromRemote()
 
-    val filePicker =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
-            uri: Uri? ->
-            uri?.let { onUpload(it) }
-        }
-
-    Card(modifier = Modifier.padding(vertical = 4.dp)) {
+    Card(modifier = Modifier.padding(vertical = 4.dp), cornerRadius = 24) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = provider.name,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.size(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = provider.vehicleType.name,
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                    if (provider.updatedAt > 0) {
-                        Text(
-                            text = "•",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Text(
-                            text = formatTimestamp(provider.updatedAt),
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
-                }
+
+                StatusBadge(
+                    text = provider.statusLabel(isUpdating = isUpdating),
+                    tone = statusTone,
+                    leadingDot = true,
+                    compact = true,
+                )
             }
 
-            if (provider.path.isNotBlank()) {
-                AppCommandButton(
-                    title = MLang.Providers.Action.Operation,
-                    imageVector = Yume.Edit,
-                    enabled = !isUpdating,
-                    onClick = { showActionsSheet = true },
-                    tone = SemanticTone.Info,
-                )
-            }
+            ResourceCardFooter(
+                badges = {
+                    provider.updatedAtLabel(::formatTimestamp)?.let { label ->
+                        StatusBadge(text = label, tone = SemanticTone.Neutral, compact = true)
+                    }
+                    provider.itemCountLabel()?.let { label ->
+                        StatusBadge(text = label, tone = SemanticTone.Neutral, compact = true)
+                    }
+                },
+                canUpdate = canUpdate,
+                isUpdating = isUpdating,
+                onUpdate = onUpdate,
+            )
         }
     }
+}
 
-    AppActionBottomSheet(
-        show = showActionsSheet,
-        title = provider.name,
-        onDismissRequest = { showActionsSheet = false },
+@Composable
+private fun ResourceCardFooter(
+    badges: @Composable () -> Unit,
+    canUpdate: Boolean,
+    isUpdating: Boolean,
+    onUpdate: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            AppCommandButton(
-                title = MLang.Providers.Action.Update,
-                imageVector = Yume.`Circle-fading-arrow-up`,
-                enabled = !isUpdating,
-                onClick = {
-                    showActionsSheet = false
-                    onUpdate()
-                },
-                tone = SemanticTone.Info,
-                highEmphasis = true,
-            )
-            AppCommandButton(
-                title = MLang.Providers.Action.Upload,
-                imageVector = Yume.Folders,
-                enabled = !isUpdating,
-                onClick = {
-                    showActionsSheet = false
-                    filePicker.launch("*/*")
-                },
-                tone = SemanticTone.Neutral,
-            )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            badges()
+        }
+
+        if (canUpdate) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 8.dp),
+            ) {
+                AppCircularIconAction(
+                    imageVector = Yume.`Circle-fading-arrow-up`,
+                    contentDescription = MLang.Providers.Action.Update,
+                    onClick = onUpdate,
+                    enabled = !isUpdating,
+                    tone = SemanticTone.Info,
+                    highEmphasis = true,
+                    chromeTone = SemanticTone.Info,
+                    chromeHighEmphasis = true,
+                    size = 40.dp,
+                    iconSize = 18.dp,
+                )
+            }
         }
     }
 }
@@ -439,7 +375,6 @@ private fun LazyListScope.providerSection(
     section: ProviderSection,
     isUpdating: (String) -> Boolean,
     onUpdate: (Provider) -> Unit,
-    onUpload: (Provider, Uri) -> Unit,
 ) {
     item(key = "title_${section.title}") { ProvidersCenteredContent { SmallTitle(section.title) } }
     items(
@@ -453,7 +388,6 @@ private fun LazyListScope.providerSection(
                 provider = provider,
                 isUpdating = isUpdating(providerKey),
                 onUpdate = { onUpdate(provider) },
-                onUpload = { uri -> onUpload(provider, uri) },
             )
         }
     }

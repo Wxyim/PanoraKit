@@ -21,8 +21,7 @@
 package com.github.yumelira.yumebox.di
 
 import com.github.yumelira.yumebox.data.repository.LogRecordGateway
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticDetailRepository
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationCoordinator
+import com.github.yumelira.yumebox.presentation.meta.EffectiveRuleSummaryRepository
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
 import com.github.yumelira.yumebox.presentation.runtime.VpnPermissionCoordinator
 import com.github.yumelira.yumebox.screen.home.HomeViewModel
@@ -30,14 +29,8 @@ import com.github.yumelira.yumebox.screen.log.LogViewModel
 import com.github.yumelira.yumebox.screen.profiles.ProfilesViewModel
 import com.github.yumelira.yumebox.screen.settings.AccessControlViewModel
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
-import com.github.yumelira.yumebox.screen.settings.ExplanationChainDetailViewModel
 import com.github.yumelira.yumebox.screen.settings.MetaFeatureViewModel
 import com.github.yumelira.yumebox.screen.settings.NetworkSettingsViewModel
-import com.github.yumelira.yumebox.screen.settings.RawTraceDetailViewModel
-import com.github.yumelira.yumebox.screen.settings.RuleSetInspectorViewModel
-import com.github.yumelira.yumebox.screen.settings.RuntimeHealthDetailViewModel
-import com.github.yumelira.yumebox.screen.settings.SnapshotHistoryViewModel
-import com.github.yumelira.yumebox.screen.settings.SourceRegistryOverviewViewModel
 import com.github.yumelira.yumebox.service.LogRecordServiceGateway
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
@@ -47,9 +40,8 @@ import org.koin.dsl.module
 
 val appIntegrationModule = module {
     single<LogRecordGateway> { LogRecordServiceGateway() }
-    single { DiagnosticDetailRepository(androidApplication(), get(), get(), get(), get(), get()) }
+    single { EffectiveRuleSummaryRepository(androidApplication(), get(), get()) }
     single { RuntimeActionExecutor(get(), get()) }
-    single { DiagnosticRemediationCoordinator(get(), get(), get(), get(), get(), get()) }
     single { VpnPermissionCoordinator(get(named(APPLICATION_SCOPE_NAME))) }
 }
 
@@ -58,7 +50,6 @@ val appViewModelModule = module {
     viewModel {
         HomeViewModel(
             androidApplication(),
-            get(),
             get(),
             get(),
             get(),
@@ -77,12 +68,6 @@ val appViewModelModule = module {
     viewModel { AccessControlViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { LogViewModel(get(), get(), get()) }
     viewModel { MetaFeatureViewModel(get(), get(), get(), get()) }
-    viewModel { RuntimeHealthDetailViewModel(get(), get(), get()) }
-    viewModel { RuleSetInspectorViewModel(get(), get(), get()) }
-    viewModel { SnapshotHistoryViewModel(get(), get(), get()) }
-    viewModel { ExplanationChainDetailViewModel(get(), get(), get()) }
-    viewModel { RawTraceDetailViewModel(get(), get(), get()) }
-    viewModel { SourceRegistryOverviewViewModel(get(), get(), get()) }
 }
 
 val appModule: List<Module> =

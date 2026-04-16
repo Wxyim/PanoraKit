@@ -50,6 +50,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.presentation.icon.Yume
+import com.github.yumelira.yumebox.presentation.icon.yume.Activity
+import com.github.yumelira.yumebox.presentation.icon.yume.`Chart-column`
+import com.github.yumelira.yumebox.presentation.icon.yume.Cloud
+import com.github.yumelira.yumebox.presentation.icon.yume.Edit
+import com.github.yumelira.yumebox.presentation.icon.yume.Folders
+import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
+import com.github.yumelira.yumebox.presentation.icon.yume.Github
+import com.github.yumelira.yumebox.presentation.icon.yume.Link
+import com.github.yumelira.yumebox.presentation.icon.yume.Message
+import com.github.yumelira.yumebox.presentation.icon.yume.Meta
+import com.github.yumelira.yumebox.presentation.icon.yume.Play
+import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
+import com.github.yumelira.yumebox.presentation.icon.yume.`Scan-eye`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Scroll-text`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
+import com.github.yumelira.yumebox.presentation.icon.yume.Tun
+import com.github.yumelira.yumebox.presentation.icon.yume.UserKey
+import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
 import com.github.yumelira.yumebox.presentation.icon.yume.chevron
 import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.LocalSemanticColors
@@ -101,6 +119,11 @@ object SemanticActionDefaults {
     }
 }
 
+private object CircularIconActionDefaults {
+    val TouchTargetSize = 52.dp
+    val IconSize = 22.dp
+}
+
 @Composable
 fun AppCircularIconAction(
     imageVector: ImageVector,
@@ -108,32 +131,44 @@ fun AppCircularIconAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    size: Dp = 52.dp,
-    iconSize: Dp = 22.dp,
+    size: Dp = CircularIconActionDefaults.TouchTargetSize,
+    iconSize: Dp = CircularIconActionDefaults.IconSize,
     tone: SemanticTone = SemanticTone.Neutral,
     highEmphasis: Boolean = false,
+    chromeTone: SemanticTone = SemanticTone.Neutral,
+    chromeHighEmphasis: Boolean = false,
     containerColor: Color = Color.Unspecified,
     contentColor: Color = Color.Unspecified,
     borderColor: Color = Color.Unspecified,
 ) {
-    val actionStyle = SemanticActionDefaults.style(tone = tone, highEmphasis = highEmphasis)
+    val contentStyle = SemanticActionDefaults.style(tone = tone, highEmphasis = highEmphasis)
+    val chromeStyle =
+        SemanticActionDefaults.style(tone = chromeTone, highEmphasis = chromeHighEmphasis)
     val resolvedContainer =
         if (containerColor == Color.Unspecified) {
-            actionStyle.containerColor
+            chromeStyle.containerColor
         } else {
             containerColor
         }
     val resolvedContent =
         if (contentColor == Color.Unspecified) {
-            actionStyle.contentColor
+            contentStyle.contentColor
         } else {
             contentColor
         }
     val resolvedBorder =
         if (borderColor == Color.Unspecified) {
-            actionStyle.borderColor
+            chromeStyle.borderColor
         } else {
             borderColor
+        }
+    val resolvedIconTint =
+        if (enabled) {
+            resolvedContent
+        } else {
+            resolvedContent.copy(
+                alpha = resolvedContent.alpha * AppInteractionFeedbackDefaults.DisabledAlpha
+            )
         }
     val toneDescription = tone.accessibilityDescription()
 
@@ -156,13 +191,18 @@ fun AppCircularIconAction(
                 .clip(CircleShape)
                 .background(resolvedContainer, CircleShape)
                 .border(AppTheme.strokes.default, resolvedBorder, CircleShape)
-                .appClickable(enabled = enabled, pressedAlpha = 0.78f, onClick = onClick),
+                .appClickable(
+                    enabled = enabled,
+                    pressedAlpha = 1f,
+                    disabledAlpha = 1f,
+                    onClick = onClick,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             modifier = Modifier.size(iconSize),
             imageVector = imageVector,
-            tint = resolvedContent,
+            tint = resolvedIconTint,
             contentDescription = contentDescription,
         )
     }
@@ -407,11 +447,13 @@ fun SettingsRow(
     summary: String?,
     imageVector: ImageVector,
     tone: SemanticTone,
+    iconTone: SemanticTone? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     endContent: @Composable RowScope.() -> Unit = {},
 ) {
-    val style = SemanticActionDefaults.style(tone = tone, highEmphasis = true)
+    val resolvedIconTone = iconTone ?: imageVector.defaultSettingsIconTone(tone)
+    val style = SemanticActionDefaults.style(tone = resolvedIconTone, highEmphasis = true)
     val shape = RoundedCornerShape(22.dp)
     val semanticDescription =
         buildSemanticDescription(title, summary, tone.accessibilityDescription())
@@ -483,6 +525,38 @@ private fun SemanticTone.accessibilityDescription(): String =
         SemanticTone.Danger -> "danger"
         SemanticTone.Neutral -> "neutral"
     }
+
+private fun ImageVector.defaultSettingsIconTone(rowTone: SemanticTone): SemanticTone {
+    return when (this) {
+        Yume.Message,
+        Yume.Activity,
+        Yume.`Git-merge` -> SemanticTone.Warning
+
+        Yume.Link,
+        Yume.`Scan-eye`,
+        Yume.Meta,
+        Yume.`Scroll-text`,
+        Yume.Github,
+        Yume.UserKey -> SemanticTone.Brand
+
+        Yume.Cloud,
+        Yume.Rocket,
+        Yume.Tun,
+        Yume.Play -> SemanticTone.Success
+
+        Yume.`Settings-2`,
+        Yume.`Wifi-cog`,
+        Yume.`Chart-column`,
+        Yume.Edit,
+        Yume.Folders -> SemanticTone.Info
+
+        else ->
+            when (rowTone) {
+                SemanticTone.Neutral -> SemanticTone.Brand
+                else -> rowTone
+            }
+    }
+}
 
 private fun buildSemanticDescription(vararg parts: String?): String {
     return parts

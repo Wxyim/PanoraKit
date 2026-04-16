@@ -56,10 +56,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.domain.model.OverrideConfig
 import com.github.yumelira.yumebox.domain.model.ProfileBinding
+import com.github.yumelira.yumebox.feature.editor.component.ConfigSaveProgressDialog
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveDecision
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.yumelira.yumebox.feature.editor.screen.ConfigPreviewSavePhase
@@ -219,7 +221,7 @@ fun LocalProfileConfigEditScreen(
         }
 
         editState.beginSave()
-        scope.launch {
+        profilesViewModel.viewModelScope.launch {
             var lastPhase: ConfigPreviewSavePhase? = ConfigPreviewSavePhase.LocalSaving
             var stoppedRunningProfile = false
             val isActiveRunningProfile =
@@ -469,53 +471,18 @@ fun LocalProfileConfigEditScreen(
                 }
             }
 
-            AppDialog(
+            ConfigSaveProgressDialog(
                 show = editState.isSaving,
-                title = MLang.Component.Editor.Action.Save,
-                summary =
-                    when (editState.savePhase) {
-                        ConfigPreviewSavePhase.LocalSaving ->
-                            MLang.Component.Editor.Dialog.LocalSaving
-                        ConfigPreviewSavePhase.Validating ->
-                            MLang.Component.Editor.Dialog.ValidatingConfig
-                        ConfigPreviewSavePhase.FetchingRemoteResources ->
-                            MLang.Component.Editor.Dialog.FetchingRemoteResources
-                        null -> MLang.Component.Loading.Starting
-                    },
-                onDismissRequest = {},
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-
-                    if (editState.savePhase == ConfigPreviewSavePhase.FetchingRemoteResources) {
-                        val isActiveRunning =
-                            isRuntimeRunning && homeViewModel.isCurrentProfile(profileId)
-                        AppCommandButton(
-                            title =
-                                if (isActiveRunning) {
-                                    MLang.Component.Editor.Action.SaveAndStop
-                                } else {
-                                    MLang.Component.Editor.Action.SaveLocally
-                                },
-                            imageVector = Yume.Check,
-                            onClick = {
-                                editState.saveDecision = ConfigPreviewSaveDecision.SaveLocally
-                            },
-                            enabled = editState.saveDecision == ConfigPreviewSaveDecision.Continue,
-                            tone = if (isActiveRunning) SemanticTone.Danger else SemanticTone.Brand,
-                            highEmphasis = true,
-                        )
-                    }
-                }
-            }
+                phase = editState.savePhase,
+                isRuntimeRunning = isRuntimeRunning && homeViewModel.isCurrentProfile(profileId),
+                allowUndo =
+                    editState.savePhase == ConfigPreviewSavePhase.FetchingRemoteResources ||
+                        editState.savePhase == ConfigPreviewSavePhase.ApplyingRuntime,
+                allowDirectSave =
+                    editState.savePhase == ConfigPreviewSavePhase.FetchingRemoteResources,
+                onUndo = { editState.saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
+                onDirectSave = { editState.saveDecision = ConfigPreviewSaveDecision.SaveLocally },
+            )
 
             AppDialog(
                 show = editState.showRuntimeStoppedDialog,

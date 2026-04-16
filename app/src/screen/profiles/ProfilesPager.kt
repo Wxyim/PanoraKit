@@ -64,6 +64,7 @@ import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPre
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
@@ -82,6 +83,22 @@ rules: []
 """
         .trimIndent()
 
+private data class ProfileUpdateActionUiState(val feedback: ProfileUpdateFeedbackUi? = null) {
+    val isUpdating: Boolean
+        get() = feedback?.state == ProfileUpdateFeedbackState.Updating
+}
+
+private fun compactProfileUpdateSuccessLabel(): String {
+    return MLang.Providers.Message.UpdateSuccess.format("").trim()
+}
+
+private fun compactProfileUpdateFailedLabel(): String {
+    return MLang.Providers.Message.UpdateFailed.format("")
+        .substringBefore(':')
+        .substringBefore('：')
+        .trim()
+}
+
 @SuppressLint("UseKtx")
 @Composable
 fun ProfilesPager(mainInnerPadding: PaddingValues) {
@@ -97,37 +114,29 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
     val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
     val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
-    val profileSwipeHintShown by
-        profilesViewModel.profileSwipeHintShown.state.collectAsStateWithLifecycle()
-
     val showAddBottomSheet = rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogVisible by rememberSaveable { mutableStateOf(false) }
     var deleteDialogProfileId by rememberSaveable { mutableStateOf<String?>(null) }
     val showSettingsDialog = rememberSaveable { mutableStateOf(false) }
-    val showShareDialog = rememberSaveable { mutableStateOf(false) }
     var moreActionsProfileId by rememberSaveable { mutableStateOf<String?>(null) }
-    var shareProfileId by rememberSaveable { mutableStateOf<String?>(null) }
     var settingsProfileId by rememberSaveable { mutableStateOf<String?>(null) }
     var profileBinding by remember { mutableStateOf<ProfileBinding?>(null) }
-    var isDownloading by rememberSaveable { mutableStateOf(false) }
+    val profileUpdateStates = remember { mutableStateMapOf<String, ProfileUpdateActionUiState>() }
+    var isUpdatingAllProfiles by rememberSaveable { mutableStateOf(false) }
     var pendingRuntimeReloadProfileId by remember { mutableStateOf<UUID?>(null) }
     var pendingLocalProfileConfigEditorProfileId by rememberSaveable {
         mutableStateOf<String?>(null)
     }
     var pendingOpenTextEditorProfileId by rememberSaveable { mutableStateOf<String?>(null) }
-    var swipeHintTargetProfileId by rememberSaveable { mutableStateOf<String?>(null) }
 
     var importUrlFromScheme by rememberSaveable { mutableStateOf<String?>(null) }
     val pendingImportUrl by MainActivity.pendingImportUrl.collectAsStateWithLifecycle()
 
     var scannedUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val deleteDialogProfile =
         remember(deleteDialogProfileId, profiles) {
             profiles.firstOrNull { it.uuid.toString() == deleteDialogProfileId }
-        }
-    val shareProfile =
-        remember(shareProfileId, profiles) {
-            profiles.firstOrNull { it.uuid.toString() == shareProfileId }
         }
     val settingsProfile =
         remember(settingsProfileId, profiles) {
@@ -137,6 +146,74 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         remember(moreActionsProfileId, profiles) {
             profiles.firstOrNull { it.uuid.toString() == moreActionsProfileId }
         }
+    val anyProfileUpdating by remember {
+        derivedStateOf { profileUpdateStates.values.any(ProfileUpdateActionUiState::isUpdating) }
+    }
+
+    fun profileUpdateState(profileId: UUID): ProfileUpdateActionUiState {
+        return profileUpdateStates[profileId.toString()] ?: ProfileUpdateActionUiState()
+    }
+
+    suspend fun updateProfileWithFeedback(profile: Profile): Boolean {
+        val profileId = profile.uuid.toString()
+        profileUpdateStates[profileId] =
+            ProfileUpdateActionUiState(
+                feedback =
+                    ProfileUpdateFeedbackUi(
+                        state = ProfileUpdateFeedbackState.Updating,
+                        label = MLang.Providers.Action.Update,
+                    )
+            )
+
+        return runCatching { profilesViewModel.updateProfileNow(profile.uuid) }
+            .fold(
+                onSuccess = { updatedProfile ->
+                    profileUpdateStates[profileId] =
+                        ProfileUpdateActionUiState(
+                            feedback =
+                                ProfileUpdateFeedbackUi(
+                                    state = ProfileUpdateFeedbackState.Success,
+                                    label = compactProfileUpdateSuccessLabel(),
+                                    timestampMillis =
+                                        updatedProfile.updatedAt.takeIf { it > 0L }
+                                            ?: System.currentTimeMillis(),
+                                )
+                        )
+                    scope.launch {
+                        delay(3_000)
+                        val currentFeedback = profileUpdateStates[profileId]?.feedback
+                        if (currentFeedback?.state == ProfileUpdateFeedbackState.Success) {
+                            profileUpdateStates[profileId] = ProfileUpdateActionUiState()
+                        }
+                    }
+                    true
+                },
+                onFailure = { error ->
+                    val reason = error.message ?: MLang.ProfilesVM.Error.Unknown
+                    profileUpdateStates[profileId] =
+                        ProfileUpdateActionUiState(
+                            feedback =
+                                ProfileUpdateFeedbackUi(
+                                    state = ProfileUpdateFeedbackState.Failure,
+                                    label = compactProfileUpdateFailedLabel(),
+                                )
+                        )
+                    com.github.yumelira.yumebox.App.instance.toast(
+                        MLang.ProfilesVM.Message.UpdateFailed.format(reason)
+                    )
+                    false
+                },
+            )
+    }
+
+    LaunchedEffect(profiles) {
+        val validProfileIds = profiles.mapTo(mutableSetOf()) { it.uuid.toString() }
+        profileUpdateStates.keys.toList().forEach { profileId ->
+            if (profileId !in validProfileIds) {
+                profileUpdateStates.remove(profileId)
+            }
+        }
+    }
     LaunchedEffect(pendingImportUrl) {
         if (pendingImportUrl != null) {
             importUrlFromScheme = pendingImportUrl
@@ -146,20 +223,10 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         }
     }
 
-    LaunchedEffect(
-        deleteDialogProfileId,
-        shareProfileId,
-        settingsProfileId,
-        moreActionsProfileId,
-        profiles,
-    ) {
+    LaunchedEffect(deleteDialogProfileId, settingsProfileId, moreActionsProfileId, profiles) {
         if (deleteDialogProfileId != null && deleteDialogProfile == null) {
             deleteDialogProfileId = null
             isDeleteDialogVisible = false
-        }
-        if (shareProfileId != null && shareProfile == null) {
-            shareProfileId = null
-            showShareDialog.value = false
         }
         if (settingsProfileId != null && settingsProfile == null) {
             settingsProfileId = null
@@ -186,21 +253,12 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         }
     }
 
-    LaunchedEffect(profileSwipeHintShown, profiles) {
-        if (profileSwipeHintShown || profiles.isEmpty()) return@LaunchedEffect
-        val firstProfileId = profiles.first().uuid.toString()
-        swipeHintTargetProfileId = firstProfileId
-        profilesViewModel.dismissSwipeHint()
-    }
-
     val scrollBehavior = MiuixScrollBehavior()
-    val scope = rememberCoroutineScope()
     val addFabController = rememberOverrideFabController()
     val updatableProfiles = remember(profiles) { profiles.filter { it.type == Profile.Type.Url } }
     val showUpdateAllAction = updatableProfiles.size > 1
     val showAddFab =
         !showAddBottomSheet.value &&
-            !showShareDialog.value &&
             !showSettingsDialog.value &&
             !isDeleteDialogVisible &&
             moreActionsProfileId == null
@@ -323,15 +381,18 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                             ) {
                                 if (showUpdateAllAction) {
                                     ProfileUpdateAllChip(
-                                        enabled = !isDownloading,
+                                        enabled = !anyProfileUpdating && !isUpdatingAllProfiles,
                                         onClick = {
-                                            if (!isDownloading) {
-                                                isDownloading = true
+                                            if (!anyProfileUpdating && !isUpdatingAllProfiles) {
+                                                isUpdatingAllProfiles = true
                                                 scope.launch {
-                                                    updatableProfiles.forEach { p ->
-                                                        profilesViewModel.updateProfile(p.uuid)
+                                                    try {
+                                                        updatableProfiles.forEach { p ->
+                                                            updateProfileWithFeedback(p)
+                                                        }
+                                                    } finally {
+                                                        isUpdatingAllProfiles = false
                                                     }
-                                                    isDownloading = false
                                                 }
                                             }
                                         },
@@ -377,14 +438,9 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                             .align(Alignment.TopCenter),
                 ) {
                     items(items = profiles, key = { it.uuid.toString() }) { profile ->
+                        val cardUpdateState = profileUpdateState(profile.uuid)
                         ReorderableItem(reorderableLazyListState, key = profile.uuid.toString()) {
                             isDragging ->
-                            LaunchedEffect(isDragging, swipeHintTargetProfileId) {
-                                if (isDragging && swipeHintTargetProfileId != null) {
-                                    swipeHintTargetProfileId = null
-                                }
-                            }
-
                             ProfileCard(
                                 profile = profile,
                                 workDir =
@@ -393,20 +449,13 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                         "imported",
                                     ),
                                 isSelected = activeProfile?.uuid == profile.uuid,
-                                isDownloading = isDownloading,
-                                playSwipeHint =
-                                    !isDragging &&
-                                        swipeHintTargetProfileId == profile.uuid.toString(),
-                                onSwipeHintConsumed = {
-                                    if (swipeHintTargetProfileId == profile.uuid.toString()) {
-                                        swipeHintTargetProfileId = null
-                                    }
-                                },
+                                isDownloading = cardUpdateState.isUpdating,
+                                updateFeedback = cardUpdateState.feedback,
                                 modifier = Modifier.alpha(if (isDragging) 0.9f else 1f),
                                 dragHandleModifier = Modifier.longPressDraggableHandle(),
                                 onSelect = { selectedProfile ->
                                     if (
-                                        !isDownloading &&
+                                        !profileUpdateState(selectedProfile.uuid).isUpdating &&
                                             activeProfile?.uuid != selectedProfile.uuid
                                     ) {
                                         scope.launch {
@@ -428,40 +477,13 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                         }
                                     }
                                 },
-                                onExport = { profile ->
-                                    if (!isDownloading) {
-                                        shareProfileId = profile.uuid.toString()
-                                        showShareDialog.value = true
-                                    }
-                                },
                                 onUpdate = { profile ->
-                                    if (!isDownloading) {
-                                        isDownloading = true
-                                        scope.launch {
-                                            runCatching {
-                                                    profilesViewModel.updateProfileNow(profile.uuid)
-                                                }
-                                                .onFailure {
-                                                    com.github.yumelira.yumebox.App.instance.toast(
-                                                        it.message
-                                                            ?: MLang.ProfilesVM.Message.UpdateFailed
-                                                                .format(
-                                                                    MLang.ProfilesVM.Error.Unknown
-                                                                )
-                                                    )
-                                                }
-                                            isDownloading = false
-                                        }
-                                    }
-                                },
-                                onDelete = { profile ->
-                                    if (!isDownloading) {
-                                        deleteDialogProfileId = profile.uuid.toString()
-                                        isDeleteDialogVisible = true
+                                    if (!profileUpdateState(profile.uuid).isUpdating) {
+                                        scope.launch { updateProfileWithFeedback(profile) }
                                     }
                                 },
                                 onEdit = { profile ->
-                                    if (!isDownloading) {
+                                    if (!profileUpdateState(profile.uuid).isUpdating) {
                                         if (profile.type == Profile.Type.Url) {
                                             settingsProfileId = profile.uuid.toString()
                                             scope.launch {
@@ -477,7 +499,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                     }
                                 },
                                 onMoreActions = { profile ->
-                                    if (!isDownloading) {
+                                    if (!profileUpdateState(profile.uuid).isUpdating) {
                                         moreActionsProfileId = profile.uuid.toString()
                                     }
                                 },
@@ -508,7 +530,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 profilesViewModel.patchProfile(uuid, name, source, interval)
             },
             onDownloadComplete = {
-                isDownloading = false
                 showAddBottomSheet.value = false
                 profilesViewModel.clearDownloadProgress()
             },
@@ -599,13 +620,16 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             )
         }
 
-        shareProfile?.let { profile ->
-            ShareOptionsDialog(
-                show = showShareDialog,
+        moreActionsProfile?.let { profile ->
+            ProfileMoreActionsDialog(
+                show = moreActionsProfileId != null,
                 profile = profile,
-                onDismiss = { showShareDialog.value = false },
-                onDismissFinished = { shareProfileId = null },
-                onShareFile = { profile ->
+                onEditText = {
+                    moreActionsProfileId = null
+                    openProfileEditor(profile.uuid, profile.name)
+                },
+                onShare = {
+                    moreActionsProfileId = null
                     val context = com.github.yumelira.yumebox.App.instance
                     val file =
                         File(File(context.filesDir, "imported"), "${profile.uuid}/config.yaml")
@@ -615,7 +639,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                     "profiles/${profile.uuid}/config.yaml",
                                 )
                                 .takeIf { it.exists() }
-
                     if (file == null) {
                         context.toast(MLang.ProfilesPage.Message.ProfileFileNotExist)
                     } else {
@@ -645,40 +668,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                                 context.toast(it.message ?: MLang.ProfilesPage.Message.ShareFailed)
                             }
                     }
-                    showShareDialog.value = false
-                },
-                onShareLink = { profile ->
-                    val context = com.github.yumelira.yumebox.App.instance
-                    val url = if (profile.type == Profile.Type.Url) profile.source else null
-                    url?.let {
-                        val intent =
-                            Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, it)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        context.startActivity(
-                            Intent.createChooser(intent, MLang.ProfilesPage.ShareDialog.ShareLink)
-                                .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                        )
-                    } ?: run { context.toast(MLang.ProfilesPage.ShareDialog.NoLink) }
-                    showShareDialog.value = false
-                },
-            )
-        }
-
-        moreActionsProfile?.let { profile ->
-            ProfileMoreActionsDialog(
-                show = moreActionsProfileId != null,
-                profile = profile,
-                onEditText = {
-                    moreActionsProfileId = null
-                    openProfileEditor(profile.uuid, profile.name)
-                },
-                onExport = {
-                    moreActionsProfileId = null
-                    shareProfileId = profile.uuid.toString()
-                    showShareDialog.value = true
                 },
                 onDelete = {
                     moreActionsProfileId = null
@@ -774,7 +763,7 @@ private fun ProfileMoreActionsDialog(
     show: Boolean,
     profile: Profile,
     onEditText: () -> Unit,
-    onExport: () -> Unit,
+    onShare: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -799,7 +788,7 @@ private fun ProfileMoreActionsDialog(
                 AppActionTile(
                     title = MLang.Component.ProfileCard.Export,
                     imageVector = Yume.Share,
-                    onClick = onExport,
+                    onClick = onShare,
                     modifier = Modifier.weight(1f),
                     compact = true,
                     tone = SemanticTone.Info,

@@ -38,10 +38,6 @@ import com.github.yumelira.yumebox.domain.model.ErrorRetryability
 import com.github.yumelira.yumebox.domain.model.StructuredError
 import com.github.yumelira.yumebox.presentation.component.GlobalDialogPresenter
 import com.github.yumelira.yumebox.presentation.component.RuntimeFailureDialogPresenter
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticActionFeedbackStatus
-import com.github.yumelira.yumebox.presentation.diagnostic.DiagnosticRemediationCoordinator
-import com.github.yumelira.yumebox.presentation.diagnostic.reloadRuntimeAction
-import com.github.yumelira.yumebox.presentation.diagnostic.startRuntimeAction
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionExecutor
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionFailurePresentation
 import com.github.yumelira.yumebox.presentation.runtime.RuntimeActionOutcome
@@ -247,12 +243,14 @@ private object HomeProxySelectionResolver {
                 ?: selectedProxy?.name
                 ?: mainGroup.now.takeIf(::isDisplayableSelectionName)
 
+        val directSelectionDelay = mainGroup.proxies.firstOrNull { it.name == mainGroup.now }?.delay
+
         return HomeSelectedServerState(
             groupName = mainGroup.name.takeIf(::isDisplayableSelectionName),
             name = displayName ?: MLang.Home.Profile.Direct,
             delay =
-                normalizeDisplayDelay(resolvedProxy?.delay)
-                    ?: normalizeDisplayDelay(selectedProxy?.delay),
+                normalizeDisplayDelay(directSelectionDelay)
+                    ?: normalizeDisplayDelay(resolvedProxy?.delay),
         )
     }
 
@@ -286,7 +284,6 @@ class HomeViewModel(
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val networkSettingsStorage: NetworkSettingsStorage,
     private val runtimeActionExecutor: RuntimeActionExecutor,
-    private val diagnosticRemediationCoordinator: DiagnosticRemediationCoordinator,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
 ) : ViewModel() {
 
@@ -641,22 +638,32 @@ class HomeViewModel(
             }
 
             profilesRepository.updateProfile(activeProfile.uuid)
-            val result =
-                diagnosticRemediationCoordinator.execute(reloadRuntimeAction(isPrimary = true))
-
-            result.permissionIntent?.let { intent ->
-                vpnPermissionCoordinator.requestPermission(intent) {
-                    viewModelScope.launch { reloadProfile() }
+            when (
+                val outcome =
+                    runtimeActionExecutor.reloadCurrentProfile(
+                        operation = "home:reload-profile",
+                        presentation =
+                            RuntimeActionFailurePresentation.Global(
+                                message = { reason ->
+                                    MLang.Home.Message.ConfigSwitchFailed.format(reason)
+                                }
+                            ),
+                    )
+            ) {
+                is RuntimeActionOutcome.PermissionRequired -> {
+                    vpnPermissionCoordinator.requestPermission(outcome.intent) {
+                        viewModelScope.launch { reloadProfile() }
+                    }
+                    return
                 }
-                return
-            }
 
-            if (result.feedback.status == DiagnosticActionFeedbackStatus.Failed) {
-                return
-            }
+                RuntimeActionOutcome.FailureHandled -> return
 
-            if (result.shouldRefresh) {
-                reconcileRuntimeState(expectRunning = isRunning.value)
+                is RuntimeActionOutcome.Success -> {
+                    if (outcome.value.runtimeRunning) {
+                        reconcileRuntimeState(expectRunning = true)
+                    }
+                }
             }
             showMessage(MLang.Home.Message.ConfigSwitched)
         } catch (e: Exception) {
@@ -693,49 +700,46 @@ class HomeViewModel(
                 }
                 Timber.d("Home startProxy kickoff: mode=$proxyMode profileId=$profileId")
 
-                val result =
-                    withContext(Dispatchers.IO) {
-                        diagnosticRemediationCoordinator.execute(
-                            startRuntimeAction(
-                                isPrimary = true,
-                                profileId = profileId,
-                                requestedMode = proxyMode,
+                when (
+                    val outcome =
+                        withContext(Dispatchers.IO) {
+                            runtimeActionExecutor.startProxy(
+                                operation = "home:start-proxy",
+                                mode = proxyMode,
+                                profileId =
+                                    profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
+                                fallbackMessage = MLang.Home.Message.StartFailed,
                             )
-                        )
+                        }
+                ) {
+                    is RuntimeActionOutcome.PermissionRequired -> {
+                        chromeStateMutable.update { current ->
+                            current.copy(
+                                isToggling = false,
+                                ui =
+                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
+                            )
+                        }
+                        vpnPermissionCoordinator.requestPermission(outcome.intent) {
+                            startProxy(profileId = profileId, mode = proxyMode)
+                        }
+                        Timber.i("VPN permission required")
+                        return@launch
                     }
 
-                result.permissionIntent?.let { intent ->
-                    chromeStateMutable.update { current ->
-                        current.copy(
-                            isToggling = false,
-                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                        )
+                    RuntimeActionOutcome.FailureHandled -> {
+                        chromeStateMutable.update { current ->
+                            current.copy(
+                                isToggling = false,
+                                ui =
+                                    current.ui.copy(isStartingProxy = false, loadingProgress = null),
+                            )
+                        }
+                        return@launch
                     }
-                    vpnPermissionCoordinator.requestPermission(intent) {
-                        startProxy(profileId = profileId, mode = proxyMode)
-                    }
-                    Timber.i("VPN permission required")
-                    return@launch
-                }
 
-                if (result.feedback.status == DiagnosticActionFeedbackStatus.Failed) {
-                    chromeStateMutable.update { current ->
-                        current.copy(
-                            isToggling = false,
-                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                        )
-                    }
-                    return@launch
-                }
-
-                if (result.shouldRefresh) {
-                    reconcileRuntimeState(expectRunning = true)
-                } else {
-                    chromeStateMutable.update { current ->
-                        current.copy(
-                            isToggling = false,
-                            ui = current.ui.copy(isStartingProxy = false, loadingProgress = null),
-                        )
+                    is RuntimeActionOutcome.Success -> {
+                        reconcileRuntimeState(expectRunning = true)
                     }
                 }
 

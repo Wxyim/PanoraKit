@@ -24,6 +24,9 @@ import com.github.yumelira.yumebox.common.util.ByteFormatter
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 val Profile.enabled: Boolean
     get() = active
@@ -97,11 +100,6 @@ fun Profile.getInfoText(): String =
                         append(MLang.Component.ProfileCard.Expired.format(expireDate))
                     }
                 }
-
-                lastUpdatedAt?.let { updated ->
-                    if (isNotEmpty()) append(" | ")
-                    append(getRelativeTimeString(updated))
-                }
             }
         }
 
@@ -115,19 +113,7 @@ fun Profile.isConfigSaved(workDir: File): Boolean {
     return File(workDir, "${uuid}/config.yaml").exists()
 }
 
-private fun getRelativeTimeString(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    val minutes = diff / (1000 * 60)
-    val hours = diff / (1000 * 60 * 60)
-
-    return when {
-        diff < 60 * 1000 -> MLang.Component.ProfileCard.JustNow
-        minutes < 60 -> MLang.Component.ProfileCard.MinutesAgo.format(minutes.toInt())
-        hours < 24 -> MLang.Component.ProfileCard.HoursAgo.format(hours.toInt())
-        else -> {
-            val days = diff / (1000 * 60 * 60 * 24)
-            MLang.Component.ProfileCard.DaysAgo.format(days.toInt())
-        }
-    }
+fun formatProfileTimestamp(timestamp: Long): String {
+    return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        .format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
 }

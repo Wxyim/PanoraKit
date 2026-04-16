@@ -27,8 +27,8 @@ import com.github.yumelira.yumebox.domain.model.SubscriptionSource
 import com.github.yumelira.yumebox.domain.model.SyncState
 import com.github.yumelira.yumebox.presentation.component.DiagnosticBannerState
 import com.github.yumelira.yumebox.presentation.component.SemanticTone
-import dev.oom_wg.purejoy.mlang.DiagnosticLang
 import dev.oom_wg.purejoy.mlang.MLang
+import dev.oom_wg.purejoy.mlang.MLangStatus
 
 data class ExternalResourceDiagnostics(
     val subscriptionSources: List<SubscriptionSource> = emptyList(),
@@ -51,9 +51,9 @@ data class ExternalResourceDiagnostics(
 
         val subtitle =
             when {
-                staleCount > 0 -> DiagnosticLang.SourceStaleItems.format(staleCount)
-                pendingCount > 0 -> DiagnosticLang.SourcePendingItems.format(pendingCount)
-                else -> DiagnosticLang.SourceReadyItems.format(subscriptionSources.size)
+                staleCount > 0 -> MLangStatus.SourceStaleItems.format(staleCount)
+                pendingCount > 0 -> MLangStatus.SourcePendingItems.format(pendingCount)
+                else -> MLangStatus.SourceReadyItems.format(subscriptionSources.size)
             }
 
         val tone =

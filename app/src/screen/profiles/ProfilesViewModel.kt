@@ -99,17 +99,13 @@ class ProfilesViewModel(
         private const val MAX_LOCAL_FILE_BYTES = 50L * 1024 * 1024 // 50 MiB
         private const val REMOTE_FETCH_POLL_INTERVAL_MS = 120L
         private const val LOCAL_UNVALIDATED_MARKER_FILE = ".local-unvalidated-profile"
+        private const val PROFILE_SAVE_STAGING_DIR = "profile-save-staging"
+        private const val PROFILE_SAVE_ROLLBACK_DIR = "profile-save-rollback"
     }
 
     val linkOpenMode: Preference<LinkOpenMode> = profileLinksStorage.linkOpenMode
     val links: Preference<List<ProfileLink>> = profileLinksStorage.links
     val defaultLinkId: Preference<String> = profileLinksStorage.defaultLinkId
-
-    val profileSwipeHintShown = appSettingsStorage.profileSwipeHintShown
-
-    fun dismissSwipeHint() {
-        appSettingsStorage.profileSwipeHintShown.set(true)
-    }
 
     private val profileGuiJson = Json {
         ignoreUnknownKeys = true
@@ -541,12 +537,15 @@ class ProfilesViewModel(
         val liveConfigFile = resolveProfileConfigFile(uuid)
         val liveProfileDir =
             liveConfigFile.parentFile ?: error("Profile directory not found: $uuid")
-        val stagingDir = createProfileSaveStagingDirectory(uuid)
-        var remoteFetchStarted = false
-        var shouldDeleteStagingDir = true
+        val stagingDir = createProfileSaveWorkspaceDirectory(uuid, PROFILE_SAVE_STAGING_DIR)
+        var rollbackDir: File? = null
 
         try {
-            cleanupOldProfileSaveStagingDirectories(uuid, keep = stagingDir)
+            cleanupOldProfileSaveWorkspaceDirectories(
+                uuid = uuid,
+                bucket = PROFILE_SAVE_STAGING_DIR,
+                keep = stagingDir,
+            )
 
             withContext(Dispatchers.IO) {
                 if (liveProfileDir.exists()) {
@@ -567,60 +566,47 @@ class ProfilesViewModel(
             onPhaseChanged(ConfigPreviewSavePhase.Validating)
             validateStagedProfileConfig(uuid, stagingDir, stagedConfigFile)
 
-            onPhaseChanged(ConfigPreviewSavePhase.FetchingRemoteResources)
-            when (decisionProvider()) {
-                ConfigPreviewSaveDecision.ContinueEditing -> {
-                    return ConfigPreviewSaveOutcome.ResumeEditing
-                }
-
-                ConfigPreviewSaveDecision.SaveLocally -> {
-                    commitLocalConfigContent(liveConfigFile, content)
-                    setLocalUnvalidatedMarker(uuid, true)
-                    stopRuntime()
-                    getApplication<Application>().sendProfileChanged(uuid)
-                    refreshProfilesNow()
-                    return ConfigPreviewSaveOutcome.SavedLocally
-                }
-
-                ConfigPreviewSaveDecision.Continue -> Unit
-            }
-
-            val interruptedOutcome: ConfigPreviewSaveOutcome? = coroutineScope {
-                val remoteFetch =
-                    async(Dispatchers.IO) {
-                        remoteFetchStarted = true
-                        Clash.fetchAndValid(stagingDir, profile.source, false) {}.await()
+            if (profile.requiresRemoteResourceFetchForSave()) {
+                onPhaseChanged(ConfigPreviewSavePhase.FetchingRemoteResources)
+                when (decisionProvider()) {
+                    ConfigPreviewSaveDecision.ContinueEditing -> {
+                        return ConfigPreviewSaveOutcome.ResumeEditing
                     }
 
-                while (!remoteFetch.isCompleted) {
-                    when (decisionProvider()) {
-                        ConfigPreviewSaveDecision.ContinueEditing -> {
-                            shouldDeleteStagingDir = false
-                            remoteFetch.cancel()
-                            return@coroutineScope ConfigPreviewSaveOutcome.ResumeEditing
-                        }
-
-                        ConfigPreviewSaveDecision.SaveLocally -> {
-                            shouldDeleteStagingDir = false
-                            remoteFetch.cancel()
-                            commitLocalConfigContent(liveConfigFile, content)
-                            setLocalUnvalidatedMarker(uuid, true)
-                            stopRuntime()
-                            getApplication<Application>().sendProfileChanged(uuid)
-                            refreshProfilesNow()
-                            return@coroutineScope ConfigPreviewSaveOutcome.SavedLocally
-                        }
-
-                        ConfigPreviewSaveDecision.Continue -> delay(REMOTE_FETCH_POLL_INTERVAL_MS)
+                    ConfigPreviewSaveDecision.SaveLocally -> {
+                        return saveProfileConfigLocally(
+                            uuid = uuid,
+                            liveConfigFile = liveConfigFile,
+                            content = content,
+                            stopRuntime = stopRuntime,
+                        )
                     }
+
+                    ConfigPreviewSaveDecision.Continue -> Unit
                 }
 
-                remoteFetch.await()
-                null
+                val interruptedOutcome =
+                    awaitRemoteResourceFetch(
+                        uuid = uuid,
+                        profile = profile,
+                        stagingDir = stagingDir,
+                        liveConfigFile = liveConfigFile,
+                        content = content,
+                        decisionProvider = decisionProvider,
+                        stopRuntime = stopRuntime,
+                    )
+                if (interruptedOutcome != null) {
+                    return interruptedOutcome
+                }
             }
-            if (interruptedOutcome != null) {
-                return interruptedOutcome
-            }
+
+            rollbackDir = createProfileSaveWorkspaceDirectory(uuid, PROFILE_SAVE_ROLLBACK_DIR)
+            cleanupOldProfileSaveWorkspaceDirectories(
+                uuid = uuid,
+                bucket = PROFILE_SAVE_ROLLBACK_DIR,
+                keep = rollbackDir,
+            )
+            snapshotProfileDirectory(liveProfileDir, rollbackDir)
 
             commitStagedProfileDirectory(stagingDir, liveProfileDir)
             getApplication<Application>().sendProfileChanged(uuid)
@@ -629,22 +615,26 @@ class ProfilesViewModel(
                 Timber.w("Override reapply skipped for profile (missing configs?): %s", uuid)
             }
 
-            runtimeActionExecutor
-                .reloadIfActiveProfile(
-                    operation = "profiles:save-config",
-                    profileId = uuid,
-                    presentation =
-                        RuntimeActionFailurePresentation.Runtime(
-                            fallbackMessage = MLang.ProfilesVM.Error.Unknown
-                        ),
+            onPhaseChanged(ConfigPreviewSavePhase.ApplyingRuntime)
+            val runtimeInterruptedOutcome =
+                awaitRuntimeReloadOrUndo(
+                    uuid = uuid,
+                    liveProfileDir = liveProfileDir,
+                    rollbackDir = rollbackDir,
+                    decisionProvider = decisionProvider,
                 )
-                .getOrThrowHandled()
+            if (runtimeInterruptedOutcome != null) {
+                return runtimeInterruptedOutcome
+            }
             setLocalUnvalidatedMarker(uuid, false)
             refreshProfilesNow()
             return ConfigPreviewSaveOutcome.Saved
         } finally {
-            if (shouldDeleteStagingDir && stagingDir.exists()) {
+            if (stagingDir.exists()) {
                 stagingDir.deleteRecursively()
+            }
+            if (rollbackDir?.exists() == true) {
+                rollbackDir.deleteRecursively()
             }
         }
     }
@@ -730,6 +720,20 @@ class ProfilesViewModel(
         }
     }
 
+    private suspend fun saveProfileConfigLocally(
+        uuid: UUID,
+        liveConfigFile: File,
+        content: String,
+        stopRuntime: suspend () -> Unit,
+    ): ConfigPreviewSaveOutcome {
+        commitLocalConfigContent(liveConfigFile, content)
+        setLocalUnvalidatedMarker(uuid, true)
+        stopRuntime()
+        getApplication<Application>().sendProfileChanged(uuid)
+        refreshProfilesNow()
+        return ConfigPreviewSaveOutcome.SavedLocally
+    }
+
     private suspend fun commitStagedProfileDirectory(stagingDir: File, liveProfileDir: File) {
         withContext(Dispatchers.IO) {
             if (liveProfileDir.exists()) {
@@ -737,6 +741,128 @@ class ProfilesViewModel(
             }
             stagingDir.copyRecursively(liveProfileDir, overwrite = true)
         }
+    }
+
+    private suspend fun snapshotProfileDirectory(sourceDir: File, snapshotDir: File) {
+        withContext(Dispatchers.IO) {
+            if (snapshotDir.exists()) {
+                snapshotDir.deleteRecursively()
+            }
+            snapshotDir.mkdirs()
+            if (sourceDir.exists()) {
+                sourceDir.copyRecursively(snapshotDir, overwrite = true)
+            }
+        }
+    }
+
+    private suspend fun restoreProfileDirectory(snapshotDir: File, liveProfileDir: File) {
+        withContext(Dispatchers.IO) {
+            if (liveProfileDir.exists()) {
+                liveProfileDir.deleteRecursively()
+            }
+            snapshotDir.copyRecursively(liveProfileDir, overwrite = true)
+        }
+    }
+
+    private suspend fun awaitRemoteResourceFetch(
+        uuid: UUID,
+        profile: Profile,
+        stagingDir: File,
+        liveConfigFile: File,
+        content: String,
+        decisionProvider: () -> ConfigPreviewSaveDecision,
+        stopRuntime: suspend () -> Unit,
+    ): ConfigPreviewSaveOutcome? = coroutineScope {
+        val remoteFetch =
+            async(Dispatchers.IO) {
+                Clash.fetchAndValid(stagingDir, profile.source, false) {}.await()
+            }
+
+        while (!remoteFetch.isCompleted) {
+            when (decisionProvider()) {
+                ConfigPreviewSaveDecision.ContinueEditing -> {
+                    remoteFetch.cancel()
+                    runCatching { remoteFetch.await() }
+                    return@coroutineScope ConfigPreviewSaveOutcome.ResumeEditing
+                }
+
+                ConfigPreviewSaveDecision.SaveLocally -> {
+                    remoteFetch.cancel()
+                    runCatching { remoteFetch.await() }
+                    return@coroutineScope saveProfileConfigLocally(
+                        uuid = uuid,
+                        liveConfigFile = liveConfigFile,
+                        content = content,
+                        stopRuntime = stopRuntime,
+                    )
+                }
+
+                ConfigPreviewSaveDecision.Continue -> delay(REMOTE_FETCH_POLL_INTERVAL_MS)
+            }
+        }
+
+        remoteFetch.await()
+        null
+    }
+
+    private suspend fun awaitRuntimeReloadOrUndo(
+        uuid: UUID,
+        liveProfileDir: File,
+        rollbackDir: File,
+        decisionProvider: () -> ConfigPreviewSaveDecision,
+    ): ConfigPreviewSaveOutcome? = coroutineScope {
+        val runtimeReload = async {
+            runtimeActionExecutor
+                .reloadIfActiveProfile(
+                    operation = "profiles:save-config",
+                    profileId = uuid,
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = MLang.ProfilesVM.Error.Unknown
+                        ),
+                )
+                .getOrThrowHandled()
+        }
+
+        while (!runtimeReload.isCompleted) {
+            when (decisionProvider()) {
+                ConfigPreviewSaveDecision.ContinueEditing -> {
+                    runtimeReload.cancel()
+                    runCatching { runtimeReload.await() }
+                    rollbackCommittedProfileSave(uuid, rollbackDir, liveProfileDir)
+                    return@coroutineScope ConfigPreviewSaveOutcome.ResumeEditing
+                }
+
+                ConfigPreviewSaveDecision.SaveLocally,
+                ConfigPreviewSaveDecision.Continue -> delay(REMOTE_FETCH_POLL_INTERVAL_MS)
+            }
+        }
+
+        runtimeReload.await()
+        null
+    }
+
+    private suspend fun rollbackCommittedProfileSave(
+        uuid: UUID,
+        rollbackDir: File,
+        liveProfileDir: File,
+    ) {
+        restoreProfileDirectory(rollbackDir, liveProfileDir)
+        getApplication<Application>().sendProfileChanged(uuid)
+        if (!activeProfileOverrideReloader.reapplyIfActiveProfile(uuid.toString())) {
+            Timber.w("Override reapply skipped during save rollback: %s", uuid)
+        }
+        runtimeActionExecutor
+            .reloadIfActiveProfile(
+                operation = "profiles:undo-save-config",
+                profileId = uuid,
+                presentation =
+                    RuntimeActionFailurePresentation.Runtime(
+                        fallbackMessage = MLang.ProfilesVM.Error.Unknown
+                    ),
+            )
+            .getOrThrowHandled()
+        refreshProfilesNow()
     }
 
     private fun buildProfileGuiOverrideContent(
@@ -1069,19 +1195,23 @@ class ProfilesViewModel(
         return Yaml(dumperOptions).dump(root).trimEnd() + "\n"
     }
 
-    private fun createProfileSaveStagingDirectory(uuid: UUID): File {
-        val root = getApplication<Application>().cacheDir.resolve("profile-save-staging")
+    private fun createProfileSaveWorkspaceDirectory(uuid: UUID, bucket: String): File {
+        val root = getApplication<Application>().cacheDir.resolve(bucket)
         val dir = root.resolve("${uuid}-${System.currentTimeMillis()}")
         dir.mkdirs()
         return dir
     }
 
-    private fun cleanupOldProfileSaveStagingDirectories(uuid: UUID, keep: File) {
-        val root = getApplication<Application>().cacheDir.resolve("profile-save-staging")
+    private fun cleanupOldProfileSaveWorkspaceDirectories(uuid: UUID, bucket: String, keep: File) {
+        val root = getApplication<Application>().cacheDir.resolve(bucket)
         root
             .listFiles()
             ?.filter { it != keep && it.name.startsWith("$uuid-") }
             ?.forEach { runCatching { it.deleteRecursively() } }
+    }
+
+    private fun Profile.requiresRemoteResourceFetchForSave(): Boolean {
+        return type == Profile.Type.Url
     }
 
     fun reorderProfiles(from: Int, to: Int) {

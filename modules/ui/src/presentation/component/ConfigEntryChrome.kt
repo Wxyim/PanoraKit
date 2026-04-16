@@ -68,6 +68,7 @@ fun ConfigSettingRow(
     summary: String? = null,
     valueLabel: String? = null,
     tone: SemanticTone = SemanticTone.Neutral,
+    iconTone: SemanticTone? = null,
     badgeTone: SemanticTone = tone,
     badgeLeadingDot: Boolean = false,
     showDivider: Boolean = true,
@@ -78,6 +79,7 @@ fun ConfigSettingRow(
             summary = summary,
             imageVector = imageVector,
             tone = tone,
+            iconTone = iconTone,
             onClick = onClick,
             endContent = {
                 if (!valueLabel.isNullOrBlank()) {
@@ -184,6 +186,7 @@ fun ConfigActionMenuRow(
     valueLabel: String? = null,
     imageVector: ImageVector = Yume.`Settings-2`,
     tone: SemanticTone = SemanticTone.Neutral,
+    iconTone: SemanticTone? = null,
     badgeTone: SemanticTone = tone,
     badgeLeadingDot: Boolean = false,
     sheetTitle: String = title,
@@ -197,6 +200,7 @@ fun ConfigActionMenuRow(
         valueLabel = valueLabel,
         imageVector = imageVector,
         tone = tone,
+        iconTone = iconTone,
         badgeTone = badgeTone,
         badgeLeadingDot = badgeLeadingDot,
         showDivider = showDivider,

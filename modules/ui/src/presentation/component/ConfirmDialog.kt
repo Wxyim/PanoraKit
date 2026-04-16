@@ -43,6 +43,8 @@ fun ConfirmDialog(
     onDismiss: () -> Unit = { show.value = false },
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
+    cancelTone: SemanticTone = SemanticTone.Neutral,
+    confirmTone: SemanticTone = SemanticTone.Brand,
 ) {
     AppActionBottomSheet(show = show.value, title = title, onDismissRequest = onDismiss) {
         ConfirmDialogContent(
@@ -51,6 +53,8 @@ fun ConfirmDialog(
             onConfirm = onConfirm,
             cancelText = cancelText,
             confirmText = confirmText,
+            cancelTone = cancelTone,
+            confirmTone = confirmTone,
         )
     }
 }
@@ -63,6 +67,8 @@ fun ConfirmDialogSimple(
     onDismiss: () -> Unit,
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
+    cancelTone: SemanticTone = SemanticTone.Neutral,
+    confirmTone: SemanticTone = SemanticTone.Brand,
 ) {
     val show = remember { mutableStateOf(true) }
     AppActionBottomSheet(
@@ -85,6 +91,8 @@ fun ConfirmDialogSimple(
             },
             cancelText = cancelText,
             confirmText = confirmText,
+            cancelTone = cancelTone,
+            confirmTone = confirmTone,
         )
     }
 }
@@ -96,6 +104,8 @@ private fun ConfirmDialogContent(
     onConfirm: () -> Unit,
     cancelText: String,
     confirmText: String,
+    cancelTone: SemanticTone,
+    confirmTone: SemanticTone,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(text = message, style = MiuixTheme.textStyles.body1)
@@ -105,6 +115,8 @@ private fun ConfirmDialogContent(
             onConfirm = onConfirm,
             cancelText = cancelText,
             confirmText = confirmText,
+            cancelTone = cancelTone,
+            confirmTone = confirmTone,
         )
     }
 }

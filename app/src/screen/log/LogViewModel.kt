@@ -27,7 +27,6 @@ import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.data.repository.DebugExportBundleBuilder
 import com.github.yumelira.yumebox.data.repository.LogRepository
 import com.github.yumelira.yumebox.domain.model.StructuredLogCollector
-import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -72,9 +71,6 @@ class LogViewModel(
 
     private val _selectedStartupEntries = MutableStateFlow<List<LogEntry>>(emptyList())
     val selectedStartupEntries: StateFlow<List<LogEntry>> = _selectedStartupEntries.asStateFlow()
-
-    private val _recentFailures = MutableStateFlow<List<StructuredLogEntry>>(emptyList())
-    val recentFailures: StateFlow<List<StructuredLogEntry>> = _recentFailures.asStateFlow()
 
     init {
         requestBrowserStateRefresh()
@@ -137,7 +133,6 @@ class LogViewModel(
             _historyFiles.value = browserState.historyFiles
             _startupFiles.value = browserState.startupFiles
             _tempLogEntries.value = browserState.tempEntries
-            _recentFailures.value = structuredLogCollector.recentFailures(limit = 6)
 
             val selectedHistory = _selectedHistoryFileName.value
             if (
@@ -251,53 +246,10 @@ class LogViewModel(
                     _selectedStartupFileName.value = null
                     _selectedHistoryEntries.value = emptyList()
                     _selectedStartupEntries.value = emptyList()
-                    _recentFailures.value = emptyList()
                     structuredLogCollector.clear()
                     requestBrowserStateRefresh()
                 }
                 .getOrDefault(false)
-        }
-
-    suspend fun saveTempLog(targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val entries = _tempLogEntries.value
-            if (entries.isEmpty()) return@withContext false
-            try {
-                val repoEntries =
-                    entries.map {
-                        LogRepository.LogEntry(
-                            time = it.time,
-                            level = it.level,
-                            message = it.message,
-                        )
-                    }
-                repository.writeLogEntries(targetUri, repoEntries)
-                true
-            } catch (e: Exception) {
-                false
-            }
-        }
-
-    suspend fun saveCurrentViewLog(targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val historyName = _selectedHistoryFileName.value
-            if (!historyName.isNullOrBlank()) {
-                return@withContext repository.exportLogFile(historyName, targetUri)
-            }
-            val startupName = _selectedStartupFileName.value
-            if (!startupName.isNullOrBlank()) {
-                return@withContext repository.exportStartupLogFile(startupName, targetUri)
-            }
-            if (_isRecording.value && repository.currentRecordingFileName() != null) {
-                return@withContext repository.exportCurrentRecording(targetUri)
-            }
-            val entries = _tempLogEntries.value
-            if (entries.isEmpty()) return@withContext false
-            val repoEntries =
-                entries.map {
-                    LogRepository.LogEntry(time = it.time, level = it.level, message = it.message)
-                }
-            repository.writeLogEntries(targetUri, repoEntries)
         }
 
     suspend fun exportDebugBundle(

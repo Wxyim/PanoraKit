@@ -339,7 +339,6 @@ fun ProxyPager(
 
         ProxyDisplaySettingsDialog(
             show = showDisplaySettingsDialog,
-            adaptiveDisplayMode = adaptiveDisplayMode,
             groupStyle = groupStyle,
             sortMode = sortMode,
             showHiddenGroups = showHiddenGroups,
@@ -538,7 +537,6 @@ private fun ProxyContent(
 @Composable
 private fun ProxyDisplaySettingsDialog(
     show: Boolean,
-    adaptiveDisplayMode: ProxyDisplayMode,
     groupStyle: ProxyGroupStyle,
     sortMode: ProxySortMode,
     showHiddenGroups: Boolean,
@@ -590,8 +588,6 @@ private fun ProxyDisplaySettingsDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            ProxyAdaptiveModeCard(displayMode = adaptiveDisplayMode)
-
             ProxyDialogSection(title = MLang.Proxy.Action.GroupStyle)
             Row(horizontalArrangement = Arrangement.spacedBy(sectionSpacing)) {
                 ProxyGroupStyle.entries.forEach { style ->
@@ -627,76 +623,6 @@ private fun ProxyDisplaySettingsDialog(
                 onClick = { onShowHiddenGroupsChange(!showHiddenGroups) },
             )
         }
-    }
-}
-
-@Composable
-private fun ProxyAdaptiveModeCard(displayMode: ProxyDisplayMode) {
-    val style = SemanticActionDefaults.style(SemanticTone.Brand, highEmphasis = true)
-    val shape = RoundedCornerShape(ProxyDisplaySettingsLayoutDefaults.ToggleContainerCornerRadius)
-
-    Row(
-        modifier =
-            Modifier.fillMaxWidth()
-                .clip(shape)
-                .background(style.containerColor, shape)
-                .border(AppTheme.strokes.default, style.borderColor, shape)
-                .padding(
-                    horizontal = ProxyDisplaySettingsLayoutDefaults.ToggleContentHorizontalPadding,
-                    vertical = ProxyDisplaySettingsLayoutDefaults.ToggleContentVerticalPadding,
-                ),
-        horizontalArrangement =
-            Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleContentSpacing),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier =
-                Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconContainerSize)
-                    .clip(
-                        RoundedCornerShape(
-                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
-                        )
-                    )
-                    .background(style.iconContainerColor)
-                    .border(
-                        AppTheme.strokes.default,
-                        style.contentColor.copy(alpha = 0.18f),
-                        RoundedCornerShape(
-                            ProxyDisplaySettingsLayoutDefaults.ToggleIconCornerRadius
-                        ),
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Yume.LayoutPanelLeft,
-                contentDescription = null,
-                tint = style.contentColor,
-                modifier = Modifier.size(ProxyDisplaySettingsLayoutDefaults.ToggleIconSize),
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement =
-                Arrangement.spacedBy(ProxyDisplaySettingsLayoutDefaults.ToggleLabelSpacing),
-        ) {
-            Text(
-                text = MLang.Proxy.Action.ControlPanel,
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = displayMode.displayName,
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        StatusBadge(text = displayMode.displayName, tone = SemanticTone.Brand, compact = true)
     }
 }
 

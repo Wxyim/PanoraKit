@@ -32,6 +32,7 @@ data class Provider(
     val vehicleType: VehicleType,
     val updatedAt: Long,
     val path: String = "",
+    val count: Int = 0,
 ) : Parcelable, Comparable<Provider> {
     enum class Type {
         Proxy,

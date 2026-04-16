@@ -24,12 +24,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.data.repository.OverrideConfigRepository
 import com.github.yumelira.yumebox.data.repository.ProvidersRepository
-import com.github.yumelira.yumebox.domain.model.StructuredLogCollector
-import com.github.yumelira.yumebox.domain.model.StructuredLogEntry
+import com.github.yumelira.yumebox.presentation.meta.EffectiveRuleSummaryRepository
 import com.github.yumelira.yumebox.presentation.util.ExternalResourceDiagnostics
 import com.github.yumelira.yumebox.presentation.util.buildExternalResourceDiagnostics
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import dev.oom_wg.purejoy.mlang.MLangStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,18 +38,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+data class EffectiveRuleSummaryState(
+    val count: Int? = null,
+    val summary: String = MLangStatus.Common.NotAvailable,
+)
+
 data class MetaFeatureUiState(
     val isLoading: Boolean = false,
-    val recentFailures: List<StructuredLogEntry> = emptyList(),
     val externalResources: ExternalResourceDiagnostics = ExternalResourceDiagnostics(),
     val runtimeSnapshot: RuntimeSnapshot = RuntimeSnapshot(),
+    val effectiveRules: EffectiveRuleSummaryState = EffectiveRuleSummaryState(),
 )
 
 class MetaFeatureViewModel(
-    private val structuredLogCollector: StructuredLogCollector,
     private val providersRepository: ProvidersRepository,
     private val overrideConfigRepository: OverrideConfigRepository,
     private val proxyFacade: ProxyFacade,
+    private val effectiveRuleSummaryRepository: EffectiveRuleSummaryRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MetaFeatureUiState())
@@ -64,18 +69,24 @@ class MetaFeatureViewModel(
                     val remoteOverrides =
                         runCatching { overrideConfigRepository.listRemoteResources() }
                             .getOrDefault(emptyList())
+                    val effectiveRules = effectiveRuleSummaryRepository.load().toUiState()
                     MetaFeatureUiState(
                         isLoading = false,
-                        recentFailures = structuredLogCollector.recentFailures(limit = 6),
                         runtimeSnapshot = proxyFacade.runtimeSnapshot.value,
                         externalResources =
                             buildExternalResourceDiagnostics(
                                 providers = providers,
                                 remoteOverrides = remoteOverrides,
                             ),
+                        effectiveRules = effectiveRules,
                     )
                 }
             _uiState.value = nextState
         }
     }
+}
+
+private fun com.github.yumelira.yumebox.presentation.meta.EffectiveRuleSummary.toUiState():
+    EffectiveRuleSummaryState {
+    return EffectiveRuleSummaryState(count = count, summary = summary)
 }
