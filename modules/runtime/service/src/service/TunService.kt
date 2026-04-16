@@ -247,6 +247,9 @@ class TunService : VpnService(), CoroutineScope {
                         reason = error.runtimeGatewayMessage("tun runtime spec refresh failed")
                         startupLogStore.append("LOCAL_TUN failed=$reason")
                         Log.w("Tun runtime spec refresh failed: $reason")
+                        StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                        sendClashStopped(reason)
+                        stopSelf()
                         return@launch
                     }
             startupLogStore.append(
@@ -263,6 +266,9 @@ class TunService : VpnService(), CoroutineScope {
                 reason = failure.runtimeGatewayMessage("tun runtime reload failed")
                 startupLogStore.append("LOCAL_TUN failed=${failure.code.name}:${failure.message}")
                 Log.w("Tun runtime reload failed: ${failure.code.name} ${failure.message}")
+                StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                sendClashStopped(reason)
+                stopSelf()
             }
         }
     }

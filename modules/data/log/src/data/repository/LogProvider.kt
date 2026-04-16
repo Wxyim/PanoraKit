@@ -20,8 +20,6 @@
 
 package com.github.yumelira.yumebox.data.repository
 
-import android.net.Uri
-
 interface LogProvider {
 
     fun startRecording()
@@ -43,12 +41,6 @@ interface LogProvider {
         maxEntries: Int = 2000,
     ): List<LogRepository.LogEntry>
 
-    suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean
-
-    suspend fun exportCurrentRecording(targetUri: Uri): Boolean
-
-    suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean
-
     suspend fun readStartupLogEntries(
         fileName: String,
         maxEntries: Int = 2000,
@@ -57,10 +49,6 @@ interface LogProvider {
     suspend fun persistReadableLogsForCleanup(): String?
 
     suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogRepository.LogEntry>
-
-    fun currentRecordingFileName(): String?
-
-    suspend fun writeLogEntries(targetUri: Uri, entries: List<LogRepository.LogEntry>): Boolean
 
     suspend fun deleteLogFile(fileName: String): Boolean
 

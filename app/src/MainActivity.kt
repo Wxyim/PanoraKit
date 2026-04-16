@@ -67,8 +67,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.common.util.IntentController
-import com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper
-import com.github.yumelira.yumebox.core.StoreIds
 import com.github.yumelira.yumebox.presentation.component.BottomBarContent
 import com.github.yumelira.yumebox.presentation.component.BottomBarLayoutDefaults
 import com.github.yumelira.yumebox.presentation.component.LocalBottomBarLiquidState
@@ -97,13 +95,14 @@ import com.github.yumelira.yumebox.screen.onboarding.OnboardingLauncher
 import com.github.yumelira.yumebox.screen.profiles.ProfilesPager
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 import com.github.yumelira.yumebox.screen.settings.SettingPager
+import com.github.yumelira.yumebox.service.StatusProvider
+import com.github.yumelira.yumebox.startup.StartupConfigRefreshCoordinator
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -118,10 +117,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.qualifier.named
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
 
@@ -136,17 +135,14 @@ class MainActivity : ComponentActivity() {
 
     private val appSettingsStorage: com.github.yumelira.yumebox.data.store.AppSettingsStorage by
         inject()
-    private val networkSettingsStorage:
-        com.github.yumelira.yumebox.data.store.NetworkSettingsStorage by
-        inject()
     private val profilesRepository: com.github.yumelira.yumebox.runtime.client.ProfilesRepository by
         inject()
     private val runtimeControlCoordinator:
         com.github.yumelira.yumebox.runtime.client.RuntimeControlCoordinator by
         inject()
     private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
+    private val startupConfigRefreshCoordinator: StartupConfigRefreshCoordinator by inject()
     private val vpnPermissionCoordinator: VpnPermissionCoordinator by inject()
-    private val serviceCache: MMKV by inject(qualifier = named(StoreIds.SERVICE_CACHE))
 
     private lateinit var intentController: IntentController
 
@@ -249,15 +245,48 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
-                ProxyAutoStartHelper.checkAndAutoStart(
-                    context = applicationContext,
-                    proxyFacade = proxyFacade,
-                    profilesRepository = profilesRepository,
-                    runtimeControlCoordinator = runtimeControlCoordinator,
-                    appSettingsStorage = appSettingsStorage,
-                    networkSettingsStorage = networkSettingsStorage,
-                    serviceCache = serviceCache,
-                )
+                val autoUpdateOnStart = appSettingsStorage.autoUpdateCurrentProfileOnStart.value
+                var activeProfile =
+                    if (autoUpdateOnStart) {
+                        startupConfigRefreshCoordinator.refreshProfileAndBoundOverridesOnStart()
+                    } else {
+                        null
+                    }
+
+                val automaticRestart = appSettingsStorage.automaticRestart.value
+                val runtimeAlreadyRunning =
+                    proxyFacade.runtimeSnapshot.value.running || StatusProvider.serviceRunning
+                if (automaticRestart && !runtimeAlreadyRunning) {
+                    if (activeProfile == null) {
+                        activeProfile =
+                            runCatching { profilesRepository.queryActiveProfile(ensureDefault = true) }
+                                .onFailure {
+                                    Timber.w(it, "Failed to load active profile for auto start")
+                                }
+                                .getOrNull()
+                    }
+
+                    if (activeProfile == null) {
+                        Timber.w("No active profile for auto start")
+                    } else {
+                        runCatching {
+                                runtimeControlCoordinator.startProxy(
+                                    operation = "autostart:startup",
+                                    profileId = activeProfile.uuid,
+                                )
+                            }
+                            .onSuccess {
+                                Timber.i("Auto start ok: profile=%s", activeProfile.uuid)
+                            }
+                            .onFailure { error ->
+                                Timber.e(error, "Auto start failed: ${error.message}")
+                            }
+                    }
+                }
+
+                if (autoUpdateOnStart) {
+                    startupConfigRefreshCoordinator.refreshRuntimeProvidersIfAvailableOnStart()
+                }
             }
         }
     }

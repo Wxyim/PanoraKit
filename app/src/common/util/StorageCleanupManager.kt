@@ -24,6 +24,7 @@ import android.app.Application
 import com.github.yumelira.yumebox.core.domain.ConnectionHistoryManager
 import com.github.yumelira.yumebox.data.model.CleanupPolicy
 import com.github.yumelira.yumebox.data.repository.AppSettingsRepository
+import com.github.yumelira.yumebox.data.repository.LogProvider
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
 import java.io.File
@@ -36,12 +37,13 @@ class StorageCleanupManager(
     private val application: Application,
     private val appSettingsRepository: AppSettingsRepository,
     private val trafficStatisticsStore: TrafficStatisticsStore,
+    private val logProvider: LogProvider,
 ) {
 
     suspend fun runColdStartCleanup(): ColdStartCleanupResult =
         withContext(Dispatchers.IO) {
             val orphanRemovedCount = reclaimOrphanImportedProfileDirs()
-            val processingRemovedCount = cleanupProcessingWorkspaceOnColdStart()
+            val processingRemovedCount = cleanupProcessingWorkspace()
             ColdStartCleanupResult(
                 orphanImportedDirsRemoved = orphanRemovedCount,
                 processingArtifactsRemoved = processingRemovedCount,
@@ -67,13 +69,21 @@ class StorageCleanupManager(
 
     suspend fun runCleanupNow(now: Long = System.currentTimeMillis()): CleanupResult =
         withContext(Dispatchers.IO) {
-            runCleanupInternal(force = false, now = now, clearRuntimeRecords = true)
+            runCleanupInternal(
+                force = true,
+                now = now,
+                clearRuntimeRecords = true,
+                clearCacheDirContents = true,
+                cleanupReadableLogs = true,
+            )
         }
 
     private suspend fun runCleanupInternal(
         force: Boolean,
         now: Long,
         clearRuntimeRecords: Boolean = false,
+        clearCacheDirContents: Boolean = false,
+        cleanupReadableLogs: Boolean = false,
     ): CleanupResult {
         val thresholdMb =
             appSettingsRepository.cleanupThresholdMb.value.coerceIn(
@@ -97,6 +107,7 @@ class StorageCleanupManager(
                 thresholdBytes = thresholdBytes,
                 archiveFileName = null,
                 orphanImportedDirsRemoved = 0,
+                processingArtifactsRemoved = 0,
             )
         }
 
@@ -104,9 +115,27 @@ class StorageCleanupManager(
             runCatching { reclaimOrphanImportedProfileDirs() }
                 .onFailure { Timber.w(it, "cleanup: failed to reclaim orphan imported dirs") }
                 .getOrDefault(0)
+        val processingRemovedCount =
+            runCatching { cleanupProcessingWorkspace() }
+                .onFailure { Timber.w(it, "cleanup: failed to clear processing workspace") }
+                .getOrDefault(0)
 
-        runCatching { reduceCacheFootprint(thresholdBytes, policyConfig) }
-            .onFailure { Timber.w(it, "cleanup: failed to trim cacheDir") }
+        if (clearCacheDirContents) {
+            runCatching { clearCacheDirectoryContents() }
+                .onFailure { Timber.w(it, "cleanup: failed to clear cacheDir") }
+        } else {
+            runCatching { reduceCacheFootprint(thresholdBytes, policyConfig) }
+                .onFailure { Timber.w(it, "cleanup: failed to trim cacheDir") }
+        }
+
+        val archiveFileName =
+            if (cleanupReadableLogs) {
+                runCatching { persistAndClearReadableLogs() }
+                    .onFailure { Timber.w(it, "cleanup: failed to clear readable logs") }
+                    .getOrNull()
+            } else {
+                null
+            }
 
         if (clearRuntimeRecords) {
             runCatching { clearRuntimeTrafficRecords() }
@@ -121,8 +150,9 @@ class StorageCleanupManager(
             afterBytes = afterBytes,
             freedBytes = (beforeBytes - afterBytes).coerceAtLeast(0L),
             thresholdBytes = thresholdBytes,
-            archiveFileName = null,
+            archiveFileName = archiveFileName,
             orphanImportedDirsRemoved = orphanRemovedCount,
+            processingArtifactsRemoved = processingRemovedCount,
         )
     }
 
@@ -149,7 +179,7 @@ class StorageCleanupManager(
         return removed
     }
 
-    private fun cleanupProcessingWorkspaceOnColdStart(): Int {
+    private fun cleanupProcessingWorkspace(): Int {
         val processingRoot = File(application.filesDir, PROCESSING_DIR_NAME)
         val entries = processingRoot.listFiles() ?: return 0
         var removed = 0
@@ -161,6 +191,39 @@ class StorageCleanupManager(
             }
         }
         return removed
+    }
+
+    private fun clearCacheDirectoryContents() {
+        application.cacheDir.listFiles()?.forEach { entry ->
+            runCatching { entry.deleteRecursively() }
+                .onFailure { Timber.w(it, "cleanup: failed to delete cache entry=%s", entry.name) }
+        }
+    }
+
+    private suspend fun persistAndClearReadableLogs(): String? {
+        val archiveFileName =
+            runCatching { logProvider.persistReadableLogsForCleanup() }
+                .onFailure { Timber.w(it, "cleanup: failed to persist readable log archive") }
+                .getOrNull()
+
+        logProvider.listLogFiles().forEach { file ->
+            if (file.name == archiveFileName || isCleanupArchiveFile(file.name)) {
+                return@forEach
+            }
+            runCatching { logProvider.deleteLogFile(file.name) }
+                .onFailure { Timber.w(it, "cleanup: failed to delete log file=%s", file.name) }
+        }
+        logProvider.listStartupLogFiles().forEach { file ->
+            runCatching { logProvider.deleteStartupLogFile(file.name) }
+                .onFailure {
+                    Timber.w(it, "cleanup: failed to delete startup log file=%s", file.name)
+                }
+        }
+        return archiveFileName
+    }
+
+    private fun isCleanupArchiveFile(fileName: String): Boolean {
+        return fileName.contains(CLEANUP_ARCHIVE_MARKER)
     }
 
     private fun reduceCacheFootprint(thresholdBytes: Long, policyConfig: PolicyConfig) {
@@ -234,6 +297,7 @@ class StorageCleanupManager(
         val thresholdBytes: Long,
         val archiveFileName: String?,
         val orphanImportedDirsRemoved: Int,
+        val processingArtifactsRemoved: Int,
     )
 
     data class ColdStartCleanupResult(
@@ -249,6 +313,7 @@ class StorageCleanupManager(
     private companion object {
         private const val IMPORTED_DIR_NAME = "imported"
         private const val PROCESSING_DIR_NAME = "processing"
+        private const val CLEANUP_ARCHIVE_MARKER = "cleanup_"
         private const val MB_BYTES = 1024L * 1024L
         private const val ONE_HOUR_MS = 60L * 60L * 1000L
         private const val MIN_THRESHOLD_MB = 64

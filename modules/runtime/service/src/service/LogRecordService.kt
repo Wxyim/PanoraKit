@@ -167,7 +167,7 @@ class LogRecordService : Service() {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action ?: return) {
-                    Intents.ACTION_CLASH_STARTED -> scheduleObserverAttach()
+                    Intents.ACTION_CLASH_STARTED -> scheduleSessionRolloverAndAttach()
                     Intents.ACTION_CLASH_STOPPED -> scheduleObserverDetach()
                 }
             }
@@ -240,7 +240,9 @@ class LogRecordService : Service() {
             logCollectJob = null
             detachObserver()
             flushLiveLogsToDisk()
+            val recordedFile = logFile
             closeLogWriter()
+            deleteEmptyLogFile(recordedFile)
             clearLiveLogBuffer()
 
             isRecording = false
@@ -299,6 +301,15 @@ class LogRecordService : Service() {
                 }
                 .onFailure { e -> Timber.tag(TAG).e(e, "Log writer close failed") }
         }
+    }
+
+    private fun deleteEmptyLogFile(file: File?) {
+        val target = file ?: return
+        if (!target.exists() || !target.isFile || target.length() > 0L) {
+            return
+        }
+        runCatching { target.delete() }
+            .onFailure { error -> Timber.tag(TAG).w(error, "Delete empty log file failed") }
     }
 
     private fun pruneLogFiles(logDir: File) {
@@ -400,6 +411,50 @@ class LogRecordService : Service() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun startNewSessionLogFile() {
+        synchronized(writerLock) {
+            if (!isRecording) return
+            val chunk = drainLiveLogChunk()
+            if (chunk.isNotBlank()) {
+                runCatching {
+                    logWriter?.write(chunk)
+                    logWriter?.flush()
+                }
+            }
+            val oldFile = logFile
+            runCatching {
+                logWriter?.flush()
+                logWriter?.close()
+            }
+            logWriter = null
+            logFile = null
+            deleteEmptyLogFile(oldFile)
+            runCatching {
+                    val newFile = createLogFile()
+                    logFile = newFile
+                    logWriter = BufferedWriter(FileWriter(newFile, true))
+                    currentLogFileName = newFile.name
+                }
+                .onFailure { e -> Timber.tag(TAG).e(e, "Session log rollover failed") }
+        }
+        updateNotification()
+    }
+
+    private fun scheduleSessionRolloverAndAttach() {
+        logCollectJob?.cancel()
+        logCollectJob =
+            serviceScope.launch {
+                try {
+                    startNewSessionLogFile()
+                    attachObserver()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (t: Throwable) {
+                    Timber.tag(TAG).e(t, "Attach runtime log observer failed")
+                }
+            }
     }
 
     private fun scheduleObserverAttach() {

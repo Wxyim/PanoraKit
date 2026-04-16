@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.data.repository
 
 import android.app.Application
-import android.net.Uri
 import com.github.yumelira.yumebox.core.model.LogMessage
 import java.io.File
 import java.io.IOException
@@ -75,9 +74,7 @@ class LogRepository(
     override fun listLogFiles(): List<LogFileInfo> {
         val currentlyRecording = isRecording()
         val currentFileName = logRecordGateway.currentLogFileName
-        val files =
-            logDir.listFiles(::isManagedLogFile)?.sortedByDescending { it.lastModified() }
-                ?: emptyList()
+        val files = listManagedLogFiles(currentlyRecording, currentFileName)
         return files.map { file ->
             LogFileInfo(
                 name = file.name,
@@ -126,40 +123,6 @@ class LogRepository(
                 emptyList()
             }
         }
-
-    override suspend fun exportLogFile(fileName: String, targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val source = resolveLogFile(fileName) ?: return@withContext false
-            copyFileToUri(source, targetUri)
-        }
-
-    override suspend fun exportCurrentRecording(targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val current =
-                logRecordGateway.currentLogFileName?.let(::resolveLogFile)?.takeIf {
-                    it.exists() && it.isFile
-                } ?: return@withContext false
-            copyFileToUri(current, targetUri)
-        }
-
-    override suspend fun exportStartupLogFile(fileName: String, targetUri: Uri): Boolean =
-        withContext(Dispatchers.IO) {
-            val source = resolveStartupLogFile(fileName) ?: return@withContext false
-            copyFileToUri(source, targetUri)
-        }
-
-    private fun copyFileToUri(source: File, targetUri: Uri): Boolean {
-        return try {
-            application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                source.inputStream().use { input -> input.copyTo(output) }
-            } ?: return false
-            true
-        } catch (_: IOException) {
-            false
-        } catch (_: SecurityException) {
-            false
-        }
-    }
 
     override suspend fun readStartupLogEntries(fileName: String, maxEntries: Int): List<LogEntry> =
         withContext(Dispatchers.IO) {
@@ -244,8 +207,6 @@ class LogRepository(
             logRecordGateway.snapshotLiveLogLines(maxEntries).mapNotNull(::parseLogLine)
         }
 
-    override fun currentRecordingFileName(): String? = logRecordGateway.currentLogFileName
-
     private fun readLogFileEntries(file: File, maxEntries: Int): List<LogEntry> {
         return try {
             if (maxEntries <= 0) return emptyList()
@@ -266,24 +227,6 @@ class LogRepository(
             emptyList()
         }
     }
-
-    override suspend fun writeLogEntries(targetUri: Uri, entries: List<LogEntry>): Boolean =
-        withContext(Dispatchers.IO) {
-            try {
-                application.contentResolver.openOutputStream(targetUri)?.use { output ->
-                    val sb = StringBuilder()
-                    entries.forEach { entry ->
-                        sb.append("[${entry.time}] [${entry.level.name}] ${entry.message}\n")
-                    }
-                    output.write(sb.toString().toByteArray())
-                }
-                true
-            } catch (_: IOException) {
-                false
-            } catch (_: SecurityException) {
-                false
-            }
-        }
 
     override suspend fun deleteLogFile(fileName: String): Boolean =
         withContext(Dispatchers.IO) {
@@ -336,13 +279,46 @@ class LogRepository(
     }
 
     private fun resolveMostRecentManagedLogFile(): File? {
+        val currentlyRecording = isRecording()
+        val currentFileName = logRecordGateway.currentLogFileName
         val current =
-            logRecordGateway.currentLogFileName?.let(::resolveLogFile)?.takeIf { it.exists() }
+            currentFileName
+                ?.let { fileName -> File(logDir, fileName) }
+                ?.takeIf { file -> shouldKeepManagedLogFile(file, currentlyRecording, currentFileName) }
         if (current != null) return current
+        return listManagedLogFiles(currentlyRecording, currentFileName).firstOrNull()
+    }
+
+    private fun listManagedLogFiles(
+        currentlyRecording: Boolean,
+        currentFileName: String?,
+    ): List<File> {
         return logDir
             .listFiles(::isManagedLogFile)
             ?.sortedByDescending { it.lastModified() }
-            ?.firstOrNull()
+            ?.mapNotNull { file ->
+                file.takeIf { shouldKeepManagedLogFile(it, currentlyRecording, currentFileName) }
+            } ?: emptyList()
+    }
+
+    private fun shouldKeepManagedLogFile(
+        file: File,
+        currentlyRecording: Boolean,
+        currentFileName: String?,
+    ): Boolean {
+        if (!isManagedLogFile(file)) {
+            return false
+        }
+
+        if (file.length() > 0L) {
+            return true
+        }
+
+        val isCurrentRecording = currentlyRecording && file.name == currentFileName
+        if (!isCurrentRecording) {
+            runCatching { file.delete() }
+        }
+        return false
     }
 
     private fun readTailLines(file: File, maxLines: Int): List<String> {

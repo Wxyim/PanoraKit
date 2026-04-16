@@ -34,6 +34,7 @@ import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadDispatcher
 import com.github.yumelira.yumebox.runtime.client.root.RootTunReloadScheduler
 import com.github.yumelira.yumebox.startup.RuntimeLogRecordingCoordinator
 import com.github.yumelira.yumebox.startup.StorageCleanupScheduler
+import com.github.yumelira.yumebox.startup.StartupConfigRefreshCoordinator
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +91,7 @@ val appDataRuntimeModule = module {
     single<LogProvider> { get<LogRepository>() }
     single { com.github.yumelira.yumebox.domain.model.StructuredLogCollector() }
     single { DebugExportBundleBuilder(androidApplication(), get(), get()) }
-    single { StorageCleanupManager(androidApplication(), get(), get()) }
+    single { StorageCleanupManager(androidApplication(), get(), get(), get()) }
     single { StorageCleanupScheduler(androidContext()) }
     single { NetworkInfoService() }
     single { ProxyChainResolver() }
@@ -111,6 +112,7 @@ val appDataRuntimeModule = module {
     single { RuntimeMutationCoordinator(androidContext(), get()) }
     single { OverrideService(get(), get()) }
     single { ActiveProfileOverrideReloader(get(), get(), get()) }
+    single { StartupConfigRefreshCoordinator(get(), get(), get(), get(), get(), get(), get()) }
 
     single { com.github.yumelira.yumebox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }

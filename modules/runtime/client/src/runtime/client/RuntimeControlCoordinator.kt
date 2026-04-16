@@ -190,7 +190,12 @@ class RuntimeControlCoordinator(
                 )
             }
 
-            proxyFacade.reloadCurrentProfile().getOrThrow()
+            try {
+                proxyFacade.reloadCurrentProfile().getOrThrow()
+            } catch (e: Exception) {
+                runCatching { proxyFacade.stopProxy() }
+                throw e
+            }
             RuntimeMutationResult(
                 status = RuntimeMutationStatus.Reloaded,
                 effectiveMode = resolveCurrentMode(),
@@ -210,7 +215,12 @@ class RuntimeControlCoordinator(
                 )
             }
 
-            proxyFacade.reloadCurrentProfile().getOrThrow()
+            try {
+                proxyFacade.reloadCurrentProfile().getOrThrow()
+            } catch (e: Exception) {
+                runCatching { proxyFacade.stopProxy() }
+                throw e
+            }
             RuntimeMutationResult(
                 status = RuntimeMutationStatus.Reloaded,
                 effectiveMode = resolveCurrentMode(),

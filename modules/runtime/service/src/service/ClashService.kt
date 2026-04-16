@@ -251,6 +251,9 @@ class ClashService : BaseService() {
                         reason = error.runtimeGatewayMessage("http runtime spec refresh failed")
                         startupLogStore.append("LOCAL_HTTP failed=$reason")
                         Log.w("HTTP runtime spec refresh failed: $reason")
+                        StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                        sendClashStopped(reason)
+                        stopSelf()
                         return@launch
                     }
             startupLogStore.append(
@@ -267,6 +270,9 @@ class ClashService : BaseService() {
                 reason = failure.runtimeGatewayMessage("http runtime reload failed")
                 startupLogStore.append("LOCAL_HTTP failed=${failure.code.name}:${failure.message}")
                 Log.w("HTTP runtime reload failed: ${failure.code.name} ${failure.message}")
+                StatusProvider.markRuntimeStopped(ProxyMode.Http)
+                sendClashStopped(reason)
+                stopSelf()
             }
         }
     }
