@@ -41,10 +41,10 @@ import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.feature.editor.component.ConfigSaveProgressDialog
 import com.github.yumelira.yumebox.feature.editor.editor.CodeEditor
+import com.github.yumelira.yumebox.feature.editor.editor.CodeEditorState
 import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedback
 import com.github.yumelira.yumebox.feature.editor.editor.EditorActionFeedbackLevel
 import com.github.yumelira.yumebox.feature.editor.editor.EditorActionType
-import com.github.yumelira.yumebox.feature.editor.editor.CodeEditorState
 import com.github.yumelira.yumebox.feature.editor.format.CodeFormatter
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.feature.editor.language.TextMateInitializer

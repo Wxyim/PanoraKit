@@ -44,7 +44,11 @@ object YamlDiagnosticsProvider {
             val detail =
                 error.problem?.trim()?.takeIf(String::isNotBlank)
                     ?: error.context?.trim()?.takeIf(String::isNotBlank)
-                    ?: error.message?.lineSequence()?.firstOrNull()?.trim()?.takeIf(String::isNotBlank)
+                    ?: error.message
+                        ?.lineSequence()
+                        ?.firstOrNull()
+                        ?.trim()
+                        ?.takeIf(String::isNotBlank)
                     ?: MLang.Component.Editor.Error.Unknown
             val (start, end) = resolveMarkedRange(content, error.problemMark ?: error.contextMark)
             container.addDiagnostic(
@@ -69,9 +73,10 @@ object YamlDiagnosticsProvider {
             CodeAnalysisResult(
                 diagnostics = container,
                 hasErrors = true,
-                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
-                    MLang.Component.Editor.Error.Unknown
-                ),
+                primaryMessage =
+                    MLang.Component.Editor.Error.ValidationFailed.format(
+                        MLang.Component.Editor.Error.Unknown
+                    ),
             )
         }
     }

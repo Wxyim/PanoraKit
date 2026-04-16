@@ -26,8 +26,7 @@ class StartupConfigRefreshCoordinator(
         val activeProfile =
             runCatching { profilesRepository.queryActiveProfile(ensureDefault = true) }
                 .onFailure { Timber.w(it, "Startup refresh: failed to load active profile") }
-                .getOrNull()
-                ?: return null
+                .getOrNull() ?: return null
 
         runtimeControlCoordinator.runSerialized("startup:refresh-profile-and-overrides") {
             refreshActiveProfileIfNeeded(activeProfile)
@@ -56,10 +55,7 @@ class StartupConfigRefreshCoordinator(
                 .updateAllProviders(httpProviders)
                 .onSuccess { result ->
                     if (result.failedProviders.isEmpty()) {
-                        Timber.i(
-                            "Startup refresh: updated %d HTTP providers",
-                            httpProviders.size,
-                        )
+                        Timber.i("Startup refresh: updated %d HTTP providers", httpProviders.size)
                     } else {
                         Timber.w(
                             "Startup refresh: updated HTTP providers with failures=%s",
@@ -75,10 +71,7 @@ class StartupConfigRefreshCoordinator(
 
     private suspend fun refreshActiveProfileIfNeeded(activeProfile: Profile) {
         if (activeProfile.type != Profile.Type.Url) {
-            Timber.d(
-                "Startup refresh: skip remote profile update for type=%s",
-                activeProfile.type,
-            )
+            Timber.d("Startup refresh: skip remote profile update for type=%s", activeProfile.type)
             return
         }
 

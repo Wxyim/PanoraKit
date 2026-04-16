@@ -284,7 +284,9 @@ class LogRepository(
         val current =
             currentFileName
                 ?.let { fileName -> File(logDir, fileName) }
-                ?.takeIf { file -> shouldKeepManagedLogFile(file, currentlyRecording, currentFileName) }
+                ?.takeIf { file ->
+                    shouldKeepManagedLogFile(file, currentlyRecording, currentFileName)
+                }
         if (current != null) return current
         return listManagedLogFiles(currentlyRecording, currentFileName).firstOrNull()
     }

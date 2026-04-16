@@ -69,9 +69,8 @@ object JsonDiagnosticsProvider {
                     return CodeAnalysisResult(
                         diagnostics = container,
                         hasErrors = true,
-                        primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
-                            detail
-                        ),
+                        primaryMessage =
+                            MLang.Component.Editor.Error.ValidationFailed.format(detail),
                     )
                 }
             }
@@ -84,18 +83,17 @@ object JsonDiagnosticsProvider {
             return CodeAnalysisResult(
                 diagnostics = container,
                 hasErrors = true,
-                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
-                    detailMessage
-                ),
+                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(detailMessage),
             )
         } catch (e: Exception) {
             Timber.w(e, "JSON analysis failed")
             return CodeAnalysisResult(
                 diagnostics = container,
                 hasErrors = true,
-                primaryMessage = MLang.Component.Editor.Error.ValidationFailed.format(
-                    MLang.Component.Editor.Error.Unknown
-                ),
+                primaryMessage =
+                    MLang.Component.Editor.Error.ValidationFailed.format(
+                        MLang.Component.Editor.Error.Unknown
+                    ),
             )
         }
 
@@ -172,10 +170,7 @@ object JsonDiagnosticsProvider {
                 end.coerceAtLeast(start),
                 DiagnosticRegion.SEVERITY_ERROR,
                 0,
-                DiagnosticDetail(
-                    briefMessage = briefMessage,
-                    detailedMessage = detailedMessage,
-                ),
+                DiagnosticDetail(briefMessage = briefMessage, detailedMessage = detailedMessage),
             )
         )
     }

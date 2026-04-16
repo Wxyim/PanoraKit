@@ -117,10 +117,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
 
@@ -259,7 +259,9 @@ class MainActivity : ComponentActivity() {
                 if (automaticRestart && !runtimeAlreadyRunning) {
                     if (activeProfile == null) {
                         activeProfile =
-                            runCatching { profilesRepository.queryActiveProfile(ensureDefault = true) }
+                            runCatching {
+                                    profilesRepository.queryActiveProfile(ensureDefault = true)
+                                }
                                 .onFailure {
                                     Timber.w(it, "Failed to load active profile for auto start")
                                 }
@@ -275,9 +277,7 @@ class MainActivity : ComponentActivity() {
                                     profileId = activeProfile.uuid,
                                 )
                             }
-                            .onSuccess {
-                                Timber.i("Auto start ok: profile=%s", activeProfile.uuid)
-                            }
+                            .onSuccess { Timber.i("Auto start ok: profile=%s", activeProfile.uuid) }
                             .onFailure { error ->
                                 Timber.e(error, "Auto start failed: ${error.message}")
                             }
