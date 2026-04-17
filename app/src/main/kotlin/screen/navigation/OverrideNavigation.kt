@@ -22,6 +22,9 @@
 package com.github.nomadboxlab.monadbox.screen.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import com.github.nomadboxlab.monadbox.common.util.ProfilesNavigationMetrics
+import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewScreen
@@ -45,7 +48,10 @@ import com.ramcosta.composedestinations.generated.destinations.OverrideStringLis
 import com.ramcosta.composedestinations.generated.destinations.OverrideSubRuleDraftEditorRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideSubRuleMapEditorRouteDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.tencent.mmkv.MMKV
 import org.koin.compose.koinInject
+import org.koin.core.qualifier.named
+import timber.log.Timber
 
 @Composable
 @Destination<RootGraph>
@@ -195,6 +201,12 @@ fun OverrideEditRoute(navigator: DestinationsNavigator, configId: String) {
 @Composable
 @Destination<OverrideEditorNavGraph>
 fun LocalProfileConfigEditRoute(navigator: DestinationsNavigator, profileUuid: String) {
+    val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
+    LaunchedEffect(profileUuid) {
+        ProfilesNavigationMetrics.onGuiEditRouteEntered(settingsMmkv)
+        Timber.tag("ProfilesNav")
+            .i("event=profiles_local_gui_edit_route_enter profileUuid=%s", profileUuid)
+    }
     LocalProfileConfigEditScreen(
         navigator = navigator,
         profileUuid = profileUuid,
@@ -440,11 +452,25 @@ fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
 @Composable
 @Destination<OverrideEditorNavGraph>
 fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
+    val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
+    val previewTitle = OverrideStructuredEditorStore.configPreviewTitle
+    val previewLanguage = OverrideStructuredEditorStore.configPreviewLanguage
+    val previewContentLength = OverrideStructuredEditorStore.configPreviewContent.length
+    LaunchedEffect(Unit) {
+        ProfilesNavigationMetrics.onTextEditorRouteEntered(settingsMmkv)
+        Timber.tag("ProfilesNav")
+            .i(
+                "event=profiles_text_editor_route_enter title=%s language=%s contentLength=%d",
+                previewTitle,
+                previewLanguage,
+                previewContentLength,
+            )
+    }
     ConfigPreviewScreen(
         navigator = navigator,
-        title = OverrideStructuredEditorStore.configPreviewTitle,
+        title = previewTitle,
         initialContent = OverrideStructuredEditorStore.configPreviewContent,
-        language = OverrideStructuredEditorStore.configPreviewLanguage,
+        language = previewLanguage,
         isRuntimeRunning = OverrideStructuredEditorStore.configPreviewRuntimeRunning,
         onSave = OverrideStructuredEditorStore.configPreviewCallback,
     )

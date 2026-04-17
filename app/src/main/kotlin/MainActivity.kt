@@ -68,6 +68,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
 import com.github.nomadboxlab.monadbox.common.util.IntentController
+import com.github.nomadboxlab.monadbox.common.util.ProfilesNavigationMetrics
+import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.domain.deeplink.DeepLinkBus
 import com.github.nomadboxlab.monadbox.feature.home.HomeRoute
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesPagerBody
@@ -103,9 +105,12 @@ import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.NavGraphs
+import com.ramcosta.composedestinations.generated.destinations.LocalProfileConfigEditRouteDestination
+import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -117,6 +122,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
+import org.koin.core.qualifier.named
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -323,6 +331,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 @Destination<RootGraph>
 fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
+    val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
     val adaptiveInfo = LocalWindowAdaptiveInfo.current
     val useRailNavigation = adaptiveInfo.useRailNavigation
     val coroutineScope = rememberCoroutineScope()
@@ -448,7 +457,81 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                                 isActive = page == pagerState.currentPage,
                             )
 
-                        2 -> ProfilesPagerBody(safeMainPadding)
+                        2 ->
+                            ProfilesPagerBody(
+                                mainInnerPadding = safeMainPadding,
+                                onNavigateToLocalProfileEdit = { profileUuid ->
+                                    ProfilesNavigationMetrics.onGuiEditClick(settingsMmkv)
+                                    Timber.tag("ProfilesNav")
+                                        .d(
+                                            "event=profiles_local_gui_edit_click profileUuid=%s",
+                                            profileUuid,
+                                        )
+                                    runCatching {
+                                            navigator.navigate(
+                                                LocalProfileConfigEditRouteDestination(
+                                                    profileUuid = profileUuid
+                                                )
+                                            ) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                        .onSuccess {
+                                            ProfilesNavigationMetrics.onGuiEditNavigationDispatched(
+                                                settingsMmkv
+                                            )
+                                            Timber.tag("ProfilesNav")
+                                                .i(
+                                                    "event=profiles_local_gui_edit_nav_dispatch_success profileUuid=%s",
+                                                    profileUuid,
+                                                )
+                                        }
+                                        .onFailure { error ->
+                                            ProfilesNavigationMetrics
+                                                .onGuiEditNavigationDispatchFailure(
+                                                    settingsMmkv,
+                                                    error,
+                                                )
+                                            Timber.tag("ProfilesNav")
+                                                .w(
+                                                    error,
+                                                    "event=profiles_local_gui_edit_nav_dispatch_failed profileUuid=%s",
+                                                    profileUuid,
+                                                )
+                                        }
+                                },
+                                onNavigateToOverrideConfigPreview = {
+                                    ProfilesNavigationMetrics.onTextEditorClick(settingsMmkv)
+                                    Timber.tag("ProfilesNav").d("event=profiles_text_editor_click")
+                                    runCatching {
+                                            navigator.navigate(
+                                                OverrideConfigPreviewRouteDestination
+                                            ) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                        .onSuccess {
+                                            ProfilesNavigationMetrics
+                                                .onTextEditorNavigationDispatched(settingsMmkv)
+                                            Timber.tag("ProfilesNav")
+                                                .i(
+                                                    "event=profiles_text_editor_nav_dispatch_success"
+                                                )
+                                        }
+                                        .onFailure { error ->
+                                            ProfilesNavigationMetrics
+                                                .onTextEditorNavigationDispatchFailure(
+                                                    settingsMmkv,
+                                                    error,
+                                                )
+                                            Timber.tag("ProfilesNav")
+                                                .w(
+                                                    error,
+                                                    "event=profiles_text_editor_nav_dispatch_failed",
+                                                )
+                                        }
+                                },
+                            )
                         3 -> SettingPager(safeMainPadding)
                     }
                 }
