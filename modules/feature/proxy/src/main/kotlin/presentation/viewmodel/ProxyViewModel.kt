@@ -274,13 +274,9 @@ class ProxyViewModel(
             if (testingTargets.isNotEmpty()) {
                 _testingGroupNames.update { it + testingTargets }
             }
-            showMessage(
-                if (groupName != null) {
-                    MLang.Proxy.Testing.Group.format(groupName)
-                } else {
-                    MLang.Proxy.Testing.All
-                }
-            )
+            if (groupName != null) {
+                showMessage(MLang.Proxy.Testing.Group.format(groupName))
+            }
 
             val result = runCatching {
                 if (groupName != null) {
