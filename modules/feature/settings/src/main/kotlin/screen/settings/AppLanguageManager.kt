@@ -23,17 +23,31 @@ package com.github.nomadboxlab.monadbox.feature.settings
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.data.model.AppLanguage
 
 object AppLanguageManager {
 
     fun apply(language: AppLanguage) {
-        val locales =
-            when (language) {
-                AppLanguage.System -> LocaleListCompat.getEmptyLocaleList()
-                AppLanguage.Zh -> LocaleListCompat.forLanguageTags("zh-CN")
-                AppLanguage.En -> LocaleListCompat.forLanguageTags("en")
-            }
-        AppCompatDelegate.setApplicationLocales(locales)
+        val languageTags = language.toLanguageTags()
+        val currentTags =
+            AppCompatDelegate.getApplicationLocales().toLanguageTags().ifBlank { null }
+
+        if (LocaleBootstrap.currentLanguageTags() != languageTags) {
+            LocaleBootstrap.setLanguageTags(languageTags)
+        }
+        if (currentTags != languageTags) {
+            AppCompatDelegate.setApplicationLocales(
+                languageTags?.let(LocaleListCompat::forLanguageTags)
+                    ?: LocaleListCompat.getEmptyLocaleList()
+            )
+        }
     }
+
+    private fun AppLanguage.toLanguageTags(): String? =
+        when (this) {
+            AppLanguage.System -> null
+            AppLanguage.Zh -> "zh-CN"
+            AppLanguage.En -> "en"
+        }
 }

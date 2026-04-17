@@ -32,7 +32,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -43,6 +42,6 @@ object MLangUtil {
 
         @Composable
         fun `UnknownError`(vararg args: Any): String =
-            stringResource(R.string.util_error_unknown_error, *args)
+            LocaleBootstrap.getString(R.string.util_error_unknown_error, *args)
     }
 }

@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -35,28 +34,28 @@ object MLangOnboarding {
 
         @Composable
         fun `Back`(vararg args: Any): String =
-            stringResource(R.string.onboarding_navigation_back, *args)
+            LocaleBootstrap.getString(R.string.onboarding_navigation_back, *args)
 
         val `Next`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_navigation_next)
 
         @Composable
         fun `Next`(vararg args: Any): String =
-            stringResource(R.string.onboarding_navigation_next, *args)
+            LocaleBootstrap.getString(R.string.onboarding_navigation_next, *args)
 
         val `Start`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_navigation_start)
 
         @Composable
         fun `Start`(vararg args: Any): String =
-            stringResource(R.string.onboarding_navigation_start, *args)
+            LocaleBootstrap.getString(R.string.onboarding_navigation_start, *args)
 
         val `Enter`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_navigation_enter)
 
         @Composable
         fun `Enter`(vararg args: Any): String =
-            stringResource(R.string.onboarding_navigation_enter, *args)
+            LocaleBootstrap.getString(R.string.onboarding_navigation_enter, *args)
     }
 
     object `Permission` {
@@ -65,14 +64,14 @@ object MLangOnboarding {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.onboarding_permission_title, *args)
+            LocaleBootstrap.getString(R.string.onboarding_permission_title, *args)
 
         val `Subtitle`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_permission_subtitle)
 
         @Composable
         fun `Subtitle`(vararg args: Any): String =
-            stringResource(R.string.onboarding_permission_subtitle, *args)
+            LocaleBootstrap.getString(R.string.onboarding_permission_subtitle, *args)
 
         object `Common` {
             val `Granted`: String
@@ -80,7 +79,7 @@ object MLangOnboarding {
 
             @Composable
             fun `Granted`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_common_granted, *args)
+                LocaleBootstrap.getString(R.string.onboarding_permission_common_granted, *args)
         }
 
         object `Notification` {
@@ -89,7 +88,7 @@ object MLangOnboarding {
 
             @Composable
             fun `Title`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_notification_title, *args)
+                LocaleBootstrap.getString(R.string.onboarding_permission_notification_title, *args)
 
             val `SummaryNeed`: String
                 get() =
@@ -99,7 +98,10 @@ object MLangOnboarding {
 
             @Composable
             fun `SummaryNeed`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_notification_summary_need, *args)
+                LocaleBootstrap.getString(
+                    R.string.onboarding_permission_notification_summary_need,
+                    *args,
+                )
 
             val `SummaryNotRequired`: String
                 get() =
@@ -109,7 +111,7 @@ object MLangOnboarding {
 
             @Composable
             fun `SummaryNotRequired`(vararg args: Any): String =
-                stringResource(
+                LocaleBootstrap.getString(
                     R.string.onboarding_permission_notification_summary_not_required,
                     *args,
                 )
@@ -121,7 +123,7 @@ object MLangOnboarding {
 
             @Composable
             fun `Title`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_app_list_title, *args)
+                LocaleBootstrap.getString(R.string.onboarding_permission_app_list_title, *args)
 
             val `SummaryNeed`: String
                 get() =
@@ -129,7 +131,10 @@ object MLangOnboarding {
 
             @Composable
             fun `SummaryNeed`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_app_list_summary_need, *args)
+                LocaleBootstrap.getString(
+                    R.string.onboarding_permission_app_list_summary_need,
+                    *args,
+                )
 
             val `SummaryNotRequired`: String
                 get() =
@@ -139,7 +144,10 @@ object MLangOnboarding {
 
             @Composable
             fun `SummaryNotRequired`(vararg args: Any): String =
-                stringResource(R.string.onboarding_permission_app_list_summary_not_required, *args)
+                LocaleBootstrap.getString(
+                    R.string.onboarding_permission_app_list_summary_not_required,
+                    *args,
+                )
         }
     }
 
@@ -149,42 +157,42 @@ object MLangOnboarding {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_title, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_title, *args)
 
         val `Subtitle`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_privacy_subtitle)
 
         @Composable
         fun `Subtitle`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_subtitle, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_subtitle, *args)
 
         val `RichTextLead`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_lead)
 
         @Composable
         fun `RichTextLead`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_rich_text_lead, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_lead, *args)
 
         val `RichTextPrefix`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_prefix)
 
         @Composable
         fun `RichTextPrefix`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_rich_text_prefix, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_prefix, *args)
 
         val `RichTextSuffix`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_suffix)
 
         @Composable
         fun `RichTextSuffix`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_rich_text_suffix, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_rich_text_suffix, *args)
 
         val `PolicyLink`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_privacy_policy_link)
 
         @Composable
         fun `PolicyLink`(vararg args: Any): String =
-            stringResource(R.string.onboarding_privacy_policy_link, *args)
+            LocaleBootstrap.getString(R.string.onboarding_privacy_policy_link, *args)
 
         object `Privacy` {
             val `Title`: String
@@ -192,7 +200,7 @@ object MLangOnboarding {
 
             @Composable
             fun `Title`(vararg args: Any): String =
-                stringResource(R.string.onboarding_privacy_privacy_title, *args)
+                LocaleBootstrap.getString(R.string.onboarding_privacy_privacy_title, *args)
         }
 
         object `Accept` {
@@ -201,7 +209,7 @@ object MLangOnboarding {
 
             @Composable
             fun `Title`(vararg args: Any): String =
-                stringResource(R.string.onboarding_privacy_accept_title, *args)
+                LocaleBootstrap.getString(R.string.onboarding_privacy_accept_title, *args)
         }
     }
 
@@ -211,14 +219,14 @@ object MLangOnboarding {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.onboarding_personalize_title, *args)
+            LocaleBootstrap.getString(R.string.onboarding_personalize_title, *args)
 
         val `Subtitle`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_personalize_subtitle)
 
         @Composable
         fun `Subtitle`(vararg args: Any): String =
-            stringResource(R.string.onboarding_personalize_subtitle, *args)
+            LocaleBootstrap.getString(R.string.onboarding_personalize_subtitle, *args)
     }
 
     object `Finish` {
@@ -227,14 +235,14 @@ object MLangOnboarding {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.onboarding_finish_title, *args)
+            LocaleBootstrap.getString(R.string.onboarding_finish_title, *args)
 
         val `Subtitle`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_finish_subtitle)
 
         @Composable
         fun `Subtitle`(vararg args: Any): String =
-            stringResource(R.string.onboarding_finish_subtitle, *args)
+            LocaleBootstrap.getString(R.string.onboarding_finish_subtitle, *args)
     }
 
     object `Project` {
@@ -244,14 +252,14 @@ object MLangOnboarding {
 
             @Composable
             fun `Title`(vararg args: Any): String =
-                stringResource(R.string.onboarding_project_github_title, *args)
+                LocaleBootstrap.getString(R.string.onboarding_project_github_title, *args)
 
             val `Summary`: String
                 get() = LocaleBootstrap.getString(R.string.onboarding_project_github_summary)
 
             @Composable
             fun `Summary`(vararg args: Any): String =
-                stringResource(R.string.onboarding_project_github_summary, *args)
+                LocaleBootstrap.getString(R.string.onboarding_project_github_summary, *args)
         }
     }
 
@@ -261,13 +269,13 @@ object MLangOnboarding {
 
         @Composable
         fun `PrivacyPolicyTitle`(vararg args: Any): String =
-            stringResource(R.string.onboarding_sheet_privacy_policy_title, *args)
+            LocaleBootstrap.getString(R.string.onboarding_sheet_privacy_policy_title, *args)
 
         val `LoadFailed`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_sheet_load_failed)
 
         @Composable
         fun `LoadFailed`(vararg args: Any): String =
-            stringResource(R.string.onboarding_sheet_load_failed, *args)
+            LocaleBootstrap.getString(R.string.onboarding_sheet_load_failed, *args)
     }
 }

@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -33,21 +32,22 @@ object MLangTrafficStatistics {
         get() = LocaleBootstrap.getString(R.string.traffic_statistics_title)
 
     @Composable
-    fun `Title`(vararg args: Any): String = stringResource(R.string.traffic_statistics_title, *args)
+    fun `Title`(vararg args: Any): String =
+        LocaleBootstrap.getString(R.string.traffic_statistics_title, *args)
 
     val `EntrySummary`: String
         get() = LocaleBootstrap.getString(R.string.traffic_statistics_entry_summary)
 
     @Composable
     fun `EntrySummary`(vararg args: Any): String =
-        stringResource(R.string.traffic_statistics_entry_summary, *args)
+        LocaleBootstrap.getString(R.string.traffic_statistics_entry_summary, *args)
 
     val `OverviewTitle`: String
         get() = LocaleBootstrap.getString(R.string.traffic_statistics_overview_title)
 
     @Composable
     fun `OverviewTitle`(vararg args: Any): String =
-        stringResource(R.string.traffic_statistics_overview_title, *args)
+        LocaleBootstrap.getString(R.string.traffic_statistics_overview_title, *args)
 
     object `Detail` {
         val `Title`: String
@@ -55,14 +55,14 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_detail_title, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_detail_title, *args)
 
         val `Summary`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_detail_summary)
 
         @Composable
         fun `Summary`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_detail_summary, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_detail_summary, *args)
     }
 
     object `TargetSites` {
@@ -71,42 +71,42 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_title, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_title, *args)
 
         val `Summary`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_summary)
 
         @Composable
         fun `Summary`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_summary, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_summary, *args)
 
         val `Empty`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_empty)
 
         @Composable
         fun `Empty`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_empty, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_empty, *args)
 
         val `Count`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_count)
 
         @Composable
         fun `Count`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_count, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_count, *args)
 
         val `Upload`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_upload)
 
         @Composable
         fun `Upload`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_upload, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_upload, *args)
 
         val `Download`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_download)
 
         @Composable
         fun `Download`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_target_sites_download, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_download, *args)
     }
 
     object `RecentRequests` {
@@ -115,21 +115,21 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Title`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_recent_requests_title, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_title, *args)
 
         val `Summary`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_summary)
 
         @Composable
         fun `Summary`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_recent_requests_summary, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_summary, *args)
 
         val `Empty`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_empty)
 
         @Composable
         fun `Empty`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_recent_requests_empty, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_empty, *args)
 
         val `UnknownRequest`: String
             get() =
@@ -139,14 +139,17 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `UnknownRequest`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_recent_requests_unknown_request, *args)
+            LocaleBootstrap.getString(
+                R.string.traffic_statistics_recent_requests_unknown_request,
+                *args,
+            )
 
         val `Count`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_count)
 
         @Composable
         fun `Count`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_recent_requests_count, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_count, *args)
     }
 
     object `Status` {
@@ -155,14 +158,14 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Active`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_status_active, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_status_active, *args)
 
         val `Closed`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_status_closed)
 
         @Composable
         fun `Closed`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_status_closed, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_status_closed, *args)
     }
 
     object `RelativeTime` {
@@ -171,21 +174,21 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `JustNow`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_relative_time_just_now, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_relative_time_just_now, *args)
 
         val `MinutesAgo`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_relative_time_minutes_ago)
 
         @Composable
         fun `MinutesAgo`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_relative_time_minutes_ago, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_relative_time_minutes_ago, *args)
 
         val `HoursAgo`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_relative_time_hours_ago)
 
         @Composable
         fun `HoursAgo`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_relative_time_hours_ago, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_relative_time_hours_ago, *args)
     }
 
     object `TimeRange` {
@@ -194,14 +197,14 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Today`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_time_range_today, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_time_range_today, *args)
 
         val `Week`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_time_range_week)
 
         @Composable
         fun `Week`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_time_range_week, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_time_range_week, *args)
     }
 
     object `Summary` {
@@ -210,14 +213,14 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `TodayTraffic`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_summary_today_traffic, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_summary_today_traffic, *args)
 
         val `WeekTraffic`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_summary_week_traffic)
 
         @Composable
         fun `WeekTraffic`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_summary_week_traffic, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_summary_week_traffic, *args)
     }
 
     object `Compare` {
@@ -227,7 +230,10 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `MoreThanYesterday`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_compare_more_than_yesterday, *args)
+            LocaleBootstrap.getString(
+                R.string.traffic_statistics_compare_more_than_yesterday,
+                *args,
+            )
 
         val `LessThanYesterday`: String
             get() =
@@ -235,21 +241,24 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `LessThanYesterday`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_compare_less_than_yesterday, *args)
+            LocaleBootstrap.getString(
+                R.string.traffic_statistics_compare_less_than_yesterday,
+                *args,
+            )
 
         val `SameAsYesterday`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_compare_same_as_yesterday)
 
         @Composable
         fun `SameAsYesterday`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_compare_same_as_yesterday, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_compare_same_as_yesterday, *args)
 
         val `WeekStats`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_compare_week_stats)
 
         @Composable
         fun `WeekStats`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_compare_week_stats, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_compare_week_stats, *args)
     }
 
     object `Chart` {
@@ -258,13 +267,13 @@ object MLangTrafficStatistics {
 
         @Composable
         fun `Hourly`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_chart_hourly, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_chart_hourly, *args)
 
         val `Daily`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_chart_daily)
 
         @Composable
         fun `Daily`(vararg args: Any): String =
-            stringResource(R.string.traffic_statistics_chart_daily, *args)
+            LocaleBootstrap.getString(R.string.traffic_statistics_chart_daily, *args)
     }
 }

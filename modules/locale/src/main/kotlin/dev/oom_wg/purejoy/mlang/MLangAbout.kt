@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -32,7 +31,8 @@ object MLangAbout {
     val `Title`: String
         get() = LocaleBootstrap.getString(R.string.about_title)
 
-    @Composable fun `Title`(vararg args: Any): String = stringResource(R.string.about_title, *args)
+    @Composable
+    fun `Title`(vararg args: Any): String = LocaleBootstrap.getString(R.string.about_title, *args)
 
     object `App` {
         val `Description`: String
@@ -40,34 +40,35 @@ object MLangAbout {
 
         @Composable
         fun `Description`(vararg args: Any): String =
-            stringResource(R.string.about_app_description, *args)
+            LocaleBootstrap.getString(R.string.about_app_description, *args)
 
         val `VersionLoading`: String
             get() = LocaleBootstrap.getString(R.string.about_app_version_loading)
 
         @Composable
         fun `VersionLoading`(vararg args: Any): String =
-            stringResource(R.string.about_app_version_loading, *args)
+            LocaleBootstrap.getString(R.string.about_app_version_loading, *args)
 
         val `VersionFailed`: String
             get() = LocaleBootstrap.getString(R.string.about_app_version_failed)
 
         @Composable
         fun `VersionFailed`(vararg args: Any): String =
-            stringResource(R.string.about_app_version_failed, *args)
+            LocaleBootstrap.getString(R.string.about_app_version_failed, *args)
 
         val `VersionWithMihomo`: String
             get() = LocaleBootstrap.getString(R.string.about_app_version_with_mihomo)
 
         @Composable
         fun `VersionWithMihomo`(vararg args: Any): String =
-            stringResource(R.string.about_app_version_with_mihomo, *args)
+            LocaleBootstrap.getString(R.string.about_app_version_with_mihomo, *args)
 
         val `Name`: String
             get() = LocaleBootstrap.getString(R.string.about_app_name)
 
         @Composable
-        fun `Name`(vararg args: Any): String = stringResource(R.string.about_app_name, *args)
+        fun `Name`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.about_app_name, *args)
     }
 
     object `Section` {
@@ -76,27 +77,28 @@ object MLangAbout {
 
         @Composable
         fun `ProjectLinks`(vararg args: Any): String =
-            stringResource(R.string.about_section_project_links, *args)
+            LocaleBootstrap.getString(R.string.about_section_project_links, *args)
 
         val `Credits`: String
             get() = LocaleBootstrap.getString(R.string.about_section_credits)
 
         @Composable
         fun `Credits`(vararg args: Any): String =
-            stringResource(R.string.about_section_credits, *args)
+            LocaleBootstrap.getString(R.string.about_section_credits, *args)
 
         val `More`: String
             get() = LocaleBootstrap.getString(R.string.about_section_more)
 
         @Composable
-        fun `More`(vararg args: Any): String = stringResource(R.string.about_section_more, *args)
+        fun `More`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.about_section_more, *args)
 
         val `License`: String
             get() = LocaleBootstrap.getString(R.string.about_section_license)
 
         @Composable
         fun `License`(vararg args: Any): String =
-            stringResource(R.string.about_section_license, *args)
+            LocaleBootstrap.getString(R.string.about_section_license, *args)
     }
 
     object `Link` {
@@ -105,41 +107,42 @@ object MLangAbout {
 
         @Composable
         fun `Repository`(vararg args: Any): String =
-            stringResource(R.string.about_link_repository, *args)
+            LocaleBootstrap.getString(R.string.about_link_repository, *args)
 
         val `Releases`: String
             get() = LocaleBootstrap.getString(R.string.about_link_releases)
 
         @Composable
         fun `Releases`(vararg args: Any): String =
-            stringResource(R.string.about_link_releases, *args)
+            LocaleBootstrap.getString(R.string.about_link_releases, *args)
 
         val `Mihomo`: String
             get() = LocaleBootstrap.getString(R.string.about_link_mihomo)
 
         @Composable
-        fun `Mihomo`(vararg args: Any): String = stringResource(R.string.about_link_mihomo, *args)
+        fun `Mihomo`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.about_link_mihomo, *args)
 
         val `Upstream`: String
             get() = LocaleBootstrap.getString(R.string.about_link_upstream)
 
         @Composable
         fun `Upstream`(vararg args: Any): String =
-            stringResource(R.string.about_link_upstream, *args)
+            LocaleBootstrap.getString(R.string.about_link_upstream, *args)
 
         val `TelegramGroup`: String
             get() = LocaleBootstrap.getString(R.string.about_link_telegram_group)
 
         @Composable
         fun `TelegramGroup`(vararg args: Any): String =
-            stringResource(R.string.about_link_telegram_group, *args)
+            LocaleBootstrap.getString(R.string.about_link_telegram_group, *args)
 
         val `TelegramChannel`: String
             get() = LocaleBootstrap.getString(R.string.about_link_telegram_channel)
 
         @Composable
         fun `TelegramChannel`(vararg args: Any): String =
-            stringResource(R.string.about_link_telegram_channel, *args)
+            LocaleBootstrap.getString(R.string.about_link_telegram_channel, *args)
     }
 
     object `License` {
@@ -148,47 +151,48 @@ object MLangAbout {
 
         @Composable
         fun `CheckUpdate`(vararg args: Any): String =
-            stringResource(R.string.about_license_check_update, *args)
+            LocaleBootstrap.getString(R.string.about_license_check_update, *args)
 
         val `CheckUpdateSummary`: String
             get() = LocaleBootstrap.getString(R.string.about_license_check_update_summary)
 
         @Composable
         fun `CheckUpdateSummary`(vararg args: Any): String =
-            stringResource(R.string.about_license_check_update_summary, *args)
+            LocaleBootstrap.getString(R.string.about_license_check_update_summary, *args)
 
         val `Libraries`: String
             get() = LocaleBootstrap.getString(R.string.about_license_libraries)
 
         @Composable
         fun `Libraries`(vararg args: Any): String =
-            stringResource(R.string.about_license_libraries, *args)
+            LocaleBootstrap.getString(R.string.about_license_libraries, *args)
 
         val `LibrariesSummary`: String
             get() = LocaleBootstrap.getString(R.string.about_license_libraries_summary)
 
         @Composable
         fun `LibrariesSummary`(vararg args: Any): String =
-            stringResource(R.string.about_license_libraries_summary, *args)
+            LocaleBootstrap.getString(R.string.about_license_libraries_summary, *args)
 
         val `AgplName`: String
             get() = LocaleBootstrap.getString(R.string.about_license_agpl_name)
 
         @Composable
         fun `AgplName`(vararg args: Any): String =
-            stringResource(R.string.about_license_agpl_name, *args)
+            LocaleBootstrap.getString(R.string.about_license_agpl_name, *args)
 
         val `AgplDescription`: String
             get() = LocaleBootstrap.getString(R.string.about_license_agpl_description)
 
         @Composable
         fun `AgplDescription`(vararg args: Any): String =
-            stringResource(R.string.about_license_agpl_description, *args)
+            LocaleBootstrap.getString(R.string.about_license_agpl_description, *args)
     }
 
     val `Copyright`: String
         get() = LocaleBootstrap.getString(R.string.about_copyright)
 
     @Composable
-    fun `Copyright`(vararg args: Any): String = stringResource(R.string.about_copyright, *args)
+    fun `Copyright`(vararg args: Any): String =
+        LocaleBootstrap.getString(R.string.about_copyright, *args)
 }

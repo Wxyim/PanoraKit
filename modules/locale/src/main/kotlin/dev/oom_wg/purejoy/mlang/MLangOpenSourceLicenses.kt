@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -34,7 +33,7 @@ object MLangOpenSourceLicenses {
 
     @Composable
     fun `Title`(vararg args: Any): String =
-        stringResource(R.string.open_source_licenses_title, *args)
+        LocaleBootstrap.getString(R.string.open_source_licenses_title, *args)
 
     object `LicenseSheet` {
         val `NoContent`: String
@@ -43,6 +42,6 @@ object MLangOpenSourceLicenses {
 
         @Composable
         fun `NoContent`(vararg args: Any): String =
-            stringResource(R.string.open_source_licenses_license_sheet_no_content, *args)
+            LocaleBootstrap.getString(R.string.open_source_licenses_license_sheet_no_content, *args)
     }
 }

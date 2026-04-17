@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -33,7 +32,8 @@ object MLangNetworkSettings {
         get() = LocaleBootstrap.getString(R.string.network_settings_title)
 
     @Composable
-    fun `Title`(vararg args: Any): String = stringResource(R.string.network_settings_title, *args)
+    fun `Title`(vararg args: Any): String =
+        LocaleBootstrap.getString(R.string.network_settings_title, *args)
 
     object `Section` {
         val `VpnService`: String
@@ -41,28 +41,28 @@ object MLangNetworkSettings {
 
         @Composable
         fun `VpnService`(vararg args: Any): String =
-            stringResource(R.string.network_settings_section_vpn_service, *args)
+            LocaleBootstrap.getString(R.string.network_settings_section_vpn_service, *args)
 
         val `VpnOptions`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_section_vpn_options)
 
         @Composable
         fun `VpnOptions`(vararg args: Any): String =
-            stringResource(R.string.network_settings_section_vpn_options, *args)
+            LocaleBootstrap.getString(R.string.network_settings_section_vpn_options, *args)
 
         val `ProxyOptions`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_section_proxy_options)
 
         @Composable
         fun `ProxyOptions`(vararg args: Any): String =
-            stringResource(R.string.network_settings_section_proxy_options, *args)
+            LocaleBootstrap.getString(R.string.network_settings_section_proxy_options, *args)
 
         val `RootTunAdvanced`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_section_root_tun_advanced)
 
         @Composable
         fun `RootTunAdvanced`(vararg args: Any): String =
-            stringResource(R.string.network_settings_section_root_tun_advanced, *args)
+            LocaleBootstrap.getString(R.string.network_settings_section_root_tun_advanced, *args)
     }
 
     object `VpnService` {
@@ -72,7 +72,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteTrafficTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_route_traffic_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_service_route_traffic_title,
+                *args,
+            )
 
         val `RouteTrafficSummary`: String
             get() =
@@ -82,7 +85,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteTrafficSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_route_traffic_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_service_route_traffic_summary,
+                *args,
+            )
 
         val `RouteTrafficEffective`: String
             get() =
@@ -92,7 +98,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteTrafficEffective`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_route_traffic_effective, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_service_route_traffic_effective,
+                *args,
+            )
 
         val `RouteTrafficApplying`: String
             get() =
@@ -102,28 +111,31 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteTrafficApplying`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_route_traffic_applying, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_service_route_traffic_applying,
+                *args,
+            )
 
         val `VpnMode`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_vpn_service_vpn_mode)
 
         @Composable
         fun `VpnMode`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_vpn_mode, *args)
+            LocaleBootstrap.getString(R.string.network_settings_vpn_service_vpn_mode, *args)
 
         val `RootTunMode`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_vpn_service_root_tun_mode)
 
         @Composable
         fun `RootTunMode`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_root_tun_mode, *args)
+            LocaleBootstrap.getString(R.string.network_settings_vpn_service_root_tun_mode, *args)
 
         val `SystemProxy`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_vpn_service_system_proxy)
 
         @Composable
         fun `SystemProxy`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_service_system_proxy, *args)
+            LocaleBootstrap.getString(R.string.network_settings_vpn_service_system_proxy, *args)
     }
 
     object `HttpMode` {
@@ -132,14 +144,14 @@ object MLangNetworkSettings {
 
         @Composable
         fun `InfoTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_http_mode_info_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_http_mode_info_title, *args)
 
         val `InfoSummary`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_http_mode_info_summary)
 
         @Composable
         fun `InfoSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_http_mode_info_summary, *args)
+            LocaleBootstrap.getString(R.string.network_settings_http_mode_info_summary, *args)
     }
 
     object `VpnOptions` {
@@ -151,7 +163,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `BypassPrivateTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_bypass_private_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_bypass_private_title,
+                *args,
+            )
 
         val `BypassPrivateSummary`: String
             get() =
@@ -161,7 +176,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `BypassPrivateSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_bypass_private_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_bypass_private_summary,
+                *args,
+            )
 
         val `DnsHijackTitle`: String
             get() =
@@ -169,7 +187,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `DnsHijackTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_dns_hijack_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_vpn_options_dns_hijack_title, *args)
 
         val `DnsHijackSummary`: String
             get() =
@@ -177,7 +195,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `DnsHijackSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_dns_hijack_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_dns_hijack_summary,
+                *args,
+            )
 
         val `AllowBypassTitle`: String
             get() =
@@ -185,7 +206,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowBypassTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_allow_bypass_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_allow_bypass_title,
+                *args,
+            )
 
         val `AllowBypassSummary`: String
             get() =
@@ -195,7 +219,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowBypassSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_allow_bypass_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_allow_bypass_summary,
+                *args,
+            )
 
         val `EnableIpv6Title`: String
             get() =
@@ -203,7 +230,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `EnableIpv6Title`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_enable_ipv6_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_enable_ipv6_title,
+                *args,
+            )
 
         val `EnableIpv6Summary`: String
             get() =
@@ -211,7 +241,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `EnableIpv6Summary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_enable_ipv6_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_enable_ipv6_summary,
+                *args,
+            )
 
         val `SystemProxyTitle`: String
             get() =
@@ -219,7 +252,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `SystemProxyTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_system_proxy_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_system_proxy_title,
+                *args,
+            )
 
         val `SystemProxySummary`: String
             get() =
@@ -229,7 +265,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `SystemProxySummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_vpn_options_system_proxy_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_vpn_options_system_proxy_summary,
+                *args,
+            )
     }
 
     object `ProxyOptions` {
@@ -239,7 +278,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `TunStackTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_tun_stack_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_tun_stack_title,
+                *args,
+            )
 
         val `TunStackSystem`: String
             get() =
@@ -247,7 +289,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `TunStackSystem`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_tun_stack_system, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_tun_stack_system,
+                *args,
+            )
 
         val `TunStackGvisor`: String
             get() =
@@ -255,7 +300,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `TunStackGvisor`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_tun_stack_gvisor, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_tun_stack_gvisor,
+                *args,
+            )
 
         val `TunStackMixed`: String
             get() =
@@ -263,7 +311,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `TunStackMixed`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_tun_stack_mixed, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_tun_stack_mixed,
+                *args,
+            )
 
         val `AccessControlModeTitle`: String
             get() =
@@ -273,7 +324,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AccessControlModeTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_access_control_mode_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_access_control_mode_title,
+                *args,
+            )
 
         val `AllowNonLocalhostHttpRemoteTitle`: String
             get() =
@@ -283,7 +337,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowNonLocalhostHttpRemoteTitle`(vararg args: Any): String =
-            stringResource(
+            LocaleBootstrap.getString(
                 R.string.network_settings_proxy_options_allow_non_localhost_http_remote_title,
                 *args,
             )
@@ -296,7 +350,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowNonLocalhostHttpRemoteSummary`(vararg args: Any): String =
-            stringResource(
+            LocaleBootstrap.getString(
                 R.string.network_settings_proxy_options_allow_non_localhost_http_remote_summary,
                 *args,
             )
@@ -306,7 +360,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowAll`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_allow_all, *args)
+            LocaleBootstrap.getString(R.string.network_settings_proxy_options_allow_all, *args)
 
         val `AllowSelected`: String
             get() =
@@ -314,7 +368,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AllowSelected`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_allow_selected, *args)
+            LocaleBootstrap.getString(R.string.network_settings_proxy_options_allow_selected, *args)
 
         val `RejectSelected`: String
             get() =
@@ -322,7 +376,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RejectSelected`(vararg args: Any): String =
-            stringResource(R.string.network_settings_proxy_options_reject_selected, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_reject_selected,
+                *args,
+            )
 
         val `ManageAccessControlTitle`: String
             get() =
@@ -332,7 +389,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `ManageAccessControlTitle`(vararg args: Any): String =
-            stringResource(
+            LocaleBootstrap.getString(
                 R.string.network_settings_proxy_options_manage_access_control_title,
                 *args,
             )
@@ -345,7 +402,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `ManageAccessControlSummary`(vararg args: Any): String =
-            stringResource(
+            LocaleBootstrap.getString(
                 R.string.network_settings_proxy_options_manage_access_control_summary,
                 *args,
             )
@@ -357,28 +414,28 @@ object MLangNetworkSettings {
 
         @Composable
         fun `IfNameTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_if_name_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_if_name_title, *args)
 
         val `IfNameSummary`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_if_name_summary)
 
         @Composable
         fun `IfNameSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_if_name_summary, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_if_name_summary, *args)
 
         val `MtuTitle`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_title)
 
         @Composable
         fun `MtuTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_mtu_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_title, *args)
 
         val `MtuSummary`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_summary)
 
         @Composable
         fun `MtuSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_mtu_summary, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_summary, *args)
 
         val `AndroidUsersTitle`: String
             get() =
@@ -386,7 +443,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AndroidUsersTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_android_users_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_android_users_title, *args)
 
         val `AndroidUsersSummary`: String
             get() =
@@ -394,7 +451,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AndroidUsersSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_android_users_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_android_users_summary,
+                *args,
+            )
 
         val `AndroidUsersPlaceholder`: String
             get() =
@@ -404,7 +464,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AndroidUsersPlaceholder`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_android_users_placeholder, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_android_users_placeholder,
+                *args,
+            )
 
         val `RouteExcludesTitle`: String
             get() =
@@ -412,7 +475,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteExcludesTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_route_excludes_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_route_excludes_title,
+                *args,
+            )
 
         val `RouteExcludesSummary`: String
             get() =
@@ -420,7 +486,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteExcludesSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_route_excludes_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_route_excludes_summary,
+                *args,
+            )
 
         val `RouteExcludesPlaceholder`: String
             get() =
@@ -430,28 +499,31 @@ object MLangNetworkSettings {
 
         @Composable
         fun `RouteExcludesPlaceholder`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_route_excludes_placeholder, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_route_excludes_placeholder,
+                *args,
+            )
 
         val `AutoRouteTitle`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_auto_route_title)
 
         @Composable
         fun `AutoRouteTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_auto_route_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_auto_route_title, *args)
 
         val `AutoRouteSummary`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_auto_route_summary)
 
         @Composable
         fun `AutoRouteSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_auto_route_summary, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_auto_route_summary, *args)
 
         val `StrictRouteTitle`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_strict_route_title)
 
         @Composable
         fun `StrictRouteTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_strict_route_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_strict_route_title, *args)
 
         val `StrictRouteSummary`: String
             get() =
@@ -459,7 +531,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `StrictRouteSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_strict_route_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_strict_route_summary,
+                *args,
+            )
 
         val `AutoRedirectTitle`: String
             get() =
@@ -467,7 +542,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AutoRedirectTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_auto_redirect_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_auto_redirect_title, *args)
 
         val `AutoRedirectSummary`: String
             get() =
@@ -475,21 +550,24 @@ object MLangNetworkSettings {
 
         @Composable
         fun `AutoRedirectSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_auto_redirect_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_auto_redirect_summary,
+                *args,
+            )
 
         val `DnsModeTitle`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_title)
 
         @Composable
         fun `DnsModeTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_dns_mode_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_title, *args)
 
         val `DnsModeSummary`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_summary)
 
         @Composable
         fun `DnsModeSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_dns_mode_summary, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_summary, *args)
 
         val `DnsModeRedirHost`: String
             get() =
@@ -497,14 +575,14 @@ object MLangNetworkSettings {
 
         @Composable
         fun `DnsModeRedirHost`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_dns_mode_redir_host, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_redir_host, *args)
 
         val `DnsModeFakeIp`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_fake_ip)
 
         @Composable
         fun `DnsModeFakeIp`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_dns_mode_fake_ip, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_dns_mode_fake_ip, *args)
 
         val `FakeIpRangeTitle`: String
             get() =
@@ -512,7 +590,7 @@ object MLangNetworkSettings {
 
         @Composable
         fun `FakeIpRangeTitle`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_fake_ip_range_title, *args)
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_fake_ip_range_title, *args)
 
         val `FakeIpRangeSummary`: String
             get() =
@@ -520,7 +598,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `FakeIpRangeSummary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_fake_ip_range_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_fake_ip_range_summary,
+                *args,
+            )
 
         val `FakeIpRange6Title`: String
             get() =
@@ -528,7 +609,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `FakeIpRange6Title`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_fake_ip_range6_title, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_fake_ip_range6_title,
+                *args,
+            )
 
         val `FakeIpRange6Summary`: String
             get() =
@@ -536,7 +620,10 @@ object MLangNetworkSettings {
 
         @Composable
         fun `FakeIpRange6Summary`(vararg args: Any): String =
-            stringResource(R.string.network_settings_root_tun_fake_ip_range6_summary, *args)
+            LocaleBootstrap.getString(
+                R.string.network_settings_root_tun_fake_ip_range6_summary,
+                *args,
+            )
     }
 
     object `Error` {
@@ -545,6 +632,6 @@ object MLangNetworkSettings {
 
         @Composable
         fun `VpnDenied`(vararg args: Any): String =
-            stringResource(R.string.network_settings_error_vpn_denied, *args)
+            LocaleBootstrap.getString(R.string.network_settings_error_vpn_denied, *args)
     }
 }

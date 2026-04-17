@@ -22,6 +22,8 @@ package com.github.nomadboxlab.monadbox.core.locale
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
+import android.os.LocaleList
 import androidx.annotation.StringRes
 
 /**
@@ -35,10 +37,28 @@ import androidx.annotation.StringRes
  */
 object LocaleBootstrap {
     @SuppressLint("StaticFieldLeak") @Volatile private var appContext: Context? = null
+    @Volatile private var overrideLanguageTags: String? = null
+    @SuppressLint("StaticFieldLeak") @Volatile private var cachedLocalizedContext: Context? = null
+    @Volatile private var cachedLanguageTags: String? = null
+    private val cacheLock = Any()
 
     fun install(context: Context) {
-        appContext = context.applicationContext
+        val applicationContext = context.applicationContext
+        if (appContext !== applicationContext) {
+            appContext = applicationContext
+            invalidateLocalizedContextCache()
+        }
     }
+
+    fun setLanguageTags(languageTags: String?) {
+        val normalized = languageTags.normalizeLanguageTags()
+        if (overrideLanguageTags != normalized) {
+            overrideLanguageTags = normalized
+            invalidateLocalizedContextCache()
+        }
+    }
+
+    fun currentLanguageTags(): String? = overrideLanguageTags
 
     private fun resolveContext(): Context {
         appContext?.let {
@@ -61,8 +81,46 @@ object LocaleBootstrap {
             }
             .getOrNull()
 
-    fun getString(@StringRes id: Int): String = resolveContext().getString(id)
+    private fun invalidateLocalizedContextCache() {
+        synchronized(cacheLock) {
+            cachedLocalizedContext = null
+            cachedLanguageTags = null
+        }
+    }
+
+    private fun resolveLocalizedContext(): Context {
+        val context = resolveContext()
+        val languageTags = overrideLanguageTags
+        if (languageTags == null) {
+            return context
+        }
+
+        cachedLocalizedContext
+            ?.takeIf { cachedLanguageTags == languageTags }
+            ?.let {
+                return it
+            }
+
+        return synchronized(cacheLock) {
+            cachedLocalizedContext
+                ?.takeIf { cachedLanguageTags == languageTags }
+                ?.let {
+                    return@synchronized it
+                }
+
+            val configuration = Configuration(context.resources.configuration)
+            configuration.setLocales(LocaleList.forLanguageTags(languageTags))
+            context.createConfigurationContext(configuration).also { localizedContext ->
+                cachedLanguageTags = languageTags
+                cachedLocalizedContext = localizedContext
+            }
+        }
+    }
+
+    fun getString(@StringRes id: Int): String = resolveLocalizedContext().getString(id)
 
     fun getString(@StringRes id: Int, vararg formatArgs: Any?): String =
-        resolveContext().getString(id, *formatArgs)
+        resolveLocalizedContext().getString(id, *formatArgs)
 }
+
+private fun String?.normalizeLanguageTags(): String? = this?.trim()?.takeIf { it.isNotBlank() }

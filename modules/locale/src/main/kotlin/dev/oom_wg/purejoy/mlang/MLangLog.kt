@@ -24,7 +24,6 @@
 package dev.oom_wg.purejoy.mlang
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
@@ -32,7 +31,8 @@ object MLangLog {
     val `Title`: String
         get() = LocaleBootstrap.getString(R.string.log_title)
 
-    @Composable fun `Title`(vararg args: Any): String = stringResource(R.string.log_title, *args)
+    @Composable
+    fun `Title`(vararg args: Any): String = LocaleBootstrap.getString(R.string.log_title, *args)
 
     object `Action` {
         val `StopRecording`: String
@@ -40,66 +40,70 @@ object MLangLog {
 
         @Composable
         fun `StopRecording`(vararg args: Any): String =
-            stringResource(R.string.log_action_stop_recording, *args)
+            LocaleBootstrap.getString(R.string.log_action_stop_recording, *args)
 
         val `StartRecording`: String
             get() = LocaleBootstrap.getString(R.string.log_action_start_recording)
 
         @Composable
         fun `StartRecording`(vararg args: Any): String =
-            stringResource(R.string.log_action_start_recording, *args)
+            LocaleBootstrap.getString(R.string.log_action_start_recording, *args)
 
         val `Save`: String
             get() = LocaleBootstrap.getString(R.string.log_action_save)
 
         @Composable
-        fun `Save`(vararg args: Any): String = stringResource(R.string.log_action_save, *args)
+        fun `Save`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_save, *args)
 
         val `Cleanup`: String
             get() = LocaleBootstrap.getString(R.string.log_action_cleanup)
 
         @Composable
-        fun `Cleanup`(vararg args: Any): String = stringResource(R.string.log_action_cleanup, *args)
+        fun `Cleanup`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_cleanup, *args)
 
         val `CleanupDone`: String
             get() = LocaleBootstrap.getString(R.string.log_action_cleanup_done)
 
         @Composable
         fun `CleanupDone`(vararg args: Any): String =
-            stringResource(R.string.log_action_cleanup_done, *args)
+            LocaleBootstrap.getString(R.string.log_action_cleanup_done, *args)
 
         val `ExportDebugBundle`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export_debug_bundle)
 
         @Composable
         fun `ExportDebugBundle`(vararg args: Any): String =
-            stringResource(R.string.log_action_export_debug_bundle, *args)
+            LocaleBootstrap.getString(R.string.log_action_export_debug_bundle, *args)
 
         val `ExportDebugBundleWarning`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export_debug_bundle_warning)
 
         @Composable
         fun `ExportDebugBundleWarning`(vararg args: Any): String =
-            stringResource(R.string.log_action_export_debug_bundle_warning, *args)
+            LocaleBootstrap.getString(R.string.log_action_export_debug_bundle_warning, *args)
 
         val `Export`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export)
 
         @Composable
-        fun `Export`(vararg args: Any): String = stringResource(R.string.log_action_export, *args)
+        fun `Export`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_export, *args)
 
         val `Cancel`: String
             get() = LocaleBootstrap.getString(R.string.log_action_cancel)
 
         @Composable
-        fun `Cancel`(vararg args: Any): String = stringResource(R.string.log_action_cancel, *args)
+        fun `Cancel`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_cancel, *args)
 
         val `ExportDone`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export_done)
 
         @Composable
         fun `ExportDone`(vararg args: Any): String =
-            stringResource(R.string.log_action_export_done, *args)
+            LocaleBootstrap.getString(R.string.log_action_export_done, *args)
     }
 
     object `Empty` {
@@ -107,21 +111,22 @@ object MLangLog {
             get() = LocaleBootstrap.getString(R.string.log_empty_no_logs)
 
         @Composable
-        fun `NoLogs`(vararg args: Any): String = stringResource(R.string.log_empty_no_logs, *args)
+        fun `NoLogs`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_empty_no_logs, *args)
 
         val `StartRecordingHint`: String
             get() = LocaleBootstrap.getString(R.string.log_empty_start_recording_hint)
 
         @Composable
         fun `StartRecordingHint`(vararg args: Any): String =
-            stringResource(R.string.log_empty_start_recording_hint, *args)
+            LocaleBootstrap.getString(R.string.log_empty_start_recording_hint, *args)
 
         val `AutoRecordHint`: String
             get() = LocaleBootstrap.getString(R.string.log_empty_auto_record_hint)
 
         @Composable
         fun `AutoRecordHint`(vararg args: Any): String =
-            stringResource(R.string.log_empty_auto_record_hint, *args)
+            LocaleBootstrap.getString(R.string.log_empty_auto_record_hint, *args)
     }
 
     object `Detail` {
@@ -130,14 +135,14 @@ object MLangLog {
 
         @Composable
         fun `WaitingLog`(vararg args: Any): String =
-            stringResource(R.string.log_detail_waiting_log, *args)
+            LocaleBootstrap.getString(R.string.log_detail_waiting_log, *args)
 
         val `WillShowWhenGenerated`: String
             get() = LocaleBootstrap.getString(R.string.log_detail_will_show_when_generated)
 
         @Composable
         fun `WillShowWhenGenerated`(vararg args: Any): String =
-            stringResource(R.string.log_detail_will_show_when_generated, *args)
+            LocaleBootstrap.getString(R.string.log_detail_will_show_when_generated, *args)
     }
 
     object `History` {
@@ -145,28 +150,29 @@ object MLangLog {
             get() = LocaleBootstrap.getString(R.string.log_history_title)
 
         @Composable
-        fun `Title`(vararg args: Any): String = stringResource(R.string.log_history_title, *args)
+        fun `Title`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_history_title, *args)
 
         val `LiveSection`: String
             get() = LocaleBootstrap.getString(R.string.log_history_live_section)
 
         @Composable
         fun `LiveSection`(vararg args: Any): String =
-            stringResource(R.string.log_history_live_section, *args)
+            LocaleBootstrap.getString(R.string.log_history_live_section, *args)
 
         val `Recording`: String
             get() = LocaleBootstrap.getString(R.string.log_history_recording)
 
         @Composable
         fun `Recording`(vararg args: Any): String =
-            stringResource(R.string.log_history_recording, *args)
+            LocaleBootstrap.getString(R.string.log_history_recording, *args)
 
         val `ItemSummary`: String
             get() = LocaleBootstrap.getString(R.string.log_history_item_summary)
 
         @Composable
         fun `ItemSummary`(vararg args: Any): String =
-            stringResource(R.string.log_history_item_summary, *args)
+            LocaleBootstrap.getString(R.string.log_history_item_summary, *args)
     }
 
     object `Startup` {
@@ -174,20 +180,21 @@ object MLangLog {
             get() = LocaleBootstrap.getString(R.string.log_startup_title)
 
         @Composable
-        fun `Title`(vararg args: Any): String = stringResource(R.string.log_startup_title, *args)
+        fun `Title`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_startup_title, *args)
 
         val `LiveSection`: String
             get() = LocaleBootstrap.getString(R.string.log_startup_live_section)
 
         @Composable
         fun `LiveSection`(vararg args: Any): String =
-            stringResource(R.string.log_startup_live_section, *args)
+            LocaleBootstrap.getString(R.string.log_startup_live_section, *args)
 
         val `ItemSummary`: String
             get() = LocaleBootstrap.getString(R.string.log_startup_item_summary)
 
         @Composable
         fun `ItemSummary`(vararg args: Any): String =
-            stringResource(R.string.log_startup_item_summary, *args)
+            LocaleBootstrap.getString(R.string.log_startup_item_summary, *args)
     }
 }
