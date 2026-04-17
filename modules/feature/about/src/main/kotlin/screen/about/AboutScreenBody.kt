@@ -1,0 +1,183 @@
+/*
+ * This file is part of MonadBox - A customized edition of YumeBox.
+ *
+ * MonadBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ *
+ */
+
+package com.github.nomadboxlab.monadbox.feature.about
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import com.github.nomadboxlab.monadbox.domain.app.AppInfo
+import com.github.nomadboxlab.monadbox.presentation.component.Card
+import com.github.nomadboxlab.monadbox.presentation.component.ConfigSettingRow
+import com.github.nomadboxlab.monadbox.presentation.component.LinkItem
+import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
+import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
+import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
+import dev.oom_wg.purejoy.mlang.MLang
+import org.koin.compose.koinInject
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private object AboutProjectLinks {
+    const val MonadBoxRepo = "https://github.com/NomadBoxLab/NomadBox"
+    const val MonadBoxLatestRelease = "https://github.com/NomadBoxLab/NomadBox/releases/latest"
+    const val MihomoRepo = "https://github.com/MetaCubeX/mihomo"
+    const val YumeBoxUpstreamRepo = "https://github.com/YumeLira/YumeBox"
+}
+
+/**
+ * Body of the About screen. The compose-destinations wrapper (annotated for RootGraph) lives in the
+ * :app module so codegen stays centralized; this composable contains all the real UI.
+ */
+@Composable
+fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicensesClick: () -> Unit) {
+    val scrollBehavior = MiuixScrollBehavior()
+    val spacing = AppTheme.spacing
+    val radii = AppTheme.radii
+    val pageMetrics = LocalPageMetrics.current
+    val appInfo = koinInject<AppInfo>()
+
+    Scaffold(
+        topBar = {
+            TopBar(
+                title = MLang.About.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = navigationIcon,
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            ScreenLazyColumn(
+                modifier = Modifier.adaptiveContentWidth(pageMetrics.contentMaxWidth),
+                scrollBehavior = scrollBehavior,
+                innerPadding = innerPadding,
+                bottomPadding = spacing.xxxl,
+            ) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(modifier = Modifier.height(spacing.xxl))
+
+                        Icon(
+                            painter = painterResource(id = R.drawable.about_logo),
+                            contentDescription = null,
+                            modifier =
+                                Modifier.size(pageMetrics.aboutHeroIconSize)
+                                    .clip(RoundedCornerShape(radii.xxl)),
+                            tint = Color.Unspecified,
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.xxl))
+
+                        Text(text = MLang.About.App.Name, style = MiuixTheme.textStyles.title1)
+
+                        Spacer(modifier = Modifier.height(spacing.sm))
+
+                        Text(
+                            text =
+                                MLang.About.App.VersionWithMihomo.format(
+                                    appInfo.versionName,
+                                    appInfo.mihomoVersion,
+                                ),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.xxxl))
+                    }
+
+                    Card {
+                        BasicComponent(
+                            title = MLang.About.App.Name,
+                            summary = MLang.About.App.Description,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.ProjectLinks)
+                    Card {
+                        AboutLinkItem(
+                            title = MLang.About.Link.Repository,
+                            url = AboutProjectLinks.MonadBoxRepo,
+                        )
+                        AboutLinkItem(
+                            title = MLang.About.Link.Releases,
+                            url = AboutProjectLinks.MonadBoxLatestRelease,
+                        )
+                        AboutLinkItem(
+                            title = MLang.About.Link.Mihomo,
+                            url = AboutProjectLinks.MihomoRepo,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.Credits)
+                    Card {
+                        AboutLinkItem(
+                            title = MLang.About.Link.Upstream,
+                            url = AboutProjectLinks.YumeBoxUpstreamRepo,
+                        )
+                    }
+
+                    SmallTitle(MLang.About.Section.License)
+                    Card {
+                        ConfigSettingRow(
+                            title = MLang.About.License.Libraries,
+                            summary = MLang.About.License.LibrariesSummary,
+                            showDivider = false,
+                            onClick = onOpenSourceLicensesClick,
+                        )
+                        BasicComponent(
+                            title = MLang.About.License.AgplName,
+                            summary = MLang.About.License.AgplDescription,
+                        )
+                    }
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = spacing.xxxl),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(text = MLang.About.Copyright, style = MiuixTheme.textStyles.footnote1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutLinkItem(title: String, url: String) {
+    LinkItem(title = title, url = url, showArrow = true)
+}

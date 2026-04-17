@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+                android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingStartupActivity"
+                android:exported="false"
+                android:windowLayoutInDisplayCutoutMode="shortEdges"
+                android:theme="@style/Theme.MonadBox"/>
+
+        <activity
+                android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingPermissionsActivity"
+                android:exported="false"
+                android:windowLayoutInDisplayCutoutMode="shortEdges"
+                android:theme="@style/Theme.MonadBox"/>
+
+        <activity
+                android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingTermsActivity"
+                android:exported="false"
+                android:windowLayoutInDisplayCutoutMode="shortEdges"
+                android:theme="@style/Theme.MonadBox"/>
+
+        <activity
+                android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingPersonalizeActivity"
+                android:exported="false"
+                android:windowLayoutInDisplayCutoutMode="shortEdges"
+                android:theme="@style/Theme.MonadBox"/>
+
+        <activity
+                android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingFinishActivity"
+                android:exported="false"
+                android:windowLayoutInDisplayCutoutMode="shortEdges"
+                android:theme="@style/Theme.MonadBox"/>
+    </application>
+</manifest>

@@ -1,0 +1,76 @@
+/*
+ * This file is part of MonadBox - A customized edition of YumeBox.
+ *
+ * MonadBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ *
+ */
+
+package com.github.nomadboxlab.monadbox.screen.onboarding
+
+import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldCheck
+import dev.oom_wg.purejoy.mlang.MLang
+import org.koin.compose.koinInject
+
+internal class OnboardingTermsActivity : OnboardingBaseActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    navigateBackwardTo(OnboardingPermissionsActivity::class.java)
+                }
+            },
+        )
+
+        setOnboardingContent {
+            val appSettings = koinInject<AppSettingsRepository>()
+            val privacyState = rememberPrivacyAcceptedState(appSettings)
+            val showPrivacySheet = remember { mutableStateOf(false) }
+
+            ProvisionDetailShell(
+                previewIcon = MonadIcons.ShieldCheck,
+                title = MLang.Onboarding.Privacy.Title,
+                subtitle = MLang.Onboarding.Privacy.Subtitle,
+                primaryText = MLang.Onboarding.Navigation.Next,
+                primaryEnabled = privacyState.accepted,
+                onPrimaryClick = {
+                    if (privacyState.accepted) {
+                        navigateForwardTo(OnboardingPersonalizeActivity::class.java)
+                    }
+                },
+                onBack = { navigateBackwardTo(OnboardingPermissionsActivity::class.java) },
+            ) {
+                TermsContent(
+                    accepted = privacyState.accepted,
+                    onAcceptedChange = privacyState.onAcceptedChange,
+                    onPrivacySheetRequest = { showPrivacySheet.value = true },
+                )
+            }
+
+            PrivacyPolicySheet(show = showPrivacySheet)
+        }
+    }
+}
