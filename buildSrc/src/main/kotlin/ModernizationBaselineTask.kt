@@ -84,14 +84,15 @@ abstract class ModernizationBaselineTask : DefaultTask() {
                     }
         }
 
-        val coordinatorFile = root.resolve("app/src/startup/AppStartupCoordinator.kt")
+        val coordinatorFile = root.resolve("app/src/main/kotlin/startup/AppStartupCoordinator.kt")
         if (!coordinatorFile.isFile) {
-            issues += "Missing startup coordinator: app/src/startup/AppStartupCoordinator.kt"
+            issues +=
+                "Missing startup coordinator: app/src/main/kotlin/startup/AppStartupCoordinator.kt"
         }
 
-        val appFile = root.resolve("app/src/App.kt")
+        val appFile = root.resolve("app/src/main/kotlin/App.kt")
         if (!appFile.isFile) {
-            issues += "Missing application file: app/src/App.kt"
+            issues += "Missing application file: app/src/main/kotlin/App.kt"
         } else {
             val appStartupAnalysis =
                 ModernizationSourceAnalyzer.analyzeAppStartup(

@@ -80,49 +80,32 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    // Sources use AGP standard layout (src/main/kotlin, src/main/res, ...).
+    // Only extra generated directories need to be registered explicitly.
     sourceSets {
         getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                addAll(listOf("assets", geoFilesAssetsDir.get().asFile.invariantSeparatorsPath))
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            jniLibs.directories.apply {
-                clear()
-                add(unifiedJniLibsDir.get().asFile.invariantSeparatorsPath)
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.apply {
-                clear()
-                add("test")
-            }
-            resources.directories.apply {
-                clear()
-                add("test/resources")
-            }
+            assets.directories.add(geoFilesAssetsDir.get().asFile.invariantSeparatorsPath)
+            jniLibs.directories.add(unifiedJniLibsDir.get().asFile.invariantSeparatorsPath)
         }
     }
 
     androidResources { generateLocaleConfig = false }
+
+    lint {
+        // Fail CI/release builds on new issues, but allow current known issues via baseline.
+        // Create the baseline file by running `./gradlew :app:lintDebug`
+        // (if baseline does not exist, it will be generated).
+        abortOnError = true
+        warningsAsErrors = false
+        checkReleaseBuilds = true
+        checkDependencies = true
+        baseline = file("lint-baseline.xml")
+        disable +=
+            setOf(
+                // Handled by our own checkGithubOssLicensePolicy task; lint false-positives here.
+                "UnusedResources"
+            )
+    }
 
     buildFeatures {
         compose = true
@@ -170,7 +153,11 @@ android {
     packaging {
         jniLibs {
             excludes += listOf("lib/**/libjavet*.so", "lib/**/libyume.so")
-            useLegacyPackaging = true
+            // Align with gradle.properties
+            // (android.packagingOptions.jniLibs.useLegacyPackaging=false).
+            // Since minSdk=26, non-legacy packaging (uncompressed + mmap) is strictly better
+            // for cold start and avoids duplicating libs in device storage.
+            useLegacyPackaging = false
         }
     }
 
@@ -348,17 +335,25 @@ dependencies {
     implementation(project(":feature:override"))
     implementation(project(":feature:editor"))
     implementation(project(":feature:meta"))
+    implementation(project(":feature:about"))
+    implementation(project(":feature:onboarding"))
+    implementation(project(":feature:log"))
+    implementation(project(":feature:connection"))
+    implementation(project(":feature:traffic"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:settings"))
+    implementation(project(":feature:profiles"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3-window-size-class")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.animation)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3.window.size)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
     implementation(libs.activity.compose)
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
@@ -366,11 +361,9 @@ dependencies {
     implementation(libs.liquid)
     implementation(libs.navigationevent.compose)
 
-    val mmkv64 = libs.versions.mmkv64.get()
-    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
-    val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
-    implementation("com.tencent:mmkv:$mmkvVersion")
+    val mmkv = if (injectedAbi in listOf("arm64-v8a", "x86_64")) libs.mmkv.v64 else libs.mmkv.v32
+    implementation(mmkv)
 
     implementation(libs.koin.core)
     implementation(libs.koin.android)
@@ -404,7 +397,7 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.profileinstaller)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit4)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.compose.ui.test.junit4)

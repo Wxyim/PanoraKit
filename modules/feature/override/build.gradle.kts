@@ -28,49 +28,6 @@ plugins {
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.feature.override"
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.apply {
-                clear()
-                add("test/kotlin")
-            }
-            resources.directories.clear()
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = false
@@ -88,9 +45,9 @@ dependencies {
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui")
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.ktx)

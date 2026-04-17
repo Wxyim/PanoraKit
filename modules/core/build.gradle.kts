@@ -27,51 +27,6 @@ plugins {
 android {
     namespace = providers.gradleProperty("project.namespace.core").get()
     defaultConfig { consumerProguardFiles("consumer-rules.pro") }
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.apply {
-                clear()
-                add("test")
-            }
-            resources.directories.apply {
-                clear()
-                add("test/resources")
-            }
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
 }
 
 dependencies {
@@ -82,6 +37,6 @@ dependencies {
     implementation(libs.annotation.jvm)
     implementation(libs.timber)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit4)
     testImplementation(libs.coroutines.test)
 }

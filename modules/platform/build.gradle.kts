@@ -75,46 +75,6 @@ android {
         buildConfigField("boolean", "STARTUP_GATE_ENFORCE_SIGNER", enforceSigner.toString())
         buildConfigField("boolean", "STARTUP_GATE_ENFORCE_APK_V2", enforceApkV2.toString())
     }
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -128,12 +88,17 @@ android {
 
 dependencies {
     implementation(project(":locale"))
+    implementation(project(":core"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.ui:ui")
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.ui)
     implementation(libs.core.ktx)
     implementation(libs.apksig)
     implementation(libs.timber)
+
+    val injectedAbi = findProperty("android.injected.build.abi") as? String
+    val mmkv = if (injectedAbi in listOf("arm64-v8a", "x86_64")) libs.mmkv.v64 else libs.mmkv.v32
+    implementation(mmkv)
 }

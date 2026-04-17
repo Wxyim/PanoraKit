@@ -26,59 +26,19 @@ plugins {
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.data.settings"
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
-
     buildFeatures { buildConfig = false }
 }
 
 dependencies {
     implementation(project(":core"))
     implementation(project(":locale"))
+    api(project(":data:persistence"))
 
     api(libs.coroutines.core)
     implementation(libs.serialization.json)
+    api(libs.datastore.preferences)
 
-    val mmkv64 = libs.versions.mmkv64.get()
-    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
-    val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
-    compileOnly("com.tencent:mmkv:$mmkvVersion")
+    val mmkv = if (injectedAbi in listOf("arm64-v8a", "x86_64")) libs.mmkv.v64 else libs.mmkv.v32
+    compileOnly(mmkv)
 }

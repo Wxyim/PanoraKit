@@ -27,19 +27,6 @@ plugins {
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.feature.editor"
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = false
@@ -54,16 +41,16 @@ dependencies {
 
     // Sora Editor
     implementation(platform(libs.editor.bom))
-    implementation("io.github.rosemoe:editor")
-    implementation("io.github.rosemoe:editor-lsp")
-    implementation("io.github.rosemoe:language-textmate")
-    implementation("io.github.rosemoe:language-treesitter")
+    implementation(libs.editor)
+    implementation(libs.editor.lsp)
+    implementation(libs.editor.language.textmate)
+    implementation(libs.editor.language.treesitter)
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui")
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.coroutines.android)

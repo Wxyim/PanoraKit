@@ -31,7 +31,14 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io")
+        maven("https://jitpack.io") {
+            // Restrict JitPack to known groups used by this project to avoid
+            // accidental group-id shadowing attacks.
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+                includeGroupByRegex("io\\.github\\..*")
+            }
+        }
         gradlePluginPortal()
     }
 }
@@ -42,7 +49,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io")
+        maven("https://jitpack.io") {
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+                includeGroupByRegex("io\\.github\\..*")
+            }
+        }
     }
 }
 
@@ -58,9 +70,18 @@ include(
     ":feature:override",
     ":feature:editor",
     ":feature:meta",
+    ":feature:about",
+    ":feature:onboarding",
+    ":feature:log",
+    ":feature:connection",
+    ":feature:traffic",
+    ":feature:home",
+    ":feature:settings",
+    ":feature:profiles",
     ":data:log",
     ":data:settings",
     ":data:proxy",
+    ":data:persistence",
     ":runtime:api",
     ":runtime:client",
     ":runtime:service",
@@ -85,6 +106,22 @@ project(":feature:editor").projectDir = file("modules/feature/editor")
 
 project(":feature:meta").projectDir = file("modules/feature/meta")
 
+project(":feature:onboarding").projectDir = file("modules/feature/onboarding")
+
+project(":feature:log").projectDir = file("modules/feature/log")
+
+project(":feature:connection").projectDir = file("modules/feature/connection")
+
+project(":feature:traffic").projectDir = file("modules/feature/traffic")
+
+project(":feature:home").projectDir = file("modules/feature/home")
+
+project(":feature:settings").projectDir = file("modules/feature/settings")
+
+project(":feature:profiles").projectDir = file("modules/feature/profiles")
+
+project(":feature:about").projectDir = file("modules/feature/about")
+
 project(":data").projectDir = file("modules/data")
 
 project(":data:log").projectDir = file("modules/data/log")
@@ -92,6 +129,8 @@ project(":data:log").projectDir = file("modules/data/log")
 project(":data:settings").projectDir = file("modules/data/settings")
 
 project(":data:proxy").projectDir = file("modules/data/proxy")
+
+project(":data:persistence").projectDir = file("modules/data/persistence")
 
 project(":runtime").projectDir = file("modules/runtime")
 

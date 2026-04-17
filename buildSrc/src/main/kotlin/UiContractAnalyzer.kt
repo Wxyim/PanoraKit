@@ -26,7 +26,7 @@ data class UiSourceAnalysis(
 )
 
 internal object UiContractAnalyzer {
-    private const val SETTINGS_PAGER_PATH = "app/src/screen/settings/SettingPager.kt"
+    private const val SETTINGS_PAGER_PATH = "app/src/main/kotlin/screen/settings/SettingPager.kt"
     private val destinationAnnotationRegex = Regex("""@Destination<([^>]+)>(?:\(([^)]*)\))?""")
     private val functionRegex = Regex("""fun\s+([A-Za-z0-9_]+)\s*\(""")
     private val destinationReferenceRegex = Regex("""\b([A-Za-z0-9_]+Destination)\b""")

@@ -43,6 +43,10 @@ uiautomator = "2.4.0-beta02"
 coroutinesTest = "1.10.2"
 turbine = "1.2.1"
 robolectric = "4.14.1"
+room = "2.8.4"
+datastore = "1.1.7"
+junit4 = "4.13.2"
+appcompat = "1.7.0"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -114,3 +118,29 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+
+# Compose BOM-managed (version resolved by compose-bom platform dependency)
+compose-runtime = { module = "androidx.compose.runtime:runtime" }
+compose-animation = { module = "androidx.compose.animation:animation" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3-window-size = { module = "androidx.compose.material3:material3-window-size-class" }
+
+# Sora Editor BOM-managed (version resolved by editor-bom platform dependency)
+editor = { module = "io.github.rosemoe:editor" }
+editor-lsp = { module = "io.github.rosemoe:editor-lsp" }
+editor-language-textmate = { module = "io.github.rosemoe:language-textmate" }
+editor-language-treesitter = { module = "io.github.rosemoe:language-treesitter" }
+
+# MMKV dual-ABI (chosen dynamically per android.injected.build.abi)
+mmkv-v32 = { module = "com.tencent:mmkv", version.ref = "mmkv32" }
+mmkv-v64 = { module = "com.tencent:mmkv", version.ref = "mmkv64" }
+
+junit4 = { module = "junit:junit", version.ref = "junit4" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }

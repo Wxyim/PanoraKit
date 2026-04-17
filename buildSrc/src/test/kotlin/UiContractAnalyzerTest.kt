@@ -32,7 +32,7 @@ class UiContractAnalyzerTest {
                                 .trimIndent(),
                     ),
                     KotlinSourceFile(
-                        relativePath = "app/src/screen/settings/SettingPager.kt",
+                        relativePath = "app/src/main/kotlin/screen/settings/SettingPager.kt",
                         content =
                             """
                             fun SettingPager(navigator: Any) {

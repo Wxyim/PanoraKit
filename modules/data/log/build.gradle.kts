@@ -23,46 +23,6 @@ plugins { id("com.android.library") }
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.data.log"
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
-
     buildFeatures { buildConfig = false }
 }
 

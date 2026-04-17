@@ -27,46 +27,6 @@ plugins {
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.core.ui"
-    sourceSets {
-        getByName("main") {
-            kotlin.directories.apply {
-                clear()
-                add("src")
-            }
-            res.directories.apply {
-                clear()
-                add("res")
-            }
-            assets.directories.apply {
-                clear()
-                add("assets")
-            }
-            aidl.directories.apply {
-                clear()
-                add("aidl")
-            }
-            resources.directories.apply {
-                clear()
-                add("resources")
-            }
-            if (project.file("AndroidManifest.xml").isFile) {
-                manifest.srcFile("AndroidManifest.xml")
-            }
-        }
-        getByName("test") {
-            kotlin.directories.clear()
-            resources.directories.clear()
-            assets.directories.clear()
-        }
-        getByName("androidTest") {
-            kotlin.directories.clear()
-            res.directories.clear()
-            assets.directories.clear()
-            aidl.directories.clear()
-            resources.directories.clear()
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = false
@@ -79,13 +39,14 @@ dependencies {
     implementation(project(":locale"))
     implementation(project(":data:settings"))
     implementation(project(":runtime:api"))
+    implementation(project(":runtime:client"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3-window-size-class")
-    implementation("androidx.compose.ui:ui")
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3.window.size)
+    implementation(libs.compose.ui)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.compose.destinations.core)
@@ -95,4 +56,5 @@ dependencies {
     implementation(libs.kyant.shapes)
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
+    implementation(libs.timber)
 }
