@@ -65,9 +65,30 @@ jobs:
           echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
 
       - name: Update CA certificates
+        shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y ca-certificates
-          sudo update-ca-certificates
+          set -euo pipefail
+          run_as_root() {
+            if [ "$(id -u)" -eq 0 ]; then
+              "$@"
+            elif sudo -n true 2>/dev/null; then
+              sudo "$@"
+            else
+              return 1
+            fi
+          }
+
+          if run_as_root true; then
+            run_as_root apt-get update
+            run_as_root apt-get install -y ca-certificates
+            run_as_root update-ca-certificates
+          elif [ ! -f /etc/ssl/certs/ca-certificates.crt ]; then
+            echo "ca-certificates bundle missing and sudo is unavailable" >&2
+            exit 1
+          else
+            echo "Skipping CA package refresh because sudo is unavailable; using existing system bundle."
+          fi
+
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
@@ -83,10 +104,18 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
         run: kotlin scripts/native-build.main.kts --all
 
+      - name: Prepare native libs artifact directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d build/jniLibs
+          rm -rf jniLibs
+          mkdir -p jniLibs
+          cp -a build/jniLibs/. jniLibs/
+
       - name: Upload native libs
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: jniLibs/
           if-no-files-found: error
-          archive: false

@@ -100,9 +100,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates
-          sudo update-ca-certificates
+          run_as_root() {
+            if [ "$(id -u)" -eq 0 ]; then
+              "$@"
+            elif sudo -n true 2>/dev/null; then
+              sudo "$@"
+            else
+              return 1
+            fi
+          }
+
+          if run_as_root true; then
+            run_as_root apt-get update
+            run_as_root apt-get install -y ca-certificates
+            run_as_root update-ca-certificates
+          elif [ ! -f /etc/ssl/certs/ca-certificates.crt ]; then
+            echo "ca-certificates bundle missing and sudo is unavailable" >&2
+            exit 1
+          else
+            echo "Skipping CA package refresh because sudo is unavailable; using existing system bundle."
+          fi
+
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
@@ -154,10 +172,10 @@ jobs:
       - name: Build Release APKs
         shell: bash
         env:
-          MONADBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
-          MONADBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          MONADBOX_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          MONADBOX_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          YUMEBOX_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          YUMEBOX_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          YUMEBOX_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          YUMEBOX_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           chmod +x gradlew
@@ -198,7 +216,6 @@ jobs:
             ci-artifacts/apk/*.apk
             ci-artifacts/mapping/${{ env.CHANNEL }}/**
           if-no-files-found: error
-          archive: false
 
       - name: Commit kernel state if changed and push
         id: commit_state
