@@ -142,11 +142,32 @@ sync_repo() {
   git -C "$MIHOMO_DIR" checkout --force "$RELEASE_REVISION"
 }
 
+strip_indirect_requires() {
+  go_mod="$1/go.mod"
+  if [ ! -f "$go_mod" ]; then
+    return
+  fi
+  # Drop pre-existing `// indirect` requires so `go mod tidy` re-derives the set
+  # of transitive versions from the freshly checked-out upstream mihomo. Without
+  # this, MVS keeps any older indirect pin that is now newer than what upstream
+  # supports, which surfaces as API-mismatch build errors (sing-quic, connect-
+  # ip-go, quic-go, ...).
+  tmp_file="$go_mod.tmp.$$"
+  awk '
+    /^require[[:space:]]*\($/ { in_block = 1; print; next }
+    in_block && /^\)$/ { in_block = 0; print; next }
+    in_block && /\/\/ indirect[[:space:]]*$/ { next }
+    { print }
+  ' "$go_mod" > "$tmp_file"
+  mv "$tmp_file" "$go_mod"
+}
+
 run_tidy() {
   if [ ! -f "$1/go.mod" ]; then
     echo "Skipping tidy for $1 (no go.mod found)"
     return
   fi
+  strip_indirect_requires "$1"
   echo "Running go mod tidy in $1"
   (
     cd "$1"
