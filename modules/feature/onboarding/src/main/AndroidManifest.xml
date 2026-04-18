@@ -5,31 +5,26 @@
         <activity
                 android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingStartupActivity"
                 android:exported="false"
-                android:windowLayoutInDisplayCutoutMode="shortEdges"
-                android:theme="@style/Theme.MonadBox"/>
+                android:windowLayoutInDisplayCutoutMode="shortEdges"/>
 
         <activity
                 android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingPermissionsActivity"
                 android:exported="false"
-                android:windowLayoutInDisplayCutoutMode="shortEdges"
-                android:theme="@style/Theme.MonadBox"/>
+                android:windowLayoutInDisplayCutoutMode="shortEdges"/>
 
         <activity
                 android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingTermsActivity"
                 android:exported="false"
-                android:windowLayoutInDisplayCutoutMode="shortEdges"
-                android:theme="@style/Theme.MonadBox"/>
+                android:windowLayoutInDisplayCutoutMode="shortEdges"/>
 
         <activity
                 android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingPersonalizeActivity"
                 android:exported="false"
-                android:windowLayoutInDisplayCutoutMode="shortEdges"
-                android:theme="@style/Theme.MonadBox"/>
+                android:windowLayoutInDisplayCutoutMode="shortEdges"/>
 
         <activity
                 android:name="com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingFinishActivity"
                 android:exported="false"
-                android:windowLayoutInDisplayCutoutMode="shortEdges"
-                android:theme="@style/Theme.MonadBox"/>
+                android:windowLayoutInDisplayCutoutMode="shortEdges"/>
     </application>
 </manifest>
