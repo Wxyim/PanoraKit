@@ -84,6 +84,16 @@ jobs:
         run: |
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh meta
+
+      - name: Repository health
+        run: |
+          chmod +x scripts/repo-health.sh
+          ./scripts/repo-health.sh
+
+      - name: Modernization and policy gates
+        run: |
+          chmod +x gradlew
+          ./gradlew checkLintBaselineBudget checkModernizationBaseline checkUiContracts checkGithubOssLicensePolicy --no-daemon
     
       - name: Build Native Libraries
         env:
@@ -120,7 +130,138 @@ jobs:
         with:
           name: lint-report
           path: |
-            app/build/reports/lint-results-*.html
-            app/build/reports/lint-results-*.xml
+            build/app/reports/lint-results-*.html
+            build/app/reports/lint-results-*.xml
           retention-days: 7
           if-no-files-found: ignore
+
+  instrumentation:
+    name: Instrumentation Tests (connectedCheck)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [ 34 ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Kotlin
+        uses: fwilhe2/setup-kotlin@main
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3.2.2
+        with:
+          packages: ''
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+          key: ${{ runner.os }}-ndk-27.3.13750724-v1
+          restore-keys: |
+            ${{ runner.os }}-ndk-27.3.13750724-
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;27.3.13750724"
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
+
+      - name: Update CA certificates
+        run: |
+          sudo apt-get update && sudo apt-get install -y ca-certificates
+          sudo update-ca-certificates
+          mkdir -p modules/core/src/foss/golang/mihomo/component/ca
+          cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+
+      - name: Sync kernel
+        run: |
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh meta
+
+      - name: Build Native Libraries
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+        run: kotlin scripts/native-build.main.kts --all
+
+      - name: AVD cache
+        uses: actions/cache@v5
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-x86_64-v1
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run connectedCheck
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            chmod +x gradlew
+            ./gradlew connectedDebugAndroidTest --no-daemon --continue
+
+      - name: Upload instrumentation test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-reports-api-${{ matrix.api-level }}
+          path: |
+            **/build/reports/androidTests/**
+            **/build/outputs/androidTest-results/**
+          retention-days: 7
+          if-no-files-found: ignore
+

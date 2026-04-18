@@ -17,6 +17,14 @@ plugins {
 android {
     namespace = "com.github.nomadboxlab.monadbox.data.persistence"
     buildFeatures { buildConfig = false }
+
+    sourceSets {
+        getByName("androidTest") {
+            assets.directories.add(
+                project.layout.projectDirectory.dir("schemas").asFile.invariantSeparatorsPath
+            )
+        }
+    }
 }
 
 dependencies {
@@ -24,4 +32,14 @@ dependencies {
     api(libs.room.runtime)
     api(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    androidTestImplementation(libs.junit4)
+    androidTestImplementation(libs.test.ext.junit)
+    androidTestImplementation(libs.test.runner)
+    androidTestImplementation(libs.room.testing)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
 }

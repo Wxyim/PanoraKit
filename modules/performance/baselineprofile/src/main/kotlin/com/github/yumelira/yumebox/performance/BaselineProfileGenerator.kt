@@ -35,6 +35,9 @@ class BaselineProfileGenerator {
     fun generate() {
         rule.collect(packageName = BenchmarkConfig.TargetPackage, includeInStartupProfile = true) {
             startupJourney()
+            configurationImportJourney()
+            startStopProxyJourney()
+            editSaveJourney()
             openNextMainPage()
             bottomNavigationJourney()
             settingsScrollJourney()

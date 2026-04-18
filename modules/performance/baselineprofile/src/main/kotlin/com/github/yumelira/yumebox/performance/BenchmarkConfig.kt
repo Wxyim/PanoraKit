@@ -22,4 +22,5 @@ package com.github.nomadboxlab.monadbox.performance
 internal object BenchmarkConfig {
     const val TargetPackage = "com.github.nomadboxlab.monadbox"
     const val StartupTimeoutMs = 8_000L
+    const val UiWaitTimeoutMs = 1_000L
 }

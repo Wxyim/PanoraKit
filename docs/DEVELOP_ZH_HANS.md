@@ -19,6 +19,14 @@ CI 平台：Ubuntu（GitHub Actions）。
 
 版本权威来源：[gradle.properties](../gradle.properties)
 
+> **AGP 9 内置 Kotlin。** 本项目依赖 AGP 9 的内置 Kotlin 支持：
+> Android library/application 模块在 `plugins {}` 中**不再声明**
+> `kotlin("android")`（或 `org.jetbrains.kotlin.android`）。
+> `com.android.library` / `com.android.application` 会自动启用 Kotlin 编译。
+> 仅保留按需 Kotlin 编译器插件（例如 `kotlin("plugin.compose")`、
+> `kotlin("plugin.serialization")`）显式声明。升级或降级 AGP 时，
+> 请检查全部 `modules/**/build.gradle.kts` 以确保这一假设仍成立。
+
 ## 2. 一次性本地初始化
 
 在仓库根目录复制模板：
@@ -79,6 +87,13 @@ Windows 等价命令：
 ```
 
 根任务 `check` 已包含 `checkUiContracts` 与 `checkModernizationBaseline`。
+
+如果需要与 CI 保持一致（CI 会启动 emulator 执行 instrumentation），请在
+可用模拟器环境中额外执行：
+
+```powershell
+.\gradlew.bat connectedDebugAndroidTest --continue
+```
 
 ## 5. 模块拓扑
 
@@ -364,7 +379,8 @@ App.onCreate()
 1. `.\gradlew.bat spotlessApply`
 2. `.\gradlew.bat check`
 3. `.\gradlew.bat test`
-4. 新增或重命名 Destination 后更新 `config/ui-capability-registry.txt`。
+4. 如修改了 `androidTest` 或 Compose 语义，启动模拟器后执行 `.\gradlew.bat connectedDebugAndroidTest --continue`。
+5. 新增或重命名 Destination 后更新 `config/ui-capability-registry.txt`。
 
 ## 19. 许可证
 

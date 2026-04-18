@@ -19,6 +19,15 @@ Required toolchain:
 
 Authoritative version file: [gradle.properties](../gradle.properties)
 
+> **AGP 9 built-in Kotlin.** This project relies on AGP 9's bundled Kotlin
+> support: Android library/application modules do **not** declare
+> `kotlin("android")` (or `org.jetbrains.kotlin.android`) in their `plugins {}`
+> block. The `com.android.library` / `com.android.application` plugins
+> activate Kotlin compilation automatically. Only opt-in Kotlin compiler
+> plugins (`kotlin("plugin.compose")`, `kotlin("plugin.serialization")`)
+> remain explicit. When upgrading or downgrading AGP, audit every
+> `modules/**/build.gradle.kts` to keep this assumption consistent.
+
 ## 2. One-Time Local Setup
 
 Copy templates at repository root:

@@ -20,7 +20,7 @@ import androidx.room.RoomDatabase
  * Single-process Room database backing record-shaped stores that have outgrown MMKV's JSON-blob
  * pattern. Currently holds profile links only; add more DAOs here as sibling stores migrate.
  */
-@Database(entities = [ProfileLinkEntity::class], version = 1, exportSchema = false)
+@Database(entities = [ProfileLinkEntity::class], version = 1, exportSchema = true)
 abstract class MonadBoxDatabase : RoomDatabase() {
 
     abstract fun profileLinkDao(): ProfileLinkDao
@@ -31,7 +31,6 @@ abstract class MonadBoxDatabase : RoomDatabase() {
 
         fun create(context: Context): MonadBoxDatabase =
             Room.databaseBuilder(context.applicationContext, MonadBoxDatabase::class.java, NAME)
-                .fallbackToDestructiveMigration(dropAllTables = false)
                 .build()
     }
 }

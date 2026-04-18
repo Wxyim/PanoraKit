@@ -13,13 +13,18 @@ package com.github.nomadboxlab.monadbox.data.persistence
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Row shape for the profile links table. Ordering is preserved via [position], mirroring the former
- * JSON list index in MMKV.
+ * JSON list index in MMKV. The `position` index backs the `ORDER BY position ASC` access path used
+ * by [ProfileLinkDao.observeAll] / [ProfileLinkDao.getAll].
  */
-@Entity(tableName = "profile_links")
+@Entity(
+    tableName = "profile_links",
+    indices = [Index(value = ["position"], name = "index_profile_links_position")],
+)
 data class ProfileLinkEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "name") val name: String,

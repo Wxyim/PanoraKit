@@ -22,13 +22,18 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.diffplug.gradle.spotless.SpotlessExtension
+import javax.xml.parsers.DocumentBuilderFactory
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -80,9 +85,7 @@ data class GithubOssDependencyFinding(
     because = "Scans repository build metadata for GitHub OSS policy violations."
 )
 abstract class CheckGithubOssLicensePolicyTask : DefaultTask() {
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val repositoryRoot: DirectoryProperty
+    @get:Internal abstract val repositoryRoot: DirectoryProperty
 
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -158,6 +161,65 @@ abstract class CheckGithubOssLicensePolicyTask : DefaultTask() {
     }
 }
 
+@DisableCachingByDefault(because = "Small XML baseline budget check; caching is unnecessary.")
+abstract class CheckLintBaselineBudgetTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val baselineFile: RegularFileProperty
+
+    @get:Input abstract val maxIssues: Property<Int>
+
+    @TaskAction
+    fun runCheck() {
+        val baseline = baselineFile.asFile.get()
+        val budget = maxIssues.get()
+
+        if (!baseline.exists()) {
+            logger.lifecycle("Lint baseline budget: 0/$budget issues (baseline file not found).")
+            return
+        }
+
+        val factory = DocumentBuilderFactory.newInstance()
+        val document = factory.newDocumentBuilder().parse(baseline)
+        val issues = document.getElementsByTagName("issue")
+        val issueCount = issues.length
+
+        if (issueCount > budget) {
+            val countsById =
+                buildMap<String, Int> {
+                        repeat(issueCount) { index ->
+                            val issue = issues.item(index)
+                            val id = issue.attributes?.getNamedItem("id")?.nodeValue ?: "unknown"
+                            put(id, (get(id) ?: 0) + 1)
+                        }
+                    }
+                    .entries
+                    .sortedWith(
+                        compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }
+                    )
+                    .joinToString(separator = "\n") { (id, count) -> "- $id: $count" }
+
+            throw GradleException(
+                buildString {
+                    appendLine("Lint baseline budget exceeded.")
+                    appendLine("Current baseline issues: $issueCount")
+                    appendLine("Allowed baseline issues: $budget")
+                    appendLine()
+                    appendLine("Reduce app/lint-baseline.xml or explicitly lower/raise")
+                    appendLine("lint.baseline.maxIssues with review.")
+                    if (countsById.isNotBlank()) {
+                        appendLine()
+                        appendLine("Current issue counts:")
+                        appendLine(countsById)
+                    }
+                }
+            )
+        }
+
+        logger.lifecycle("Lint baseline budget: $issueCount/$budget issues.")
+    }
+}
+
 tasks.register<CheckGithubOssLicensePolicyTask>("checkGithubOssLicensePolicy") {
     group = "verification"
     description =
@@ -172,6 +234,16 @@ tasks.register<CheckGithubOssLicensePolicyTask>("checkGithubOssLicensePolicy") {
         },
     )
 }
+
+tasks.register<CheckLintBaselineBudgetTask>("checkLintBaselineBudget") {
+    group = "verification"
+    description = "Fails when app/lint-baseline.xml grows beyond the approved burn-down budget."
+
+    baselineFile.set(layout.projectDirectory.file("app/lint-baseline.xml"))
+    maxIssues.set(providers.gradleProperty("lint.baseline.maxIssues").map { it.toInt() })
+}
+
+tasks.named("check") { dependsOn("checkLintBaselineBudget") }
 
 subprojects {
     val moduleOutputPath = path.removePrefix(":").replace(':', '/')
