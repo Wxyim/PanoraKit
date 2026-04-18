@@ -38,15 +38,11 @@ import androidx.annotation.StringRes
 object LocaleBootstrap {
     @SuppressLint("StaticFieldLeak") @Volatile private var appContext: Context? = null
     @Volatile private var overrideLanguageTags: String? = null
-    @SuppressLint("StaticFieldLeak") @Volatile private var cachedLocalizedContext: Context? = null
-    @Volatile private var cachedLanguageTags: String? = null
-    private val cacheLock = Any()
 
     fun install(context: Context) {
         val applicationContext = context.applicationContext
         if (appContext !== applicationContext) {
             appContext = applicationContext
-            invalidateLocalizedContextCache()
         }
     }
 
@@ -54,7 +50,6 @@ object LocaleBootstrap {
         val normalized = languageTags.normalizeLanguageTags()
         if (overrideLanguageTags != normalized) {
             overrideLanguageTags = normalized
-            invalidateLocalizedContextCache()
         }
     }
 
@@ -81,13 +76,6 @@ object LocaleBootstrap {
             }
             .getOrNull()
 
-    private fun invalidateLocalizedContextCache() {
-        synchronized(cacheLock) {
-            cachedLocalizedContext = null
-            cachedLanguageTags = null
-        }
-    }
-
     private fun resolveLocalizedContext(): Context {
         val context = resolveContext()
         val languageTags = overrideLanguageTags
@@ -95,26 +83,9 @@ object LocaleBootstrap {
             return context
         }
 
-        cachedLocalizedContext
-            ?.takeIf { cachedLanguageTags == languageTags }
-            ?.let {
-                return it
-            }
-
-        return synchronized(cacheLock) {
-            cachedLocalizedContext
-                ?.takeIf { cachedLanguageTags == languageTags }
-                ?.let {
-                    return@synchronized it
-                }
-
-            val configuration = Configuration(context.resources.configuration)
-            configuration.setLocales(LocaleList.forLanguageTags(languageTags))
-            context.createConfigurationContext(configuration).also { localizedContext ->
-                cachedLanguageTags = languageTags
-                cachedLocalizedContext = localizedContext
-            }
-        }
+        val configuration = Configuration(context.resources.configuration)
+        configuration.setLocales(LocaleList.forLanguageTags(languageTags))
+        return context.createConfigurationContext(configuration)
     }
 
     fun getString(@StringRes id: Int): String = resolveLocalizedContext().getString(id)
