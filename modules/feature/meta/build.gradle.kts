@@ -35,6 +35,7 @@ android {
 }
 
 dependencies {
+    api(project(":feature:meta:api"))
     implementation(project(":core"))
     implementation(project(":platform"))
     implementation(project(":locale"))

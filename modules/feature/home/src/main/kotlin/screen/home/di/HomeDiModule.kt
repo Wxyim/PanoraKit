@@ -21,23 +21,21 @@
 package com.github.nomadboxlab.monadbox.feature.home.di
 
 import com.github.nomadboxlab.monadbox.feature.home.HomeViewModel
+import com.github.nomadboxlab.monadbox.feature.home.usecase.RefreshHomeEntryDataUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.ReloadHomeProfileUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.StartHomeProxyUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.StopHomeProxyUseCase
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val homeDiModule = module {
+    single { RefreshHomeEntryDataUseCase(get(), get()) }
+    single { ReloadHomeProfileUseCase(get(), get()) }
+    single { StartHomeProxyUseCase(androidApplication(), get(), get(), get()) }
+    single { StopHomeProxyUseCase(get()) }
+
     viewModel {
-        HomeViewModel(
-            androidApplication(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-        )
+        HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
 }

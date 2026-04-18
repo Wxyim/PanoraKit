@@ -24,9 +24,9 @@ package com.github.nomadboxlab.monadbox.data.repository
 import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
-import com.github.nomadboxlab.monadbox.remote.ServiceClient
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeConnectionReader
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeStateReader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -39,7 +39,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class ConnectionActivityRepository(
-    private val proxyFacade: ProxyFacade,
+    private val runtimeStateReader: RuntimeStateReader,
+    private val runtimeConnectionReader: RuntimeConnectionReader,
     private val scope: CoroutineScope,
 ) : ConnectionActivityProvider {
     companion object {
@@ -65,7 +66,7 @@ class ConnectionActivityRepository(
         if (monitorJob?.isActive == true) return
         monitorJob =
             scope.launch {
-                proxyFacade.isRunning.collectLatest { isRunning ->
+                runtimeStateReader.isRuntimeRunning.collectLatest { isRunning ->
                     if (!isRunning) {
                         _activeConnections.value = emptyList()
                         _closedConnections.value = ConnectionHistoryManager.getClosedConnections()
@@ -76,10 +77,9 @@ class ConnectionActivityRepository(
                     ConnectionHistoryManager.clear()
                     _closedConnections.value = emptyList()
 
-                    while (proxyFacade.isRunning.value) {
+                    while (runtimeStateReader.isRuntimeRunning.value) {
                         runCatching {
-                                val snapshot = ServiceClient.clash().queryConnections()
-                                val connections = snapshot.connections ?: emptyList()
+                                val connections = runtimeConnectionReader.queryConnections()
                                 ConnectionHistoryManager.updateConnections(connections)
                                 _activeConnections.value = connections
                                 _closedConnections.value =

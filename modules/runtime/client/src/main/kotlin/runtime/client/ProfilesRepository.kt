@@ -25,6 +25,8 @@ import android.content.Context
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.ServiceClient
 import com.github.nomadboxlab.monadbox.remote.asRuntimeGatewayException
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeActiveProfileReader
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeProfileRef
 import com.github.nomadboxlab.monadbox.service.remote.IFetchObserver
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import java.util.*
@@ -35,7 +37,7 @@ import timber.log.Timber
 class ProfilesRepository(
     private val context: Context,
     private val mutationCoordinator: RuntimeMutationCoordinator,
-) : ProfilesProvider {
+) : ProfilesProvider, RuntimeActiveProfileReader {
     override suspend fun createProfile(type: Profile.Type, name: String, source: String): UUID {
         Timber.d("Creating profile: type=$type, name=$name")
         return runGatewayCall("Failed to create profile") {
@@ -164,6 +166,12 @@ class ProfilesRepository(
 
     suspend fun queryActive(): Profile? {
         return queryActiveProfile()
+    }
+
+    override suspend fun queryActiveRuntimeProfile(): RuntimeProfileRef? {
+        return queryActiveProfile()?.let { profile ->
+            RuntimeProfileRef(id = profile.uuid.toString(), name = profile.name)
+        }
     }
 
     private suspend fun queryAllProfilesInternal(): List<Profile> {

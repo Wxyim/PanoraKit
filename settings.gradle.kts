@@ -66,8 +66,12 @@ include(
     ":locale",
     ":ui",
     ":app",
+    ":feature:meta:api",
+    ":feature:proxy:api",
     ":feature:proxy",
+    ":feature:override:api",
     ":feature:override",
+    ":feature:editor:api",
     ":feature:editor",
     ":feature:meta",
     ":feature:about",
@@ -75,6 +79,7 @@ include(
     ":feature:log",
     ":feature:connection",
     ":feature:traffic",
+    ":feature:home:api",
     ":feature:home",
     ":feature:settings",
     ":feature:profiles",
@@ -82,6 +87,7 @@ include(
     ":data:settings",
     ":data:proxy",
     ":data:persistence",
+    ":runtime:contract",
     ":runtime:api",
     ":runtime:client",
     ":runtime:service",
@@ -98,9 +104,17 @@ project(":ui").projectDir = file("modules/ui")
 
 project(":feature").projectDir = file("modules/feature")
 
+project(":feature:meta:api").projectDir = file("modules/feature/meta-api")
+
+project(":feature:proxy:api").projectDir = file("modules/feature/proxy-api")
+
 project(":feature:proxy").projectDir = file("modules/feature/proxy")
 
+project(":feature:override:api").projectDir = file("modules/feature/override-api")
+
 project(":feature:override").projectDir = file("modules/feature/override")
+
+project(":feature:editor:api").projectDir = file("modules/feature/editor-api")
 
 project(":feature:editor").projectDir = file("modules/feature/editor")
 
@@ -113,6 +127,8 @@ project(":feature:log").projectDir = file("modules/feature/log")
 project(":feature:connection").projectDir = file("modules/feature/connection")
 
 project(":feature:traffic").projectDir = file("modules/feature/traffic")
+
+project(":feature:home:api").projectDir = file("modules/feature/home-api")
 
 project(":feature:home").projectDir = file("modules/feature/home")
 
@@ -133,6 +149,8 @@ project(":data:proxy").projectDir = file("modules/data/proxy")
 project(":data:persistence").projectDir = file("modules/data/persistence")
 
 project(":runtime").projectDir = file("modules/runtime")
+
+project(":runtime:contract").projectDir = file("modules/runtime/contract")
 
 project(":runtime:api").projectDir = file("modules/runtime/api")
 

@@ -47,7 +47,9 @@ import com.github.nomadboxlab.monadbox.domain.deeplink.DeepLinkBus
 import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
-import com.github.nomadboxlab.monadbox.feature.home.HomeViewModel
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
+import com.github.nomadboxlab.monadbox.feature.home.api.HomeRuntimeController
+import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOptionsProvider
 import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
@@ -59,8 +61,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.Share
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
-import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
@@ -68,6 +68,7 @@ import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
@@ -112,15 +113,15 @@ fun ProfilesPagerBody(
     val appContext = LocalContext.current.applicationContext
     val filesDirRoot = remember(appContext) { appContext.filesDir }
     val profilesViewModel = koinViewModel<ProfilesViewModel>()
-    val homeViewModel = koinViewModel<HomeViewModel>()
+    val homeRuntimeController = koinInject<HomeRuntimeController>()
     val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
     val activeProfile by profilesViewModel.activeProfile.collectAsStateWithLifecycle()
     val profilesUiState by profilesViewModel.uiState.collectAsStateWithLifecycle()
-    val isRunning by homeViewModel.isRunning.collectAsStateWithLifecycle()
+    val isRunning by homeRuntimeController.isRunning.collectAsStateWithLifecycle()
 
-    val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
-    val systemPresets by overrideConfigViewModel.systemPresets.collectAsStateWithLifecycle()
-    val userConfigs by overrideConfigViewModel.userConfigs.collectAsStateWithLifecycle()
+    val profileOverrideOptionsProvider = koinInject<ProfileOverrideOptionsProvider>()
+    val systemPreset by profileOverrideOptionsProvider.systemPreset.collectAsStateWithLifecycle()
+    val userConfigs by profileOverrideOptionsProvider.userOptions.collectAsStateWithLifecycle()
     val showAddBottomSheet = rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogVisible by rememberSaveable { mutableStateOf(false) }
     var deleteDialogProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -246,7 +247,7 @@ fun ProfilesPagerBody(
 
     LaunchedEffect(showSettingsDialog.value) {
         if (showSettingsDialog.value) {
-            overrideConfigViewModel.refresh()
+            runCatching { profileOverrideOptionsProvider.refreshOptions() }
         }
     }
 
@@ -282,7 +283,7 @@ fun ProfilesPagerBody(
     }
 
     val openProfileEditor: (UUID, String) -> Unit = openProfileEditor@{ profileUuid, profileName ->
-        val isEditingRuntimeProfile = homeViewModel.isCurrentProfile(profileUuid)
+        val isEditingRuntimeProfile = homeRuntimeController.isCurrentProfile(profileUuid)
         val shouldOfferStopRuntime = isRunning && isEditingRuntimeProfile
         val configFile = resolveProfileConfigFile(filesDirRoot, profileUuid)
         val configContent =
@@ -298,14 +299,14 @@ fun ProfilesPagerBody(
                     return@openProfileEditor
                 }
 
-        OverrideStructuredEditorStore.setupConfigPreview(
+        ConfigPreviewStore.setup(
             title = profileName,
             content = configContent,
             language = LanguageScope.Yaml,
             runtimeRunning = shouldOfferStopRuntime,
-            callback = { updatedContent, onPhaseChanged, decisionProvider ->
+            onSave = { updatedContent, onPhaseChanged, decisionProvider ->
                 if (updatedContent == configContent) {
-                    return@setupConfigPreview Result.success(ConfigPreviewSaveOutcome.Saved)
+                    return@setup Result.success(ConfigPreviewSaveOutcome.Saved)
                 }
                 runCatching {
                         profilesViewModel.saveProfileConfigContent(
@@ -315,9 +316,9 @@ fun ProfilesPagerBody(
                             decisionProvider = decisionProvider,
                             stopRuntime = {
                                 val isSavingRuntimeProfile =
-                                    isRunning && homeViewModel.isCurrentProfile(profileUuid)
+                                    isRunning && homeRuntimeController.isCurrentProfile(profileUuid)
                                 if (isSavingRuntimeProfile) {
-                                    homeViewModel.stopProxy()
+                                    homeRuntimeController.stopProxy()
                                 }
                             },
                         )
@@ -542,7 +543,7 @@ fun ProfilesPagerBody(
                     isDeleteDialogVisible = false
                     scope.launch {
                         if (profile.active && isRunning) {
-                            homeViewModel.stopProxy()
+                            homeRuntimeController.stopProxy()
                         }
                         profilesViewModel.deleteProfile(profile.uuid)
                     }
@@ -557,7 +558,7 @@ fun ProfilesPagerBody(
             ProfileSettingsDialog(
                 show = showSettingsDialog,
                 profile = currentProfileToEdit,
-                systemPreset = systemPresets.firstOrNull(),
+                systemPreset = systemPreset,
                 userConfigs = userConfigs,
                 binding = profileBinding,
                 onDismiss = { showSettingsDialog.value = false },

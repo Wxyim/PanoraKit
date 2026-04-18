@@ -42,10 +42,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.domain.model.TrafficData
-import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
+import com.github.nomadboxlab.monadbox.feature.proxy.api.ProxyModeController
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun HomeRoute(
@@ -57,11 +58,11 @@ fun HomeRoute(
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     val homeViewModel = koinViewModel<HomeViewModel>()
-    val proxyViewModel = koinViewModel<ProxyViewModel>()
+    val proxyModeController = koinInject<ProxyModeController>()
 
     val screenState by homeViewModel.screenState.collectAsStateWithLifecycle()
-    val proxyUiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
-    val currentTunnelMode by proxyViewModel.currentMode.collectAsStateWithLifecycle()
+    val proxyUiState by proxyModeController.uiState.collectAsStateWithLifecycle()
+    val currentTunnelMode by proxyModeController.currentMode.collectAsStateWithLifecycle()
 
     var showQuickModePanel by remember { mutableStateOf(false) }
     var modeBadgeBounds by remember { mutableStateOf<Rect?>(null) }
@@ -129,11 +130,11 @@ fun HomeRoute(
             uiMessage = screenState.ui.message ?: proxyUiState.message,
             onConsumeError = {
                 homeViewModel.consumeError()
-                proxyViewModel.clearError()
+                proxyModeController.clearError()
             },
             onConsumeMessage = {
                 homeViewModel.consumeMessage()
-                proxyViewModel.clearMessage()
+                proxyModeController.clearMessage()
             },
             onProxyToggleRequest = requestProxyToggle,
             onModeSwitchRequest = { showQuickModePanel = true },
@@ -149,7 +150,7 @@ fun HomeRoute(
             onSelectMode = { mode: TunnelState.Mode ->
                 showQuickModePanel = false
                 if (mode != currentTunnelMode) {
-                    proxyViewModel.patchMode(mode)
+                    proxyModeController.patchMode(mode)
                 }
             },
         )

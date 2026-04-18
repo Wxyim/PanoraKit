@@ -34,8 +34,9 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":data:settings"))
+    api(project(":runtime:contract"))
     api(project(":runtime:api"))
-    api(project(":runtime:service"))
+    implementation(project(":runtime:service"))
 
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)

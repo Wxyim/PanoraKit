@@ -25,6 +25,7 @@ import android.content.Intent
 import com.github.nomadboxlab.monadbox.remote.ServiceClient
 import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadDispatcher
 import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadReason
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeOverrideChangeNotifier
 import com.github.nomadboxlab.monadbox.service.common.constants.Intents
 import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
 import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
@@ -40,7 +41,7 @@ internal fun shouldScheduleRootTunReloadForActiveProfile(
 class RuntimeMutationCoordinator(
     context: Context,
     private val rootTunReloadDispatcher: RootTunReloadDispatcher,
-) {
+) : RuntimeOverrideChangeNotifier {
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
 
@@ -49,7 +50,7 @@ class RuntimeMutationCoordinator(
         scheduleRootTunReloadIfActive(RootTunReloadReason.PROFILE_CHANGED)
     }
 
-    fun notifyOverrideBindingsChanged() {
+    override fun notifyOverrideBindingsChanged() {
         broadcastOverrideChanged()
         scheduleRootTunReloadIfActive(RootTunReloadReason.PROFILE_OVERRIDE_CHANGED)
     }

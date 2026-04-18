@@ -30,8 +30,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
 import com.github.nomadboxlab.monadbox.domain.model.ProfileBinding
+import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOption
 import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
 import com.github.nomadboxlab.monadbox.presentation.component.AppActionTile
 import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetCloseAction
@@ -48,7 +48,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
-import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
 import sh.calvin.reorderable.ReorderableItem
@@ -148,8 +147,8 @@ internal fun DeleteConfirmDialog(
 internal fun ProfileSettingsDialog(
     show: MutableState<Boolean>,
     profile: Profile,
-    systemPreset: OverrideConfig?,
-    userConfigs: List<OverrideConfig>,
+    systemPreset: ProfileOverrideOption?,
+    userConfigs: List<ProfileOverrideOption>,
     binding: ProfileBinding?,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
@@ -203,11 +202,11 @@ internal fun ProfileSettingsDialog(
     }
     val guiSectionSummary = remember {
         listOf(
-                OverrideEditorSection.General.title,
-                OverrideEditorSection.Inbound.title,
-                OverrideEditorSection.Dns.title,
-                OverrideEditorSection.Tun.title,
-                OverrideEditorSection.Sniffer.title,
+                MLang.Override.Section.General.Title,
+                MLang.Override.Section.Inbound.Title,
+                MLang.Override.Section.Dns.Title,
+                MLang.Override.Section.Tun.Title,
+                MLang.Override.Section.Sniffer.Title,
             )
             .joinToString(" · ")
     }

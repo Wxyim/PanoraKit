@@ -22,13 +22,20 @@
 package com.github.nomadboxlab.monadbox.di
 
 import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
+import com.github.nomadboxlab.monadbox.feature.home.api.HomeRuntimeController
 import com.github.nomadboxlab.monadbox.feature.home.di.homeDiModule
 import com.github.nomadboxlab.monadbox.feature.log.di.logDiModule
 import com.github.nomadboxlab.monadbox.feature.profiles.di.profilesDiModule
+import com.github.nomadboxlab.monadbox.feature.proxy.api.ProxyModeController
 import com.github.nomadboxlab.monadbox.feature.settings.di.settingsDiModule
+import com.github.nomadboxlab.monadbox.presentation.component.DefaultRuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.presentation.meta.EffectiveRuleSummaryRepository
+import com.github.nomadboxlab.monadbox.presentation.runtime.DefaultHomeRuntimeController
+import com.github.nomadboxlab.monadbox.presentation.runtime.DefaultProxyModeController
+import com.github.nomadboxlab.monadbox.presentation.runtime.DefaultRuntimeActionExecutor
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.service.LogRecordServiceGateway
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
@@ -38,7 +45,12 @@ import org.koin.dsl.module
 val appIntegrationModule = module {
     single<LogRecordGateway> { LogRecordServiceGateway() }
     single { EffectiveRuleSummaryRepository(androidApplication(), get(), get()) }
-    single { RuntimeActionExecutor(get(), get()) }
+    single<RuntimeFailurePresenter> { DefaultRuntimeFailurePresenter() }
+    single<RuntimeActionExecutor> { DefaultRuntimeActionExecutor(get(), get(), get()) }
+    single<HomeRuntimeController> { DefaultHomeRuntimeController(get(), get()) }
+    single<ProxyModeController> {
+        DefaultProxyModeController(get(), get(), get(), get(), get(named(APPLICATION_SCOPE_NAME)))
+    }
     single { VpnPermissionCoordinator(get(named(APPLICATION_SCOPE_NAME))) }
 }
 

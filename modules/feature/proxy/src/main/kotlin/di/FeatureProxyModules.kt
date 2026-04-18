@@ -21,14 +21,17 @@
 
 package com.github.nomadboxlab.monadbox.di
 
+import com.github.nomadboxlab.monadbox.presentation.usecase.RefreshRuntimeProvidersUseCase
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProvidersViewModel
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val featureProxyViewModelModule = module {
+    single { RefreshRuntimeProvidersUseCase(get(), get(), get(), get(), get()) }
+
     viewModel { ProxyViewModel(get(), get(), get(), get(), get()) }
-    viewModel { ProvidersViewModel(get(), get(), get(), get(), get()) }
+    viewModel { ProvidersViewModel(get(), get(), get(), get()) }
 }
 
 val featureProxyModules = listOf(featureProxyViewModelModule)

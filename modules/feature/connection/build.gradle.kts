@@ -38,7 +38,7 @@ dependencies {
     implementation(project(":platform"))
     implementation(project(":locale"))
     implementation(project(":ui"))
-    implementation(project(":feature:meta"))
+    implementation(project(":feature:meta:api"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.compose.animation)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.serialization.json)
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

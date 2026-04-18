@@ -20,68 +20,31 @@
 
 package com.github.nomadboxlab.monadbox.presentation.runtime
 
-import android.content.Intent
-import com.github.nomadboxlab.monadbox.data.model.ProxyMode
-import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
-import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogPresenter
+import com.github.nomadboxlab.monadbox.domain.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.VpnPermissionRequired
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeMutationResult
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.StateFlow
 
-sealed interface RuntimeActionOutcome<out T> {
-    data class Success<T>(val value: T) : RuntimeActionOutcome<T>
-
-    data class PermissionRequired(val intent: Intent) : RuntimeActionOutcome<Nothing>
-
-    data object FailureHandled : RuntimeActionOutcome<Nothing>
-}
-
-class HandledRuntimeActionFailure : IllegalStateException("Runtime action failure already handled")
-
-sealed interface RuntimeActionFailurePresentation {
-    data class Start(val targetMode: ProxyMode, val fallbackMessage: String) :
-        RuntimeActionFailurePresentation
-
-    data class Runtime(val fallbackMessage: String, val targetMode: ProxyMode? = null) :
-        RuntimeActionFailurePresentation
-
-    data class Global(
-        val message: (String) -> String,
-        val title: String = MLang.Component.Message.Error,
-    ) : RuntimeActionFailurePresentation
-
-    data object None : RuntimeActionFailurePresentation
-}
-
-fun <T> RuntimeActionOutcome<T>.getOrThrowHandled(): T {
-    return when (this) {
-        is RuntimeActionOutcome.Success -> value
-        is RuntimeActionOutcome.PermissionRequired -> {
-            GlobalDialogPresenter.showError(MLang.NetworkSettings.Error.VpnDenied)
-            throw HandledRuntimeActionFailure()
-        }
-        RuntimeActionOutcome.FailureHandled -> throw HandledRuntimeActionFailure()
-    }
-}
-
-class RuntimeActionExecutor(
+class DefaultRuntimeActionExecutor(
     private val proxyFacade: ProxyFacade,
     private val runtimeControlCoordinator: RuntimeControlCoordinator,
-) {
-    val isMutating: StateFlow<Boolean> = runtimeControlCoordinator.isMutating
-    val activeOperation: StateFlow<String?> = runtimeControlCoordinator.activeOperation
+    private val runtimeFailurePresenter: RuntimeFailurePresenter,
+) : RuntimeActionExecutor {
+    override val isMutating: StateFlow<Boolean> = runtimeControlCoordinator.isMutating
+    override val activeOperation: StateFlow<String?> = runtimeControlCoordinator.activeOperation
 
-    suspend fun startProxy(
+    override suspend fun startProxy(
         operation: String,
         mode: ProxyMode,
-        profileId: UUID? = null,
+        profileId: UUID?,
         fallbackMessage: String,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(
@@ -99,9 +62,9 @@ class RuntimeActionExecutor(
         }
     }
 
-    suspend fun stopProxy(
+    override suspend fun stopProxy(
         operation: String,
-        mode: ProxyMode? = null,
+        mode: ProxyMode?,
         presentation: RuntimeActionFailurePresentation.Global,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(presentation = presentation) {
@@ -109,7 +72,7 @@ class RuntimeActionExecutor(
         }
     }
 
-    suspend fun reloadCurrentProfile(
+    override suspend fun reloadCurrentProfile(
         operation: String,
         presentation: RuntimeActionFailurePresentation.Global,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
@@ -118,20 +81,17 @@ class RuntimeActionExecutor(
         }
     }
 
-    suspend fun reloadIfActiveProfile(
+    override suspend fun reloadIfActiveProfile(
         operation: String,
         profileId: UUID,
-        presentation: RuntimeActionFailurePresentation =
-            RuntimeActionFailurePresentation.Runtime(
-                fallbackMessage = MLang.ProfilesVM.Error.Unknown
-            ),
+        presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(presentation = presentation) {
             runtimeControlCoordinator.reloadIfActiveProfile(operation, profileId)
         }
     }
 
-    suspend fun activateProfile(
+    override suspend fun activateProfile(
         operation: String,
         profileId: UUID,
         enabled: Boolean,
@@ -146,11 +106,11 @@ class RuntimeActionExecutor(
         }
     }
 
-    suspend fun applyConfigChange(
+    override suspend fun applyConfigChange(
         operation: String,
         persist: suspend () -> Unit,
-        rollback: suspend () -> Unit = {},
-        shouldRestart: (ProxyMode) -> Boolean = { true },
+        rollback: suspend () -> Unit,
+        shouldRestart: (ProxyMode) -> Boolean,
         presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(presentation = presentation) {
@@ -163,13 +123,13 @@ class RuntimeActionExecutor(
         }
     }
 
-    fun resolveDialogMode(): ProxyMode {
+    override fun resolveDialogMode(): ProxyMode {
         val snapshot = proxyFacade.runtimeSnapshot.value
         return RuntimeStateMapper.modeForOwner(snapshot.owner) ?: snapshot.targetMode
     }
 
-    fun showGlobalError(message: String, title: String = MLang.Component.Message.Error) {
-        GlobalDialogPresenter.showError(message = message, title = title)
+    override fun showGlobalError(message: String, title: String) {
+        runtimeFailurePresenter.showGlobalError(message = message, title = title)
     }
 
     private suspend fun <T> runAction(
@@ -192,17 +152,14 @@ class RuntimeActionExecutor(
         when (presentation) {
             is RuntimeActionFailurePresentation.Start -> {
                 val reason = error.runtimeGatewayMessage(presentation.fallbackMessage)
-                timber.log.Timber.w(
-                    "presentFailure: Start case reason=$reason mode=${presentation.targetMode}"
-                )
-                RuntimeFailureDialogPresenter.showStartFailure(
+                runtimeFailurePresenter.showStartFailure(
                     reason = reason,
                     targetMode = presentation.targetMode,
                 )
             }
 
             is RuntimeActionFailurePresentation.Runtime -> {
-                RuntimeFailureDialogPresenter.showRuntimeFailure(
+                runtimeFailurePresenter.showRuntimeFailure(
                     reason = error.runtimeGatewayMessage(presentation.fallbackMessage),
                     targetMode = presentation.targetMode ?: resolveDialogMode(),
                 )
@@ -210,7 +167,7 @@ class RuntimeActionExecutor(
 
             is RuntimeActionFailurePresentation.Global -> {
                 val reason = error.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
-                GlobalDialogPresenter.showError(
+                runtimeFailurePresenter.showGlobalError(
                     message = presentation.message(reason),
                     title = presentation.title,
                 )

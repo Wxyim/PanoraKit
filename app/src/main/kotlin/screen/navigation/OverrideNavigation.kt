@@ -28,11 +28,12 @@ import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveOutcome
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewScreen
-import com.github.nomadboxlab.monadbox.feature.profiles.LocalProfileConfigEditScreen
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
 import com.github.nomadboxlab.monadbox.presentation.screen.*
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSemantics
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
+import com.github.nomadboxlab.monadbox.screen.profiles.LocalProfileConfigEditScreen
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
@@ -66,11 +67,11 @@ fun OverrideScreen(navigator: DestinationsNavigator) {
         onOpenCodeEditor = { configId, configName ->
             val jsonContent = overrideConfigViewModel.getConfigJsonContent(configId) ?: "{}"
             val isReadOnly = overrideConfigViewModel.isCodeEditorReadOnly(configId)
-            OverrideStructuredEditorStore.setupConfigPreview(
+            ConfigPreviewStore.setup(
                 title = configName,
                 content = jsonContent,
                 language = LanguageScope.Json,
-                callback =
+                onSave =
                     if (isReadOnly) {
                         null
                     } else {
@@ -453,9 +454,9 @@ fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
 @Destination<OverrideEditorNavGraph>
 fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
-    val previewTitle = OverrideStructuredEditorStore.configPreviewTitle
-    val previewLanguage = OverrideStructuredEditorStore.configPreviewLanguage
-    val previewContentLength = OverrideStructuredEditorStore.configPreviewContent.length
+    val previewTitle = ConfigPreviewStore.title
+    val previewLanguage = ConfigPreviewStore.language
+    val previewContentLength = ConfigPreviewStore.content.length
     LaunchedEffect(Unit) {
         ProfilesNavigationMetrics.onTextEditorRouteEntered(settingsMmkv)
         Timber.tag("ProfilesNav")
@@ -469,9 +470,9 @@ fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     ConfigPreviewScreen(
         navigator = navigator,
         title = previewTitle,
-        initialContent = OverrideStructuredEditorStore.configPreviewContent,
+        initialContent = ConfigPreviewStore.content,
         language = previewLanguage,
-        isRuntimeRunning = OverrideStructuredEditorStore.configPreviewRuntimeRunning,
-        onSave = OverrideStructuredEditorStore.configPreviewCallback,
+        isRuntimeRunning = ConfigPreviewStore.runtimeRunning,
+        onSave = ConfigPreviewStore.onSave,
     )
 }

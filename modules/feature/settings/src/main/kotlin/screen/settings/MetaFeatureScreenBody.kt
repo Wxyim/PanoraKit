@@ -34,12 +34,12 @@ import com.github.nomadboxlab.monadbox.core.model.GeoFileType
 import com.github.nomadboxlab.monadbox.core.model.GeoXItem
 import com.github.nomadboxlab.monadbox.core.model.geoXItems
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
 import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
-import com.github.nomadboxlab.monadbox.presentation.util.OverrideStructuredEditorStore
 import com.github.nomadboxlab.monadbox.remote.ServiceClient
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
@@ -118,11 +118,11 @@ fun MetaFeatureScreenBody(
                                 MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it)
                             } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
 
-                    OverrideStructuredEditorStore.setupConfigPreview(
+                    ConfigPreviewStore.setup(
                         title = previewTitle,
                         content = decodeEscapedUnicode(runtimeYaml),
                         language = LanguageScope.Yaml,
-                        callback = null,
+                        onSave = null,
                     )
                     onNavigateToOverrideConfigPreview()
                 } catch (error: Throwable) {

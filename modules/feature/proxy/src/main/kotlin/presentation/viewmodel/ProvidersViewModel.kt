@@ -25,7 +25,6 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.nomadboxlab.monadbox.core.model.Provider
-import com.github.nomadboxlab.monadbox.data.repository.ActiveProfileOverrideReloader
 import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
 import com.github.nomadboxlab.monadbox.data.repository.ProvidersRepository
 import com.github.nomadboxlab.monadbox.domain.model.ErrorCategory
@@ -34,8 +33,8 @@ import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
 import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
 import com.github.nomadboxlab.monadbox.domain.model.RemoteOverrideResource
 import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.presentation.usecase.RefreshRuntimeProvidersUseCase
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
-import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,8 +46,7 @@ class ProvidersViewModel(
     private val proxyFacade: ProxyFacade,
     private val providersRepository: ProvidersRepository,
     private val overrideConfigRepository: OverrideConfigRepository,
-    private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
-    private val runtimeControlCoordinator: RuntimeControlCoordinator,
+    private val refreshRuntimeProvidersUseCase: RefreshRuntimeProvidersUseCase,
 ) : ViewModel() {
 
     private val _providers = MutableStateFlow<List<Provider>>(emptyList())
@@ -120,7 +118,10 @@ class ProvidersViewModel(
                 } else {
                     emptySet()
                 }
-            val overrideKeys = _remoteOverrides.value.map { remoteOverrideKey(it.id) }.toSet()
+            val overrideKeys =
+                _remoteOverrides.value
+                    .map { refreshRuntimeProvidersUseCase.remoteOverrideKey(it.id) }
+                    .toSet()
             val allUpdatingKeys = providerKeys + overrideKeys
 
             _uiState.update {
@@ -129,9 +130,10 @@ class ProvidersViewModel(
                     updatingProviders = it.updatingProviders + allUpdatingKeys,
                 )
             }
-            runCatching {
-                    runtimeControlCoordinator.runSerialized("providers:update-all-sources") {
-                        refreshAllSourcesInternal()
+            refreshRuntimeProvidersUseCase
+                .refreshAllSources { refreshedKey ->
+                    _uiState.update {
+                        it.copy(updatingProviders = it.updatingProviders - refreshedKey)
                     }
                 }
                 .onSuccess { result ->
@@ -141,9 +143,7 @@ class ProvidersViewModel(
                             showMessage(MLang.Providers.Empty.NoProvidersHint)
                         }
 
-                        result.failedItems.isEmpty() -> {
-                            showMessage(MLang.Providers.Message.AllUpdated)
-                        }
+                        result.failedItems.isEmpty() -> Unit
 
                         result.refreshedCount > 0 -> {
                             showError(
@@ -190,17 +190,12 @@ class ProvidersViewModel(
     }
 
     fun updateRemoteOverride(resource: RemoteOverrideResource) {
-        val key = remoteOverrideKey(resource.id)
+        val key = refreshRuntimeProvidersUseCase.remoteOverrideKey(resource.id)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
-            runtimeControlCoordinator
-                .runSerialized("providers:update-remote-override:${resource.id}") {
-                    refreshRemoteOverrideInternal(resource.id)
-                }
-                .onSuccess {
-                    refreshRemoteOverrides()
-                    showMessage(MLang.Providers.Message.UpdateSuccess.format(resource.name))
-                }
+            refreshRuntimeProvidersUseCase
+                .updateRemoteOverride(resource.id)
+                .onSuccess { refreshRemoteOverrides() }
                 .onFailure { e ->
                     showError(
                         message =
@@ -216,24 +211,12 @@ class ProvidersViewModel(
     }
 
     fun updateProvider(provider: Provider) {
-        val providerKey = "${provider.type}_${provider.name}"
+        val providerKey = refreshRuntimeProvidersUseCase.providerKey(provider)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
-            val result =
-                runtimeControlCoordinator.runSerialized(
-                    "providers:update-provider:${provider.type}:${provider.name}"
-                ) {
-                    providersRepository.updateProvider(provider).also {
-                        if (it.isSuccess && proxyFacade.isRunning.value) {
-                            runCatching { proxyFacade.reloadCurrentProfile() }
-                        }
-                    }
-                }
+            val result = refreshRuntimeProvidersUseCase.updateProvider(provider)
             result
-                .onSuccess {
-                    refreshProviders()
-                    showMessage(MLang.Providers.Message.UpdateSuccess.format(provider.name))
-                }
+                .onSuccess { refreshProviders() }
                 .onFailure { e ->
                     showError(
                         message =
@@ -248,80 +231,6 @@ class ProvidersViewModel(
         }
     }
 
-    private fun remoteOverrideKey(id: String): String = "override_$id"
-
-    private suspend fun refreshAllSourcesInternal(): RefreshAllSourcesResult {
-        val remoteOverrides =
-            runCatching { overrideConfigRepository.listRemoteResources() }.getOrDefault(emptyList())
-        val httpProviders =
-            if (proxyFacade.isRunning.value) {
-                providersRepository.queryProviders().getOrDefault(emptyList()).filter {
-                    it.vehicleType == Provider.VehicleType.HTTP
-                }
-            } else {
-                emptyList()
-            }
-
-        if (httpProviders.isEmpty() && remoteOverrides.isEmpty()) {
-            return RefreshAllSourcesResult(hasSources = false)
-        }
-
-        val failedItems = mutableListOf<String>()
-        var refreshedCount = 0
-
-        if (httpProviders.isNotEmpty()) {
-            httpProviders.forEach { provider ->
-                val key = "${provider.type}_${provider.name}"
-                providersRepository
-                    .updateProvider(provider)
-                    .onSuccess { refreshedCount += 1 }
-                    .onFailure { failedItems += provider.name }
-                _uiState.update { it.copy(updatingProviders = it.updatingProviders - key) }
-                refreshProviders()
-            }
-        }
-
-        remoteOverrides.forEach { resource ->
-            runCatching {
-                    overrideConfigRepository.refreshRemoteResource(resource.id)
-                    activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(resource.id)
-                }
-                .onSuccess { refreshedCount += 1 }
-                .onFailure { failedItems += resource.name }
-            val key = remoteOverrideKey(resource.id)
-            _uiState.update { it.copy(updatingProviders = it.updatingProviders - key) }
-            refreshRemoteOverrides()
-        }
-
-        if (refreshedCount > 0 && proxyFacade.isRunning.value) {
-            runCatching { proxyFacade.reloadCurrentProfile() }
-        }
-
-        return RefreshAllSourcesResult(
-            hasSources = true,
-            refreshedCount = refreshedCount,
-            failedItems = failedItems,
-        )
-    }
-
-    private suspend fun refreshRemoteOverrideInternal(id: String): Result<Unit> {
-        return try {
-            val previousConfig =
-                overrideConfigRepository.getById(id)
-                    ?: return Result.failure(IllegalStateException(MLang.Override.Save.Failed))
-            val previousMetadata = overrideConfigRepository.getMetadata(id)
-            overrideConfigRepository.refreshRemoteResource(id = id)
-            if (activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(id)) {
-                Result.success(Unit)
-            } else {
-                overrideConfigRepository.restoreConfigState(previousConfig, previousMetadata)
-                Result.failure(IllegalStateException(MLang.Override.Save.ApplyFailed))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
@@ -331,7 +240,7 @@ class ProvidersViewModel(
     }
 
     fun uploadProviderFile(context: Context, provider: Provider, uri: Uri) {
-        val providerKey = "${provider.type}_${provider.name}"
+        val providerKey = refreshRuntimeProvidersUseCase.providerKey(provider)
         viewModelScope.launch {
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
 
@@ -340,11 +249,7 @@ class ProvidersViewModel(
                 .onSuccess {
                     val applyResult =
                         if (proxyFacade.isRunning.value) {
-                            runtimeControlCoordinator.runSerialized(
-                                "providers:upload-apply:${provider.type}:${provider.name}"
-                            ) {
-                                providersRepository.updateProvider(provider)
-                            }
+                            refreshRuntimeProvidersUseCase.updateProvider(provider)
                         } else {
                             Result.success(Unit)
                         }
@@ -417,11 +322,5 @@ class ProvidersViewModel(
         val message: String? = null,
         val error: String? = null,
         val structuredError: StructuredError? = null,
-    )
-
-    private data class RefreshAllSourcesResult(
-        val hasSources: Boolean,
-        val refreshedCount: Int = 0,
-        val failedItems: List<String> = emptyList(),
     )
 }

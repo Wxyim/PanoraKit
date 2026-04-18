@@ -43,9 +43,9 @@ dependencies {
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
     implementation(project(":runtime:service"))
-    implementation(project(":feature:editor"))
-    implementation(project(":feature:override"))
-    implementation(project(":feature:home"))
+    implementation(project(":feature:editor:api"))
+    implementation(project(":feature:override:api"))
+    implementation(project(":feature:home:api"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)

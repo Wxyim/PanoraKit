@@ -31,11 +31,19 @@ import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
 import com.github.nomadboxlab.monadbox.runtime.client.ProfilesProvider
 import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacadeRuntimeStateReader
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeMutationCoordinator
+import com.github.nomadboxlab.monadbox.runtime.client.ServiceClientRuntimeConnectionReader
+import com.github.nomadboxlab.monadbox.runtime.client.ServiceClientRuntimeProviderGateway
 import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadDispatcher
 import com.github.nomadboxlab.monadbox.runtime.client.root.RootTunReloadScheduler
 import com.github.nomadboxlab.monadbox.runtime.client.usecase.AutoStartProxyUseCase
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeActiveProfileReader
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeConnectionReader
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeOverrideChangeNotifier
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeProviderGateway
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeStateReader
 import com.github.nomadboxlab.monadbox.startup.RuntimeLogRecordingCoordinator
 import com.github.nomadboxlab.monadbox.startup.StartupConfigRefreshCoordinator
 import com.github.nomadboxlab.monadbox.startup.StorageCleanupScheduler
@@ -150,9 +158,9 @@ val appDataRuntimeModule = module {
     }
     single { NetworkInfoService() }
     single { ProxyChainResolver() }
-    single { OverrideRepository(androidContext(), get()) }
+    single { OverrideRepository(androidContext(), get(), get()) }
     single<OverrideProvider> { get<OverrideRepository>() }
-    single { ProvidersRepository(androidContext()) }
+    single { ProvidersRepository(androidContext(), get()) }
     single<ProvidersProvider> { get<ProvidersRepository>() }
 
     single { OverrideConfigRepository(androidContext()) }
@@ -165,14 +173,21 @@ val appDataRuntimeModule = module {
     single { RootTunReloadScheduler(androidContext(), get(named(APPLICATION_SCOPE_NAME))) }
     single<RootTunReloadDispatcher> { get<RootTunReloadScheduler>() }
     single { RuntimeMutationCoordinator(androidContext(), get()) }
+    single<RuntimeOverrideChangeNotifier> { get<RuntimeMutationCoordinator>() }
     single { OverrideService(get(), get()) }
     single { ActiveProfileOverrideReloader(get(), get(), get()) }
     single { StartupConfigRefreshCoordinator(get(), get(), get(), get(), get(), get(), get()) }
 
     single { com.github.nomadboxlab.monadbox.remote.ServiceClient }
     single { ProxyFacade(androidContext(), get(), get(named(APPLICATION_SCOPE_NAME))) }
+    single<RuntimeStateReader> {
+        ProxyFacadeRuntimeStateReader(get(), get(named(APPLICATION_SCOPE_NAME)))
+    }
+    single<RuntimeConnectionReader> { ServiceClientRuntimeConnectionReader(androidContext()) }
+    single<RuntimeProviderGateway> { ServiceClientRuntimeProviderGateway(androidContext()) }
     single { ProfilesRepository(androidContext(), get()) }
     single<ProfilesProvider> { get<ProfilesRepository>() }
+    single<RuntimeActiveProfileReader> { get<ProfilesRepository>() }
     single { RuntimeControlCoordinator(get(), get(), get()) }
     single {
         AutoStartProxyUseCase(
@@ -187,7 +202,7 @@ val appDataRuntimeModule = module {
     single { AppIdentityResolver(androidContext()) }
 
     single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
-    single { ConnectionActivityRepository(get(), get(named(APPLICATION_SCOPE_NAME))) }
+    single { ConnectionActivityRepository(get(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single<ConnectionActivityProvider> { get<ConnectionActivityRepository>() }
     single {
         TargetSiteTrafficCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME)))

@@ -33,6 +33,8 @@ android {
 }
 
 dependencies {
+    api(project(":feature:home:api"))
+
     implementation(project(":core"))
     implementation(project(":platform"))
     implementation(project(":locale"))
@@ -42,7 +44,7 @@ dependencies {
     implementation(project(":data:proxy"))
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
-    implementation(project(":feature:proxy"))
+    implementation(project(":feature:proxy:api"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
@@ -59,4 +61,7 @@ dependencies {
     implementation(libs.miuix.icons)
     implementation(libs.compose.destinations.core)
     implementation(libs.timber)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.coroutines.test)
 }

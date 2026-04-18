@@ -21,12 +21,12 @@
 
 package com.github.nomadboxlab.monadbox.data.repository
 
-import com.github.nomadboxlab.monadbox.runtime.client.RuntimeMutationCoordinator
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeOverrideChangeNotifier
 import timber.log.Timber
 
 class OverrideService(
     private val resolver: OverrideResolver,
-    private val mutationCoordinator: RuntimeMutationCoordinator,
+    private val runtimeOverrideChangeNotifier: RuntimeOverrideChangeNotifier,
 ) {
 
     suspend fun applyOverride(profileId: String): Boolean {
@@ -52,7 +52,7 @@ class OverrideService(
                 return false
             }
 
-            mutationCoordinator.notifyOverrideBindingsChanged()
+            runtimeOverrideChangeNotifier.notifyOverrideBindingsChanged()
 
             true
         } catch (e: Exception) {

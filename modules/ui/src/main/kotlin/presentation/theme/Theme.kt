@@ -26,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
-import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.domain.model.ThemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> Unit> { {} }

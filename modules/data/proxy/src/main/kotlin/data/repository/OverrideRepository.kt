@@ -24,17 +24,13 @@ package com.github.nomadboxlab.monadbox.data.repository
 import android.content.Context
 import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
 import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
-import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
-import com.github.nomadboxlab.monadbox.remote.ServiceClient
-import com.github.nomadboxlab.monadbox.remote.asRuntimeGatewayException
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeActiveProfileReader
 import dev.oom_wg.purejoy.mlang.MLang
-import java.util.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class OverrideRepository(
-    private val context: Context,
+    @Suppress("UNUSED_PARAMETER") context: Context,
     private val configRepository: OverrideConfigRepository,
+    private val activeProfileReader: RuntimeActiveProfileReader,
 ) : OverrideProvider {
     override suspend fun updateProfile(
         transform: (ConfigurationOverride) -> ConfigurationOverride
@@ -42,7 +38,7 @@ class OverrideRepository(
 
     private suspend fun loadInternal(): Result<ConfigurationOverride> = runCatching {
         val activeProfile = queryActiveProfile() ?: return@runCatching ConfigurationOverride()
-        configRepository.getById(runtimeOverrideId(activeProfile.uuid))?.config
+        configRepository.getById(runtimeOverrideId(activeProfile.id))?.config
             ?: ConfigurationOverride()
     }
 
@@ -52,13 +48,13 @@ class OverrideRepository(
             return@runCatching
         }
         val activeProfile = requireActiveProfile()
-        val configId = runtimeOverrideId(activeProfile.uuid)
+        val configId = runtimeOverrideId(activeProfile.id)
         val existing = configRepository.getById(configId)
         configRepository.save(
             OverrideConfig(
                 id = configId,
                 name = INTERNAL_RUNTIME_NAME,
-                description = "internal runtime override for ${activeProfile.uuid}",
+                description = "internal runtime override for ${activeProfile.id}",
                 config = override,
                 isSystem = false,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
@@ -69,7 +65,7 @@ class OverrideRepository(
 
     private suspend fun clearInternal(): Result<Unit> = runCatching {
         val activeProfile = queryActiveProfile() ?: return@runCatching
-        configRepository.delete(runtimeOverrideId(activeProfile.uuid))
+        configRepository.delete(runtimeOverrideId(activeProfile.id))
     }
 
     private suspend fun updateInternal(
@@ -91,27 +87,17 @@ class OverrideRepository(
     }
 
     private suspend fun requireActiveProfile():
-        com.github.nomadboxlab.monadbox.service.runtime.entity.Profile {
+        com.github.nomadboxlab.monadbox.runtime.contract.RuntimeProfileRef {
         return queryActiveProfile() ?: error("No active profile selected")
     }
 
     private suspend fun queryActiveProfile():
-        com.github.nomadboxlab.monadbox.service.runtime.entity.Profile? {
-        return withContext(Dispatchers.IO) {
-            try {
-                ServiceClient.connect(context)
-                ServiceClient.profile().queryActive()
-            } catch (e: Exception) {
-                throw e.asRuntimeGatewayException(
-                    RuntimeGatewayErrorCode.CLIENT_OPERATION_FAILED,
-                    "Failed to query active profile",
-                )
-            }
-        }
+        com.github.nomadboxlab.monadbox.runtime.contract.RuntimeProfileRef? {
+        return activeProfileReader.queryActiveRuntimeProfile()
     }
 
-    private fun runtimeOverrideId(profileUuid: UUID): String {
-        return "${OverrideConfigRepository.INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid"
+    private fun runtimeOverrideId(profileId: String): String {
+        return "${OverrideConfigRepository.INTERNAL_RUNTIME_PREFIX}-profile-$profileId"
     }
 
     private companion object {

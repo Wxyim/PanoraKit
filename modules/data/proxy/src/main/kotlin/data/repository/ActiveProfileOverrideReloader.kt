@@ -21,35 +21,35 @@
 
 package com.github.nomadboxlab.monadbox.data.repository
 
-import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeActiveProfileReader
 import timber.log.Timber
 
 class ActiveProfileOverrideReloader(
-    private val profilesRepository: ProfilesRepository,
+    private val activeProfileReader: RuntimeActiveProfileReader,
     private val bindingProvider: ProfileBindingProvider,
     private val overrideService: OverrideService,
 ) {
     suspend fun reapplyActiveProfileOverride(): Boolean {
-        val activeProfile = profilesRepository.queryActiveProfile() ?: return true
-        val applied = overrideService.applyOverride(activeProfile.uuid.toString())
+        val activeProfile = activeProfileReader.queryActiveRuntimeProfile() ?: return true
+        val applied = overrideService.applyOverride(activeProfile.id)
         if (!applied) {
-            Timber.e("Failed to reapply active profile override: profile=%s", activeProfile.uuid)
+            Timber.e("Failed to reapply active profile override: profile=%s", activeProfile.id)
         }
         return applied
     }
 
     suspend fun reapplyActiveProfileIfUsingOverride(overrideId: String): Boolean {
-        val activeProfile = profilesRepository.queryActiveProfile() ?: return true
-        val binding = bindingProvider.getBinding(activeProfile.uuid.toString()) ?: return true
+        val activeProfile = activeProfileReader.queryActiveRuntimeProfile() ?: return true
+        val binding = bindingProvider.getBinding(activeProfile.id) ?: return true
         if (!binding.overrideIds.contains(overrideId)) {
             return true
         }
 
-        val applied = overrideService.applyOverride(activeProfile.uuid.toString())
+        val applied = overrideService.applyOverride(activeProfile.id)
         if (!applied) {
             Timber.e(
                 "Failed to reapply active profile override after config change: profile=%s override=%s",
-                activeProfile.uuid,
+                activeProfile.id,
                 overrideId,
             )
         }
@@ -57,8 +57,8 @@ class ActiveProfileOverrideReloader(
     }
 
     suspend fun reapplyIfActiveProfile(profileId: String): Boolean {
-        val activeProfile = profilesRepository.queryActiveProfile() ?: return true
-        if (activeProfile.uuid.toString() != profileId) {
+        val activeProfile = activeProfileReader.queryActiveRuntimeProfile() ?: return true
+        if (activeProfile.id != profileId) {
             return true
         }
 
@@ -73,8 +73,8 @@ class ActiveProfileOverrideReloader(
     }
 
     suspend fun isActiveProfileUsingOverride(overrideId: String): Boolean {
-        val activeProfile = profilesRepository.queryActiveProfile() ?: return false
-        val binding = bindingProvider.getBinding(activeProfile.uuid.toString()) ?: return false
+        val activeProfile = activeProfileReader.queryActiveRuntimeProfile() ?: return false
+        val binding = bindingProvider.getBinding(activeProfile.id) ?: return false
         return binding.overrideIds.contains(overrideId)
     }
 }

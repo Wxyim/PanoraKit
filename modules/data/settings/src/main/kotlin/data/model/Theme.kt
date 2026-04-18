@@ -21,11 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.data.model
 
-enum class ThemeMode {
-    Auto,
-    Light,
-    Dark,
-}
+typealias ThemeMode = com.github.nomadboxlab.monadbox.domain.model.ThemeMode
 
 enum class AppColorTheme {
     ClassicMonochrome

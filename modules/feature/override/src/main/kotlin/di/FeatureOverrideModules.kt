@@ -21,11 +21,17 @@
 
 package com.github.nomadboxlab.monadbox.di
 
+import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOptionsProvider
+import com.github.nomadboxlab.monadbox.presentation.contract.RepositoryProfileOverrideOptionsProvider
+import com.github.nomadboxlab.monadbox.presentation.usecase.ImportOverrideConfigUseCase
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.OverrideConfigViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val featureOverrideViewModelModule = module {
+    single { ImportOverrideConfigUseCase(get()) }
+    single<ProfileOverrideOptionsProvider> { RepositoryProfileOverrideOptionsProvider(get()) }
+
     viewModel {
         OverrideConfigViewModel(
             configRepo = get(),
@@ -33,6 +39,7 @@ val featureOverrideViewModelModule = module {
             bindingProvider = get(),
             activeProfileOverrideReloader = get(),
             structuredLogCollector = get(),
+            importOverrideConfigUseCase = get(),
         )
     }
 }

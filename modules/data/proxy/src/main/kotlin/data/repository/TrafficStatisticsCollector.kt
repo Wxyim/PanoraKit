@@ -22,12 +22,12 @@
 package com.github.nomadboxlab.monadbox.data.repository
 
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeStateReader
 import kotlinx.coroutines.*
 import timber.log.Timber
 
 class TrafficStatisticsCollector(
-    private val proxyFacade: ProxyFacade,
+    private val runtimeStateReader: RuntimeStateReader,
     private val trafficStatisticsStore: TrafficStatisticsStore,
     private val scope: CoroutineScope,
 ) {
@@ -51,7 +51,7 @@ class TrafficStatisticsCollector(
         collectionJob?.cancel()
         collectionJob =
             scope.launch {
-                proxyFacade.isRunning.collect { isRunning ->
+                runtimeStateReader.isRuntimeRunning.collect { isRunning ->
                     if (isRunning) {
                         monitoringJob?.cancel()
                         monitoringJob = startTrafficMonitoring()
@@ -71,7 +71,7 @@ class TrafficStatisticsCollector(
             lastProfileId = trafficStatisticsStore.getLastProfileId()
             lastSampleAt = trafficStatisticsStore.getLastTrafficTimestamp()
 
-            while (isActive && proxyFacade.isRunning.value) {
+            while (isActive && runtimeStateReader.isRuntimeRunning.value) {
                 runCatching {
                         collectTrafficData()
                         delay(COLLECTION_INTERVAL_MS)
@@ -87,13 +87,13 @@ class TrafficStatisticsCollector(
 
     private fun collectTrafficData() {
         val collectedAt = System.currentTimeMillis()
-        val trafficValue = proxyFacade.trafficTotal.value
+        val trafficValue = runtimeStateReader.runtimeTrafficTotal.value
         val trafficData =
             com.github.nomadboxlab.monadbox.domain.model.TrafficData.from(trafficValue)
         val currentUpload = trafficData.upload
         val currentDownload = trafficData.download
-        val currentProfile = proxyFacade.currentProfile.value
-        val currentProfileId = currentProfile?.uuid?.toString()
+        val currentProfile = runtimeStateReader.currentRuntimeProfile.value
+        val currentProfileId = currentProfile?.id
         val currentProfileName = currentProfile?.name
 
         if (lastTotalUpload == 0L && lastTotalDownload == 0L) {

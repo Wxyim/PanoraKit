@@ -98,6 +98,7 @@ import com.github.nomadboxlab.monadbox.presentation.theme.ProvideAndroidPlatform
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAdaptiveSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.runtime.client.usecase.AutoStartProxyUseCase
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingLauncher
 import com.github.nomadboxlab.monadbox.screen.settings.SettingPager
 import com.github.nomadboxlab.monadbox.startup.StartupConfigRefreshCoordinator
@@ -141,6 +142,7 @@ class MainActivity : ComponentActivity() {
     private val proxyFacade: com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade by inject()
     private val startupConfigRefreshCoordinator: StartupConfigRefreshCoordinator by inject()
     private val vpnPermissionCoordinator: VpnPermissionCoordinator by inject()
+    private val runtimeFailurePresenter: RuntimeFailurePresenter by inject()
     private val deepLinkBus: DeepLinkBus by inject()
     private val autoStartProxyUseCase: AutoStartProxyUseCase by inject()
 
@@ -229,9 +231,13 @@ class MainActivity : ComponentActivity() {
                                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
                                 ) { _ ->
                                     RuntimeFailureDialogEffect(
-                                        runtimeFailureEvents = proxyFacade.runtimeFailureEvents
+                                        runtimeFailureEvents = proxyFacade.runtimeFailureEvents,
+                                        presenter = runtimeFailurePresenter,
                                     )
-                                    VpnPermissionHost(coordinator = vpnPermissionCoordinator)
+                                    VpnPermissionHost(
+                                        coordinator = vpnPermissionCoordinator,
+                                        runtimeFailurePresenter = runtimeFailurePresenter,
+                                    )
                                     DestinationsNavHost(
                                         navGraph = NavGraphs.root,
                                         navController = navController,

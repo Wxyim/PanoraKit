@@ -24,13 +24,23 @@ import com.github.nomadboxlab.monadbox.feature.settings.AccessControlViewModel
 import com.github.nomadboxlab.monadbox.feature.settings.AppSettingsViewModel
 import com.github.nomadboxlab.monadbox.feature.settings.MetaFeatureViewModel
 import com.github.nomadboxlab.monadbox.feature.settings.NetworkSettingsViewModel
+import com.github.nomadboxlab.monadbox.feature.settings.usecase.ApplyRuntimeModeUseCase
+import com.github.nomadboxlab.monadbox.feature.settings.usecase.ResolveAccessControlAppsUseCase
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val settingsDiModule = module {
+    single {
+        ApplyRuntimeModeUseCase(
+            get<com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage>().proxyMode,
+            get(),
+        )
+    }
+    single { ResolveAccessControlAppsUseCase(androidApplication()) }
+
     viewModel { AppSettingsViewModel(get(), get()) }
-    viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get(), get(), get()) }
-    viewModel { AccessControlViewModel(androidApplication(), get(), get(), get(), get()) }
+    viewModel { NetworkSettingsViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { AccessControlViewModel(get(), get(), get(), get(), get()) }
     viewModel { MetaFeatureViewModel(get(), get(), get(), get()) }
 }

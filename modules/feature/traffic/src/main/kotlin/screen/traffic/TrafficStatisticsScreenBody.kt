@@ -46,12 +46,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
-import com.github.nomadboxlab.monadbox.data.model.StatisticsTimeRange
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionDetailSheet
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.toDisplayAddress
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.RecentRequestRecord
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.TargetSiteRecord
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
+import com.github.nomadboxlab.monadbox.feature.meta.api.RecentRequestRecord
+import com.github.nomadboxlab.monadbox.feature.meta.api.TargetSiteRecord
+import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
+import com.github.nomadboxlab.monadbox.feature.meta.api.toConnectionDisplayAddress
+import com.github.nomadboxlab.monadbox.presentation.component.BarChartItem
 import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
@@ -67,7 +67,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
@@ -81,18 +81,26 @@ private enum class TrafficDetailSection {
 
 @Composable
 fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
-    val viewModel = koinViewModel<TrafficStatisticsViewModel>()
+    val trafficStatisticsExplorer = koinInject<TrafficStatisticsExplorer>()
     val scrollBehavior = MiuixScrollBehavior()
 
-    val todaySummary by viewModel.todaySummary.collectAsStateWithLifecycle()
-    val weekSummary by viewModel.weekSummary.collectAsStateWithLifecycle()
-    val trafficDifference by viewModel.trafficDifference.collectAsStateWithLifecycle()
-    val selectedTimeRange by viewModel.selectedTimeRange.collectAsStateWithLifecycle()
-    val chartItems by viewModel.chartItems.collectAsStateWithLifecycle()
-    val todayTimeContext by viewModel.todayTimeContext.collectAsStateWithLifecycle()
-    val selectedBarIndex by viewModel.selectedBarIndex.collectAsStateWithLifecycle()
-    val recentRequests by viewModel.recentRequests.collectAsStateWithLifecycle()
-    val targetSites by viewModel.targetSites.collectAsStateWithLifecycle()
+    val todayTotalBytes by trafficStatisticsExplorer.todayTotalBytes.collectAsStateWithLifecycle()
+    val weekTotalBytes by trafficStatisticsExplorer.weekTotalBytes.collectAsStateWithLifecycle()
+    val trafficDifferenceBytes by
+        trafficStatisticsExplorer.trafficDifferenceBytes.collectAsStateWithLifecycle()
+    val selectedTimeRange by
+        trafficStatisticsExplorer.selectedTimeRange.collectAsStateWithLifecycle()
+    val chartPoints by trafficStatisticsExplorer.chartItems.collectAsStateWithLifecycle()
+    val chartItems =
+        remember(chartPoints) {
+            chartPoints.map { point ->
+                BarChartItem(label = point.label, value = point.value, isCurrent = point.isCurrent)
+            }
+        }
+    val todayTimeContext by trafficStatisticsExplorer.todayTimeContext.collectAsStateWithLifecycle()
+    val selectedBarIndex by trafficStatisticsExplorer.selectedBarIndex.collectAsStateWithLifecycle()
+    val recentRequests by trafficStatisticsExplorer.recentRequests.collectAsStateWithLifecycle()
+    val targetSites by trafficStatisticsExplorer.targetSites.collectAsStateWithLifecycle()
     var selectedDetailSectionName by rememberSaveable {
         mutableStateOf(TrafficDetailSection.RecentRequests.name)
     }
@@ -160,15 +168,15 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                             ) {
                                 OverviewCard(
                                     selectedTimeRange = selectedTimeRange,
-                                    todaySummary = todaySummary.total,
-                                    weekSummary = weekSummary,
-                                    trafficDifference = trafficDifference,
+                                    todaySummary = todayTotalBytes,
+                                    weekSummary = weekTotalBytes,
+                                    trafficDifference = trafficDifferenceBytes,
                                     chartItems = chartItems,
                                     todayTimeContext = todayTimeContext,
                                     selectedBarIndex = selectedBarIndex,
-                                    onRangeSelected = viewModel::setTimeRange,
+                                    onRangeSelected = trafficStatisticsExplorer::setTimeRange,
                                     onBarSelected = { index ->
-                                        viewModel.setSelectedBarIndex(
+                                        trafficStatisticsExplorer.setSelectedBarIndex(
                                             if (selectedBarIndex == index) -1 else index
                                         )
                                     },
@@ -214,15 +222,15 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                             ) {
                                 OverviewCard(
                                     selectedTimeRange = selectedTimeRange,
-                                    todaySummary = todaySummary.total,
-                                    weekSummary = weekSummary,
-                                    trafficDifference = trafficDifference,
+                                    todaySummary = todayTotalBytes,
+                                    weekSummary = weekTotalBytes,
+                                    trafficDifference = trafficDifferenceBytes,
                                     chartItems = chartItems,
                                     todayTimeContext = todayTimeContext,
                                     selectedBarIndex = selectedBarIndex,
-                                    onRangeSelected = viewModel::setTimeRange,
+                                    onRangeSelected = trafficStatisticsExplorer::setTimeRange,
                                     onBarSelected = { index ->
-                                        viewModel.setSelectedBarIndex(
+                                        trafficStatisticsExplorer.setSelectedBarIndex(
                                             if (selectedBarIndex == index) -1 else index
                                         )
                                     },
@@ -275,14 +283,14 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
 
 @Composable
 private fun OverviewCard(
-    selectedTimeRange: StatisticsTimeRange,
+    selectedTimeRange: TrafficStatisticsRange,
     todaySummary: Long,
     weekSummary: Long,
     trafficDifference: Long,
-    chartItems: List<com.github.nomadboxlab.monadbox.presentation.component.BarChartItem>,
+    chartItems: List<BarChartItem>,
     todayTimeContext: String,
     selectedBarIndex: Int,
-    onRangeSelected: (StatisticsTimeRange) -> Unit,
+    onRangeSelected: (TrafficStatisticsRange) -> Unit,
     onBarSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     selectorModifier: Modifier = Modifier,
@@ -326,7 +334,7 @@ private fun OverviewCard(
                 } else null
             val timeContextText =
                 todayTimeContext.takeIf {
-                    selectedTimeRange == StatisticsTimeRange.TODAY && it.isNotBlank()
+                    selectedTimeRange == TrafficStatisticsRange.Today && it.isNotBlank()
                 }
 
             Spacer(
@@ -614,8 +622,8 @@ private fun TargetSiteItem(record: TargetSiteRecord) {
 
 @Composable
 private fun TimeRangeSelector(
-    selectedRange: StatisticsTimeRange,
-    onRangeSelected: (StatisticsTimeRange) -> Unit,
+    selectedRange: TrafficStatisticsRange,
+    onRangeSelected: (TrafficStatisticsRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spacing = AppTheme.spacing
@@ -624,7 +632,7 @@ private fun TimeRangeSelector(
         modifier = modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
-        StatisticsTimeRange.entries.forEach { range ->
+        TrafficStatisticsRange.entries.forEach { range ->
             val isSelected = range == selectedRange
             Surface(
                 modifier =
@@ -664,7 +672,7 @@ private fun TimeRangeSelector(
 
 @Composable
 private fun CompactTrafficSummary(
-    selectedTimeRange: StatisticsTimeRange,
+    selectedTimeRange: TrafficStatisticsRange,
     todaySummary: Long,
     weekSummary: Long,
     trafficDifference: Long,
@@ -673,13 +681,13 @@ private fun CompactTrafficSummary(
     val pageMetrics = AppTheme.pageMetrics
     val displayTotal =
         when (selectedTimeRange) {
-            StatisticsTimeRange.TODAY -> todaySummary
-            StatisticsTimeRange.WEEK -> weekSummary
+            TrafficStatisticsRange.Today -> todaySummary
+            TrafficStatisticsRange.Week -> weekSummary
         }
 
     val differenceText =
         when (selectedTimeRange) {
-            StatisticsTimeRange.TODAY ->
+            TrafficStatisticsRange.Today ->
                 when {
                     trafficDifference > 0 ->
                         MLang.TrafficStatistics.Compare.MoreThanYesterday.format(
@@ -692,7 +700,7 @@ private fun CompactTrafficSummary(
                     else -> MLang.TrafficStatistics.Compare.SameAsYesterday
                 }
 
-            StatisticsTimeRange.WEEK -> MLang.TrafficStatistics.Compare.WeekStats
+            TrafficStatisticsRange.Week -> MLang.TrafficStatistics.Compare.WeekStats
         }
 
     Column(
@@ -702,8 +710,8 @@ private fun CompactTrafficSummary(
         Text(
             text =
                 when (selectedTimeRange) {
-                    StatisticsTimeRange.TODAY -> MLang.TrafficStatistics.Summary.TodayTraffic
-                    StatisticsTimeRange.WEEK -> MLang.TrafficStatistics.Summary.WeekTraffic
+                    TrafficStatisticsRange.Today -> MLang.TrafficStatistics.Summary.TodayTraffic
+                    TrafficStatisticsRange.Week -> MLang.TrafficStatistics.Summary.WeekTraffic
                 },
             style = MiuixTheme.textStyles.footnote1,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -728,7 +736,7 @@ private fun CompactTrafficSummary(
 private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) {
     val spacing = AppTheme.spacing
     val connection = record.connection
-    val displayAddress = remember(connection) { connection.toDisplayAddress() }
+    val displayAddress = remember(connection) { connection.toConnectionDisplayAddress() }
     val totalTraffic = connection.upload + connection.download
 
     Surface(
@@ -863,6 +871,13 @@ private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color)
                 ),
     )
 }
+
+private val TrafficStatisticsRange.label: String
+    get() =
+        when (this) {
+            TrafficStatisticsRange.Today -> MLang.TrafficStatistics.TimeRange.Today
+            TrafficStatisticsRange.Week -> MLang.TrafficStatistics.TimeRange.Week
+        }
 
 private fun formatConnectionTime(start: String): String {
     if (start.isBlank()) return "--"

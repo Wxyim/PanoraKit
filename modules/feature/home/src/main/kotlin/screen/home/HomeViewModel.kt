@@ -21,14 +21,12 @@
 
 package com.github.nomadboxlab.monadbox.feature.home
 
-import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
-import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
 import com.github.nomadboxlab.monadbox.data.repository.NetworkInfoService
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
@@ -37,22 +35,22 @@ import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
 import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
 import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
 import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.feature.home.usecase.RefreshHomeEntryDataUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.ReloadHomeProfileUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.StartHomeProxyUseCase
+import com.github.nomadboxlab.monadbox.feature.home.usecase.StopHomeProxyUseCase
 import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
-import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogPresenter
-import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
-import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
 import com.github.nomadboxlab.monadbox.remote.VpnPermissionRequired
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
-import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -70,7 +68,6 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
@@ -276,16 +273,17 @@ private object HomeProfileResolver {
 }
 
 class HomeViewModel(
-    private val application: Application,
     private val proxyFacade: ProxyFacade,
-    private val profilesRepository: ProfilesRepository,
     private val networkInfoService: NetworkInfoService,
-    private val logRecordGateway: LogRecordGateway,
     private val proxyChainResolver: ProxyChainResolver,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val networkSettingsStorage: NetworkSettingsStorage,
-    private val runtimeActionExecutor: RuntimeActionExecutor,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
+    private val runtimeFailurePresenter: RuntimeFailurePresenter,
+    private val refreshHomeEntryDataUseCase: RefreshHomeEntryDataUseCase,
+    private val reloadHomeProfileUseCase: ReloadHomeProfileUseCase,
+    private val startHomeProxyUseCase: StartHomeProxyUseCase,
+    private val stopHomeProxyUseCase: StopHomeProxyUseCase,
 ) : ViewModel() {
 
     private val profilesStateMutable = MutableStateFlow(HomeProfilesState())
@@ -510,14 +508,7 @@ class HomeViewModel(
     private fun refreshProfiles() {
         viewModelScope.launch {
             try {
-                val allProfiles = profilesRepository.queryAllProfiles()
-                val active = profilesRepository.queryActiveProfile(ensureDefault = true)
-                profilesStateMutable.value =
-                    HomeProfilesState(
-                        profiles = allProfiles,
-                        recommendedProfile = active,
-                        profilesLoaded = true,
-                    )
+                profilesStateMutable.value = refreshHomeEntryDataUseCase.refreshProfiles()
             } catch (e: Exception) {
                 Timber.e(e, "Failed to refresh profiles")
                 profilesStateMutable.update { current -> current.copy(profilesLoaded = true) }
@@ -528,12 +519,7 @@ class HomeViewModel(
     private fun refreshHomeEntryData() {
         refreshProfiles()
         viewModelScope.launch {
-            runCatching {
-                    withContext(Dispatchers.IO) {
-                        proxyFacade.refreshCurrentProfile()
-                        proxyFacade.refreshProxyGroups()
-                    }
-                }
+            runCatching { refreshHomeEntryDataUseCase.refreshRuntimePreview() }
                 .onFailure { error -> Timber.d(error, "Skipped home entry preview refresh") }
         }
     }
@@ -628,29 +614,7 @@ class HomeViewModel(
         try {
             setLoading(true)
 
-            val activeProfile = profilesRepository.queryActiveProfile(ensureDefault = true)
-            if (activeProfile == null) {
-                GlobalDialogPresenter.showError(
-                    MLang.Home.Message.ConfigSwitchFailed.format(
-                        MLang.ProfilesVM.Error.ProfileNotExist
-                    )
-                )
-                return
-            }
-
-            profilesRepository.updateProfile(activeProfile.uuid)
-            when (
-                val outcome =
-                    runtimeActionExecutor.reloadCurrentProfile(
-                        operation = "home:reload-profile",
-                        presentation =
-                            RuntimeActionFailurePresentation.Global(
-                                message = { reason ->
-                                    MLang.Home.Message.ConfigSwitchFailed.format(reason)
-                                }
-                            ),
-                    )
-            ) {
+            when (val outcome = reloadHomeProfileUseCase()) {
                 is RuntimeActionOutcome.PermissionRequired -> {
                     vpnPermissionCoordinator.requestPermission(outcome.intent) {
                         viewModelScope.launch { reloadProfile() }
@@ -691,27 +655,13 @@ class HomeViewModel(
         viewModelScope.launch {
             val startedAt = System.currentTimeMillis()
             updateChromeForStartRequest()
-            val proxyMode = mode ?: networkSettingsStorage.proxyMode.value
+            val proxyMode = startHomeProxyUseCase.resolveMode(mode)
 
             try {
                 setDisplayProxyMode(proxyMode)
-                if (!logRecordGateway.isRecording) {
-                    runCatching { logRecordGateway.start(application) }
-                        .onFailure { error -> Timber.d(error, "Skipped eager log recording start") }
-                }
-                Timber.d("Home startProxy kickoff: mode=$proxyMode profileId=$profileId")
 
                 when (
-                    val outcome =
-                        withContext(Dispatchers.IO) {
-                            runtimeActionExecutor.startProxy(
-                                operation = "home:start-proxy",
-                                mode = proxyMode,
-                                profileId =
-                                    profileId.takeIf(String::isNotBlank)?.let(UUID::fromString),
-                                fallbackMessage = MLang.Home.Message.StartFailed,
-                            )
-                        }
+                    val outcome = startHomeProxyUseCase(profileId = profileId, mode = proxyMode)
                 ) {
                     is RuntimeActionOutcome.PermissionRequired -> {
                         chromeStateMutable.update { current ->
@@ -759,7 +709,7 @@ class HomeViewModel(
                 Timber.e(e, "Failed to start proxy")
                 if (e !is VpnPermissionRequired) {
                     val failureReason = e.runtimeGatewayMessage(MLang.ProfilesVM.Error.Unknown)
-                    RuntimeFailureDialogPresenter.showStartFailure(
+                    runtimeFailurePresenter.showStartFailure(
                         reason = failureReason,
                         targetMode = proxyMode,
                     )
@@ -775,16 +725,7 @@ class HomeViewModel(
         setLoading(true)
 
         try {
-            val outcome =
-                withContext(Dispatchers.IO) {
-                    runtimeActionExecutor.stopProxy(
-                        operation = "home:stop-proxy",
-                        presentation =
-                            RuntimeActionFailurePresentation.Global(
-                                message = { reason -> MLang.Home.Message.StopFailed.format(reason) }
-                            ),
-                    )
-                }
+            val outcome = stopHomeProxyUseCase()
             if (outcome !is RuntimeActionOutcome.Success) {
                 chromeStateMutable.update { current -> current.copy(isToggling = false) }
                 setLoading(false)

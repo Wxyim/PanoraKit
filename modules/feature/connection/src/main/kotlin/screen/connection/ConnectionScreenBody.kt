@@ -31,12 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionCard
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.ConnectionDetailSheet
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.component.TabRowWithContour
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionSort
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionTab
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionViewModel
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionSort
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionTab
 import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
@@ -46,7 +43,7 @@ import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -67,9 +64,9 @@ private fun ConnectionSort.getDisplayName(): String =
 
 @Composable
 fun ConnectionScreenBody(navigator: DestinationsNavigator) {
-    val viewModel = koinViewModel<ConnectionViewModel>()
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val filteredConnections by viewModel.filteredConnections.collectAsStateWithLifecycle()
+    val connectionExplorer = koinInject<ConnectionExplorer>()
+    val state by connectionExplorer.state.collectAsStateWithLifecycle()
+    val filteredConnections by connectionExplorer.filteredConnections.collectAsStateWithLifecycle()
 
     val scrollBehavior = MiuixScrollBehavior()
     var showSearchBar by remember { mutableStateOf(false) }
@@ -86,12 +83,12 @@ fun ConnectionScreenBody(navigator: DestinationsNavigator) {
 
     LaunchedEffect(selectedTabIndex) {
         val tab = if (selectedTabIndex == 0) ConnectionTab.ACTIVE else ConnectionTab.CLOSED
-        viewModel.setTab(tab)
+        connectionExplorer.setTab(tab)
     }
 
     LaunchedEffect(searchText) {
         if (searchText != state.searchQuery) {
-            viewModel.setSearchQuery(searchText)
+            connectionExplorer.setSearchQuery(searchText)
         }
     }
 
@@ -131,7 +128,9 @@ fun ConnectionScreenBody(navigator: DestinationsNavigator) {
                                         optionSize = SortModes.size,
                                         isSelected = selectedSortIndex == index,
                                         onSelectedIndexChange = {
-                                            if (mode != state.sortBy) viewModel.setSortBy(mode)
+                                            if (mode != state.sortBy) {
+                                                connectionExplorer.setSortBy(mode)
+                                            }
                                             showSortPopup = false
                                         },
                                         index = index,

@@ -25,18 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
-import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
-import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSaveCallback
 import kotlinx.serialization.json.JsonElement
 
 object OverrideStructuredEditorStore {
     var referenceCatalog: OverrideReferenceCatalog by mutableStateOf(OverrideReferenceCatalog())
-
-    var configPreviewTitle: String by mutableStateOf("")
-    var configPreviewContent: String by mutableStateOf("")
-    var configPreviewLanguage: LanguageScope by mutableStateOf(LanguageScope.Json)
-    var configPreviewRuntimeRunning: Boolean by mutableStateOf(false)
-    var configPreviewCallback: ConfigPreviewSaveCallback? = null
 
     var stringListEditorTitle: String by mutableStateOf("")
     var stringListEditorPlaceholder: String by mutableStateOf("")
@@ -906,27 +898,5 @@ object OverrideStructuredEditorStore {
         subRuleDraftEditorTitle = ""
         subRuleDraftEditorValue = null
         subRuleDraftEditorCallback = null
-    }
-
-    fun setupConfigPreview(
-        title: String,
-        content: String,
-        language: LanguageScope = LanguageScope.Json,
-        runtimeRunning: Boolean = false,
-        callback: ConfigPreviewSaveCallback? = null,
-    ) {
-        configPreviewTitle = title
-        configPreviewContent = content
-        configPreviewLanguage = language
-        configPreviewRuntimeRunning = runtimeRunning
-        configPreviewCallback = callback
-    }
-
-    fun clearConfigPreview() {
-        configPreviewTitle = ""
-        configPreviewContent = ""
-        configPreviewLanguage = LanguageScope.Json
-        configPreviewRuntimeRunning = false
-        configPreviewCallback = null
     }
 }

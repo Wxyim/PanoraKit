@@ -22,7 +22,7 @@ package com.github.nomadboxlab.monadbox.data.repository
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.data.model.TargetSiteTrafficUsage
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeStateReader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -35,7 +35,7 @@ import timber.log.Timber
 class TargetSiteTrafficCollector(
     private val connectionActivityRepository: ConnectionActivityRepository,
     private val trafficStatisticsStore: TrafficStatisticsStore,
-    private val proxyFacade: ProxyFacade,
+    private val runtimeStateReader: RuntimeStateReader,
     private val scope: CoroutineScope,
 ) {
     private data class SiteIdentity(val key: String, val displayName: String)
@@ -60,7 +60,7 @@ class TargetSiteTrafficCollector(
         if (runtimeStateJob?.isActive != true) {
             runtimeStateJob =
                 scope.launch {
-                    proxyFacade.isRunning.collectLatest { isRunning ->
+                    runtimeStateReader.isRuntimeRunning.collectLatest { isRunning ->
                         if (isRunning) {
                             baselines.clear()
                             trafficStatisticsStore.clearTargetSiteUsages()

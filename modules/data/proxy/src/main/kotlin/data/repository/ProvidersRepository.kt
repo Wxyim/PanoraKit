@@ -25,19 +25,21 @@ import android.content.Context
 import android.net.Uri
 import com.github.nomadboxlab.monadbox.core.model.Provider
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
-import com.github.nomadboxlab.monadbox.remote.ServiceClient
 import com.github.nomadboxlab.monadbox.remote.asRuntimeGatewayException
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeProviderGateway
 import dev.oom_wg.purejoy.mlang.MLang
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ProvidersRepository(private val context: Context) : ProvidersProvider {
+class ProvidersRepository(
+    @Suppress("UNUSED_PARAMETER") private val context: Context,
+    private val runtimeProviderGateway: RuntimeProviderGateway,
+) : ProvidersProvider {
 
     override suspend fun queryProviders(): Result<List<Provider>> {
         return try {
-            ServiceClient.connect(context)
-            Result.success(ServiceClient.clash().queryProviders())
+            Result.success(runtimeProviderGateway.queryProviders())
         } catch (e: Exception) {
             Result.failure(
                 e.asRuntimeGatewayException(
@@ -108,8 +110,7 @@ class ProvidersRepository(private val context: Context) : ProvidersProvider {
 
     private suspend fun updateProviderInternal(type: Provider.Type, name: String): Result<Unit> {
         return try {
-            ServiceClient.connect(context)
-            ServiceClient.clash().updateProvider(type, name)
+            runtimeProviderGateway.updateProvider(type, name)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(

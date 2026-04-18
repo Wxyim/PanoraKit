@@ -21,8 +21,4 @@
 
 package com.github.nomadboxlab.monadbox.data.model
 
-enum class ProxyMode {
-    Tun,
-    RootTun,
-    Http,
-}
+typealias ProxyMode = com.github.nomadboxlab.monadbox.domain.model.ProxyMode

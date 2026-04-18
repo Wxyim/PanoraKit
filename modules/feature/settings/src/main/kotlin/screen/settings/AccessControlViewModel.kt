@@ -21,21 +21,19 @@
 
 package com.github.nomadboxlab.monadbox.feature.settings
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccess
 import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccessMode
 import com.github.nomadboxlab.monadbox.data.model.AccessControlMode
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
+import com.github.nomadboxlab.monadbox.feature.settings.usecase.ResolveAccessControlAppsUseCase
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
-import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,12 +45,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 class AccessControlViewModel(
-    application: Application,
     private val networkSettingsStorage: NetworkSettingsStorage,
     private val proxyFacade: ProxyFacade,
     private val runtimeActionExecutor: RuntimeActionExecutor,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : AndroidViewModel(application) {
+    private val resolveAccessControlAppsUseCase: ResolveAccessControlAppsUseCase,
+) : ViewModel() {
     data class ImportResult(val addedCount: Int, val ignoredCount: Int, val totalCount: Int)
 
     private val _uiState = MutableStateFlow(AccessControlUiState())
@@ -78,12 +76,7 @@ class AccessControlViewModel(
     }
 
     private fun checkAndLoad() {
-        val context = getApplication<Application>()
-        if (RootPackageShell.hasRootAccess()) {
-            loadApps()
-            return
-        }
-        val accessState = InstalledAppsAccess.resolve(context)
+        val accessState = resolveAccessControlAppsUseCase.resolveAccessState()
         when (accessState.mode) {
             InstalledAppsAccessMode.Full -> loadApps()
             InstalledAppsAccessMode.PermissionRequired -> {
@@ -113,11 +106,11 @@ class AccessControlViewModel(
 
             val selectedPackages = networkSettingsStorage.accessControlPackages.value
             val appsResult = runCatching {
-                withContext(Dispatchers.IO) { loadInstalledApps(selectedPackages) }
+                resolveAccessControlAppsUseCase.loadInstalledApps(selectedPackages)
             }
             val apps =
                 appsResult.getOrElse {
-                    val accessState = InstalledAppsAccess.resolve(getApplication())
+                    val accessState = resolveAccessControlAppsUseCase.resolveAccessState()
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
@@ -132,10 +125,6 @@ class AccessControlViewModel(
                 state.copy(isLoading = false, apps = apps, selectedPackages = selectedPackages)
             }
         }
-    }
-
-    private fun loadInstalledApps(selectedPackages: Set<String>): List<AccessControlAppInfo> {
-        return AccessControlAppLoader.loadInstalledApps(getApplication(), selectedPackages)
     }
 
     fun onSearchQueryChange(query: String) {

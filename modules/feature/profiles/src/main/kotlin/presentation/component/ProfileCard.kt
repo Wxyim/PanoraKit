@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -200,6 +201,7 @@ fun ProfileCard(
                     modifier =
                         Modifier.fillMaxWidth()
                             .then(dragHandleModifier)
+                            .testTag(TestTags.Profiles.profileCard(profile.uuid.toString()))
                             .semantics(mergeDescendants = true) {
                                 contentDescription = profileSemanticDescription
                                 stateDescription =

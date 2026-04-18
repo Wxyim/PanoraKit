@@ -21,12 +21,28 @@
 package com.github.nomadboxlab.monadbox.feature.profiles.di
 
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesViewModel
+import com.github.nomadboxlab.monadbox.feature.profiles.usecase.ImportProfileUseCase
+import com.github.nomadboxlab.monadbox.feature.profiles.usecase.SaveProfileWithRollbackUseCase
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val profilesDiModule = module {
+    single { ImportProfileUseCase(androidApplication(), get()) }
+    single { SaveProfileWithRollbackUseCase(androidApplication(), get(), get(), get()) }
+
     viewModel {
-        ProfilesViewModel(androidApplication(), get(), get(), get(), get(), get(), get(), get())
+        ProfilesViewModel(
+            androidApplication(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        )
     }
 }

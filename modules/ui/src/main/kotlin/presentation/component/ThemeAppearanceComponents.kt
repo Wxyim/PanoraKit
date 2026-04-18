@@ -28,7 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.domain.model.ThemeMode
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
 import com.github.nomadboxlab.monadbox.presentation.theme.colorFromArgb

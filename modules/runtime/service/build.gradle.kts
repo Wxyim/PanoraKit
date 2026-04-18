@@ -40,6 +40,7 @@ dependencies {
     implementation(project(":locale"))
     implementation(project(":data:log"))
     implementation(project(":data:settings"))
+    implementation(project(":runtime:contract"))
     implementation(project(":runtime:api"))
 
     implementation(libs.core.ktx)

@@ -33,8 +33,8 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":locale"))
     implementation(project(":data:settings"))
+    implementation(project(":runtime:contract"))
     implementation(project(":runtime:api"))
-    implementation(project(":runtime:client"))
 
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)

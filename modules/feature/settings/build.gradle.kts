@@ -42,10 +42,7 @@ dependencies {
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
     implementation(project(":runtime:service"))
-    implementation(project(":feature:editor"))
-    implementation(project(":feature:meta"))
-    implementation(project(":feature:override"))
-    implementation(project(":feature:proxy"))
+    implementation(project(":feature:editor:api"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
@@ -58,6 +55,8 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.coroutines.android)
+    implementation(libs.serialization.json)
+    implementation(libs.snakeyaml)
     implementation(libs.okhttp)
     implementation(libs.koin.core)
     implementation(libs.koin.android)
@@ -68,4 +67,5 @@ dependencies {
     implementation(libs.timber)
 
     testImplementation(libs.junit4)
+    testImplementation(libs.coroutines.test)
 }

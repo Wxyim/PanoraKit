@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.feature.editor.component.ConfigSaveProgressDialog
@@ -56,6 +57,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticActionDefaults
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
+import com.github.nomadboxlab.monadbox.presentation.component.TestTags
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowLeft
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleCheckBig
@@ -289,6 +291,7 @@ private fun EditorCommandBar(
     Column(
         modifier =
             Modifier.fillMaxWidth()
+                .testTag(TestTags.Editor.CommandBar)
                 .shadow(
                     elevation = 18.dp,
                     shape = surfaceShape,
@@ -339,7 +342,10 @@ private fun EditorCommandBar(
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Save,
                         imageVector = MonadIcons.Save,
-                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                        modifier =
+                            Modifier.weight(1f)
+                                .heightIn(min = 56.dp)
+                                .testTag(TestTags.Editor.SaveButton),
                         enabled = isModified && !isSaving,
                         onClick = onSave,
                         tone = SemanticTone.Brand,
@@ -386,7 +392,10 @@ private fun EditorCommandBar(
                     AppCommandButton(
                         title = MLang.Component.Editor.Action.Save,
                         imageVector = MonadIcons.Save,
-                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                        modifier =
+                            Modifier.weight(1f)
+                                .heightIn(min = 56.dp)
+                                .testTag(TestTags.Editor.SaveButton),
                         enabled = isModified && !isSaving,
                         onClick = onSave,
                         tone = SemanticTone.Brand,

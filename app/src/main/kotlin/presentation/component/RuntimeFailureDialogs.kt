@@ -23,9 +23,10 @@ package com.github.nomadboxlab.monadbox.presentation.component
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.github.nomadboxlab.monadbox.common.util.ToastDialogBridge
-import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.domain.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeFailureEvent
+import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -44,23 +45,21 @@ private enum class RuntimeFailureCategory {
     Unknown,
 }
 
-object RuntimeFailureDialogPresenter {
-    fun showStartFailure(reason: String, targetMode: ProxyMode) {
+class DefaultRuntimeFailurePresenter : RuntimeFailurePresenter {
+    override fun showStartFailure(reason: String, targetMode: ProxyMode) {
         timber.log.Timber.w("showStartFailure: reason=$reason mode=$targetMode")
-        val content = buildStartFailureContent(reason, targetMode)
-        if (content == null) {
-            timber.log.Timber.w("showStartFailure: content is null, skipping dialog")
-            return
-        }
-        timber.log.Timber.w(
-            "showStartFailure: calling ToastDialogBridge.show title=${content.title}"
-        )
+        val content = buildStartFailureContent(reason, targetMode) ?: return
         ToastDialogBridge.show(message = content.detail, title = content.title)
     }
 
-    fun showRuntimeFailure(reason: String, targetMode: ProxyMode) {
+    override fun showRuntimeFailure(reason: String, targetMode: ProxyMode) {
         val content = buildRuntimeFailureContent(reason, targetMode) ?: return
         ToastDialogBridge.show(message = content.detail, title = content.title)
+    }
+
+    override fun showGlobalError(message: String, title: String) {
+        if (message.isBlank()) return
+        ToastDialogBridge.show(message = message, title = title)
     }
 
     private fun buildRuntimeFailureContent(
@@ -221,21 +220,14 @@ object RuntimeFailureDialogPresenter {
     }
 }
 
-object GlobalDialogPresenter {
-    fun showError(message: String, title: String = MLang.Component.Message.Error) {
-        if (message.isBlank()) return
-        ToastDialogBridge.show(message = message, title = title)
-    }
-}
-
 @Composable
-fun RuntimeFailureDialogEffect(runtimeFailureEvents: SharedFlow<RuntimeFailureEvent>) {
+fun RuntimeFailureDialogEffect(
+    runtimeFailureEvents: SharedFlow<RuntimeFailureEvent>,
+    presenter: RuntimeFailurePresenter,
+) {
     val distinctFlow =
         remember(runtimeFailureEvents) { runtimeFailureEvents.distinctUntilChanged() }
     CollectFlowWithLifecycle(flow = distinctFlow) { event ->
-        RuntimeFailureDialogPresenter.showRuntimeFailure(
-            reason = event.reason,
-            targetMode = event.targetMode,
-        )
+        presenter.showRuntimeFailure(reason = event.reason, targetMode = event.targetMode)
     }
 }

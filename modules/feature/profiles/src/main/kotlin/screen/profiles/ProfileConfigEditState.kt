@@ -76,6 +76,12 @@ class ProfileConfigEditState(val profileUuid: String) {
     val isModified: Boolean
         get() = changeState == ProductChangeState.Modified
 
+    fun beginLoad() {
+        isLoading = true
+        loadError = null
+        loadStructuredError = null
+    }
+
     fun onConfigLoaded(config: ConfigurationOverride) {
         originalConfig = config
         currentConfig = config

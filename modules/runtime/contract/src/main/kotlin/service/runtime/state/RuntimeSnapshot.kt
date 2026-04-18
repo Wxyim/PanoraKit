@@ -21,8 +21,8 @@
 
 package com.github.nomadboxlab.monadbox.service.runtime.state
 
-import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.domain.model.ProductLifecycleState
+import com.github.nomadboxlab.monadbox.domain.model.ProxyMode
 import com.github.nomadboxlab.monadbox.domain.model.StructuredError
 import kotlinx.serialization.Serializable
 

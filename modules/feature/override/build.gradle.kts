@@ -35,6 +35,7 @@ android {
 }
 
 dependencies {
+    api(project(":feature:override:api"))
     implementation(project(":core"))
     implementation(project(":platform"))
     implementation(project(":locale"))
@@ -61,4 +62,7 @@ dependencies {
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
     implementation(libs.reorderable)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.coroutines.test)
 }

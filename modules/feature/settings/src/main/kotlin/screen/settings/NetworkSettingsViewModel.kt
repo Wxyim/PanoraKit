@@ -21,17 +21,16 @@
 
 package com.github.nomadboxlab.monadbox.feature.settings
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccess
 import com.github.nomadboxlab.monadbox.core.model.RootTunDnsMode
 import com.github.nomadboxlab.monadbox.data.model.AccessControlMode
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.model.TunStack
-import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.Preference
+import com.github.nomadboxlab.monadbox.feature.settings.usecase.ApplyRuntimeModeUseCase
+import com.github.nomadboxlab.monadbox.feature.settings.usecase.ResolveAccessControlAppsUseCase
 import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionFailurePresentation
@@ -39,7 +38,6 @@ import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
-import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -132,13 +130,13 @@ private object NetworkSettingsUiStateFactory {
 }
 
 class NetworkSettingsViewModel(
-    application: Application,
     networkSettingsStorage: NetworkSettingsStorage,
-    appSettingsRepository: AppSettingsRepository,
     private val proxyFacade: ProxyFacade,
     private val runtimeActionExecutor: RuntimeActionExecutor,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
-) : AndroidViewModel(application) {
+    private val applyRuntimeModeUseCase: ApplyRuntimeModeUseCase,
+    private val resolveAccessControlAppsUseCase: ResolveAccessControlAppsUseCase,
+) : ViewModel() {
     val proxyMode: Preference<ProxyMode> = networkSettingsStorage.proxyMode
     val bypassPrivateNetwork: Preference<Boolean> = networkSettingsStorage.bypassPrivateNetwork
     val dnsHijack: Preference<Boolean> = networkSettingsStorage.dnsHijack
@@ -223,19 +221,8 @@ class NetworkSettingsViewModel(
     fun onProxyModeChange(mode: ProxyMode) {
         if (runtimeActionExecutor.isMutating.value) return
         if (proxyMode.value == mode) return
-        val previousMode = proxyMode.value
         viewModelScope.launch {
-            val outcome =
-                runtimeActionExecutor.applyConfigChange(
-                    operation = "network:proxy-mode",
-                    persist = { proxyMode.set(mode) },
-                    rollback = { proxyMode.set(previousMode) },
-                    presentation =
-                        RuntimeActionFailurePresentation.Runtime(
-                            fallbackMessage = "Failed to switch proxy mode",
-                            targetMode = mode,
-                        ),
-                )
+            val outcome = applyRuntimeModeUseCase(mode)
             when (outcome) {
                 is RuntimeActionOutcome.Success -> Unit
                 is RuntimeActionOutcome.PermissionRequired ->
@@ -307,8 +294,7 @@ class NetworkSettingsViewModel(
     }
 
     private fun hasFullPackageAccess(): Boolean {
-        return RootPackageShell.hasRootAccess() ||
-            InstalledAppsAccess.resolve(getApplication()).canEnumerateInstalledApps
+        return resolveAccessControlAppsUseCase.hasFullPackageAccess()
     }
 
     fun onRootTunIfNameDraftChange(value: String) {

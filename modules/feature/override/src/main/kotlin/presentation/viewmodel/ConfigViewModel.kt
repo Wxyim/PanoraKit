@@ -29,22 +29,18 @@ import com.github.nomadboxlab.monadbox.data.repository.OverrideConfigRepository
 import com.github.nomadboxlab.monadbox.data.repository.OverrideResolver
 import com.github.nomadboxlab.monadbox.data.repository.ProfileBindingProvider
 import com.github.nomadboxlab.monadbox.data.util.OverridePresetTemplateSelection
-import com.github.nomadboxlab.monadbox.data.util.RemoteContentFetcher
-import com.github.nomadboxlab.monadbox.data.util.RemoteFetchException
-import com.github.nomadboxlab.monadbox.data.util.RemoteFetchFailureReason
 import com.github.nomadboxlab.monadbox.data.util.applyPresetTemplateToConfig
 import com.github.nomadboxlab.monadbox.domain.model.OverrideConfig
 import com.github.nomadboxlab.monadbox.domain.model.OverrideMetadata
+import com.github.nomadboxlab.monadbox.presentation.usecase.ImportOverrideConfigUseCase
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveEvent
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideSaveState
 import com.github.nomadboxlab.monadbox.presentation.util.encodeOverrideConfigForDiff
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -97,13 +93,13 @@ class OverrideConfigViewModel(
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
     private val structuredLogCollector:
         com.github.nomadboxlab.monadbox.domain.model.StructuredLogCollector,
+    private val importOverrideConfigUseCase: ImportOverrideConfigUseCase,
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "OverrideConfigViewModel"
         private const val TEXT_AUTOSAVE_DELAY_MILLIS = 220L
         private const val DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS = 86_400L
-        private const val MAX_REMOTE_CONTENT_BYTES = 2 * 1024 * 1024
     }
 
     private val json = Json {
@@ -805,105 +801,53 @@ class OverrideConfigViewModel(
     }
 
     fun importConfigsFromJson(jsonString: String, sourceName: String? = null): Result<Int> {
-        return try {
-            val importedConfigs =
-                parseImportedOverrideConfigs(
-                    json = json,
-                    jsonString = jsonString,
-                    sourceName = sourceName,
-                )
-            viewModelScope.launch {
-                for (importedConfig in importedConfigs) {
-                    configRepo.save(importedConfig)
+        val plan =
+            importOverrideConfigUseCase
+                .planConfigsFromJson(jsonString = jsonString, sourceName = sourceName)
+                .getOrElse { error ->
+                    Timber.tag(TAG).e(error, "Failed to import config")
+                    return Result.failure(error)
                 }
-                loadConfigs()
-            }
-            Result.success(importedConfigs.size)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to import config")
-            Result.failure(e)
-        }
+        saveImportPlan(plan)
+        return Result.success(plan.result.count)
     }
 
     fun importRulesFromSurgePlugin(pluginText: String, sourceName: String? = null): Result<Int> {
-        return try {
-            val rules = PluginRuleParser.parseRules(pluginText)
-            require(rules.isNotEmpty()) { MLang.Override.Import.PluginNoRules }
-            val name = buildImportedConfigName(sourceName, 0, false)
-            val now = System.currentTimeMillis()
-            val config =
-                OverrideConfig(
-                    id = OverrideMetadata.generateId(),
-                    name = name,
-                    description = MLang.Override.Import.PluginImportDescription,
-                    config = ConfigurationOverride(rulesStart = rules),
-                    isSystem = false,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            viewModelScope.launch {
-                configRepo.save(config)
-                loadConfigs()
-            }
-            Result.success(rules.size)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to import Surge plugin rules")
-            Result.failure(e)
-        }
+        val plan =
+            importOverrideConfigUseCase
+                .planRulesFromSurgePlugin(pluginText = pluginText, sourceName = sourceName)
+                .getOrElse { error ->
+                    Timber.tag(TAG).e(error, "Failed to import Surge plugin rules")
+                    return Result.failure(error)
+                }
+        saveImportPlan(plan)
+        return Result.success(plan.result.count)
     }
 
     fun importFromTextAutoDetect(
         rawText: String,
         sourceName: String? = null,
     ): Result<OverrideImportResult> {
-        val text = rawText.trim()
-        if (text.isEmpty()) {
-            return Result.failure(IllegalArgumentException(MLang.Override.Save.ImportEmpty))
-        }
+        val plan =
+            importOverrideConfigUseCase
+                .planFromTextAutoDetect(rawText = rawText, sourceName = sourceName)
+                .getOrElse { error ->
+                    Timber.tag(TAG).e(error, "Failed to auto-detect imported content")
+                    return Result.failure(error)
+                }
+        saveImportPlan(plan)
+        return Result.success(plan.result)
+    }
 
-        val jsonResult =
+    private fun saveImportPlan(
+        plan: com.github.nomadboxlab.monadbox.presentation.usecase.OverrideConfigImportPlan
+    ) {
+        viewModelScope.launch {
             runCatching {
-                    parseImportedOverrideConfigs(
-                        json = json,
-                        jsonString = text,
-                        sourceName = sourceName,
-                    )
+                    importOverrideConfigUseCase.savePlan(plan)
+                    loadConfigs()
                 }
-                .getOrNull()
-
-        if (!jsonResult.isNullOrEmpty()) {
-            viewModelScope.launch {
-                for (importedConfig in jsonResult) {
-                    configRepo.save(importedConfig)
-                }
-                loadConfigs()
-            }
-            return Result.success(OverrideImportResult(OverrideImportKind.Config, jsonResult.size))
-        }
-
-        return try {
-            val rules = PluginRuleParser.parseRules(text)
-            require(rules.isNotEmpty()) { MLang.Override.Import.AutoDetectFailed }
-            val name = buildImportedConfigName(sourceName, 0, false)
-            val now = System.currentTimeMillis()
-            val config =
-                OverrideConfig(
-                    id = OverrideMetadata.generateId(),
-                    name = name,
-                    description = MLang.Override.Import.PluginImportDescription,
-                    config = ConfigurationOverride(rulesStart = rules),
-                    isSystem = false,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            viewModelScope.launch {
-                configRepo.save(config)
-                loadConfigs()
-            }
-            Result.success(OverrideImportResult(OverrideImportKind.PluginRules, rules.size))
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to auto-detect imported content")
-            Result.failure(e)
+                .onFailure { error -> Timber.tag(TAG).e(error, "Failed to persist import") }
         }
     }
 
@@ -948,94 +892,28 @@ class OverrideConfigViewModel(
     }
 
     suspend fun fetchAndImportConfigFromUrl(url: String): Result<Int> {
-        return try {
-            val text = fetchUrlText(url)
-            importConfigsFromJson(text, extractUrlFileName(url))
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to import config from URL")
-            Result.failure(e)
-        }
+        return importOverrideConfigUseCase
+            .fetchAndImportConfigFromUrl(url)
+            .onSuccess { loadConfigs() }
+            .onFailure { error -> Timber.tag(TAG).e(error, "Failed to import config from URL") }
     }
 
     suspend fun fetchAndImportSurgePluginFromUrl(url: String): Result<Int> {
-        return try {
-            val text = fetchUrlText(url)
-            importRulesFromSurgePlugin(text, extractUrlFileName(url))
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to import Surge plugin from URL")
-            Result.failure(e)
-        }
+        return importOverrideConfigUseCase
+            .fetchAndImportSurgePluginFromUrl(url)
+            .onSuccess { loadConfigs() }
+            .onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to import Surge plugin from URL")
+            }
     }
 
     suspend fun fetchAndImportAutoFromUrl(url: String): Result<OverrideImportResult> {
-        return try {
-            val text = fetchUrlText(url)
-            val sourceName = extractUrlFileName(url)
-            val now = System.currentTimeMillis()
-
-            val jsonResult =
-                runCatching {
-                        parseImportedOverrideConfigs(
-                            json = json,
-                            jsonString = text,
-                            sourceName = sourceName,
-                        )
-                    }
-                    .getOrNull()
-
-            val (kind, config, count) =
-                if (!jsonResult.isNullOrEmpty()) {
-                    val imported = jsonResult.first()
-                    Triple(
-                        OverrideImportKind.Config,
-                        imported.copy(
-                            id = OverrideMetadata.generateId(),
-                            name =
-                                imported.name.ifBlank {
-                                    buildImportedConfigName(sourceName, 0, false)
-                                },
-                            description =
-                                imported.description
-                                    ?: MLang.Override.Import.PluginImportDescription,
-                            isSystem = false,
-                            createdAt = now,
-                            updatedAt = now,
-                        ),
-                        1,
-                    )
-                } else {
-                    val rules = PluginRuleParser.parseRules(text)
-                    require(rules.isNotEmpty()) { MLang.Override.Import.AutoDetectFailed }
-                    Triple(
-                        OverrideImportKind.PluginRules,
-                        OverrideConfig(
-                            id = OverrideMetadata.generateId(),
-                            name = buildImportedConfigName(sourceName, 0, false),
-                            description = MLang.Override.Import.PluginImportDescription,
-                            config = ConfigurationOverride(rulesStart = rules),
-                            isSystem = false,
-                            createdAt = now,
-                            updatedAt = now,
-                        ),
-                        rules.size,
-                    )
-                }
-
-            configRepo.save(config)
-            configRepo.updateMetadata(config.id) { metadata ->
-                metadata.copy(
-                    remoteSourceUrl = url.trim(),
-                    remoteUpdateIntervalSeconds = DEFAULT_REMOTE_UPDATE_INTERVAL_SECONDS,
-                    remoteLastUpdatedAt = now,
-                    updatedAt = now,
-                )
+        return importOverrideConfigUseCase
+            .fetchAndImportAutoFromUrl(url)
+            .onSuccess { loadConfigs() }
+            .onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to auto-import content from URL")
             }
-            loadConfigs()
-            Result.success(OverrideImportResult(kind, count))
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to auto-import content from URL")
-            Result.failure(e)
-        }
     }
 
     suspend fun refreshRemoteOverride(configId: String): Result<Unit> {
@@ -1056,39 +934,6 @@ class OverrideConfigViewModel(
             Timber.tag(TAG).e(e, "Failed to refresh remote override: $configId")
             Result.failure(e)
         }
-    }
-
-    private suspend fun fetchUrlText(urlString: String): String =
-        withContext(Dispatchers.IO) {
-            try {
-                RemoteContentFetcher.fetchText(
-                    urlString = urlString,
-                    maxBytes = MAX_REMOTE_CONTENT_BYTES,
-                    userAgent = "MonadBox",
-                )
-            } catch (e: RemoteFetchException) {
-                throw IllegalArgumentException(
-                    when (e.reason) {
-                        RemoteFetchFailureReason.InvalidScheme ->
-                            MLang.Override.Import.UrlInvalidScheme
-                        RemoteFetchFailureReason.HttpsRequired ->
-                            MLang.Override.Import.UrlHttpsRequired
-                        RemoteFetchFailureReason.HttpError ->
-                            MLang.Override.Import.UrlHttpError.format(e.httpCode ?: -1)
-                        RemoteFetchFailureReason.ContentTooLarge ->
-                            MLang.Override.Import.UrlContentTooLarge.format(e.maxMegabytes ?: 0)
-                        RemoteFetchFailureReason.RedirectMissingLocation ->
-                            MLang.Override.Import.UrlRedirectInvalid
-                        RemoteFetchFailureReason.TooManyRedirects ->
-                            MLang.Override.Import.UrlTooManyRedirects
-                    },
-                    e,
-                )
-            }
-        }
-
-    private fun extractUrlFileName(urlString: String): String? {
-        return RemoteContentFetcher.extractDecodedFileName(urlString)
     }
 }
 

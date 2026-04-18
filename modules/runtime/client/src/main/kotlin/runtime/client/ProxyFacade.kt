@@ -38,10 +38,10 @@ import com.github.nomadboxlab.monadbox.core.model.ProxySort
 import com.github.nomadboxlab.monadbox.core.model.Traffic
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.core.model.UiConfiguration
-import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
 import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo
 import com.github.nomadboxlab.monadbox.domain.model.ProxyLatencyState
+import com.github.nomadboxlab.monadbox.domain.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.remote.ServiceClient
@@ -82,8 +82,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
-
-data class RuntimeFailureEvent(val reason: String, val targetMode: ProxyMode)
 
 internal data class ProxyGroupMetadata(val hidden: Boolean = false, val icon: String? = null)
 

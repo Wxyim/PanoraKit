@@ -37,9 +37,6 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":platform"))
     implementation(project(":locale"))
-    implementation(project(":data:settings"))
-    implementation(project(":runtime:api"))
-    implementation(project(":runtime:client"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)

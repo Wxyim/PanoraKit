@@ -187,7 +187,10 @@ fun TrafficDisplay(
 
 @Composable
 private fun DownloadSection(downloadSpeed: Long, metrics: HomeTrafficMetrics) {
-    Column(horizontalAlignment = Alignment.Start) {
+    Column(
+        modifier = Modifier.testTag(TestTags.Home.DownloadSpeed),
+        horizontalAlignment = Alignment.Start,
+    ) {
         Text(
             text = "DOWNLOAD",
             style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
@@ -332,6 +335,7 @@ private fun UploadSection(uploadSpeed: Long, metrics: HomeTrafficMetrics) {
     val valueStyle = MiuixTheme.textStyles.title2.copy(fontSize = metrics.uploadValueFontSize)
 
     Column(
+        modifier = Modifier.testTag(TestTags.Home.UploadSpeed),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
     ) {

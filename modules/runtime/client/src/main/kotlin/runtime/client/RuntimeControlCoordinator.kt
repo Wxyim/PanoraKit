@@ -28,21 +28,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class RuntimeMutationStatus {
-    Deferred,
-    Reloaded,
-    Restarted,
-    Started,
-    Stopped,
-    Updated,
-}
-
-data class RuntimeMutationResult(
-    val status: RuntimeMutationStatus,
-    val effectiveMode: ProxyMode?,
-    val runtimeRunning: Boolean,
-)
-
 class RuntimeControlCoordinator(
     private val proxyFacade: ProxyFacade,
     private val profilesRepository: ProfilesRepository,

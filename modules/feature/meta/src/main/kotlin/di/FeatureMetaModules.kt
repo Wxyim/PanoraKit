@@ -24,17 +24,20 @@ package com.github.nomadboxlab.monadbox.di
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.ConnectionViewModel
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.viewmodel.TrafficStatisticsViewModel
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.DefaultConnectionExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.DefaultTrafficStatisticsExplorer
+import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.RuntimeConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-val featureMetaViewModelModule = module {
-    viewModel { ConnectionViewModel(get<ConnectionActivityRepository>()) }
-    viewModel {
-        TrafficStatisticsViewModel(
+val featureMetaContractModule = module {
+    single<ConnectionExplorer> { DefaultConnectionExplorer(get<ConnectionActivityRepository>()) }
+    single<TrafficStatisticsExplorer> {
+        DefaultTrafficStatisticsExplorer(
             get<TrafficStatisticsStore>(),
             get<ConnectionActivityRepository>(),
             get<ProxyFacade>(),
@@ -42,6 +45,9 @@ val featureMetaViewModelModule = module {
             get<AppIdentityResolver>(),
         )
     }
+    single<ConnectionAppIdentityLookup> {
+        RuntimeConnectionAppIdentityLookup(get<AppIdentityResolver>())
+    }
 }
 
-val featureMetaModules = listOf(featureMetaViewModelModule)
+val featureMetaModules = listOf(featureMetaContractModule)

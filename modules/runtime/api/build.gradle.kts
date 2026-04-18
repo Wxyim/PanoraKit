@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    api(project(":runtime:contract"))
     implementation(libs.serialization.json)
 
     val injectedAbi = findProperty("android.injected.build.abi") as? String
