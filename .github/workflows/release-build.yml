@@ -152,6 +152,7 @@ jobs:
           ./gradlew checkGithubOssLicensePolicy --no-daemon
 
       - name: Restore signing files
+        if: ${{ env.ACT != 'true' }}
         shell: bash
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -178,7 +179,11 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          if [ "${ACT:-}" = "true" ]; then
+            ./gradlew assembleRelease -Prelease.signing.required=false --no-daemon
+          else
+            ./gradlew assembleRelease --no-daemon
+          fi
 
       - name: Prepare artifacts and release metadata
         id: prep
@@ -217,6 +222,7 @@ jobs:
           if-no-files-found: error
 
       - name: Ensure tag and release do not already exist
+        if: ${{ env.ACT != 'true' }}
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
@@ -234,6 +240,7 @@ jobs:
           fi
 
       - name: Create and push release tag
+        if: ${{ env.ACT != 'true' }}
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
@@ -243,6 +250,7 @@ jobs:
           git push origin "refs/tags/${RELEASE_TAG}"
 
       - name: Create GitHub release and upload assets
+        if: ${{ env.ACT != 'true' }}
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
