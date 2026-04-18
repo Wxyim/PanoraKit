@@ -1,27 +1,26 @@
-name: CI
+name: Regression Instrumentation
 
 on:
-  push:
-    branches: [ "Monad" ]
-    paths-ignore:
-      - '**.md'
-      - '**.example'
-      - 'docs/**'
-      - '.clang-format'
-      - '.github/**'
-      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      api_level:
+        description: Android API level for emulator
+        required: false
+        default: '34'
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: regression-instrumentation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build 
+  instrumentation:
+    name: Instrumentation Tests (connectedCheck)
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -29,6 +28,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -104,16 +109,6 @@ jobs:
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh meta
 
-      - name: Repository health
-        run: |
-          chmod +x scripts/repo-health.sh
-          ./scripts/repo-health.sh
-
-      - name: Modernization and policy gates
-        run: |
-          chmod +x gradlew
-          ./gradlew checkLintBaselineBudget checkModernizationBaseline checkUiContracts checkGithubOssLicensePolicy --no-daemon
-    
       - name: Build Native Libraries
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
@@ -121,30 +116,61 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
         run: kotlin scripts/native-build.main.kts --all
 
-      - name: Check and build debug
+      - name: AVD cache
+        uses: actions/cache@v5
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ github.event.inputs.api_level || '34' }}-x86_64-google_apis-v2
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ github.event.inputs.api_level || '34' }}
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run connectedCheck
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ github.event.inputs.api_level || '34' }}
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-boot-timeout: 900
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb wait-for-device
+            adb devices -l
+            adb shell getprop ro.build.version.release
+            adb shell getprop sys.boot_completed
+            adb shell input keyevent 82 || true
+            chmod +x gradlew
+            ./gradlew connectedDebugAndroidTest --no-daemon --continue --stacktrace --info
+
+      - name: Capture emulator diagnostics on failure
+        if: failure()
         run: |
-          chmod +x gradlew
-          ./gradlew check assembleDebug --no-daemon
+          adb devices -l || true
+          adb shell getprop sys.boot_completed || true
+          adb logcat -d -t 400 || true
 
-      - name: Upload test reports
+      - name: Upload instrumentation test reports
         if: always() && github.actor != 'nektos/act'
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-reports
+          name: instrumentation-test-reports-api-${{ github.event.inputs.api_level || '34' }}
           path: |
-            **/build/reports/tests/**
-            **/build/test-results/**
+            **/build/reports/androidTests/**
+            **/build/outputs/androidTest-results/**
           retention-days: 7
           if-no-files-found: ignore
-
-      - name: Upload lint report
-        if: always() && github.actor != 'nektos/act'
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-report
-          path: |
-            build/app/reports/lint-results-*.html
-            build/app/reports/lint-results-*.xml
-          retention-days: 7
-          if-no-files-found: ignore
-
