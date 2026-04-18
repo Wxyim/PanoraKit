@@ -135,7 +135,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: native-libs-${{ inputs.kernel_channel }}
-          path: .
+          path: jniLibs
 
       - name: Verify native outputs
         shell: bash
@@ -217,39 +217,6 @@ jobs:
             ci-artifacts/mapping/${{ env.CHANNEL }}/**
           if-no-files-found: error
 
-      - name: Commit kernel state if changed and push
-        id: commit_state
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .github/kernel-state
-          state_file=".github/kernel-state/${CHANNEL}.txt"
-          printf '%s|%s|%s\n' "${REPO}" "${TAG}" "${REV}" > "${state_file}"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          if git diff --quiet -- "${state_file}"; then
-            echo "committed=false" >> "${GITHUB_OUTPUT}"
-          else
-            git add "${state_file}"
-            git commit -m "chore(kernel-state): sync ${CHANNEL} to ${TAG} (${REV:0:8})"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-            echo "committed=true" >> "${GITHUB_OUTPUT}"
-          fi
-
-      - name: Resolve final release target SHA
-        id: final_sha
-        shell: bash
-        run: |
-          set -euo pipefail
-          # IMPORTANT: github.sha is the event trigger commit only.
-          # If this workflow creates and pushes a new commit, github.sha becomes stale.
-          # We must always resolve the final release target from git HEAD after all mutations.
-          final_sha="$(git rev-parse HEAD)"
-          echo "final_sha=${final_sha}" >> "${GITHUB_OUTPUT}"
-          echo "final_sha=${final_sha}" >> "${GITHUB_ENV}"
-
       - name: Ensure tag and release do not already exist
         shell: bash
         env:
@@ -267,34 +234,72 @@ jobs:
             exit 1
           fi
 
-      - name: Create and push release tag from final SHA
+      - name: Create and push release tag
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
-          FINAL_SHA: ${{ steps.final_sha.outputs.final_sha }}
         run: |
           set -euo pipefail
-          git tag --annotate "${RELEASE_TAG}" "${FINAL_SHA}" --message "Release ${RELEASE_TAG}"
+          git tag --annotate "${RELEASE_TAG}" "${GITHUB_SHA}" --message "Release ${RELEASE_TAG}"
           git push origin "refs/tags/${RELEASE_TAG}"
 
-      - name: Create GitHub release from final SHA and upload assets
+      - name: Create GitHub release and upload assets
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
           PRERELEASE: ${{ steps.prep.outputs.prerelease }}
-          FINAL_SHA: ${{ steps.final_sha.outputs.final_sha }}
         run: |
           set -euo pipefail
-          # target_commitish is explicitly set to FINAL_SHA.
-          # This prevents stale linkage to the original trigger commit.
           gh api \
             --method POST \
             --header "Accept: application/vnd.github+json" \
             "repos/${GITHUB_REPOSITORY}/releases" \
             -f tag_name="${RELEASE_TAG}" \
-            -f target_commitish="${FINAL_SHA}" \
+            -f target_commitish="${GITHUB_SHA}" \
             -f name="${RELEASE_TAG}" \
             -f prerelease="${PRERELEASE}" \
             -F generate_release_notes=true
 
           gh release upload "${RELEASE_TAG}" ci-artifacts/apk/*.apk
+
+  commit-kernel-state:
+    name: Commit Kernel State
+    needs: release
+    runs-on: ubuntu-latest
+    # Serialize across all concurrent channel jobs so pushes never race.
+    concurrency:
+      group: kernel-state-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      CHANNEL: ${{ inputs.kernel_channel }}
+      REPO: ${{ inputs.upstream_repo }}
+      TAG: ${{ inputs.upstream_tag }}
+      REV: ${{ inputs.upstream_revision }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Commit and push kernel state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .github/kernel-state
+          state_file=".github/kernel-state/${CHANNEL}.txt"
+          printf '%s|%s|%s\n' "${REPO}" "${TAG}" "${REV}" > "${state_file}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- "${state_file}"; then
+            echo "Kernel state unchanged, nothing to commit."
+            exit 0
+          fi
+
+          # Pull latest before committing: a sibling channel job may have pushed
+          # while this job was waiting in the concurrency queue.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git add "${state_file}"
+          git commit -m "chore(kernel-state): sync ${CHANNEL} to ${TAG} (${REV:0:8})"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
