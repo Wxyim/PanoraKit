@@ -65,7 +65,7 @@
         <service
             android:name="com.github.nomadboxlab.monadbox.service.ProxyTileService"
             android:exported="true"
-            android:icon="@drawable/logo"
+            android:icon="@drawable/ic_logo_service"
             android:label="@string/tile_proxy_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
