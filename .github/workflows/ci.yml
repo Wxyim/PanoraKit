@@ -75,8 +75,27 @@ jobs:
 
       - name: Update CA certificates
         run: |
-          sudo apt-get update && sudo apt-get install -y ca-certificates
-          sudo update-ca-certificates
+          run_as_root() {
+            if [ "$(id -u)" -eq 0 ]; then
+              "$@"
+            elif sudo -n true 2>/dev/null; then
+              sudo "$@"
+            else
+              return 1
+            fi
+          }
+
+          if run_as_root true; then
+            run_as_root apt-get update
+            run_as_root apt-get install -y ca-certificates
+            run_as_root update-ca-certificates
+          elif [ ! -f /etc/ssl/certs/ca-certificates.crt ]; then
+            echo "ca-certificates bundle missing and sudo is unavailable" >&2
+            exit 1
+          else
+            echo "Skipping CA package refresh because sudo is unavailable; using existing system bundle."
+          fi
+
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
@@ -114,7 +133,7 @@ jobs:
         run: ./gradlew testDebugUnitTest --no-daemon --continue
 
       - name: Upload test reports
-        if: always()
+        if: always() && github.actor != 'nektos/act'
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-reports
@@ -125,7 +144,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload lint report
-        if: always()
+        if: always() && github.actor != 'nektos/act'
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
@@ -203,8 +222,27 @@ jobs:
 
       - name: Update CA certificates
         run: |
-          sudo apt-get update && sudo apt-get install -y ca-certificates
-          sudo update-ca-certificates
+          run_as_root() {
+            if [ "$(id -u)" -eq 0 ]; then
+              "$@"
+            elif sudo -n true 2>/dev/null; then
+              sudo "$@"
+            else
+              return 1
+            fi
+          }
+
+          if run_as_root true; then
+            run_as_root apt-get update
+            run_as_root apt-get install -y ca-certificates
+            run_as_root update-ca-certificates
+          elif [ ! -f /etc/ssl/certs/ca-certificates.crt ]; then
+            echo "ca-certificates bundle missing and sudo is unavailable" >&2
+            exit 1
+          else
+            echo "Skipping CA package refresh because sudo is unavailable; using existing system bundle."
+          fi
+
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
@@ -255,7 +293,7 @@ jobs:
             ./gradlew connectedDebugAndroidTest --no-daemon --continue
 
       - name: Upload instrumentation test reports
-        if: always()
+        if: always() && github.actor != 'nektos/act'
         uses: actions/upload-artifact@v4
         with:
           name: instrumentation-test-reports-api-${{ matrix.api-level }}
