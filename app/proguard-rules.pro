@@ -92,6 +92,14 @@
 -dontwarn java.lang.management.RuntimeMXBean
 -dontwarn javax.management.NotificationListener
 
+# java.beans is not available on Android; snakeyaml's PropertyUtils references it
+# via reflection-based introspection which is never reached on Android builds.
+-dontwarn java.beans.BeanInfo
+-dontwarn java.beans.FeatureDescriptor
+-dontwarn java.beans.IntrospectionException
+-dontwarn java.beans.Introspector
+-dontwarn java.beans.PropertyDescriptor
+
 # Compression / parsing optional classes
 -dontwarn com.github.luben.zstd.**
 -dontwarn org.tukaani.xz.**
