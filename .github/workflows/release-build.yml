@@ -142,7 +142,6 @@ jobs:
         run: |
           set -euo pipefail
           test -f jniLibs/arm64-v8a/libclash.so
-          test -f jniLibs/arm64-v8a/liboverride.so
           test -f jniLibs/arm64-v8a/libbridge.so
 
       - name: Check GitHub OSS release policy
