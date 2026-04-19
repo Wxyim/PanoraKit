@@ -10,6 +10,8 @@ startup.gate.expectedAppParent=android.app.Application
 startup.gate.releaseFingerprint=AA:BB:CC:DD:EE:FF:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA
 
 # Optional extra toggles.
-# In release build, strict mode is already true by buildType.
+# startup.gate.strict defaults to true when releaseFingerprint is set, otherwise false.
+# Set it explicitly if you want to force or disable strict mode for local release builds.
+# startup.gate.strict=true
 startup.gate.enforceSigner=true
 startup.gate.enforceApkV2=true

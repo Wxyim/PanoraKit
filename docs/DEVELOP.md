@@ -199,6 +199,12 @@ Validation command:
 .\gradlew.bat :app:assembleRelease
 ```
 
+Notes:
+
+- Signed release builds automatically derive `startup.gate.releaseFingerprint` from the configured release keystore.
+- If `startup.gate.releaseFingerprint` is also set manually and does not match the signing certificate SHA-256, the build fails.
+- Signed release builds must keep startup gate strict mode enabled; `startup.gate.strict=false` is only valid for unsigned local troubleshooting builds.
+
 ## 9. Utility Scripts
 
 | Script | Function |

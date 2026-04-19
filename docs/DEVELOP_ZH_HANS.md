@@ -205,6 +205,12 @@ CI 变量：
 .\gradlew.bat :app:assembleRelease
 ```
 
+说明：
+
+- 已签名的 release 构建会自动从当前 release keystore 推导 `startup.gate.releaseFingerprint`。
+- 如果你又手动配置了 `startup.gate.releaseFingerprint`，且与签名证书的 SHA-256 不一致，构建会直接失败。
+- 已签名的 release 构建必须保持 startup gate strict 模式开启；`startup.gate.strict=false` 只适用于未签名的本地排障场景。
+
 ## 9. 常用脚本
 
 | 脚本 | 功能 |

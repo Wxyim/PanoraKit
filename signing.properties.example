@@ -14,3 +14,7 @@ key.alias=YOUR_KEY_ALIAS
 
 # Password for the key alias.
 key.password=YOUR_KEY_PASSWORD
+
+# Startup gate release fingerprint is derived automatically from this keystore.
+# You normally do not need to set startup.gate.releaseFingerprint separately
+# when building a signed release artifact.

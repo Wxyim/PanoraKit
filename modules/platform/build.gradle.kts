@@ -19,6 +19,10 @@
  *
  */
 
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.cert.X509Certificate
+import java.util.Locale
 import java.util.Properties
 
 plugins {
@@ -43,6 +47,14 @@ val androidLocalProperties =
         }
     }
 
+val signingProperties =
+    Properties().apply {
+        val file = rootProject.file("signing.properties")
+        if (file.exists()) {
+            file.inputStream().use { input -> load(input) }
+        }
+    }
+
 fun resolveStartupGateProperty(key: String): String? {
     return providers.gradleProperty(key).orNull?.trim()?.takeIf(String::isNotBlank)
         ?: startupGateLocalProperties.getProperty(key)?.trim()?.takeIf(String::isNotBlank)
@@ -52,6 +64,40 @@ fun resolveStartupGateProperty(key: String): String? {
 fun resolveStartupGateBoolean(key: String, defaultValue: Boolean = false): Boolean {
     return resolveStartupGateProperty(key)?.toBooleanStrictOrNull() ?: defaultValue
 }
+
+fun readSigningValue(propertyKey: String, vararg envKeys: String): String? {
+    return (findProperty(propertyKey) as? String)?.trim()?.takeIf(String::isNotBlank)
+        ?: envKeys.firstNotNullOfOrNull { envKey ->
+            System.getenv(envKey)?.trim()?.takeIf(String::isNotBlank)
+        }
+        ?: signingProperties.getProperty(propertyKey)?.trim()?.takeIf(String::isNotBlank)
+}
+
+fun computeSignerSha256(
+    keystoreFile: java.io.File,
+    storePassword: String,
+    keyAlias: String,
+): String {
+    val keyStore = KeyStore.getInstance(keystoreFile, storePassword.toCharArray())
+    val certificate =
+        keyStore.getCertificate(keyAlias) as? X509Certificate
+            ?: throw GradleException(
+                "Release signing alias '$keyAlias' was not found in ${keystoreFile.absolutePath}."
+            )
+    val digest = MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+    return digest.joinToString(separator = ":") { byte ->
+        "%02X".format(Locale.US, byte.toInt() and 0xFF)
+    }
+}
+
+val releaseArtifactRequested =
+    gradle.startParameter.taskNames.any { taskName ->
+        val normalized = taskName.lowercase()
+        normalized.contains("release") &&
+            (normalized.contains("assemble") ||
+                normalized.contains("bundle") ||
+                normalized.contains("package"))
+    }
 
 android {
     namespace = "com.github.nomadboxlab.monadbox.core.android"
@@ -63,7 +109,61 @@ android {
             ?: "com.github.nomadboxlab.monadbox.App"
     val expectedAppParent =
         resolveStartupGateProperty("startup.gate.expectedAppParent") ?: "android.app.Application"
-    val releaseFingerprint = resolveStartupGateProperty("startup.gate.releaseFingerprint").orEmpty()
+    val configuredReleaseFingerprint =
+        resolveStartupGateProperty("startup.gate.releaseFingerprint")
+            ?.uppercase(Locale.US)
+            .orEmpty()
+    val configuredKeystorePath =
+        readSigningValue("keystore.path", "MONADBOX_KEYSTORE_PATH", "YUMEBOX_KEYSTORE_PATH")
+    val configuredStoreFile =
+        configuredKeystorePath?.let { rawPath ->
+            val asFile = file(rawPath)
+            if (asFile.isAbsolute) asFile else rootProject.file(rawPath)
+        } ?: rootProject.file("release.keystore").takeIf { it.exists() }
+    val storePassword =
+        readSigningValue(
+            "keystore.password",
+            "MONADBOX_KEYSTORE_PASSWORD",
+            "YUMEBOX_KEYSTORE_PASSWORD",
+        )
+    val keyAlias = readSigningValue("key.alias", "MONADBOX_KEY_ALIAS", "YUMEBOX_KEY_ALIAS")
+    val keyPassword =
+        readSigningValue("key.password", "MONADBOX_KEY_PASSWORD", "YUMEBOX_KEY_PASSWORD")
+    val releaseSigningConfigured =
+        configuredStoreFile?.exists() == true &&
+            storePassword != null &&
+            keyAlias != null &&
+            keyPassword != null
+    val derivedReleaseFingerprint =
+        if (releaseSigningConfigured) {
+            computeSignerSha256(
+                keystoreFile = configuredStoreFile!!,
+                storePassword = storePassword!!,
+                keyAlias = keyAlias!!,
+            )
+        } else {
+            null
+        }
+    if (
+        configuredReleaseFingerprint.isNotBlank() &&
+            derivedReleaseFingerprint != null &&
+            configuredReleaseFingerprint != derivedReleaseFingerprint
+    ) {
+        throw GradleException(
+            "startup.gate.releaseFingerprint ($configuredReleaseFingerprint) does not match " +
+                "the configured release signing certificate SHA-256 ($derivedReleaseFingerprint)."
+        )
+    }
+    val releaseFingerprint = derivedReleaseFingerprint ?: configuredReleaseFingerprint
+    val startupGateStrict =
+        resolveStartupGateProperty("startup.gate.strict")?.toBooleanStrictOrNull()
+            ?: releaseFingerprint.isNotBlank()
+    if (releaseArtifactRequested && releaseSigningConfigured && !startupGateStrict) {
+        throw GradleException(
+            "Signed release builds must keep startup gate strict mode enabled. " +
+                "Remove startup.gate.strict=false or omit the override."
+        )
+    }
     val enforceSigner =
         resolveStartupGateBoolean("startup.gate.enforceSigner", defaultValue = false)
     val enforceApkV2 = resolveStartupGateBoolean("startup.gate.enforceApkV2", defaultValue = false)
@@ -82,7 +182,9 @@ android {
 
     buildTypes {
         getByName("debug") { buildConfigField("boolean", "STARTUP_GATE_STRICT", "false") }
-        getByName("release") { buildConfigField("boolean", "STARTUP_GATE_STRICT", "true") }
+        getByName("release") {
+            buildConfigField("boolean", "STARTUP_GATE_STRICT", startupGateStrict.toString())
+        }
     }
 }
 
