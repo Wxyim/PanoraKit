@@ -2,14 +2,23 @@
 
 [简体中文](README_ZH_HANS.md) | [English](../README.md)
 
-MonadBox 是一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的定制化 Android 客户端，维护自 [YumeBox](https://github.com/YumeLira/YumeBox) fork。
+<p align="center">
+   <img src="img/readme_poster.png" alt="MonadBox 海报" width="720" />
+</p>
+
+<p align="center">
+   <sub>平板布局预览</sub>
+</p>
+
+MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCubeX/mihomo) 客户端，基于 [YumeBox](https://github.com/YumeLira/YumeBox) 演进，并为手机与平板提供自适应界面。
 
 ## 概览
 
 - 最低 Android 版本：`Android 8.0 / API 26`
+- 已适配手机与平板
 - 上游项目：[YumeBox](https://github.com/YumeLira/YumeBox)
-- 发行页：[MonadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
-- 问题反馈：[MonadBox Issues](https://github.com/NomadBoxLab/NomadBox/issues)
+- 发行页：[MonadBox Releases](https://github.com/MonadBoxLab/MonadBox/releases)
+- 问题反馈：[MonadBox Issues](https://github.com/MonadBoxLab/MonadBox/issues)
 
 ### 文档
 
@@ -72,6 +81,10 @@ MonadBox 是一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的定制
 - MonadBox 自有代码与 fork 衍生代码采用 AGPL-3.0-only。
 - 第三方依赖、同步上游源码和外部资源继续遵循各自上游许可。
 - GitHub 公开二进制发布必须通过 [LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md) 中定义的策略校验。
+
+## 致谢
+
+MonadBox 由 MonadBoxLab 作为独立 fork 维护。感谢 [YumeBox](https://github.com/YumeLira/YumeBox)、[mihomo](https://github.com/MetaCubeX/mihomo) 等开源项目与贡献者。
 
 ## 备注
 

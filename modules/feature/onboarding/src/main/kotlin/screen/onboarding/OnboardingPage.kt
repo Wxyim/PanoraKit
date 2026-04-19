@@ -494,6 +494,7 @@ internal fun TermsContent(
                 append(MLang.Onboarding.Privacy.RichTextLead)
                 append(" ")
                 append(MLang.Onboarding.Privacy.RichTextPrefix)
+                append(" ")
                 withLink(
                     LinkAnnotation.Clickable(
                         tag = LinkPolicyTag,

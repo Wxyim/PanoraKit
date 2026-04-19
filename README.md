@@ -2,14 +2,23 @@
 
 [English](README.md) | [简体中文](docs/README_ZH_HANS.md)
 
-MonadBox is a customized Android client based on [mihomo](https://github.com/MetaCubeX/mihomo), maintained as a fork of [YumeBox](https://github.com/YumeLira/YumeBox).
+<p align="center">
+   <img src="docs/img/readme_poster.png" alt="MonadBox poster" width="720" />
+</p>
+
+<p align="center">
+   <sub>Tablet Layout Preview</sub>
+</p>
+
+MonadBox is a customized [mihomo](https://github.com/MetaCubeX/mihomo) client for Android, refined from [YumeBox](https://github.com/YumeLira/YumeBox) with adaptive layouts for phones and tablets.
 
 ## Overview
 
 - Minimum Android version: `Android 8.0 / API 26`
+- Adaptive UI for phones and tablets
 - Upstream project: [YumeBox](https://github.com/YumeLira/YumeBox)
-- Releases: [MonadBox Releases](https://github.com/NomadBoxLab/NomadBox/releases)
-- Issues: [MonadBox Issues](https://github.com/NomadBoxLab/NomadBox/issues)
+- Releases: [MonadBox Releases](https://github.com/MonadBoxLab/MonadBox/releases)
+- Issues: [MonadBox Issues](https://github.com/MonadBoxLab/MonadBox/issues)
 
 ### Documentation
 
@@ -74,6 +83,10 @@ Merge gates:
 - Repository-owned and fork-derived MonadBox source files are licensed under AGPL-3.0-only.
 - Third-party dependencies, synced upstream source, and remote assets keep their own upstream licenses.
 - Public GitHub release binaries must pass the policy defined in [docs/LICENSING.md](docs/LICENSING.md).
+
+## Acknowledgements
+
+MonadBox is maintained by MonadBoxLab as an independent fork. Thanks to [YumeBox](https://github.com/YumeLira/YumeBox), [mihomo](https://github.com/MetaCubeX/mihomo), and other open-source projects and contributors.
 
 ## Notes
 
