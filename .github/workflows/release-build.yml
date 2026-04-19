@@ -272,7 +272,7 @@ jobs:
             -f tag_name="${RELEASE_TAG}" \
             -f target_commitish="${GITHUB_SHA}" \
             -f name="${RELEASE_TAG}" \
-            -f prerelease="${PRERELEASE}" \
+            -F prerelease="${PRERELEASE}" \
             -F generate_release_notes=true
 
           gh release upload "${RELEASE_TAG}" ci-artifacts/apk/*.apk
