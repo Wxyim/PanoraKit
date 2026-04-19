@@ -312,21 +312,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Pull latest before writing state file: a sibling channel job may have
+          # pushed while this job was waiting in the concurrency queue. Pulling
+          # first keeps the working tree clean so rebase never sees unstaged changes.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+
           mkdir -p .github/kernel-state
           state_file=".github/kernel-state/${CHANNEL}.txt"
           printf '%s|%s|%s\n' "${REPO}" "${TAG}" "${REV}" > "${state_file}"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
 
           if git diff --quiet -- "${state_file}"; then
             echo "Kernel state unchanged, nothing to commit."
             exit 0
           fi
 
-          # Pull latest before committing: a sibling channel job may have pushed
-          # while this job was waiting in the concurrency queue.
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           git add "${state_file}"
           git commit -m "chore(kernel-state): sync ${CHANNEL} to ${TAG} (${REV:0:8})"
           git push origin "HEAD:${GITHUB_REF_NAME}"
