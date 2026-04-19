@@ -256,9 +256,13 @@ fun ProxyPager(
                     onBack = {},
                     onTestDelay =
                         if (isRunning) {
-                            (floatingGroup ?: expandedGroup)?.let {
-                                { proxyViewModel.testDelay(it.name) }
-                            } ?: { proxyViewModel.testDelay() }
+                            floatingGroup?.let {
+                                { proxyViewModel.testDelay(it.name, showStartMessage = false) }
+                            }
+                                ?: expandedGroup?.let { { proxyViewModel.testDelay(it.name) } }
+                                ?: {
+                                    proxyViewModel.testDelay()
+                                }
                         } else {
                             null
                         },
@@ -321,7 +325,12 @@ fun ProxyPager(
                             },
                         onTestDelay =
                             if (isRunning) {
-                                { groupName -> proxyViewModel.testDelay(groupName) }
+                                { groupName ->
+                                    proxyViewModel.testDelay(
+                                        groupName,
+                                        showStartMessage = groupStyle != ProxyGroupStyle.FLOATING,
+                                    )
+                                }
                             } else {
                                 null
                             },
@@ -364,7 +373,11 @@ fun ProxyPager(
                 },
                 onTestDelay =
                     if (isRunning) {
-                        { retainedFloatingGroup?.let { proxyViewModel.testDelay(it.name) } }
+                        {
+                            retainedFloatingGroup?.let {
+                                proxyViewModel.testDelay(it.name, showStartMessage = false)
+                            }
+                        }
                     } else {
                         null
                     },

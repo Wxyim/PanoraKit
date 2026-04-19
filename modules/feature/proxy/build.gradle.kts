@@ -64,4 +64,6 @@ dependencies {
     implementation(libs.sketch4.http)
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
+
+    testImplementation(libs.junit4)
 }

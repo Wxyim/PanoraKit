@@ -39,6 +39,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+internal fun resolveHealthCheckTargets(
+    currentGroups: List<ProxyGroupInfo>,
+    requestedGroupName: String?,
+    activeTestingGroupNames: Set<String>,
+): Set<String> {
+    val requestedTargets =
+        if (requestedGroupName != null) {
+            linkedSetOf(requestedGroupName)
+        } else {
+            currentGroups.mapTo(linkedSetOf()) { it.name }
+        }
+    return requestedTargets.filterNotTo(linkedSetOf()) { it in activeTestingGroupNames }
+}
+
 class ProxyViewModel(
     private val overrideRepository: OverrideRepository,
     private val proxyFacade: ProxyFacade,
@@ -257,24 +271,25 @@ class ProxyViewModel(
         }
     }
 
-    fun testDelay(groupName: String? = null) {
+    fun testDelay(groupName: String? = null, showStartMessage: Boolean = true) {
         viewModelScope.launch {
             if (!proxyFacade.isRunning.value) {
                 showError(MLang.Providers.Empty.NotRunning)
                 return@launch
             }
-            setLoading(true)
             val currentGroups = proxyGroups.value
             val testingTargets: Set<String> =
-                if (groupName != null) {
-                    setOf(groupName)
-                } else {
-                    currentGroups.mapTo(linkedSetOf()) { it.name }
-                }
-            if (testingTargets.isNotEmpty()) {
-                _testingGroupNames.update { it + testingTargets }
+                resolveHealthCheckTargets(
+                    currentGroups = currentGroups,
+                    requestedGroupName = groupName,
+                    activeTestingGroupNames = _testingGroupNames.value,
+                )
+            if (testingTargets.isEmpty()) {
+                return@launch
             }
-            if (groupName != null) {
+            setLoading(true)
+            _testingGroupNames.update { it + testingTargets }
+            if (showStartMessage && groupName != null) {
                 showMessage(MLang.Proxy.Testing.Group.format(groupName))
             }
 
@@ -283,14 +298,19 @@ class ProxyViewModel(
                     proxyFacade.healthCheck(groupName, refreshAfter = false)
                 } else {
                     var firstError: Throwable? = null
-                    currentGroups.forEach { group ->
-                        runCatching { proxyFacade.healthCheck(group.name, refreshAfter = false) }
-                            .onFailure { error ->
-                                if (firstError == null) {
-                                    firstError = error
+                    currentGroups
+                        .asSequence()
+                        .filter { it.name in testingTargets }
+                        .forEach { group ->
+                            runCatching {
+                                    proxyFacade.healthCheck(group.name, refreshAfter = false)
                                 }
-                            }
-                    }
+                                .onFailure { error ->
+                                    if (firstError == null) {
+                                        firstError = error
+                                    }
+                                }
+                        }
                     firstError?.let { throw it }
                 }
             }
