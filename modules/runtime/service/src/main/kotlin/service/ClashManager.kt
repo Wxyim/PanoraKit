@@ -155,7 +155,14 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override suspend fun healthCheck(group: String) {
         Timber.d("ClashManager healthCheck: group=%s", group)
-        return Clash.healthCheck(group).await()
+        val request = Clash.healthCheck(group)
+        managerScope.launch {
+            runCatching { request.await() }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Timber.w(error, "ClashManager healthCheck async failed: group=%s", group)
+                }
+        }
     }
 
     override suspend fun healthCheckProxy(proxyName: String): Int {

@@ -301,8 +301,23 @@ class SessionRuntime(
             currentSnapshot.owner,
         )
         return runCatching {
-                withContext(Dispatchers.IO) { Clash.healthCheck(group).await() }
-                refreshRuntimeSnapshot()
+                val request = Clash.healthCheck(group)
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                            request.await()
+                            refreshRuntimeSnapshot()
+                        }
+                        .onFailure { error ->
+                            if (error is CancellationException) throw error
+                            Timber.w(
+                                error,
+                                "SessionRuntime healthCheck async failed: group=%s phase=%s owner=%s",
+                                group,
+                                currentSnapshot.phase,
+                                currentSnapshot.owner,
+                            )
+                        }
+                }
                 null
             }
             .getOrElse { it.message ?: "health check failed" }
