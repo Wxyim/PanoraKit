@@ -9,7 +9,7 @@ on:
       artifact_name:
         required: false
         type: string
-        default: native-libs
+        default: native-runtime
 
 permissions:
   contents: read
@@ -104,18 +104,22 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
         run: kotlin scripts/native-build.main.kts --all
 
-      - name: Prepare native libs artifact directory
+      - name: Pack native runtime artifact
         shell: bash
         run: |
           set -euo pipefail
+          test -d build/native/go
+          test -d build/native/cpp/obj
           test -d build/jniLibs
-          rm -rf jniLibs
-          mkdir -p jniLibs
-          cp -a build/jniLibs/. jniLibs/
+          rm -f native-runtime-artifact.tar
+          tar -cf native-runtime-artifact.tar \
+            build/native/go \
+            build/native/cpp/obj \
+            build/jniLibs
 
-      - name: Upload native libs
+      - name: Upload native runtime
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
-          path: jniLibs/
+          path: native-runtime-artifact.tar
           if-no-files-found: error

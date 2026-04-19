@@ -19,8 +19,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-native:
+    uses: ./.github/workflows/reusable-build-native.yml
+    with:
+      kernel_channel: meta
+      artifact_name: native-runtime-ci
+
   build:
     name: Build 
+    needs: build-native
     runs-on: ubuntu-latest
 
     steps:
@@ -35,17 +42,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Setup Kotlin
-        uses: fwilhe2/setup-kotlin@main
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.26"
-          cache: true
-          cache-dependency-path: |
-            **/go.sum
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
@@ -104,6 +100,27 @@ jobs:
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh meta
 
+      - name: Download native runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: native-runtime-ci
+          path: native-runtime-download
+
+      - name: Extract native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xf native-runtime-download/native-runtime-artifact.tar -C .
+
+      - name: Verify native outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build/native/go/arm64-v8a/libclash.so
+          test -f build/native/cpp/obj/arm64-v8a/libbridge.so
+          test -f build/jniLibs/arm64-v8a/libclash.so
+          test -f build/jniLibs/arm64-v8a/libbridge.so
+
       - name: Repository health
         run: |
           chmod +x scripts/repo-health.sh
@@ -113,13 +130,6 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew checkLintBaselineBudget checkModernizationBaseline checkUiContracts checkGithubOssLicensePolicy --no-daemon
-    
-      - name: Build Native Libraries
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
-        run: kotlin scripts/native-build.main.kts --all
 
       - name: Check and build debug
         run: |

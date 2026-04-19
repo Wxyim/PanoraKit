@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-native.yml
     with:
       kernel_channel: ${{ inputs.kernel_channel }}
-      artifact_name: native-libs-${{ inputs.kernel_channel }}
+      artifact_name: native-runtime-${{ inputs.kernel_channel }}
 
   release:
     name: Build And Publish Release
@@ -131,18 +131,26 @@ jobs:
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh "${CHANNEL}"
 
-      - name: Download native libs
+      - name: Download native runtime
         uses: actions/download-artifact@v5
         with:
-          name: native-libs-${{ inputs.kernel_channel }}
-          path: jniLibs
+          name: native-runtime-${{ inputs.kernel_channel }}
+          path: native-runtime-download
+
+      - name: Extract native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xf native-runtime-download/native-runtime-artifact.tar -C .
 
       - name: Verify native outputs
         shell: bash
         run: |
           set -euo pipefail
-          test -f jniLibs/arm64-v8a/libclash.so
-          test -f jniLibs/arm64-v8a/libbridge.so
+          test -f build/native/go/arm64-v8a/libclash.so
+          test -f build/native/cpp/obj/arm64-v8a/libbridge.so
+          test -f build/jniLibs/arm64-v8a/libclash.so
+          test -f build/jniLibs/arm64-v8a/libbridge.so
 
       - name: Check GitHub OSS release policy
         shell: bash
