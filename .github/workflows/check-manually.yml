@@ -1,4 +1,4 @@
-name: Check Kernel State Manually
+name: Check Kernel Manually
 
 on:
   workflow_dispatch:
