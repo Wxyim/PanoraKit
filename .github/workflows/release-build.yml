@@ -221,23 +221,35 @@ jobs:
             ci-artifacts/mapping/${{ env.CHANNEL }}/**
           if-no-files-found: error
 
-      - name: Ensure tag and release do not already exist
+      - name: Ensure release state is retry-safe
+        id: release_state
         if: ${{ env.ACT != 'true' }}
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
         run: |
           set -euo pipefail
+          tag_exists=false
+          release_exists=false
 
           if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "::error::Tag already exists: ${RELEASE_TAG}"
-            exit 1
+            tag_exists=true
           fi
 
           if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            release_exists=true
+          fi
+
+          if [ "${release_exists}" = "true" ]; then
             echo "::error::Release already exists for tag: ${RELEASE_TAG}"
             exit 1
           fi
+
+          if [ "${tag_exists}" = "true" ]; then
+            echo "::notice::Tag already exists and will be reused: ${RELEASE_TAG}"
+          fi
+
+          echo "tag_exists=${tag_exists}" >> "${GITHUB_OUTPUT}"
 
       - name: Configure git committer for release tag
         if: ${{ env.ACT != 'true' }}
@@ -248,7 +260,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Create and push release tag
-        if: ${{ env.ACT != 'true' }}
+        if: ${{ env.ACT != 'true' && steps.release_state.outputs.tag_exists != 'true' }}
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.prep.outputs.release_tag }}
