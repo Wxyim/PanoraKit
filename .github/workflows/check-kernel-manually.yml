@@ -1,0 +1,50 @@
+name: Check Kernel Manually
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Kernel channel to build'
+        required: true
+        default: all
+        type: choice
+        options:
+          - alpha
+          - meta
+          - smart
+
+jobs:
+  state:
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.state.outputs.repo }}
+      tag: ${{ steps.state.outputs.tag }}
+      rev: ${{ steps.state.outputs.rev }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Get state
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sync-kernel.sh
+          s="$(./scripts/sync-kernel.sh "${{ inputs.channel }}" --print-state)"
+          echo "repo=$(echo "$s" | cut -d'|' -f1)" >> "$GITHUB_OUTPUT"
+          echo "tag=$(echo "$s" | cut -d'|' -f2)" >> "$GITHUB_OUTPUT"
+          echo "rev=$(echo "$s" | cut -d'|' -f3)" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: state
+    uses: ./.github/workflows/release-build.yml
+    with:
+      kernel_channel: ${{ inputs.channel }}
+      upstream_repo: ${{ needs.state.outputs.repo }}
+      upstream_tag: ${{ needs.state.outputs.tag }}
+      upstream_revision: ${{ needs.state.outputs.rev }}
+    secrets: inherit
