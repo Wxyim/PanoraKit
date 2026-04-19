@@ -1,4 +1,4 @@
-name: Kernel Daily Check
+name: Check Kernel State Automatically 
 
 on:
   schedule:

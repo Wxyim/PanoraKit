@@ -1,4 +1,4 @@
-name: Manual Release
+name: Check Kernel State Manually
 
 on:
   workflow_dispatch:
