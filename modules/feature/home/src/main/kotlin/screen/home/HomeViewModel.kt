@@ -309,11 +309,6 @@ class HomeViewModel(
 
     private val externalIpCache = MutableStateFlow<IpInfo?>(null)
 
-    val isExternalIpLookupEnabled: StateFlow<Boolean> =
-        combine(appSettings.externalIpLookupUrl.state, isRunning) { url, running ->
-            url.isNotBlank() && running
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
     private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
 
@@ -340,6 +335,11 @@ class HomeViewModel(
                 SharingStarted.WhileSubscribed(5000),
                 RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
             )
+
+    val isExternalIpLookupEnabled: StateFlow<Boolean> =
+        combine(appSettings.externalIpLookupUrl.state, isRunning) { url, running ->
+            url.isNotBlank() && running
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val currentTunnelMode: StateFlow<TunnelState.Mode> =
         proxyDisplaySettingsStore.proxyMode.state.stateIn(
