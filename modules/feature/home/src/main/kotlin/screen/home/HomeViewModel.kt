@@ -482,12 +482,20 @@ class HomeViewModel(
             val snapshot = runtimeSnapshot.value
             // VPN must be running before any external IP query is allowed.
             if (!snapshot.running) return@launch
-            // When VPN is on, wait for transport to be fully ready so the
-            // request actually goes through the proxy tunnel, not the raw
-            // underlying network (which would return the real IP).
-            if (!snapshot.transportReady) return@launch
+
+            // Show query-in-flight immediately so the user gets visual feedback.
             externalIpQueryInFlight.value = true
             try {
+                // Wait for transport to be fully ready so the request goes through
+                // the proxy tunnel, not the raw underlying network (privacy).
+                if (!snapshot.transportReady) {
+                    val becameReady =
+                        withTimeoutOrNull(5_000L) {
+                            runtimeSnapshot.map { it.transportReady }.first { it }
+                        }
+                    if (becameReady != true) return@launch
+                }
+
                 val info = networkInfoService.queryExternalIp()
                 externalIpCache.value = info
             } finally {
