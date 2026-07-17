@@ -88,15 +88,27 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun queryProfileProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
-        if (store.activeProfile == null) return emptyList()
+        val profileUuid = store.activeProfile ?: return emptyList()
         val spec =
             when (configuredProxyMode()) {
                 ProxyMode.RootTun -> runtimeSpecFactory.createRootTunSpec()
                 ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
                 ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
             }
-        return runSuspendBlocking {
-            compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
+        val groups =
+            runSuspendBlocking {
+                compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
+            }
+
+        // Overlay persisted selections so the UI reflects manual choices even
+        // when the core is not running (preview mode). The overlay is applied
+        // here rather than in the client so that every call site benefits.
+        val selections = SelectionDao.querySelections(profileUuid)
+        if (selections.isEmpty()) return groups
+
+        return groups.map { group ->
+            val persisted = selections.find { it.proxy == group.name }
+            if (persisted != null) group.copy(now = persisted.selected) else group
         }
     }
 

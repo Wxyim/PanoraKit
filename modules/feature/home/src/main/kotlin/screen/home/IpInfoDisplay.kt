@@ -121,7 +121,7 @@ private fun IpInfoRow(
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Bottom,
     ) {
         Column(
             horizontalAlignment = Alignment.Start,
