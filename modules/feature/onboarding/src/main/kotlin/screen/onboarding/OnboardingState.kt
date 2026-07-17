@@ -64,7 +64,7 @@ internal fun rememberPermissionState(
 
     var notificationGranted by remember { mutableStateOf(isNotificationGranted(context)) }
     var appListGranted by remember {
-        mutableStateOf(isAppListPermissionGranted(context, miuiDynamicSupported))
+        mutableStateOf(isAppListPermissionGranted(context))
     }
 
     val requestNotificationPermission =
@@ -93,7 +93,7 @@ internal fun rememberPermissionState(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationGranted = isNotificationGranted(context)
-                appListGranted = isAppListPermissionGranted(context, miuiDynamicSupported)
+                appListGranted = isAppListPermissionGranted(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -155,10 +155,6 @@ internal fun isMiuiGetInstalledAppsDynamicSupported(context: Context): Boolean {
         .getOrDefault(false)
 }
 
-internal fun isAppListPermissionGranted(context: Context, miuiDynamicSupported: Boolean): Boolean {
-    return when (InstalledAppsAccess.resolve(context).mode) {
-        InstalledAppsAccessMode.Full -> true
-        InstalledAppsAccessMode.PermissionRequired -> false
-        InstalledAppsAccessMode.ManualOnly -> !miuiDynamicSupported
-    }
+internal fun isAppListPermissionGranted(context: Context): Boolean {
+    return InstalledAppsAccess.resolve(context).mode == InstalledAppsAccessMode.Full
 }

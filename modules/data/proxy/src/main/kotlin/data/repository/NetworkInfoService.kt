@@ -100,8 +100,13 @@ class NetworkInfoService(
         if (!isAllowedExternalIpUrl(url)) return null
         return try {
             val response = httpClient.get(url)
-            val body = response.bodyAsText()
-            json.decodeFromString<IpInfo>(body)
+            val body = response.bodyAsText().trim()
+            // Try structured JSON first, then plain-text IP (ip.gs, api.ipify.org, etc.).
+            try {
+                json.decodeFromString<IpInfo>(body)
+            } catch (_: Exception) {
+                body.takeIf { it.isNotEmpty() }?.let { IpInfo(ip = it) }
+            }
         } catch (e: Exception) {
             null
         }
