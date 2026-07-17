@@ -159,7 +159,21 @@ jobs:
         run: sdkmanager "ndk;27.3.13750724"
 
       - name: Install Android build-tools
-        run: yes | sdkmanager "build-tools;35.0.0"
+        run: |
+          set -euo pipefail
+          
+          yes | sdkmanager --licenses >/dev/null
+          
+          yes | sdkmanager \
+            "platform-tools" \
+            "build-tools;35.0.0"
+          
+          echo "Installed packages:"
+          sdkmanager --list_installed
+          
+          echo "Build-tools:"
+          ls -al "$ANDROID_SDK_ROOT/build-tools"
+          ls -al "$ANDROID_SDK_ROOT/build-tools/35.0.0"
 
       - name: Configure local.properties
         run: |
@@ -259,40 +273,59 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          apk_unsigned=$(find build/app/outputs/apk/release -maxdepth 1 -name '*.apk' ! -name '*-signed.apk' | head -1)
+      
+          apk_unsigned=$(find build/app/outputs/apk/release \
+            -maxdepth 1 \
+            -name "*.apk" \
+            ! -name "*-signed.apk" \
+            | head -n1)
+      
           if [ -z "$apk_unsigned" ]; then
             echo "::error::No unsigned APK found"
             exit 1
           fi
-          apksigner=$(echo "${ANDROID_SDK_ROOT}"/build-tools/*/apksigner | head -1)
-          if [ ! -x "$apksigner" ]; then
-            echo "::error::apksigner not found under ${ANDROID_SDK_ROOT}/build-tools/"
+      
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
+      
+          if [ ! -x "$APKSIGNER" ]; then
+            echo "::error::apksigner not found"
+            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+      
+            echo "===== build-tools ====="
+            ls -R "$ANDROID_SDK_ROOT/build-tools" || true
+      
             exit 1
           fi
-          echo "Using apksigner: $apksigner"
-
+      
+          echo "Using apksigner:"
+          "$APKSIGNER" version || true
+      
           if [ -n "${SIGNING_KEYSTORE_BASE64:-}" ]; then
-            storepass="${SIGNING_STORE_PASSWORD:-}"
-            alias="${SIGNING_KEY_ALIAS:-monadbox-ci}"
-            keypass="${SIGNING_KEY_PASSWORD:-}"
+            storepass="${SIGNING_STORE_PASSWORD}"
+            alias="${SIGNING_KEY_ALIAS}"
+            keypass="${SIGNING_KEY_PASSWORD}"
           else
             storepass="monadbox-ci-store"
             alias="monadbox-ci"
             keypass="monadbox-ci-key"
           fi
-
+      
           apk_signed="${apk_unsigned%.apk}-signed.apk"
-          "$apksigner" sign \
+      
+          "$APKSIGNER" sign \
             --ks "${{ steps.keystore.outputs.keystore_file }}" \
             --ks-pass "pass:${storepass}" \
             --ks-key-alias "$alias" \
             --key-pass "pass:${keypass}" \
             --out "$apk_signed" \
             "$apk_unsigned"
+      
           rm -f "$apk_unsigned"
           mv "$apk_signed" "$apk_unsigned"
+      
           echo "Signed APK: $apk_unsigned"
-          "$apksigner" verify --verbose "$apk_unsigned"
+      
+          "$APKSIGNER" verify --verbose "$apk_unsigned"
 
       - name: Verify APK output
         run: |
