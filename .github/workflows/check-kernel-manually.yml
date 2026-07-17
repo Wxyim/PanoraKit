@@ -142,41 +142,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3.2.2
-        with:
-          packages: ''
 
-      - name: Cache NDK
-        id: cache-ndk
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
-          key: ${{ runner.os }}-ndk-27.3.13750724-v1
-          restore-keys: |
-            ${{ runner.os }}-ndk-27.3.13750724-
-
-      - name: Install NDK
-        if: steps.cache-ndk.outputs.cache-hit != 'true'
-        run: sdkmanager "ndk;27.3.13750724"
-
-      - name: Install Android build-tools
+      - name: Install NDK & build-tools
         run: |
           set -euo pipefail
-          
-          (
-            set +o pipefail
-            yes | sdkmanager --licenses >/dev/null
-          )
-          
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager \
+            "ndk;27.3.13750724" \
             "platform-tools" \
             "build-tools;35.0.0"
-          
-          echo "Installed packages:"
-          sdkmanager --list_installed
-          
-          echo "Build-tools:"
-          ls -al "$ANDROID_SDK_ROOT/build-tools"
-          ls -al "$ANDROID_SDK_ROOT/build-tools/35.0.0"
 
       - name: Configure local.properties
         run: |
