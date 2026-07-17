@@ -40,7 +40,9 @@ import com.github.nomadboxlab.monadbox.common.util.LocaleUtil
 import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
 import com.github.nomadboxlab.monadbox.presentation.component.CountryFlagCircle
 import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import dev.oom_wg.purejoy.mlang.MLang
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -179,10 +181,12 @@ private fun IpInfoRow(
                             ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = if (isRefreshing) "..." else "↻",
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.primary,
+                    Icon(
+                        imageVector = MonadIcons.`Redo-dot`,
+                        contentDescription = null,
+                        tint = if (isRefreshing) MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        else MiuixTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

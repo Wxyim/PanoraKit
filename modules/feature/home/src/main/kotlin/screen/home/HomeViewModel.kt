@@ -479,6 +479,11 @@ class HomeViewModel(
      */
     fun queryExternalIp() {
         viewModelScope.launch {
+            // When VPN is on, wait for transport to be fully ready so the
+            // request actually goes through the proxy tunnel, not the raw
+            // underlying network (which would return the real IP).
+            val snapshot = runtimeSnapshot.value
+            if (snapshot.running && !snapshot.transportReady) return@launch
             externalIpQueryInFlight.value = true
             try {
                 val info = networkInfoService.queryExternalIp()

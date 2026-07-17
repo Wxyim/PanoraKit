@@ -23,6 +23,7 @@ package com.github.nomadboxlab.monadbox.presentation.icon
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Github
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Redo-dot`
 import kotlin.collections.List as ____KtList
 import kotlin.collections.Map as ____KtMap
 
@@ -35,7 +36,7 @@ val MonadIcons.AllIcons: ____KtList<ImageVector>
         if (__AllIcons != null) {
             return __AllIcons!!
         }
-        __AllIcons = listOf(Github)
+        __AllIcons = listOf(Github, `Redo-dot`)
         return __AllIcons!!
     }
 
@@ -46,6 +47,6 @@ val MonadIcons.AllIconsNamed: ____KtMap<String, ImageVector>
         if (__AllIconsNamed != null) {
             return __AllIconsNamed!!
         }
-        __AllIconsNamed = mapOf("github" to Github)
+        __AllIconsNamed = mapOf("github" to Github, "redo-dot" to `Redo-dot`)
         return __AllIconsNamed!!
     }
