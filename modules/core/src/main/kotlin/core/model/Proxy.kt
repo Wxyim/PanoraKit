@@ -62,7 +62,7 @@ data class Proxy(
         Sudoku(false),
         Masque(false),
         TrustTunnel(false),
-        Shadowquic(false),
+        ShadowQuic(false),
         Relay(true),
         Selector(true),
         Fallback(true),
