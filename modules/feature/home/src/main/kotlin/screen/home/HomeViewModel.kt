@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.repository.IpInfo
 import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
 import com.github.nomadboxlab.monadbox.data.repository.NetworkInfoService
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
@@ -309,7 +310,7 @@ class HomeViewModel(
     private val externalIpCache = MutableStateFlow<IpInfo?>(null)
 
     val isExternalIpLookupEnabled: StateFlow<Boolean> =
-        appSettings.externalIpLookupUrl
+        appSettings.externalIpLookupUrl.state
             .map { it.isNotBlank() }
             .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
