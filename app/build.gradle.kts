@@ -146,7 +146,7 @@ android {
                 gradle.startParameter.taskNames.none { it.contains("bundle", ignoreCase = true) }
             reset()
             include(*appAbiList.toTypedArray())
-            isUniversalApk = true
+            isUniversalApk = appAbiList.size > 1
         }
     }
 

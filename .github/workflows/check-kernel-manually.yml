@@ -202,14 +202,15 @@ jobs:
           ABI_APP_LIST: arm64-v8a
         run: kotlin -Dabi.app.list=arm64-v8a scripts/native-build.main.kts --all
 
-      - name: Build APK (self-signed, startup gate disabled)
+      - name: Build APK
         env:
-          DISABLE_STARTUP_GATE: true
+          STARTUP_GATE_RELEASE_FINGERPRINT: ${{ secrets.STARTUP_GATE_RELEASE_FINGERPRINT }}
         run: |
           set -euo pipefail
           chmod +x gradlew
-          startup_gate_flag=""
-          if [ "${DISABLE_STARTUP_GATE:-false}" = "true" ]; then
+          if [ -n "${STARTUP_GATE_RELEASE_FINGERPRINT:-}" ]; then
+            startup_gate_flag="-Pstartup.gate.releaseFingerprint=${STARTUP_GATE_RELEASE_FINGERPRINT}"
+          else
             startup_gate_flag="-Pstartup.gate.enabled=false"
           fi
           ./gradlew assembleRelease \
@@ -217,6 +218,78 @@ jobs:
             -Prelease.signing.required=false \
             ${startup_gate_flag} \
             --no-daemon
+
+      - name: Restore CI signing keystore
+        id: keystore
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          KEYSTORE_FILE="ci.keystore"
+
+          if [ -n "${SIGNING_KEYSTORE_BASE64:-}" ]; then
+            printf '%s' "${SIGNING_KEYSTORE_BASE64}" | base64 --decode > "$KEYSTORE_FILE"
+            echo "::notice::Using CI keystore from secrets"
+          else
+            # No secrets configured — generate a one-shot keystore for this run.
+            # APKs from different runs won't be installable over each other.
+            # To enable incremental install, generate a keystore locally and set
+            # SIGNING_KEYSTORE_BASE64 + SIGNING_STORE_PASSWORD + SIGNING_KEY_ALIAS
+            # + SIGNING_KEY_PASSWORD as GitHub repository secrets.
+            keytool -genkey -v \
+              -keystore "$KEYSTORE_FILE" \
+              -alias monadbox-ci \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass monadbox-ci-store \
+              -keypass monadbox-ci-key \
+              -dname "CN=MonadBox CI"
+            echo "::notice::Generated one-shot keystore (secrets not configured)"
+          fi
+
+          echo "keystore_file=${KEYSTORE_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign APK with CI keystore
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          apk_unsigned=$(find build/app/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)
+          if [ -z "$apk_unsigned" ]; then
+            echo "::error::No unsigned APK found"
+            exit 1
+          fi
+          apksigner=$(echo "${ANDROID_SDK_ROOT}"/build-tools/*/apksigner | head -1)
+          if [ ! -x "$apksigner" ]; then
+            echo "::error::apksigner not found under ${ANDROID_SDK_ROOT}/build-tools/"
+            exit 1
+          fi
+          echo "Using apksigner: $apksigner"
+
+          if [ -n "${SIGNING_KEYSTORE_BASE64:-}" ]; then
+            storepass="${SIGNING_STORE_PASSWORD:-}"
+            alias="${SIGNING_KEY_ALIAS:-monadbox-ci}"
+            keypass="${SIGNING_KEY_PASSWORD:-}"
+          else
+            storepass="monadbox-ci-store"
+            alias="monadbox-ci"
+            keypass="monadbox-ci-key"
+          fi
+
+          apk_signed="${apk_unsigned%.apk}-signed.apk"
+          "$apksigner" sign \
+            --ks "${{ steps.keystore.outputs.keystore_file }}" \
+            --ks-pass "pass:${storepass}" \
+            --ks-key-alias "$alias" \
+            --key-pass "pass:${keypass}" \
+            --out "$apk_signed" \
+            "$apk_unsigned"
+          rm -f "$apk_unsigned"
+          mv "$apk_signed" "$apk_unsigned"
+          echo "Signed APK: $apk_unsigned"
+          "$apksigner" verify --verbose "$apk_unsigned"
 
       - name: Verify APK output
         run: |
