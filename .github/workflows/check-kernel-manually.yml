@@ -162,9 +162,12 @@ jobs:
         run: |
           set -euo pipefail
           
-          yes | sdkmanager --licenses >/dev/null
+          (
+            set +o pipefail
+            yes | sdkmanager --licenses >/dev/null
+          )
           
-          yes | sdkmanager \
+          sdkmanager \
             "platform-tools" \
             "build-tools;35.0.0"
           
