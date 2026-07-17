@@ -143,7 +143,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3.2.2
         with:
-          packages: ''
+          packages: 'build-tools;35.0.0'
 
       - name: Cache NDK
         id: cache-ndk
@@ -256,7 +256,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          apk_unsigned=$(find build/app/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)
+          apk_unsigned=$(find build/app/outputs/apk/release -maxdepth 1 -name '*.apk' ! -name '*-signed.apk' | head -1)
           if [ -z "$apk_unsigned" ]; then
             echo "::error::No unsigned APK found"
             exit 1
