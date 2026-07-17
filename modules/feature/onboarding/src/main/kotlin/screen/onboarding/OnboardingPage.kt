@@ -439,8 +439,7 @@ internal fun PermissionContent(state: PermissionState) {
     val appListSummary =
         when {
             state.appListGranted -> MLang.Onboarding.Permission.Common.Granted
-            state.miuiDynamicSupported -> MLang.Onboarding.Permission.AppList.SummaryNeed
-            else -> MLang.Onboarding.Permission.AppList.SummaryNotRequired
+            else -> MLang.Onboarding.Permission.AppList.SummaryNeed
         }
 
     DetailGroup {
