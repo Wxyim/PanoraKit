@@ -101,12 +101,7 @@ class NetworkInfoService(
         return try {
             val response = httpClient.get(url)
             val body = response.bodyAsText().trim()
-            // Try structured JSON first, then plain-text IP (ip.gs, api.ipify.org, etc.).
-            try {
-                json.decodeFromString<IpInfo>(body)
-            } catch (_: Exception) {
-                body.takeIf { it.isNotEmpty() }?.let { IpInfo(ip = it) }
-            }
+            ExternalIpResponseParser.parse(body = body, json = json)
         } catch (e: Exception) {
             null
         }
@@ -143,5 +138,61 @@ class NetworkInfoService(
         } catch (e: Exception) {
             IpMonitoringState.Error(e.message ?: "Unknown error")
         }
+    }
+}
+
+internal object ExternalIpResponseParser {
+    fun parse(body: String, json: Json): IpInfo? {
+        val normalizedBody = body.trim()
+        if (normalizedBody.isEmpty()) return null
+
+        try {
+            return json.decodeFromString<IpInfo>(normalizedBody)
+        } catch (_: Exception) {
+            // Fall through to plain-text and key=value response parsing.
+        }
+
+        parseKeyValueTrace(normalizedBody)?.let { return it }
+        return normalizedBody.takeIf(::isLikelyIpLiteral)?.let { IpInfo(ip = it) }
+    }
+
+    private fun parseKeyValueTrace(body: String): IpInfo? {
+        val values =
+            body.lineSequence()
+                .mapNotNull { line ->
+                    val separatorIndex = line.indexOf('=')
+                    if (separatorIndex <= 0) return@mapNotNull null
+
+                    val key = line.substring(0, separatorIndex).trim().lowercase()
+                    val value = line.substring(separatorIndex + 1).trim()
+                    if (key.isEmpty() || value.isEmpty()) return@mapNotNull null
+                    key to value
+                }.toMap()
+
+        val ip = values["ip"]?.takeIf(::isLikelyIpLiteral) ?: return null
+        val countryCode = values["country_code"] ?: values["loc"]
+        return IpInfo(ip = ip, countryCode = countryCode)
+    }
+
+    private fun isLikelyIpLiteral(value: String): Boolean {
+        val candidate = value.trim()
+        if (candidate.isEmpty() || candidate.any(Char::isWhitespace)) return false
+        return isLikelyIpv4(candidate) || isLikelyIpv6(candidate)
+    }
+
+    private fun isLikelyIpv4(value: String): Boolean {
+        val segments = value.split('.')
+        if (segments.size != 4) return false
+        return segments.all { segment ->
+            segment.isNotEmpty() &&
+                segment.length <= 3 &&
+                segment.all(Char::isDigit) &&
+                segment.toIntOrNull() in 0..255
+        }
+    }
+
+    private fun isLikelyIpv6(value: String): Boolean {
+        if (!value.contains(':')) return false
+        return value.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.' }
     }
 }

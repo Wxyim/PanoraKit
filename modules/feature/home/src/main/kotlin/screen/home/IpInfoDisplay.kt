@@ -69,7 +69,11 @@ fun IpInfoDisplay(
         externalIp != null -> {
             IpInfoRow(
                 label = MLang.Home.IpInfo.ExitIp,
-                value = buildDisplayIpValue(ipAddress = externalIp.ip, isIpVisible = isIpVisible),
+                value =
+                    IpAddressDisplayFormatter.buildDisplayValue(
+                        ipAddress = externalIp.ip,
+                        isIpVisible = isIpVisible,
+                    ),
                 valueColor = MiuixTheme.colorScheme.onSurface,
                 countryCode = externalIp.countryCode,
                 isIpVisible = isIpVisible,
@@ -219,51 +223,66 @@ private fun CountryBadge(countryCode: String?) {
     }
 }
 
-private fun buildDisplayIpValue(ipAddress: String, isIpVisible: Boolean): String {
-    return if (ipAddress.contains(":")) {
-        formatIpv6Address(ipAddress = ipAddress, isIpVisible = isIpVisible)
-    } else {
-        if (isIpVisible) ipAddress else maskIpv4Address(ipAddress)
-    }
-}
-
-private fun maskIpv4Address(ipAddress: String): String {
-    val segments = ipAddress.split(".")
-    if (segments.size != 4) {
-        return "****"
-    }
-    return buildString {
-        append(segments[0])
-        append(".")
-        append(segments[1])
-        append(".")
-        append("*".repeat(segments[2].length.coerceAtLeast(1)))
-        append(".")
-        append(segments[3])
-    }
-}
-
-private fun formatIpv6Address(ipAddress: String, isIpVisible: Boolean): String {
-    val visibleSegments = ipAddress.split(":").filter { it.isNotBlank() }
-    if (visibleSegments.isEmpty()) {
-        return "****"
-    }
-    if (!isIpVisible) {
-        return when {
-            visibleSegments.size == 1 -> "${visibleSegments.first()}:****"
-            visibleSegments.size == 2 ->
-                "${visibleSegments[0]}:${"*".repeat(visibleSegments[1].length.coerceAtLeast(4))}"
-            else -> "${visibleSegments[0]}:${visibleSegments[1]}:****"
+internal object IpAddressDisplayFormatter {
+    fun buildDisplayValue(ipAddress: String, isIpVisible: Boolean): String {
+        val normalized = extractDisplayableIp(ipAddress)
+        return if (normalized.contains(":")) {
+            formatIpv6Address(ipAddress = normalized, isIpVisible = isIpVisible)
+        } else {
+            if (isIpVisible) normalized else maskIpv4Address(normalized)
         }
     }
 
-    return visibleSegments.joinToString(":")
-}
+    fun maskIpAddress(ipAddress: String): String {
+        val normalized = extractDisplayableIp(ipAddress)
+        return if (normalized.contains(":")) {
+            formatIpv6Address(ipAddress = normalized, isIpVisible = false)
+        } else {
+            maskIpv4Address(normalized)
+        }
+    }
 
-internal fun maskIpAddress(ipAddress: String): String {
-    return if (ipAddress.contains(":")) {
-        formatIpv6Address(ipAddress = ipAddress, isIpVisible = false)
-    } else {
-        maskIpv4Address(ipAddress)
+    private fun extractDisplayableIp(rawValue: String): String {
+        val normalized = rawValue.trim()
+        if (normalized.isEmpty()) return normalized
+
+        normalized.lineSequence().forEach { line ->
+            val trimmedLine = line.trim()
+            if (trimmedLine.startsWith("ip=", ignoreCase = true)) {
+                return trimmedLine.substringAfter('=').trim()
+            }
+        }
+        return normalized
+    }
+
+    private fun maskIpv4Address(ipAddress: String): String {
+        val segments = ipAddress.split(".")
+        if (segments.size != 4) {
+            return "****"
+        }
+        return buildString {
+            append(segments[0])
+            append(".")
+            append(segments[1])
+            append(".")
+            append("*".repeat(segments[2].length.coerceAtLeast(1)))
+            append(".")
+            append(segments[3])
+        }
+    }
+
+    private fun formatIpv6Address(ipAddress: String, isIpVisible: Boolean): String {
+        val trimmed = ipAddress.trim()
+        if (trimmed.isEmpty()) return "****"
+        if (isIpVisible) return trimmed
+
+        val visibleSegments = trimmed.split(':').filter { it.isNotEmpty() }
+        if (visibleSegments.isEmpty()) {
+            return "****"
+        }
+        return when {
+            visibleSegments.size == 1 -> "${visibleSegments.first()}:****"
+            else -> "${visibleSegments[0]}:${visibleSegments[1]}:****"
+        }
     }
 }

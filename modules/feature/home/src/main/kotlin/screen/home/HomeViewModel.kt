@@ -480,8 +480,24 @@ class HomeViewModel(
     fun queryExternalIp() {
         viewModelScope.launch {
             val snapshot = runtimeSnapshot.value
+            val lookupUrl = appSettings.externalIpLookupUrl.value.trim()
+            if (lookupUrl.isBlank()) {
+                Timber.d("External IP query skipped: lookup URL not configured")
+                showError(MLang.Home.Message.ExternalIpLookupNotConfigured)
+                return@launch
+            }
+
             // VPN must be running before any external IP query is allowed.
-            if (!snapshot.running) return@launch
+            if (!snapshot.running) {
+                Timber.d(
+                    "External IP query skipped: runtime not running " +
+                        "(phase=%s, owner=%s)",
+                    snapshot.phase,
+                    snapshot.owner,
+                )
+                showError(MLang.Home.Message.ExternalIpLookupNotRunning)
+                return@launch
+            }
 
             // Show query-in-flight immediately so the user gets visual feedback.
             externalIpQueryInFlight.value = true
@@ -489,15 +505,38 @@ class HomeViewModel(
                 // Wait for transport to be fully ready so the request goes through
                 // the proxy tunnel, not the raw underlying network (privacy).
                 if (!snapshot.transportReady) {
+                    Timber.d(
+                        "External IP query waiting for transport: phase=%s owner=%s",
+                        snapshot.phase,
+                        snapshot.owner,
+                    )
                     val becameReady =
                         withTimeoutOrNull(5_000L) {
                             runtimeSnapshot.map { it.transportReady }.first { it }
                         }
-                    if (becameReady != true) return@launch
+                    if (becameReady != true) {
+                        Timber.w(
+                            "External IP query skipped: transport not ready within timeout " +
+                                "(phase=%s, owner=%s)",
+                            runtimeSnapshot.value.phase,
+                            runtimeSnapshot.value.owner,
+                        )
+                        showError(MLang.Home.Message.ExternalIpLookupTransportTimeout)
+                        return@launch
+                    }
                 }
 
+                Timber.d(
+                    "External IP query dispatching: urlConfigured=%s owner=%s",
+                    appSettings.externalIpLookupUrl.value.isNotBlank(),
+                    runtimeSnapshot.value.owner,
+                )
                 val info = networkInfoService.queryExternalIp()
                 externalIpCache.value = info
+                Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
+                if (info == null) {
+                    showError(MLang.Home.Message.ExternalIpLookupFailed)
+                }
             } finally {
                 externalIpQueryInFlight.value = false
             }

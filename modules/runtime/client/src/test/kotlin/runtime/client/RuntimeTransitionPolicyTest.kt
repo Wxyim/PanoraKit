@@ -62,6 +62,30 @@ class RuntimeTransitionPolicyTest {
     }
 
     @Test
+    fun startedSnapshot_marksLocalOwnersTransportReady() {
+        val localSnapshot =
+            RuntimeTransitionPolicy.startedSnapshot(
+                currentSnapshot = RuntimeSnapshot(phase = RuntimePhase.Starting),
+                owner = RuntimeOwner.LocalTun,
+                targetMode = ProxyMode.Tun,
+            )
+
+        assertEquals(RuntimePhase.Running, localSnapshot.phase)
+        assertTrue(localSnapshot.configReady)
+        assertTrue(localSnapshot.transportReady)
+
+        val rootSnapshot =
+            RuntimeTransitionPolicy.startedSnapshot(
+                currentSnapshot = RuntimeSnapshot(phase = RuntimePhase.Starting),
+                owner = RuntimeOwner.RootTun,
+                targetMode = ProxyMode.RootTun,
+            )
+
+        assertFalse(rootSnapshot.configReady)
+        assertFalse(rootSnapshot.transportReady)
+    }
+
+    @Test
     fun normalizeSnapshotAlignsRunningFlagWithPhase() {
         val inconsistent = RuntimeSnapshot(phase = RuntimePhase.Running, running = false)
         val normalized = RuntimeTransitionPolicy.normalizeSnapshot(inconsistent)

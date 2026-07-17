@@ -323,6 +323,10 @@
     <string name="home_message_start_failed_environment_reason">Environment or resource limitation: %s</string>
     <string name="home_message_start_failed_unknown_reason">Startup failed: %s</string>
     <string name="home_message_stop_failed">Stop failed: %s</string>
+    <string name="home_message_external_ip_lookup_not_running">External IP lookup is only available while the VPN is running</string>
+    <string name="home_message_external_ip_lookup_not_configured">External IP lookup URL is not configured</string>
+    <string name="home_message_external_ip_lookup_transport_timeout">External IP lookup timed out while waiting for the proxy tunnel to become ready</string>
+    <string name="home_message_external_ip_lookup_failed">External IP lookup failed. Check the lookup URL and current network path</string>
     <string name="home_control_hint_add_profile">Please add a profile first</string>
     <string name="home_control_hint_enable_profile">Please enable a profile in Config page first</string>
     <string name="home_profile_no_profile">No Profile</string>

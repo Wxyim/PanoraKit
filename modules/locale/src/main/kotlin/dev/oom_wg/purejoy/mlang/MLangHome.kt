@@ -147,6 +147,44 @@ object MLangHome {
         @Composable
         fun `StopFailed`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.home_message_stop_failed, *args)
+
+        val `ExternalIpLookupNotRunning`: String
+            get() = LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_not_running)
+
+        @Composable
+        fun `ExternalIpLookupNotRunning`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_not_running, *args)
+
+        val `ExternalIpLookupNotConfigured`: String
+            get() =
+                LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_not_configured)
+
+        @Composable
+        fun `ExternalIpLookupNotConfigured`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.home_message_external_ip_lookup_not_configured,
+                *args,
+            )
+
+        val `ExternalIpLookupTransportTimeout`: String
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.home_message_external_ip_lookup_transport_timeout
+                )
+
+        @Composable
+        fun `ExternalIpLookupTransportTimeout`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.home_message_external_ip_lookup_transport_timeout,
+                *args,
+            )
+
+        val `ExternalIpLookupFailed`: String
+            get() = LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_failed)
+
+        @Composable
+        fun `ExternalIpLookupFailed`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_failed, *args)
     }
 
     object `Control` {

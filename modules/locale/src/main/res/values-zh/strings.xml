@@ -323,6 +323,10 @@
     <string name="home_message_start_failed_environment_reason">环境或资源限制导致启动失败：%s</string>
     <string name="home_message_start_failed_unknown_reason">启动失败原因：%s</string>
     <string name="home_message_stop_failed">停止失败：%s</string>
+    <string name="home_message_external_ip_lookup_not_running">仅可在 VPN 运行时查询出口 IP</string>
+    <string name="home_message_external_ip_lookup_not_configured">未配置外部 IP 查询 URL</string>
+    <string name="home_message_external_ip_lookup_transport_timeout">等待代理隧道就绪超时，未发出出口 IP 查询请求</string>
+    <string name="home_message_external_ip_lookup_failed">出口 IP 查询失败，请检查查询 URL 和当前网络链路</string>
     <string name="home_control_hint_add_profile">请先添加配置文件</string>
     <string name="home_control_hint_enable_profile">请先在「配置」页面启用一个配置</string>
     <string name="home_profile_no_profile">未选择配置</string>
