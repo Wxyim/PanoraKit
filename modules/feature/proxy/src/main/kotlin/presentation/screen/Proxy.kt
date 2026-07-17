@@ -312,34 +312,19 @@ fun ProxyPager(
                                 }
                             }
                         },
-                        onSelectProxy =
-                            if (isRunning) {
-                                { groupName, proxyName ->
-                                    proxyViewModel.selectProxy(groupName, proxyName)
-                                    if (groupStyle == ProxyGroupStyle.FLOATING) {
-                                        floatingGroupName = null
-                                    }
+                        onSelectProxy = { groupName, proxyName ->
+                                proxyViewModel.selectProxy(groupName, proxyName)
+                                if (groupStyle == ProxyGroupStyle.FLOATING) {
+                                    floatingGroupName = null
                                 }
-                            } else {
-                                null
                             },
-                        onTestDelay =
-                            if (isRunning) {
-                                { groupName ->
-                                    proxyViewModel.testDelay(
-                                        groupName,
-                                        showStartMessage = groupStyle != ProxyGroupStyle.FLOATING,
-                                    )
-                                }
-                            } else {
-                                null
+                        onTestDelay = { groupName ->
+                                proxyViewModel.testDelay(
+                                    groupName,
+                                    showStartMessage = groupStyle != ProxyGroupStyle.FLOATING,
+                                )
                             },
-                        onTestProxyDelay =
-                            if (isRunning) {
-                                { proxyName -> proxyViewModel.testProxyDelay(proxyName) }
-                            } else {
-                                null
-                            },
+                        onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
                         singleNodeTestEnabled = singleNodeTest && isRunning,
                     )
                 }
@@ -371,36 +356,21 @@ fun ProxyPager(
                         retainedFloatingGroup = null
                     }
                 },
-                onTestDelay =
-                    if (isRunning) {
-                        {
-                            retainedFloatingGroup?.let {
-                                proxyViewModel.testDelay(it.name, showStartMessage = false)
-                            }
+                onTestDelay = {
+                        retainedFloatingGroup?.let {
+                            proxyViewModel.testDelay(it.name, showStartMessage = false)
                         }
-                    } else {
-                        null
                     },
-                onSelectProxy =
-                    if (isRunning) {
-                        { proxyName ->
-                            val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
-                            if (group.type == Proxy.Type.Selector) {
-                                proxyViewModel.selectProxy(group.name, proxyName)
-                                floatingGroupName = null
-                            } else {
-                                proxyViewModel.testProxyDelay(proxyName)
-                            }
+                onSelectProxy = { proxyName ->
+                        val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
+                        if (group.type == Proxy.Type.Selector) {
+                            proxyViewModel.selectProxy(group.name, proxyName)
+                            floatingGroupName = null
+                        } else {
+                            proxyViewModel.testProxyDelay(proxyName)
                         }
-                    } else {
-                        null
                     },
-                onTestProxyDelay =
-                    if (isRunning) {
-                        proxyViewModel::testProxyDelay
-                    } else {
-                        null
-                    },
+                onTestProxyDelay = proxyViewModel::testProxyDelay,
             )
         }
     }
