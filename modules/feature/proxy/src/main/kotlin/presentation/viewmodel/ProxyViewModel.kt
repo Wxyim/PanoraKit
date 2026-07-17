@@ -346,10 +346,6 @@ class ProxyViewModel(
 
     fun selectProxy(groupName: String, proxyName: String) {
         viewModelScope.launch {
-            if (!proxyFacade.isRunning.value) {
-                showError(MLang.Providers.Empty.NotRunning)
-                return@launch
-            }
             runCatching {
                     val success = proxyFacade.selectProxy(groupName, proxyName)
                     if (!success) {
