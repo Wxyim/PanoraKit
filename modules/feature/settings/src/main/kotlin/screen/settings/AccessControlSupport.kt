@@ -22,6 +22,7 @@ package com.github.nomadboxlab.monadbox.feature.settings
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccess
 import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import dev.oom_wg.purejoy.mlang.MLang
@@ -73,23 +74,35 @@ internal object AccessControlAppLoader {
     ): List<AccessControlAppInfo> {
         val pm = application.packageManager
         val selfPackageName = application.packageName
-        check(InstalledAppsAccess.resolve(application).canEnumerateInstalledApps) {
-            "Installed app enumeration is unavailable on this device"
-        }
+        val accessState = InstalledAppsAccess.resolve(application)
+
+        // On Android 11+, getInstalledApplications() silently returns a
+        // filtered list when QUERY_ALL_PACKAGES is not genuinely granted.
+        // When root is available, prefer root-based enumeration so the
+        // loaded list is genuinely complete.
         val packages =
-            runCatching { pm.getInstalledApplications(PackageManager.GET_META_DATA) }
-                .getOrElse { error ->
-                    if (error is SecurityException) {
-                        loadInstalledAppsFromRoot(pm, selfPackageName)
-                    } else {
-                        throw error
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                !accessState.canEnumerateInstalledApps &&
+                RootPackageShell.hasRootAccess()
+            ) {
+                loadInstalledAppsFromRoot(pm, selfPackageName)
+            } else {
+                runCatching { pm.getInstalledApplications(PackageManager.GET_META_DATA) }
+                    .getOrElse { error ->
+                        if (error is SecurityException) {
+                            loadInstalledAppsFromRoot(pm, selfPackageName)
+                        } else {
+                            throw error
+                        }
                     }
-                }
+            }
 
         return packages
             .filter { it.packageName != selfPackageName }
             .map { appInfo ->
-                val pkgInfo = runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
+                val pkgInfo =
+                    runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
                 AccessControlAppInfo(
                     packageName = appInfo.packageName,
                     label = appInfo.loadLabel(pm).toString(),

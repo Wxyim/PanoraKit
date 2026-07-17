@@ -34,6 +34,7 @@ import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,9 +78,10 @@ class AccessControlViewModel(
 
     private fun checkAndLoad() {
         val accessState = resolveAccessControlAppsUseCase.resolveAccessState()
-        when (accessState.mode) {
-            InstalledAppsAccessMode.Full -> loadApps()
-            InstalledAppsAccessMode.PermissionRequired -> {
+        when {
+            accessState.mode == InstalledAppsAccessMode.Full -> loadApps()
+            RootPackageShell.hasRootAccess() -> loadApps()
+            accessState.mode == InstalledAppsAccessMode.PermissionRequired -> {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -88,7 +90,7 @@ class AccessControlViewModel(
                     )
                 }
             }
-            InstalledAppsAccessMode.ManualOnly -> {
+            else -> {
                 _uiState.update {
                     it.copy(isLoading = false, needsMiuiPermission = false, canBrowseApps = false)
                 }
