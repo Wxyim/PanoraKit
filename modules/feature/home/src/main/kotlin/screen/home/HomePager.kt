@@ -61,6 +61,9 @@ fun HomePager(
     currentTunnelMode: TunnelState.Mode,
     selectedServer: HomeSelectedServerState?,
     ipMonitoringState: IpMonitoringState,
+    isExternalIpLookupEnabled: Boolean = false,
+    isExternalIpQuerying: Boolean = false,
+    onQueryExternalIp: () -> Unit = {},
     speedHistory: SpeedHistoryBuffer,
     proxyMode: ProxyMode,
     uiError: String?,
@@ -203,7 +206,12 @@ fun HomePager(
                                                 selectedServer = selectedServer,
                                                 tunnelMode = currentTunnelMode,
                                             )
-                                            IpInfoDisplay(state = ipMonitoringState)
+                                            IpInfoDisplay(
+                                                state = ipMonitoringState,
+                                                isExternalIpLookupEnabled = isExternalIpLookupEnabled,
+                                                isExternalIpQuerying = isExternalIpQuerying,
+                                                onQueryExternalIp = onQueryExternalIp,
+                                            )
                                         }
 
                                         HomeTrafficChartSection(
@@ -242,7 +250,12 @@ fun HomePager(
                                             selectedServer = selectedServer,
                                             tunnelMode = currentTunnelMode,
                                         )
-                                        IpInfoDisplay(state = ipMonitoringState)
+                                        IpInfoDisplay(
+                                            state = ipMonitoringState,
+                                            isExternalIpLookupEnabled = isExternalIpLookupEnabled,
+                                            isExternalIpQuerying = isExternalIpQuerying,
+                                            onQueryExternalIp = onQueryExternalIp,
+                                        )
                                     }
 
                                     HomeTrafficChartSection(

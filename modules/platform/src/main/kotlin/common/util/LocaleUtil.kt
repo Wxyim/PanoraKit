@@ -37,14 +37,4 @@ object LocaleUtil {
         val upperCode = countryCode.uppercase()
         return if (upperCode in NORMALIZED_REGION_CODES) "CN" else countryCode
     }
-
-    fun normalizeFlagUrl(
-        countryCode: String,
-        baseUrl: String = "https://hatscripts.github.io/circle-flags/flags/",
-    ): String {
-        val upperCode = countryCode.uppercase()
-        val normalizedCode =
-            if (upperCode in NORMALIZED_REGION_CODES) "cn" else countryCode.lowercase()
-        return "${baseUrl}${normalizedCode}.svg"
-    }
 }

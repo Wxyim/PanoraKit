@@ -271,6 +271,7 @@ val OverrideProxyTypePresets =
         "ssh",
         "masque",
         "trusttunnel",
+        "shadowquic",
     )
 
 val OverrideProxyGroupTypePresets =

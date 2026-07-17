@@ -1,50 +1,271 @@
-name: Check Kernel Manually
+name: Build MonadBox (mihomo/alpha, arm64)
 
 on:
   workflow_dispatch:
     inputs:
-      channel:
-        description: 'Kernel channel to build'
-        required: true
-        default: all
-        type: choice
-        options:
-          - alpha
-          - meta
-          - smart
+      force:
+        description: 'Force rebuild even when mihomo/alpha is unchanged'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-monadbox-manual
+  cancel-in-progress: false
 
 jobs:
-  state:
+  resolve:
+    name: Resolve mihomo/alpha
     runs-on: ubuntu-latest
     outputs:
-      repo: ${{ steps.state.outputs.repo }}
-      tag: ${{ steps.state.outputs.tag }}
-      rev: ${{ steps.state.outputs.rev }}
-
+      new_sha: ${{ steps.resolve.outputs.new_sha }}
+      new_sha_short: ${{ steps.resolve.outputs.new_sha_short }}
+      should_build: ${{ steps.compare.outputs.should_build }}
+      skip_reason: ${{ steps.compare.outputs.skip_reason }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Read currently tracked SHA
+        id: read_state
+        run: |
+          set -euo pipefail
+          state_file=".github/kernel-state/alpha.txt"
+          if [ -f "$state_file" ]; then
+            current_sha=$(cut -d'|' -f3 "$state_file")
+          else
+            current_sha=""
+          fi
+          {
+            echo "current_sha=${current_sha}"
+            echo "::notice::Tracked mihomo/alpha @ ${current_sha:-<none>}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Resolve latest mihomo/alpha revision
+        id: resolve
+        run: |
+          set -euo pipefail
+          new_sha=$(
+            git ls-remote https://github.com/MetaCubeX/mihomo.git \
+              'refs/tags/Prerelease-Alpha^{}' \
+            | awk 'NR==1 {print $1}'
+          )
+          if [ -z "$new_sha" ]; then
+            echo "::error::Failed to resolve mihomo/alpha revision"
+            exit 1
+          fi
+          new_sha_short=${new_sha:0:8}
+          {
+            echo "new_sha=${new_sha}"
+            echo "new_sha_short=${new_sha_short}"
+            echo "::notice::Latest mihomo/alpha @ ${new_sha}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Decide whether to build
+        id: compare
+        env:
+          FORCE: ${{ inputs.force }}
+          CURRENT: ${{ steps.read_state.outputs.current_sha }}
+          NEW: ${{ steps.resolve.outputs.new_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$FORCE" = "true" ]; then
+            should_build=true
+            skip_reason=force_rebuild
+            echo "::notice::Force rebuild requested (input.force=true)"
+          elif [ -z "$CURRENT" ]; then
+            should_build=true
+            skip_reason=initial_build
+            echo "::notice::No previous state tracked — first build"
+          elif [ "$CURRENT" = "$NEW" ]; then
+            should_build=false
+            skip_reason=up_to_date
+            echo "::notice::mihomo/alpha unchanged at ${NEW:0:8} — skipping build"
+          else
+            should_build=true
+            skip_reason=new_commit
+            echo "::notice::New mihomo/alpha: ${CURRENT:0:8} -> ${NEW:0:8}"
+          fi
+          {
+            echo "should_build=${should_build}"
+            echo "skip_reason=${skip_reason}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build arm64 APK
+    needs: resolve
+    if: needs.resolve.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
 
-      - name: Get state
-        id: state
-        shell: bash
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Kotlin
+        # Pinned direct download — avoids fwilhe2/setup-kotlin@main (floating ref).
+        run: |
+          set -euo pipefail
+          kotlin_version=2.2.10
+          curl -fsSL \
+            -o /tmp/kotlin-compiler.zip \
+            "https://github.com/JetBrains/kotlin/releases/download/v${kotlin_version}/kotlin-compiler-${kotlin_version}.zip"
+          unzip -q /tmp/kotlin-compiler.zip -d /opt/
+          echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
+          kotlin -version 2>&1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3.2.2
+        with:
+          packages: ''
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+          key: ${{ runner.os }}-ndk-27.3.13750724-v1
+          restore-keys: |
+            ${{ runner.os }}-ndk-27.3.13750724-
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;27.3.13750724"
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          echo "ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.3.13750724" >> local.properties
+
+      - name: Update CA certificates
+        run: |
+          set -euo pipefail
+          run_as_root() {
+            if [ "$(id -u)" -eq 0 ]; then
+              "$@"
+            elif sudo -n true 2>/dev/null; then
+              sudo "$@"
+            else
+              return 1
+            fi
+          }
+          if run_as_root true; then
+            run_as_root apt-get update
+            run_as_root apt-get install -y ca-certificates
+            run_as_root update-ca-certificates
+          elif [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+            echo "Using existing system CA bundle."
+          else
+            echo "::error::Cannot refresh CA certificates and no system bundle present"
+            exit 1
+          fi
+          mkdir -p modules/core/src/foss/golang/mihomo/component/ca
+          cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+
+      - name: Sync kernel
         run: |
           set -euo pipefail
           chmod +x scripts/sync-kernel.sh
-          s="$(./scripts/sync-kernel.sh "${{ inputs.channel }}" --print-state)"
-          echo "repo=$(echo "$s" | cut -d'|' -f1)" >> "$GITHUB_OUTPUT"
-          echo "tag=$(echo "$s" | cut -d'|' -f2)" >> "$GITHUB_OUTPUT"
-          echo "rev=$(echo "$s" | cut -d'|' -f3)" >> "$GITHUB_OUTPUT"
+          ./scripts/sync-kernel.sh alpha
 
-  release:
-    needs: state
-    uses: ./.github/workflows/release-build.yml
-    with:
-      kernel_channel: ${{ inputs.channel }}
-      upstream_repo: ${{ needs.state.outputs.repo }}
-      upstream_tag: ${{ needs.state.outputs.tag }}
-      upstream_revision: ${{ needs.state.outputs.rev }}
-    secrets: inherit
+      - name: Build native libraries (arm64)
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.3.13750724
+          ABI_APP_LIST: arm64-v8a
+        run: kotlin -Dabi.app.list=arm64-v8a scripts/native-build.main.kts --all
+
+      - name: Build APK (self-signed, startup gate disabled)
+        env:
+          DISABLE_STARTUP_GATE: true
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          startup_gate_flag=""
+          if [ "${DISABLE_STARTUP_GATE:-false}" = "true" ]; then
+            startup_gate_flag="-Pstartup.gate.enabled=false"
+          fi
+          ./gradlew assembleRelease \
+            -Pabi.app.list=arm64-v8a \
+            -Prelease.signing.required=false \
+            ${startup_gate_flag} \
+            --no-daemon
+
+      - name: Verify APK output
+        run: |
+          set -euo pipefail
+          apk="build/app/outputs/apk/release/app-arm64-v8a-release.apk"
+          test -f "$apk" || { echo "::error::APK not found at $apk"; exit 1; }
+          ls -lh "$apk"
+          file "$apk"
+
+      - name: Upload APK artifact (1-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: monadbox-arm64-alpha-${{ needs.resolve.outputs.new_sha_short }}
+          path: build/app/outputs/apk/release/app-arm64-v8a-release.apk
+          retention-days: 1
+          if-no-files-found: error
+
+  commit-state:
+    name: Update tracked mihomo/alpha SHA
+    needs: [resolve, build]
+    if: needs.resolve.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write new state
+        run: |
+          set -euo pipefail
+          mkdir -p .github/kernel-state
+          new_sha=${{ needs.resolve.outputs.new_sha }}
+          printf '%s|%s|%s\n' \
+            "https://github.com/MetaCubeX/mihomo.git" \
+            "Prerelease-Alpha" \
+            "$new_sha" \
+            > .github/kernel-state/alpha.txt
+          echo "Wrote state:"
+          cat .github/kernel-state/alpha.txt
+
+      - name: Commit and push state
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/kernel-state/alpha.txt
+          if git diff --cached --quiet; then
+            echo "No state change to commit."
+            exit 0
+          fi
+          git commit -m "chore(kernel-state): sync alpha to Prerelease-Alpha (${{ needs.resolve.outputs.new_sha_short }})"
+          # Defensive rebase: a concurrent manual run may have pushed first.
+          git pull --rebase origin "$GITHUB_REF_NAME" 2>/dev/null || true
+          git push

@@ -26,7 +26,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 
-private const val RULE_PROVIDER_INTERVAL = 86400
+// Privacy: 0 disables mihomo's automatic rule-provider refresh. The user can opt-in
+// to 24h refresh per provider by editing the override after applying the template.
+private const val RULE_PROVIDER_INTERVAL = 0
 private const val URL_TEST_INTERVAL = 300
 private const val URL_TEST_URL = "https://www.gstatic.com/generate_204"
 private const val DEFAULT_EXCLUDE_FILTER = "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"

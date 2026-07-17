@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -51,7 +52,13 @@ private const val IP_VALUE_VISIBLE_MAX_LINES = 3
 internal val INFO_TEXT_HEIGHT = 24.dp
 
 @Composable
-fun IpInfoDisplay(state: IpMonitoringState, modifier: Modifier = Modifier) {
+fun IpInfoDisplay(
+    state: IpMonitoringState,
+    modifier: Modifier = Modifier,
+    isExternalIpLookupEnabled: Boolean = false,
+    isExternalIpQuerying: Boolean = false,
+    onQueryExternalIp: () -> Unit = {},
+) {
     val externalIp = (state as? IpMonitoringState.Success)?.externalIp
     var isIpVisible by rememberSaveable(externalIp?.ip) { mutableStateOf(false) }
 
@@ -66,6 +73,9 @@ fun IpInfoDisplay(state: IpMonitoringState, modifier: Modifier = Modifier) {
                 isRevealable = true,
                 onToggleVisibility = { isIpVisible = !isIpVisible },
                 modifier = modifier,
+                showRefreshButton = isExternalIpLookupEnabled,
+                isRefreshing = isExternalIpQuerying,
+                onRefresh = onQueryExternalIp,
             )
         }
 
@@ -79,6 +89,9 @@ fun IpInfoDisplay(state: IpMonitoringState, modifier: Modifier = Modifier) {
                 isRevealable = false,
                 onToggleVisibility = {},
                 modifier = modifier,
+                showRefreshButton = isExternalIpLookupEnabled,
+                isRefreshing = isExternalIpQuerying,
+                onRefresh = onQueryExternalIp,
             )
         }
     }
@@ -94,6 +107,9 @@ private fun IpInfoRow(
     isRevealable: Boolean,
     onToggleVisibility: () -> Unit,
     modifier: Modifier = Modifier,
+    showRefreshButton: Boolean = false,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -146,7 +162,32 @@ private fun IpInfoRow(
             }
         }
 
-        CountryBadge(countryCode = countryCode)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (showRefreshButton) {
+                Box(
+                    modifier =
+                        Modifier.size(28.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            .appClickable(
+                                role = Role.Button,
+                                enabled = !isRefreshing,
+                                onClick = onRefresh,
+                            ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (isRefreshing) "..." else "↻",
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.primary,
+                    )
+                }
+            }
+            CountryBadge(countryCode = countryCode)
+        }
     }
 }
 

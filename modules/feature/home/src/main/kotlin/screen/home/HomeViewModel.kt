@@ -29,6 +29,7 @@ import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
 import com.github.nomadboxlab.monadbox.data.repository.NetworkInfoService
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.ProxyDisplaySettingsStore
 import com.github.nomadboxlab.monadbox.domain.model.ErrorImpact
@@ -125,6 +126,14 @@ data class HomeChromeState(
 )
 
 @Stable
+private data class RuntimeUiSnapshot(
+    val ipState: IpMonitoringState,
+    val speedHistory: SpeedHistoryBuffer,
+    val trafficNow: Long,
+    val externalIpEnabled: Boolean,
+    val externalIpQuerying: Boolean,
+)
+
 data class HomeScreenState(
     val ui: HomeUiState = HomeUiState(),
     val runtimeVisualState: HomeRuntimeVisualState = HomeRuntimeVisualState.Idle,
@@ -138,6 +147,8 @@ data class HomeScreenState(
     val currentProfile: Profile? = null,
     val selectedServer: HomeSelectedServerState? = null,
     val ipMonitoringState: IpMonitoringState = IpMonitoringState.Loading,
+    val isExternalIpLookupEnabled: Boolean = false,
+    val isExternalIpQuerying: Boolean = false,
     val speedHistory: SpeedHistoryBuffer = SpeedHistoryBuffer.create(24),
     val trafficNow: Long = 0L,
 )
@@ -278,6 +289,7 @@ class HomeViewModel(
     private val proxyChainResolver: ProxyChainResolver,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
     private val networkSettingsStorage: NetworkSettingsStorage,
+    private val appSettings: AppSettingsStorage,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
     private val runtimeFailurePresenter: RuntimeFailurePresenter,
     private val refreshHomeEntryDataUseCase: RefreshHomeEntryDataUseCase,
@@ -288,6 +300,18 @@ class HomeViewModel(
 
     private val profilesStateMutable = MutableStateFlow(HomeProfilesState())
     val profilesState: StateFlow<HomeProfilesState> = profilesStateMutable.asStateFlow()
+
+    // Privacy: external IP is only ever queried when the user taps the button.
+    // This state flow publishes the result of the most recent manual query.
+    private val externalIpQueryInFlight = MutableStateFlow(false)
+    val isExternalIpQuerying: StateFlow<Boolean> = externalIpQueryInFlight.asStateFlow()
+
+    private val externalIpCache = MutableStateFlow<IpInfo?>(null)
+
+    val isExternalIpLookupEnabled: StateFlow<Boolean> =
+        appSettings.externalIpLookupUrl
+            .map { it.isNotBlank() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
@@ -434,7 +458,7 @@ class HomeViewModel(
         isRunning
             .flatMapLatest { running ->
                 if (running) {
-                    networkInfoService.startIpMonitoring(isRunning)
+                    networkInfoService.startIpMonitoring(isRunning, externalIpCache)
                 } else {
                     flowOf(IpMonitoringState.Loading)
                 }
@@ -444,6 +468,25 @@ class HomeViewModel(
                 SharingStarted.WhileSubscribed(5000),
                 IpMonitoringState.Loading,
             )
+
+    /**
+     * Trigger a one-shot external IP lookup against the user-configured URL.
+     *
+     * Privacy: this is the **only** code path that ever calls
+     * `NetworkInfoService.queryExternalIp()`. There is no auto-poll, no 10 s
+     * tick, and the call only happens when the user taps the "查询" button.
+     */
+    fun queryExternalIp() {
+        viewModelScope.launch {
+            externalIpQueryInFlight.value = true
+            try {
+                val info = networkInfoService.queryExternalIp()
+                externalIpCache.value = info
+            } finally {
+                externalIpQueryInFlight.value = false
+            }
+        }
+    }
 
     val hasEnabledProfile: StateFlow<Boolean> =
         profilesState
@@ -457,16 +500,24 @@ class HomeViewModel(
                 combine(confirmedCurrentProfile, selectedServer) { currentProfile, selectedServer ->
                     currentProfile to selectedServer
                 },
-                combine(ipMonitoringState, speedHistory, trafficNow) {
-                    ipState,
+                combine(
+                    ipMonitoringState,
                     speedHistory,
-                    trafficNow ->
-                    Triple(ipState, speedHistory, trafficNow)
+                    trafficNow,
+                    isExternalIpLookupEnabled,
+                    isExternalIpQuerying,
+                ) { ipState, sh, tn, externalIpEnabled, externalIpQuerying ->
+                    RuntimeUiSnapshot(
+                        ipState = ipState,
+                        speedHistory = sh,
+                        trafficNow = tn,
+                        externalIpEnabled = externalIpEnabled,
+                        externalIpQuerying = externalIpQuerying,
+                    )
                 },
             ) { chromeAndProfiles, profileAndServer, runtimeUi ->
                 val (chrome, profiles) = chromeAndProfiles
                 val (runningProfile, selectedServer) = profileAndServer
-                val (ipState, speedHistory, trafficNow) = runtimeUi
                 val displayProfile =
                     HomeProfileResolver.resolveDisplayProfile(
                         runningProfile = runningProfile,
@@ -484,9 +535,11 @@ class HomeViewModel(
                     hasEnabledProfile = profiles.profiles.any { it.active },
                     currentProfile = displayProfile,
                     selectedServer = selectedServer,
-                    ipMonitoringState = ipState,
-                    speedHistory = speedHistory,
-                    trafficNow = trafficNow,
+                    ipMonitoringState = runtimeUi.ipState,
+                    isExternalIpLookupEnabled = runtimeUi.externalIpEnabled,
+                    isExternalIpQuerying = runtimeUi.externalIpQuerying,
+                    speedHistory = runtimeUi.speedHistory,
+                    trafficNow = runtimeUi.trafficNow,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeScreenState())

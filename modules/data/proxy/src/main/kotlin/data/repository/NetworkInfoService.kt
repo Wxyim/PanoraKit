@@ -22,6 +22,7 @@
 package com.github.nomadboxlab.monadbox.data.repository
 
 import com.github.nomadboxlab.monadbox.core.util.NetworkInterfaces
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -50,7 +51,9 @@ sealed class IpMonitoringState {
     object Loading : IpMonitoringState()
 }
 
-class NetworkInfoService : Closeable {
+class NetworkInfoService(
+    private val appSettings: AppSettingsStorage,
+) : Closeable {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val httpClient = HttpClient {
@@ -81,55 +84,59 @@ class NetworkInfoService : Closeable {
         return NetworkInterfaces.getLocalIpAddress()
     }
 
-    suspend fun getExternalIp(): IpInfo? {
-        try {
-            val response = httpClient.get("https://api.ip.sb/geoip")
+    /**
+     * Look up the external IP from a user-configured URL.
+     *
+     * Privacy: this is **never** called automatically. The home screen has a
+     * "查询" button that calls this only on user tap. The URL is whatever the
+     * user has set in `Settings -> Network -> 外部 IP 查询 URL`. An empty URL
+     * means the feature is disabled.
+     *
+     * Returns `null` if the URL is empty/invalid or the request fails.
+     */
+    suspend fun queryExternalIp(): IpInfo? {
+        val url = appSettings.externalIpLookupUrl.value.trim()
+        if (url.isEmpty()) return null
+        if (!isAllowedExternalIpUrl(url)) return null
+        return try {
+            val response = httpClient.get(url)
             val body = response.bodyAsText()
-            val info = json.decodeFromString<IpInfo>(body)
-            return info
+            json.decodeFromString<IpInfo>(body)
         } catch (e: Exception) {
-            return null
+            null
         }
     }
 
-    fun startIpMonitoring(isProxyActiveFlow: Flow<Boolean>): Flow<IpMonitoringState> = flow {
-        var lastSuccessfulState: IpMonitoringState.Success? = null
+    private fun isAllowedExternalIpUrl(url: String): Boolean {
+        val lower = url.lowercase()
+        if (lower.startsWith("https://")) return true
+        // Allow cleartext only to loopback so power users can self-host on-device.
+        if (lower.startsWith("http://")) {
+            val host = lower.removePrefix("http://").substringBefore('/').substringBefore(':')
+            return host == "127.0.0.1" || host == "localhost" || host == "::1"
+        }
+        return false
+    }
 
+    /**
+     * Stream the local IP and (optionally) a previously-queried external IP.
+     *
+     * Privacy: this flow **never** calls any third-party endpoint. The external
+     * IP is only ever populated by a manual `queryExternalIp()` invocation
+     * from the home screen, gated on a non-empty user-configured URL.
+     */
+    fun startIpMonitoring(
+        isProxyActiveFlow: Flow<Boolean>,
+        externalIpFlow: Flow<IpInfo?> = flowOf(null),
+    ): Flow<IpMonitoringState> = combine(
+        externalIpFlow.onStart { emit(null) },
+        isProxyActiveFlow,
+    ) { externalIp, isProxyActive ->
         try {
             val localIp = getLocalIp()
-            val externalIp = getExternalIp()
-            val newState = IpMonitoringState.Success(localIp, externalIp)
-            lastSuccessfulState = newState
-            emit(newState)
+            IpMonitoringState.Success(localIp = localIp, externalIp = externalIp, isProxyActive = isProxyActive)
         } catch (e: Exception) {
-            if (lastSuccessfulState == null) {
-                emit(IpMonitoringState.Error(e.message ?: "Unknown error"))
-            }
+            IpMonitoringState.Error(e.message ?: "Unknown error")
         }
-
-        val refreshFlow =
-            merge(
-                _refreshTrigger,
-                flow {
-                    while (true) {
-                        kotlinx.coroutines.delay(10000)
-                        emit(Unit)
-                    }
-                },
-            )
-
-        combine(refreshFlow, isProxyActiveFlow) { _, isProxyActive ->
-                try {
-                    val localIp = getLocalIp()
-                    val externalIp = getExternalIp()
-                    val newState = IpMonitoringState.Success(localIp, externalIp, isProxyActive)
-                    lastSuccessfulState = newState
-                    newState
-                } catch (e: Exception) {
-                    lastSuccessfulState?.copy(isProxyActive = isProxyActive)
-                        ?: IpMonitoringState.Error(e.message ?: "Unknown error")
-                }
-            }
-            .collect { state -> emit(state) }
     }
 }

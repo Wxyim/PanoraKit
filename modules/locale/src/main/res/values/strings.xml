@@ -123,6 +123,9 @@
     <string name="app_settings_service_section_auto_start_log_recording_summary">Automatically start log recording when entering the Log page</string>
     <string name="app_settings_network_custom_user_agent_title">Custom User-Agent</string>
     <string name="app_settings_network_custom_user_agent_summary_default">Not set, using default</string>
+    <string name="app_settings_network_external_ip_lookup_url_title">External IP lookup URL</string>
+    <string name="app_settings_network_external_ip_lookup_url_summary_default">Not set — the home screen will not show the lookup button</string>
+    <string name="app_settings_network_external_ip_lookup_url_summary_set">Manual lookup: %s</string>
     <string name="app_settings_cleanup_auto_enabled_title">Timed Auto Cleanup</string>
     <string name="app_settings_cleanup_auto_enabled_summary">Periodically check storage usage and clean when threshold is exceeded</string>
     <string name="app_settings_cleanup_policy_title">Cleanup Policy</string>

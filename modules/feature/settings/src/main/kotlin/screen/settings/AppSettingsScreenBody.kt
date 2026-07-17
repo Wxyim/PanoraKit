@@ -100,6 +100,8 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
     var pageScaleLocal by rememberSaveable(pageScaleState) { mutableFloatStateOf(pageScaleState) }
 
     val customUserAgent = viewModel.customUserAgent.state.collectAsStateWithLifecycle().value
+    val externalIpLookupUrl =
+        viewModel.externalIpLookupUrl.state.collectAsStateWithLifecycle().value
     val cleanupAutoEnabled = viewModel.cleanupAutoEnabled.state.collectAsStateWithLifecycle().value
     val cleanupPolicy = viewModel.cleanupPolicy.state.collectAsStateWithLifecycle().value
     val cleanupThresholdMb = viewModel.cleanupThresholdMb.state.collectAsStateWithLifecycle().value
@@ -109,6 +111,7 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
 
     val showHideIconDialog = rememberSaveable { mutableStateOf(false) }
     val showEditCustomUserAgentDialog = rememberSaveable { mutableStateOf(false) }
+    val showEditExternalIpLookupUrlDialog = rememberSaveable { mutableStateOf(false) }
     val showPageScaleSheet = rememberSaveable { mutableStateOf(false) }
     val showCleanupThresholdDialog = rememberSaveable { mutableStateOf(false) }
     val showCleanupIntervalDialog = rememberSaveable { mutableStateOf(false) }
@@ -116,6 +119,10 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
     val customUserAgentTextFieldState =
         rememberSaveable(stateSaver = TextFieldValue.Saver) {
             mutableStateOf(TextFieldValue(customUserAgent))
+        }
+    val externalIpLookupUrlTextFieldState =
+        rememberSaveable(stateSaver = TextFieldValue.Saver) {
+            mutableStateOf(TextFieldValue(externalIpLookupUrl))
         }
     var cleanupThresholdText by
         rememberSaveable(cleanupThresholdMb) { mutableStateOf(cleanupThresholdMb.toString()) }
@@ -202,6 +209,7 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                             singleNodeTest = singleNodeTest,
                             autoStartLogRecording = autoStartLogRecording,
                             customUserAgent = customUserAgent,
+                            externalIpLookupUrl = externalIpLookupUrl,
                             cleanupAutoEnabled = cleanupAutoEnabled,
                             cleanupPolicy = cleanupPolicy,
                             cleanupThresholdMb = cleanupThresholdMb,
@@ -251,6 +259,11 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                                 customUserAgentTextFieldState.value =
                                     TextFieldValue(customUserAgent)
                                 showEditCustomUserAgentDialog.value = true
+                            },
+                            onEditExternalIpLookupUrl = {
+                                externalIpLookupUrlTextFieldState.value =
+                                    TextFieldValue(externalIpLookupUrl)
+                                showEditExternalIpLookupUrlDialog.value = true
                             },
                             onCleanupAutoEnabledChange = viewModel::onCleanupAutoEnabledChange,
                             onCleanupPolicyChange = viewModel::onCleanupPolicyChange,
@@ -305,6 +318,13 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                 title = MLang.AppSettings.EditDialog.UserAgentTitle,
                 textFieldValue = customUserAgentTextFieldState,
                 onConfirm = { viewModel.applyCustomUserAgent(it) },
+            )
+
+            TextEditBottomSheet(
+                show = showEditExternalIpLookupUrlDialog,
+                title = MLang.AppSettings.Network.ExternalIpLookupUrlTitle,
+                textFieldValue = externalIpLookupUrlTextFieldState,
+                onConfirm = { viewModel.applyExternalIpLookupUrl(it) },
             )
 
             AppDialog(
@@ -456,6 +476,7 @@ private fun AppSettingsContent(
     singleNodeTest: Boolean,
     autoStartLogRecording: Boolean,
     customUserAgent: String,
+    externalIpLookupUrl: String,
     cleanupAutoEnabled: Boolean,
     cleanupPolicy: CleanupPolicy,
     cleanupThresholdMb: Int,
@@ -476,6 +497,7 @@ private fun AppSettingsContent(
     onSingleNodeTestChange: (Boolean) -> Unit,
     onAutoStartLogRecordingChange: (Boolean) -> Unit,
     onEditCustomUserAgent: () -> Unit,
+    onEditExternalIpLookupUrl: () -> Unit,
     onCleanupAutoEnabledChange: (Boolean) -> Unit,
     onCleanupPolicyChange: (CleanupPolicy) -> Unit,
     onOpenCleanupThresholdDialog: () -> Unit,
@@ -545,6 +567,8 @@ private fun AppSettingsContent(
                         NetworkSettingsSection(
                             customUserAgent = customUserAgent,
                             onEditCustomUserAgent = onEditCustomUserAgent,
+                            externalIpLookupUrl = externalIpLookupUrl,
+                            onEditExternalIpLookupUrl = onEditExternalIpLookupUrl,
                         )
                         CleanupSettingsSection(
                             cleanupAutoEnabled = cleanupAutoEnabled,
@@ -599,6 +623,8 @@ private fun AppSettingsContent(
                 NetworkSettingsSection(
                     customUserAgent = customUserAgent,
                     onEditCustomUserAgent = onEditCustomUserAgent,
+                    externalIpLookupUrl = externalIpLookupUrl,
+                    onEditExternalIpLookupUrl = onEditExternalIpLookupUrl,
                 )
                 CleanupSettingsSection(
                     cleanupAutoEnabled = cleanupAutoEnabled,
@@ -769,15 +795,29 @@ private fun ServiceSettingsSection(
 }
 
 @Composable
-private fun NetworkSettingsSection(customUserAgent: String, onEditCustomUserAgent: () -> Unit) {
+private fun NetworkSettingsSection(
+    customUserAgent: String,
+    onEditCustomUserAgent: () -> Unit,
+    externalIpLookupUrl: String,
+    onEditExternalIpLookupUrl: () -> Unit,
+) {
     SmallTitle(MLang.AppSettings.Section.Network)
     Card {
         ConfigSettingRow(
             title = MLang.AppSettings.Network.CustomUserAgentTitle,
             summary =
                 customUserAgent.ifEmpty { MLang.AppSettings.Network.CustomUserAgentSummaryDefault },
-            showDivider = false,
+            showDivider = true,
             onClick = onEditCustomUserAgent,
+        )
+        ConfigSettingRow(
+            title = MLang.AppSettings.Network.ExternalIpLookupUrlTitle,
+            summary =
+                externalIpLookupUrl.ifEmpty {
+                    MLang.AppSettings.Network.ExternalIpLookupUrlSummaryDefault
+                },
+            showDivider = false,
+            onClick = onEditExternalIpLookupUrl,
         )
     }
 }

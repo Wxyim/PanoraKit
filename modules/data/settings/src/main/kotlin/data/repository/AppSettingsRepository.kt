@@ -57,6 +57,8 @@ class AppSettingsRepository(private val storage: AppSettingsStorage) {
 
     val customUserAgent: Preference<String> = storage.customUserAgent
 
+    val externalIpLookupUrl: Preference<String> = storage.externalIpLookupUrl
+
     fun onAppLanguageChange(language: AppLanguage) = appLanguage.set(language)
 
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)

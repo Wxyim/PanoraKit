@@ -33,6 +33,7 @@ import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -43,7 +44,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
     fun start() {
         if (receiver != null) {
-            publishAsync()
+            publishNow()
             return
         }
 
@@ -51,7 +52,11 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
             object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
                     RootPackageShell.invalidateCaches()
-                    publishAsync()
+                    // Debounced: a burst of package events (e.g. system auto-update
+                    // rolling through 20 apps) collapses into a single re-publish.
+                    // The final state of the install list is the only thing the
+                    // mihomo routing table needs.
+                    schedulePublish()
                 }
             }
 
@@ -66,7 +71,9 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
         appContext.registerReceiverCompat(packageReceiver, filter)
         receiver = packageReceiver
-        publishAsync()
+        // Initial sync bypasses the debounce: we want mihomo to know the current
+        // list as soon as the session is up, not 300 ms later.
+        publishNow()
     }
 
     fun stop() {
@@ -79,17 +86,39 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         RootPackageShell.invalidateCaches()
     }
 
-    private fun publishAsync() {
+    /**
+     * Schedule a debounced re-publish. Multiple calls within
+     * [PUBLISH_DEBOUNCE_MS] collapse into a single JNI push. The most recent
+     * call wins; earlier ones are cancelled.
+     */
+    private fun schedulePublish() {
         publishJob?.cancel()
         publishJob =
             scope.launch(Dispatchers.IO) {
-                val mappings = resolveMappings()
-                Clash.notifyInstalledAppsChanged(mappings)
-                Timber.d(
-                    "RuntimeInstalledAppsPublisher published %s app uid mappings",
-                    mappings.size,
-                )
+                delay(PUBLISH_DEBOUNCE_MS)
+                publish()
             }
+    }
+
+    /**
+     * Publish immediately, bypassing the debounce window. Reserved for the
+     * initial sync on session start, where latency matters.
+     */
+    private fun publishNow() {
+        publishJob?.cancel()
+        publishJob =
+            scope.launch(Dispatchers.IO) {
+                publish()
+            }
+    }
+
+    private fun publish() {
+        val mappings = resolveMappings()
+        Clash.notifyInstalledAppsChanged(mappings)
+        Timber.d(
+            "RuntimeInstalledAppsPublisher published %s app uid mappings",
+            mappings.size,
+        )
     }
 
     private fun resolveMappings(): List<Pair<Int, String>> {
@@ -129,5 +158,13 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         } else {
             @Suppress("DEPRECATION") appContext.packageManager.getInstalledPackages(0)
         }
+    }
+
+    private companion object {
+        // 300 ms is short enough to be invisible to a user watching the proxy
+        // state, and long enough to absorb typical broadcast bursts from
+        // auto-update (Google Play typically fans out 5–30 PACKAGE_REPLACED
+        // events within ~100 ms when a batch update lands).
+        private const val PUBLISH_DEBOUNCE_MS = 300L
     }
 }

@@ -43,6 +43,15 @@ object StartupGate {
     private const val VERIFIED_STAMP_KEY = "verified_stamp"
 
     fun verify(application: Application) {
+        // Hard kill-switch: when the build is configured with
+        // `startup.gate.enabled=false`, skip every check (package, class, signer,
+        // APK v2). This is the recommended setting for self-builds where the
+        // maintainer's signing key is not available; the user has explicitly
+        // opted out of the anti-tamper defense by setting the build property.
+        if (!BuildConfig.STARTUP_GATE_ENABLED) {
+            Timber.tag("StartupGate").i("disabled by build configuration (startup.gate.enabled=false)")
+            return
+        }
         val isDebuggable =
             (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val strict = BuildConfig.STARTUP_GATE_STRICT

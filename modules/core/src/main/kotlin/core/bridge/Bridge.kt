@@ -22,10 +22,8 @@
 package com.github.nomadboxlab.monadbox.core.bridge
 
 import android.os.Build
-import android.os.ParcelFileDescriptor
 import androidx.annotation.Keep
 import com.github.nomadboxlab.monadbox.core.Global
-import java.io.File
 
 @Keep
 object Bridge {
@@ -40,9 +38,6 @@ object Bridge {
         System.loadLibrary("bridge")
 
         val ctx = Global.application
-
-        ParcelFileDescriptor.open(File(ctx.packageCodePath), ParcelFileDescriptor.MODE_READ_ONLY)
-            .detachFd()
 
         val home = ctx.filesDir.resolve("clash").apply { mkdirs() }.absolutePath
         val versionName =

@@ -21,22 +21,12 @@
 package com.github.nomadboxlab.monadbox.presentation.screen.node
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
-import com.github.nomadboxlab.monadbox.common.util.LocaleUtil
 import com.github.nomadboxlab.monadbox.presentation.component.CountryFlagCircle
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
-import com.github.panpf.sketch.request.ImageRequest
-import com.github.panpf.sketch.state.IntColorDrawableStateImage
-import java.util.Locale
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -46,39 +36,15 @@ internal fun CountryFlagFilledIcon(
     cornerRadius: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val normalized =
-        remember(countryCode) {
-            LocaleUtil.normalizeRegionCode(countryCode)?.trim()?.uppercase(Locale.ROOT)?.takeIf {
-                it.length == 2 && it.all(Char::isLetter)
-            }
-        }
-
-    if (normalized == null) {
-        CountryFlagCircle(countryCode = countryCode, size = size, modifier = modifier)
-        return
-    }
-
-    val context = LocalContext.current
-    val placeholderColorInt = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f).toArgb()
-    val iconUri =
-        remember(normalized) { "https://flagcdn.com/w80/${normalized.lowercase(Locale.ROOT)}.png" }
-    val request =
-        remember(context, iconUri, placeholderColorInt) {
-            ImageRequest(context, iconUri) {
-                placeholder(IntColorDrawableStateImage(placeholderColorInt))
-                error(IntColorDrawableStateImage(placeholderColorInt))
-                crossfade(true)
-            }
-        }
-
-    SketchAsyncImage(
-        request = request,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
+    // Privacy: render the country code as an emoji flag (offline) instead of fetching
+    // a PNG from https://flagcdn.com on every node-card render. The third party would
+    // otherwise learn which countries the user is viewing.
+    CountryFlagCircle(
+        countryCode = countryCode,
         modifier =
             modifier
-                .size(size)
                 .clip(RoundedCornerShape(cornerRadius))
                 .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        size = size,
     )
 }

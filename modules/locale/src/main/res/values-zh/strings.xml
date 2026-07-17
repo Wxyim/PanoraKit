@@ -123,6 +123,9 @@
     <string name="app_settings_service_section_auto_start_log_recording_summary">进入日志页时自动开启日志录制</string>
     <string name="app_settings_network_custom_user_agent_title">自定义 User-Agent</string>
     <string name="app_settings_network_custom_user_agent_summary_default">未设置，使用默认值</string>
+    <string name="app_settings_network_external_ip_lookup_url_title">外部 IP 查询 URL</string>
+    <string name="app_settings_network_external_ip_lookup_url_summary_default">未设置 — 主页不显示查询按钮</string>
+    <string name="app_settings_network_external_ip_lookup_url_summary_set">手动查询: %s</string>
     <string name="app_settings_cleanup_auto_enabled_title">定时自动清理</string>
     <string name="app_settings_cleanup_auto_enabled_summary">周期检查存储占用，超过阈值时自动清理</string>
     <string name="app_settings_cleanup_policy_title">清理策略</string>

@@ -337,6 +337,17 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
             return
         }
 
+        // Refuse the `debug` build tag: it pulls in lib/native/go/native/debug.go which
+        // exposes an unauthenticated pprof HTTP server on 0.0.0.0:8888, reachable from
+        // the local network. Anyone shipping a release build must not enable it.
+        if (buildTags.contains("debug")) {
+            throw IllegalStateException(
+                "The 'debug' build tag is forbidden in release builds: it would expose " +
+                    "an unauthenticated pprof server on 0.0.0.0:8888. Remove 'debug' from " +
+                    "golang.buildTags in config/kernel.properties before building.",
+            )
+        }
+
         PathBudgetGuard.warn(sourceDir.absolutePath, "Go source")
         PathBudgetGuard.warn(outputDir.absolutePath, "Go output root")
         PathBudgetGuard.warn(appJniRoot.absolutePath, "JNI output root")

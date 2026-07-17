@@ -61,6 +61,10 @@ class AppSettingsViewModel(
 
     val customUserAgent: Preference<String> = repository.customUserAgent
 
+    val externalIpLookupUrl: Preference<String> = repository.externalIpLookupUrl
+
+    fun applyExternalIpLookupUrl(url: String) = externalIpLookupUrl.set(url.trim())
+
     fun onAppLanguageChange(language: AppLanguage) = repository.onAppLanguageChange(language)
 
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)

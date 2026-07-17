@@ -31,7 +31,7 @@ import (
 func TestCompileOverrideAppliesStaticRuntimePatchesWithoutOverrides(t *testing.T) {
 	tmpDir := t.TempDir()
 	profileDir := filepath.Join(tmpDir, "profile")
-	if err := os.MkdirAll(profileDir, 0755); err != nil {
+	if err := os.MkdirAll(profileDir, 0700); err != nil {
 		t.Fatalf("mkdir profile dir: %v", err)
 	}
 
@@ -83,7 +83,7 @@ proxy-groups:
 rules:
   - MATCH,PROXY
 `
-	if err := os.WriteFile(profilePath, []byte(source), 0644); err != nil {
+	if err := os.WriteFile(profilePath, []byte(source), 0600); err != nil {
 		t.Fatalf("write profile: %v", err)
 	}
 

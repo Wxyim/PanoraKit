@@ -460,6 +460,37 @@ object MLangAppSettings {
                 R.string.app_settings_network_custom_user_agent_summary_default,
                 *args,
             )
+
+        val `ExternalIpLookupUrlTitle`: String
+            get() = LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_title
+            )
+
+        @Composable
+        fun `ExternalIpLookupUrlTitle`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_title,
+                *args,
+            )
+
+        val `ExternalIpLookupUrlSummaryDefault`: String
+            get() = LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_summary_default
+            )
+
+        @Composable
+        fun `ExternalIpLookupUrlSummaryDefault`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_summary_default,
+                *args,
+            )
+
+        @Composable
+        fun `ExternalIpLookupUrlSummarySet`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_summary_set,
+                *args,
+            )
     }
 
     object `Cleanup` {

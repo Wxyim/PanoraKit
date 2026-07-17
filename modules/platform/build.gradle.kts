@@ -167,6 +167,11 @@ android {
     val enforceSigner =
         resolveStartupGateBoolean("startup.gate.enforceSigner", defaultValue = false)
     val enforceApkV2 = resolveStartupGateBoolean("startup.gate.enforceApkV2", defaultValue = false)
+    // Hard kill-switch for self-builds. Default = enabled (preserve original
+    // anti-tamper behavior). Set startup.gate.enabled=false in
+    // startup-gate.local.properties to disable every check entirely.
+    val startupGateEnabled =
+        resolveStartupGateBoolean("startup.gate.enabled", defaultValue = true)
     defaultConfig {
         buildConfigField("String", "STARTUP_GATE_EXPECTED_PACKAGE", "\"$expectedPackage\"")
         buildConfigField("String", "STARTUP_GATE_EXPECTED_APP_CLASS", "\"$expectedAppClass\"")
@@ -174,6 +179,7 @@ android {
         buildConfigField("String", "STARTUP_GATE_RELEASE_FINGERPRINT", "\"$releaseFingerprint\"")
         buildConfigField("boolean", "STARTUP_GATE_ENFORCE_SIGNER", enforceSigner.toString())
         buildConfigField("boolean", "STARTUP_GATE_ENFORCE_APK_V2", enforceApkV2.toString())
+        buildConfigField("boolean", "STARTUP_GATE_ENABLED", startupGateEnabled.toString())
     }
     buildFeatures {
         compose = true

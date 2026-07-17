@@ -8,7 +8,7 @@ GOLANG_MAIN="$PROJECT_ROOT/lib/native/go"
 MIHOMO_DIR="$GOLANG_ROOT/mihomo"
 
 usage() {
-  echo "Usage: $(basename "$0") <alpha|meta|smart> [--print-state]"
+  echo "Usage: $(basename "$0") <alpha> [--print-state]"
   exit 1
 }
 
@@ -22,19 +22,8 @@ case "$CHOICE" in
     RELEASE_API_URL=""
     VERSION_SUFFIX=""
     ;;
-  meta|Meta)
-    REPO_URL="https://github.com/MetaCubeX/mihomo.git"
-    RELEASE_TAG=""
-    RELEASE_API_URL="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
-    VERSION_SUFFIX=""
-    ;;
-  smart|Smart)
-    REPO_URL="https://github.com/vernesong/mihomo.git"
-    RELEASE_TAG="Prerelease-Alpha"
-    RELEASE_API_URL=""
-    VERSION_SUFFIX="-Smart"
-    ;;
   *)
+    echo "Only the 'alpha' channel is supported by this build pipeline." >&2
     usage
     ;;
 esac

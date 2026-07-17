@@ -1,13 +1,13 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("alpha", "Alpha", "meta", "Meta", "smart", "Smart")]
+    [ValidateSet("alpha", "Alpha")]
     [string]$Choice
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $Choice) {
-    Write-Host "Usage: sync-kernel.ps1 <alpha|meta|smart>"
+    Write-Host "Usage: sync-kernel.ps1 <alpha>"
     exit 1
 }
 
@@ -24,17 +24,9 @@ switch ($Choice.ToLowerInvariant()) {
         $releaseApiUrl = $null
         $versionSuffix = ""
     }
-    "meta" {
-        $repoUrl = "https://github.com/MetaCubeX/mihomo.git"
-        $releaseTag = $null
-        $releaseApiUrl = "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
-        $versionSuffix = ""
-    }
-    "smart" {
-        $repoUrl = "https://github.com/vernesong/mihomo.git"
-        $releaseTag = "Prerelease-Alpha"
-        $releaseApiUrl = $null
-        $versionSuffix = "-Smart"
+    default {
+        Write-Host "Only the 'alpha' channel is supported by this build pipeline."
+        exit 1
     }
 }
 

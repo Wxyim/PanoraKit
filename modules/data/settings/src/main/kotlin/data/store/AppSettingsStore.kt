@@ -62,4 +62,9 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     val cleanupLastRunAt by longFlow(0L)
 
     val customUserAgent by strFlow("")
+
+    // Privacy: opt-in external-IP lookup. Empty = disabled. The user must tap
+    // "查询" in the home screen to actually trigger the HTTP call. Non-empty
+    // = manual-trigger-only; the home screen will not auto-poll this URL.
+    val externalIpLookupUrl by strFlow("")
 }
