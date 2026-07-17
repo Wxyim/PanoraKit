@@ -39,30 +39,35 @@ jobs:
           else
             current_sha=""
           fi
-          {
-            echo "current_sha=${current_sha}"
-            echo "::notice::Tracked mihomo/alpha @ ${current_sha:-<none>}"
-          } | tee -a "$GITHUB_OUTPUT"
+          echo "current_sha=${current_sha}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Tracked mihomo/alpha @ ${current_sha:-<none>}"
 
       - name: Resolve latest mihomo/alpha revision
         id: resolve
         run: |
           set -euo pipefail
+          # Try peeled ref first (annotated tag), fall back to direct ref
+          # (lightweight tags don't support ^{} dereference).
           new_sha=$(
             git ls-remote https://github.com/MetaCubeX/mihomo.git \
               'refs/tags/Prerelease-Alpha^{}' \
             | awk 'NR==1 {print $1}'
           )
           if [ -z "$new_sha" ]; then
+            new_sha=$(
+              git ls-remote https://github.com/MetaCubeX/mihomo.git \
+                'refs/tags/Prerelease-Alpha' \
+              | awk 'NR==1 {print $1}'
+            )
+          fi
+          if [ -z "$new_sha" ]; then
             echo "::error::Failed to resolve mihomo/alpha revision"
             exit 1
           fi
           new_sha_short=${new_sha:0:8}
-          {
-            echo "new_sha=${new_sha}"
-            echo "new_sha_short=${new_sha_short}"
-            echo "::notice::Latest mihomo/alpha @ ${new_sha}"
-          } | tee -a "$GITHUB_OUTPUT"
+          echo "new_sha=${new_sha}" >> "$GITHUB_OUTPUT"
+          echo "new_sha_short=${new_sha_short}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Latest mihomo/alpha @ ${new_sha}"
 
       - name: Decide whether to build
         id: compare
