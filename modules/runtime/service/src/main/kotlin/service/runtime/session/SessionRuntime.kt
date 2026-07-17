@@ -384,6 +384,7 @@ class SessionRuntime(
 
         teardownCore()
         measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
+        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
@@ -398,7 +399,6 @@ class SessionRuntime(
         )
         host.onStarted(spec)
         startupLog(spec, "runtime ready: payload warm-up continue in background")
-        startInstalledAppsPublisher()
         startObservers()
         notifyRuntimeSideEffects()
         startConnectionTracking()

@@ -48,14 +48,31 @@ class AppIdentityResolver(context: Context) {
                 "appProcess",
             )
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid")
+        val fallbackHost =
+            metadata.firstNonBlankValue(
+                "host",
+                "destinationIP",
+                "destinationIp",
+                "destination-ip",
+                "destination_ip",
+                "dnsName",
+                "dns-name",
+                "dns_name",
+            )
         return resolve(
             explicitPackageName = explicitPackageName,
             processName = processName,
             uid = uid,
+            fallbackHost = fallbackHost,
         )
     }
 
-    fun resolve(explicitPackageName: String, processName: String, uid: Int?): AppIdentity {
+    fun resolve(
+        explicitPackageName: String,
+        processName: String,
+        uid: Int?,
+        fallbackHost: String = "",
+    ): AppIdentity {
         val cacheKey = buildString {
             append(explicitPackageName)
             append('|')
@@ -67,56 +84,77 @@ class AppIdentityResolver(context: Context) {
             return it
         }
 
+        val identity = resolveIdentity(explicitPackageName, processName, uid, fallbackHost)
+
+        // Only cache when there are meaningful identifiers; avoid caching
+        // "Unknown App" for all-empty tuples, which would falsely match
+        // other connections that also have no metadata.
+        if (explicitPackageName.isNotBlank() || processName.isNotBlank() || (uid != null && uid > 0)) {
+            packageCache[cacheKey] = identity
+        }
+        return identity
+    }
+
+    private fun resolveIdentity(
+        explicitPackageName: String,
+        processName: String,
+        uid: Int?,
+        fallbackHost: String,
+    ): AppIdentity {
         val packageName =
             findInstalledPackage(explicitPackageName)
                 ?: resolveByUid(uid)
                 ?: resolveByProcess(processName)
 
-        val identity =
-            when {
-                packageName != null ->
-                    AppIdentity(
-                        appKey = "package:$packageName",
-                        packageName = packageName,
-                        appName = resolveLabel(packageName).ifBlank { packageName },
-                    )
-                explicitPackageName.isNotBlank() ->
-                    AppIdentity(
-                        appKey = "package-hint:$explicitPackageName",
-                        packageName = explicitPackageName,
-                        appName = explicitPackageName,
-                    )
-                uid != null && uid > 0 ->
-                    AppIdentity(
-                        appKey = "uid:$uid",
-                        packageName = null,
-                        appName = processName.ifBlank { "UID $uid" },
-                    )
-                processName.isNotBlank() ->
-                    AppIdentity(
-                        appKey = "process:$processName",
-                        packageName = null,
-                        appName = processName,
-                    )
-                else ->
-                    AppIdentity(
-                        appKey = UNKNOWN_APP_KEY,
-                        packageName = null,
-                        appName = UNKNOWN_APP_NAME,
-                    )
-            }
-
-        packageCache[cacheKey] = identity
-        return identity
+        return when {
+            packageName != null ->
+                AppIdentity(
+                    appKey = "package:$packageName",
+                    packageName = packageName,
+                    appName = resolveLabel(packageName).ifBlank { packageName },
+                )
+            explicitPackageName.isNotBlank() ->
+                AppIdentity(
+                    appKey = "package-hint:$explicitPackageName",
+                    packageName = explicitPackageName,
+                    appName = explicitPackageName,
+                )
+            uid != null && uid > 0 ->
+                AppIdentity(
+                    appKey = "uid:$uid",
+                    packageName = null,
+                    appName = processName.ifBlank { "UID $uid" },
+                )
+            processName.isNotBlank() ->
+                AppIdentity(
+                    appKey = "process:$processName",
+                    packageName = null,
+                    appName = processName,
+                )
+            fallbackHost.isNotBlank() ->
+                AppIdentity(
+                    appKey = UNKNOWN_APP_KEY,
+                    packageName = null,
+                    appName = fallbackHost,
+                )
+            else ->
+                AppIdentity(
+                    appKey = UNKNOWN_APP_KEY,
+                    packageName = null,
+                    appName = UNKNOWN_APP_NAME,
+                )
+        }
     }
 
     private fun resolveByUid(uid: Int?): String? {
         if (uid == null || uid <= 0) return null
-        if (uidCache.containsKey(uid)) return uidCache[uid]
+        uidCache[uid]?.let { return it }
 
         val packageName =
             packageManager.getPackagesForUid(uid)?.firstNotNullOfOrNull(::findInstalledPackage)
-        uidCache[uid] = packageName
+        if (packageName != null) {
+            uidCache[uid] = packageName
+        }
         return packageName
     }
 
