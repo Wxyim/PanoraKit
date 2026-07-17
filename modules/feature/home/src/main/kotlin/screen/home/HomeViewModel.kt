@@ -310,9 +310,9 @@ class HomeViewModel(
     private val externalIpCache = MutableStateFlow<IpInfo?>(null)
 
     val isExternalIpLookupEnabled: StateFlow<Boolean> =
-        appSettings.externalIpLookupUrl.state
-            .map { it.isNotBlank() }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+        combine(appSettings.externalIpLookupUrl.state, isRunning) { url, running ->
+            url.isNotBlank() && running
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
@@ -479,11 +479,13 @@ class HomeViewModel(
      */
     fun queryExternalIp() {
         viewModelScope.launch {
+            val snapshot = runtimeSnapshot.value
+            // VPN must be running before any external IP query is allowed.
+            if (!snapshot.running) return@launch
             // When VPN is on, wait for transport to be fully ready so the
             // request actually goes through the proxy tunnel, not the raw
             // underlying network (which would return the real IP).
-            val snapshot = runtimeSnapshot.value
-            if (snapshot.running && !snapshot.transportReady) return@launch
+            if (!snapshot.transportReady) return@launch
             externalIpQueryInFlight.value = true
             try {
                 val info = networkInfoService.queryExternalIp()
@@ -556,6 +558,7 @@ class HomeViewModel(
         syncDisplayState()
         syncProxyModeState()
         observeProfileChanges()
+        clearExternalIpCacheOnStop()
     }
 
     fun setScreenActive(active: Boolean) {
@@ -580,6 +583,20 @@ class HomeViewModel(
         viewModelScope.launch {
             runCatching { refreshHomeEntryDataUseCase.refreshRuntimePreview() }
                 .onFailure { error -> Timber.d(error, "Skipped home entry preview refresh") }
+        }
+    }
+
+    /**
+     * Clear the cached external IP whenever the VPN is stopped so that
+     * re-enabling the VPN forces a fresh query instead of showing stale data.
+     */
+    private fun clearExternalIpCacheOnStop() {
+        viewModelScope.launch {
+            isRunning.collect { running ->
+                if (!running) {
+                    externalIpCache.value = null
+                }
+            }
         }
     }
 
