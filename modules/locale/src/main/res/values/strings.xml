@@ -5,7 +5,7 @@
     <string name="about_app_description">A customized Android client based on mihomo</string>
     <string name="about_app_version_loading">Loading…</string>
     <string name="about_app_version_failed">Failed to load</string>
-    <string name="about_app_version_with_mihomo">%s · mihomo %s</string>
+    <string name="about_app_version_with_mihomo" formatted="false">%s · mihomo %s</string>
     <string name="about_app_name">MonadBox</string>
     <string name="about_section_project_links">Project Links</string>
     <string name="about_section_credits">Credits</string>
@@ -60,7 +60,7 @@
     <string name="access_control_settings_import">Import from Clipboard</string>
     <string name="access_control_settings_export">Export to Clipboard</string>
     <string name="access_control_settings_import_success">Imported: %d package names</string>
-    <string name="access_control_settings_import_partial">Processed %d lines, added %d, ignored %d</string>
+    <string name="access_control_settings_import_partial" formatted="false">Processed %d lines, added %d, ignored %d</string>
     <string name="access_control_settings_export_success">Copied %d package names to clipboard</string>
     <string name="access_control_settings_import_failed">Import failed</string>
     <string name="access_control_settings_region_quick_select">Region Quick Select</string>
@@ -68,7 +68,7 @@
     <string name="access_control_settings_region_quick_select_summary_manual">Keep only region-matched packages from the selected list</string>
     <string name="access_control_settings_china_apps">China Apps</string>
     <string name="access_control_settings_overseas_apps">Non-China Apps</string>
-    <string name="access_control_settings_region_select_result">Quick selected by \"%s\", total %d</string>
+    <string name="access_control_settings_region_select_result" formatted="false">Quick selected by \"%s\", total %d</string>
     <string name="access_control_sort_mode_package_name">Package Name</string>
     <string name="access_control_sort_mode_label">App Name</string>
     <string name="access_control_sort_mode_install_time">Install Time</string>
@@ -110,7 +110,7 @@
     <string name="app_settings_interface_auto_hide_navbar_summary">Hide navbar on scroll down and show on scroll up</string>
     <string name="app_settings_interface_page_scale_title">Page Scale</string>
     <string name="app_settings_interface_page_scale_summary">Adjust the overall UI scaling ratio of the app</string>
-    <string name="app_settings_interface_page_scale_range">80% - 120%</string>
+    <string name="app_settings_interface_page_scale_range" formatted="false">80% - 120%</string>
     <string name="app_settings_interface_hide_icon_title">Hide App Icon</string>
     <string name="app_settings_interface_hide_icon_summary">After hiding, you can open via dialer *#*#0721#*#*</string>
     <string name="app_settings_interface_hide_from_recents_title">Hide Recents Card</string>
@@ -144,7 +144,7 @@
     <string name="app_settings_cleanup_last_run_summary">Last run: %s</string>
     <string name="app_settings_cleanup_last_run_never">Never cleaned yet</string>
     <string name="app_settings_cleanup_archive_skipped">no-archive</string>
-    <string name="app_settings_cleanup_cleanup_now_success">Cleanup completed, freed %s MB, archive: %s</string>
+    <string name="app_settings_cleanup_cleanup_now_success" formatted="false">Cleanup completed, freed %s MB, archive: %s</string>
     <string name="app_settings_cleanup_cleanup_now_skipped">Cleanup skipped</string>
     <string name="app_settings_warning_dialog_title">Warning</string>
     <string name="app_settings_warning_dialog_hide_icon_msg1">Please make sure you can access this app\'s settings before hiding!</string>
@@ -160,9 +160,9 @@
     <string name="component_profile_card_local_file">Local File</string>
     <string name="component_profile_card_local_config">Local Configuration</string>
     <string name="component_profile_card_click_to_update">Click update to get subscription info</string>
-    <string name="component_profile_card_traffic">Traffic: %s / %s (%d%%)</string>
+    <string name="component_profile_card_traffic" formatted="false">Traffic: %s / %s (%d%%)</string>
     <string name="component_profile_card_used_traffic">Used: %s</string>
-    <string name="component_profile_card_expire_at">Expires: %s (%d days left)</string>
+    <string name="component_profile_card_expire_at" formatted="false">Expires: %s (%d days left)</string>
     <string name="component_profile_card_expire_today">Expires: Today</string>
     <string name="component_profile_card_expired">Expired: %s</string>
     <string name="component_profile_card_just_now">Just now</string>
@@ -208,7 +208,7 @@
     <string name="component_update_message_downloading">Downloading update package…</string>
     <string name="component_update_message_download_ready">Download complete, ready to install</string>
     <string name="component_update_message_verify_failed">Package verification failed, please retry</string>
-    <string name="component_update_message_download_error_with_code">Download failed (%d): %s</string>
+    <string name="component_update_message_download_error_with_code" formatted="false">Download failed (%d): %s</string>
     <string name="component_update_message_error">Download failed, please try again later</string>
     <string name="component_update_message_close">Got it</string>
     <string name="component_update_message_waiting">Waiting for download…</string>
@@ -358,10 +358,10 @@
     <string name="log_history_title">Runtime Log Archives</string>
     <string name="log_history_live_section">Live Runtime Logs (Current Session)</string>
     <string name="log_history_recording">Recording</string>
-    <string name="log_history_item_summary">%s · %s</string>
+    <string name="log_history_item_summary" formatted="false">%s · %s</string>
     <string name="log_startup_title">Startup Diagnostics</string>
     <string name="log_startup_live_section">Startup Phase Diagnostics</string>
-    <string name="log_startup_item_summary">%s · %s</string>
+    <string name="log_startup_item_summary" formatted="false">%s · %s</string>
     <string name="meta_feature_title">Meta Features</string>
     <string name="meta_feature_recent_requests_title">Recent Requests</string>
     <string name="meta_feature_recent_requests_summary">View recent requests and traffic statistics</string>
@@ -379,7 +379,7 @@
     <string name="meta_feature_geo_x_online_update_summary">Download Database</string>
     <string name="meta_feature_download_dialog_title">Update GeoX Online</string>
     <string name="meta_feature_download_select_files">Please select files to update</string>
-    <string name="meta_feature_download_download_complete">Download complete: %d/%d</string>
+    <string name="meta_feature_download_download_complete" formatted="false">Download complete: %d/%d</string>
     <string name="meta_feature_dashboard_title">Web Dashboard</string>
     <string name="meta_feature_dashboard_port">Dashboard Port</string>
     <string name="meta_feature_dashboard_port_summary">Configure the port for the web dashboard</string>
@@ -400,8 +400,8 @@
     <string name="network_settings_section_root_tun_advanced">Advanced Parameters</string>
     <string name="network_settings_vpn_service_route_traffic_title">Route System Traffic</string>
     <string name="network_settings_vpn_service_route_traffic_summary">Select which proxy mode should take over system traffic</string>
-    <string name="network_settings_vpn_service_route_traffic_effective">Effective now: %s; configured target: %s</string>
-    <string name="network_settings_vpn_service_route_traffic_applying">Applying serial switch: %s -&gt; %s</string>
+    <string name="network_settings_vpn_service_route_traffic_effective" formatted="false">Effective now: %s; configured target: %s</string>
+    <string name="network_settings_vpn_service_route_traffic_applying" formatted="false">Applying serial switch: %s -&gt; %s</string>
     <string name="network_settings_vpn_service_vpn_mode">VPN Mode</string>
     <string name="network_settings_vpn_service_root_tun_mode">Root TUN</string>
     <string name="network_settings_vpn_service_system_proxy">HTTP System Proxy</string>
@@ -868,8 +868,8 @@
     <string name="override_form_skip_src_address">Skip Src Address</string>
     <string name="override_form_skip_dst_address">Skip Dst Address</string>
     <string name="override_rule_empty_warning">Rule #%d is empty</string>
-    <string name="override_rule_invalid_format_warning">Rule #%d format may be incorrect: %s</string>
-    <string name="override_rule_missing_target_warning">Rule #%d missing policy group target: %s</string>
+    <string name="override_rule_invalid_format_warning" formatted="false">Rule #%d format may be incorrect: %s</string>
+    <string name="override_rule_missing_target_warning" formatted="false">Rule #%d missing policy group target: %s</string>
     <string name="override_save_preset_not_modifiable">System preset cannot be modified</string>
     <string name="override_save_apply_failed">Override saved, but failed to reapply to current config</string>
     <string name="override_save_failed">Failed to save override config</string>
@@ -1055,7 +1055,7 @@
     <string name="providers_transport_file">Local File</string>
     <string name="providers_transport_inline">Inline</string>
     <string name="providers_transport_compatible">Compatible</string>
-    <string name="providers_summary_override_interval_and_count">Update every %d s · %d rules</string>
+    <string name="providers_summary_override_interval_and_count" formatted="false">Update every %d s · %d rules</string>
     <string name="providers_summary_item_count">%d items</string>
     <string name="providers_message_fetch_failed">Failed to fetch resources: %s</string>
     <string name="providers_message_update_success">%s updated successfully</string>

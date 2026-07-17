@@ -5,7 +5,7 @@
     <string name="about_app_description">一个基于 mihomo 的定制化 Android 客户端</string>
     <string name="about_app_version_loading">加载中…</string>
     <string name="about_app_version_failed">加载失败</string>
-    <string name="about_app_version_with_mihomo">%s · mihomo %s</string>
+    <string name="about_app_version_with_mihomo" formatted="false">%s · mihomo %s</string>
     <string name="about_app_name">MonadBox</string>
     <string name="about_section_project_links">项目链接</string>
     <string name="about_section_credits">鸣谢</string>
@@ -60,7 +60,7 @@
     <string name="access_control_settings_import">从剪贴板导入</string>
     <string name="access_control_settings_export">导出到剪贴板</string>
     <string name="access_control_settings_import_success">导入成功：%d 个包名</string>
-    <string name="access_control_settings_import_partial">导入 %d 行，新增 %d 个，忽略 %d 个</string>
+    <string name="access_control_settings_import_partial" formatted="false">导入 %d 行，新增 %d 个，忽略 %d 个</string>
     <string name="access_control_settings_export_success">已复制 %d 个包名到剪贴板</string>
     <string name="access_control_settings_import_failed">导入失败</string>
     <string name="access_control_settings_region_quick_select">地区快捷选择</string>
@@ -68,7 +68,7 @@
     <string name="access_control_settings_region_quick_select_summary_manual">仅保留当前已选包名中的地区匹配项</string>
     <string name="access_control_settings_china_apps">中国应用</string>
     <string name="access_control_settings_overseas_apps">非中国应用</string>
-    <string name="access_control_settings_region_select_result">已按「%s」快捷选择，共 %d 个</string>
+    <string name="access_control_settings_region_select_result" formatted="false">已按「%s」快捷选择，共 %d 个</string>
     <string name="access_control_sort_mode_package_name">包名</string>
     <string name="access_control_sort_mode_label">应用名称</string>
     <string name="access_control_sort_mode_install_time">安装时间</string>
@@ -110,7 +110,7 @@
     <string name="app_settings_interface_auto_hide_navbar_summary">向下滑动时自动隐藏底栏，向上滑动时显示</string>
     <string name="app_settings_interface_page_scale_title">页面缩放</string>
     <string name="app_settings_interface_page_scale_summary">调整应用界面的整体缩放比例</string>
-    <string name="app_settings_interface_page_scale_range">80% - 120%</string>
+    <string name="app_settings_interface_page_scale_range" formatted="false">80% - 120%</string>
     <string name="app_settings_interface_hide_icon_title">隐藏应用图标</string>
     <string name="app_settings_interface_hide_icon_summary">隐藏后可通过拨号盘 *#*#0721#*#* 打开</string>
     <string name="app_settings_interface_hide_from_recents_title">隐藏后台卡片</string>
@@ -144,7 +144,7 @@
     <string name="app_settings_cleanup_last_run_summary">上次清理：%s</string>
     <string name="app_settings_cleanup_last_run_never">尚未执行过清理</string>
     <string name="app_settings_cleanup_archive_skipped">无归档</string>
-    <string name="app_settings_cleanup_cleanup_now_success">清理完成，释放 %s MB，归档：%s</string>
+    <string name="app_settings_cleanup_cleanup_now_success" formatted="false">清理完成，释放 %s MB，归档：%s</string>
     <string name="app_settings_cleanup_cleanup_now_skipped">本次未触发清理</string>
     <string name="app_settings_warning_dialog_title">警告</string>
     <string name="app_settings_warning_dialog_hide_icon_msg1">请在隐藏之前确认你能够访问本应用的设置界面！</string>
@@ -160,9 +160,9 @@
     <string name="component_profile_card_local_file">本地文件</string>
     <string name="component_profile_card_local_config">本地配置文件</string>
     <string name="component_profile_card_click_to_update">点击更新获取订阅信息</string>
-    <string name="component_profile_card_traffic">流量：%s / %s (%d%%)</string>
+    <string name="component_profile_card_traffic" formatted="false">流量：%s / %s (%d%%)</string>
     <string name="component_profile_card_used_traffic">已用：%s</string>
-    <string name="component_profile_card_expire_at">到期：%s (剩余%d 天)</string>
+    <string name="component_profile_card_expire_at" formatted="false">到期：%s (剩余%d 天)</string>
     <string name="component_profile_card_expire_today">到期：今天</string>
     <string name="component_profile_card_expired">已过期：%s</string>
     <string name="component_profile_card_just_now">刚刚</string>
@@ -208,7 +208,7 @@
     <string name="component_update_message_downloading">正在下载更新包…</string>
     <string name="component_update_message_download_ready">下载完成，准备安装</string>
     <string name="component_update_message_verify_failed">安装包校验失败，请重试</string>
-    <string name="component_update_message_download_error_with_code">下载失败 (%d): %s</string>
+    <string name="component_update_message_download_error_with_code" formatted="false">下载失败 (%d): %s</string>
     <string name="component_update_message_error">下载失败，请稍后重试</string>
     <string name="component_update_message_close">知道了</string>
     <string name="component_update_message_waiting">等待下载开始…</string>
@@ -358,10 +358,10 @@
     <string name="log_history_title">运行日志归档</string>
     <string name="log_history_live_section">实时运行日志（当前会话）</string>
     <string name="log_history_recording">记录中</string>
-    <string name="log_history_item_summary">%s · %s</string>
+    <string name="log_history_item_summary" formatted="false">%s · %s</string>
     <string name="log_startup_title">启动诊断日志</string>
     <string name="log_startup_live_section">启动阶段诊断</string>
-    <string name="log_startup_item_summary">%s · %s</string>
+    <string name="log_startup_item_summary" formatted="false">%s · %s</string>
     <string name="meta_feature_title">Meta 功能</string>
     <string name="meta_feature_recent_requests_title">最近请求</string>
     <string name="meta_feature_recent_requests_summary">查看最近请求与流量统计</string>
@@ -379,7 +379,7 @@
     <string name="meta_feature_geo_x_online_update_summary">下载数据库文件</string>
     <string name="meta_feature_download_dialog_title">更新 GeoX</string>
     <string name="meta_feature_download_select_files">请选择要更新的文件</string>
-    <string name="meta_feature_download_download_complete">下载完成：%d/%d</string>
+    <string name="meta_feature_download_download_complete" formatted="false">下载完成：%d/%d</string>
     <string name="meta_feature_dashboard_title">网页控制面板</string>
     <string name="meta_feature_dashboard_port">控制面板端口</string>
     <string name="meta_feature_dashboard_port_summary">配置网页控制面板的端口</string>
@@ -400,8 +400,8 @@
     <string name="network_settings_section_root_tun_advanced">高级参数</string>
     <string name="network_settings_vpn_service_route_traffic_title">路由系统流量</string>
     <string name="network_settings_vpn_service_route_traffic_summary">选择当前用于接管系统流量的代理模式</string>
-    <string name="network_settings_vpn_service_route_traffic_effective">当前生效：%s；目标配置：%s</string>
-    <string name="network_settings_vpn_service_route_traffic_applying">正在串行切换：%s → %s</string>
+    <string name="network_settings_vpn_service_route_traffic_effective" formatted="false">当前生效：%s；目标配置：%s</string>
+    <string name="network_settings_vpn_service_route_traffic_applying" formatted="false">正在串行切换：%s → %s</string>
     <string name="network_settings_vpn_service_vpn_mode">VPN 模式</string>
     <string name="network_settings_vpn_service_root_tun_mode">Root TUN</string>
     <string name="network_settings_vpn_service_system_proxy">HTTP 系统代理</string>
@@ -868,8 +868,8 @@
     <string name="override_form_skip_src_address">跳过来源地址</string>
     <string name="override_form_skip_dst_address">跳过目标地址</string>
     <string name="override_rule_empty_warning">规则 #%d 为空</string>
-    <string name="override_rule_invalid_format_warning">规则 #%d 格式可能不正确: %s</string>
-    <string name="override_rule_missing_target_warning">规则 #%d 缺少策略组目标: %s</string>
+    <string name="override_rule_invalid_format_warning" formatted="false">规则 #%d 格式可能不正确: %s</string>
+    <string name="override_rule_missing_target_warning" formatted="false">规则 #%d 缺少策略组目标: %s</string>
     <string name="override_save_preset_not_modifiable">系统预设不可修改</string>
     <string name="override_save_apply_failed">覆写已保存，但重新应用到当前配置失败</string>
     <string name="override_save_failed">保存覆写配置失败</string>
@@ -1055,7 +1055,7 @@
     <string name="providers_transport_file">本地文件</string>
     <string name="providers_transport_inline">内联</string>
     <string name="providers_transport_compatible">兼容</string>
-    <string name="providers_summary_override_interval_and_count">更新间隔 %d 秒 · 规则 %d 条</string>
+    <string name="providers_summary_override_interval_and_count" formatted="false">更新间隔 %d 秒 · 规则 %d 条</string>
     <string name="providers_summary_item_count">%d 项</string>
     <string name="providers_message_fetch_failed">获取外部资源失败: %s</string>
     <string name="providers_message_update_success">%s 更新成功</string>
