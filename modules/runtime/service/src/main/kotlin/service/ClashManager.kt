@@ -128,17 +128,23 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun patchSelector(group: String, name: String): Boolean {
-        return Clash.patchSelector(group, name).also {
-            val current = store.activeProfile ?: return@also
+        val ok = Clash.patchSelector(group, name)
+        val current = store.activeProfile
+        if (current == null) return ok
 
-            if (it) {
-                SelectionDao.setSelected(Selection(current, group, name))
-                externalCandidates.remove(selectionKey(current.toString(), group))
-            } else {
-                SelectionDao.remove(current, group)
-                externalCandidates.remove(selectionKey(current.toString(), group))
-            }
+        if (ok) {
+            SelectionDao.setSelected(Selection(current, group, name))
+            externalCandidates.remove(selectionKey(current.toString(), group))
+        } else if (!StatusProvider.serviceRunning) {
+            // Core not running — persist selection so it applies when VPN starts.
+            SelectionDao.setSelected(Selection(current, group, name))
+            externalCandidates.remove(selectionKey(current.toString(), group))
+            return true
+        } else {
+            SelectionDao.remove(current, group)
+            externalCandidates.remove(selectionKey(current.toString(), group))
         }
+        return ok
     }
 
     override fun closeConnection(id: String): Boolean {

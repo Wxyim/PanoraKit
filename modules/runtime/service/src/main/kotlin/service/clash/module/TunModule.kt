@@ -27,6 +27,7 @@ import android.os.Build
 import androidx.core.content.getSystemService
 import com.github.nomadboxlab.monadbox.core.Clash
 import com.github.nomadboxlab.monadbox.core.util.parseInetSocketAddress
+import com.github.nomadboxlab.monadbox.service.common.util.ProcFsUidResolver
 import java.net.InetSocketAddress
 import java.security.SecureRandom
 import kotlinx.coroutines.NonCancellable
@@ -50,8 +51,18 @@ class TunModule(private val vpn: VpnService) : Module<Unit>(vpn) {
 
         val manager = connectivity ?: return -1
 
-        return runCatching { manager.getConnectionOwnerUid(protocol, source, target) }
-            .getOrElse { -1 }
+        val uid =
+            runCatching { manager.getConnectionOwnerUid(protocol, source, target) }
+                .getOrElse { -1 }
+        if (uid > 0) return uid
+
+        // getConnectionOwnerUid is unreliable for UDP sockets.
+        // Fall back to reading /proc/net/udp[6] to resolve the UID.
+        if (uid <= 0) {
+            val procUid = ProcFsUidResolver.resolveUdpUid(source)
+            if (procUid > 0) return procUid
+        }
+        return -1
     }
 
     override suspend fun run() {

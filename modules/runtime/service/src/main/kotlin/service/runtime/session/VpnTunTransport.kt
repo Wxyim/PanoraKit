@@ -30,6 +30,7 @@ import com.github.nomadboxlab.monadbox.core.util.parseInetSocketAddress
 import com.github.nomadboxlab.monadbox.runtime.service.R
 import com.github.nomadboxlab.monadbox.service.common.compat.pendingIntentFlags
 import com.github.nomadboxlab.monadbox.service.common.constants.Components
+import com.github.nomadboxlab.monadbox.service.common.util.ProcFsUidResolver
 import com.github.nomadboxlab.monadbox.service.runtime.config.AccessControlMode
 import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
 import com.github.nomadboxlab.monadbox.service.runtime.util.parseCIDR
@@ -186,8 +187,18 @@ class VpnTunTransport(
             return -1
         }
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
-        return runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
-            .getOrDefault(-1)
+        val uid =
+            runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
+                .getOrDefault(-1)
+        if (uid > 0) return uid
+
+        // getConnectionOwnerUid is unreliable for UDP sockets.
+        // Fall back to reading /proc/net/udp[6] to resolve the UID.
+        if (uid <= 0) {
+            val procUid = ProcFsUidResolver.resolveUdpUid(source)
+            if (procUid > 0) return procUid
+        }
+        return -1
     }
 
     private data class TunDevice(
