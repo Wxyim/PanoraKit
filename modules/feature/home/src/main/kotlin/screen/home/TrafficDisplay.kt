@@ -407,7 +407,7 @@ private fun ReservedMetricText(
     val density = LocalDensity.current
     val heightModifier =
         if (style.lineHeight.isSpecified) {
-            Modifier.height(density.toDp(style.lineHeight))
+            with(density) { Modifier.height(toDp(toPx(style.lineHeight))) }
         } else {
             Modifier
         }
