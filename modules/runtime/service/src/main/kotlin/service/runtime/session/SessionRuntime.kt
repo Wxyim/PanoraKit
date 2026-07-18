@@ -384,6 +384,7 @@ class SessionRuntime(
 
         teardownCore()
         measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
+        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
         measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
@@ -403,7 +404,6 @@ class SessionRuntime(
         notifyRuntimeSideEffects()
         startConnectionTracking()
         measureStartupStep(spec, "runtime groups ready") { awaitProxyGroupsReady(spec) }
-        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
         measureStartupStep(spec, "runtime snapshot refresh") { refreshRuntimeSnapshotWithLog(spec) }
 

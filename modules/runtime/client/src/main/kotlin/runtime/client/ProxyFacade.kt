@@ -534,7 +534,21 @@ class ProxyFacade(
         connectCurrentBackend()
         val ok = ServiceClient.clash().patchSelector(group, proxyName)
         if (ok) {
-            delay(200.milliseconds)
+            // When the core is not running, update the UI optimistically
+            // so the selection is visible immediately — no need to wait for
+            // the full config re-compilation (previewGroups can be slow).
+            val snapshot = runtimeSnapshot.value
+            if (!snapshot.running) {
+                val current = proxyGroups.value.toMutableList()
+                val index = current.indexOfFirst { it.name == group }
+                if (index >= 0) {
+                    current[index] = current[index].copy(now = proxyName)
+                    runtimeState.setProxyGroups(current)
+                }
+            }
+            if (snapshot.running) {
+                delay(200.milliseconds)
+            }
             refreshProxyGroups()
         }
         return ok
