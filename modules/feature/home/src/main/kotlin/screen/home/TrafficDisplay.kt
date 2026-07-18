@@ -136,7 +136,14 @@ fun TrafficDisplay(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
                 ) {
-                    DownloadSection(downloadSpeed = trafficNow.download, metrics = metrics)
+                    val useVerticalLayout =
+                        !availableAdaptiveInfo.isExpandedWidth &&
+                            !availableAdaptiveInfo.isMediumWidth
+                    DownloadSection(
+                        downloadSpeed = trafficNow.download,
+                        metrics = metrics,
+                        useVerticalLayout = useVerticalLayout,
+                    )
                     UploadSection(uploadSpeed = trafficNow.upload, metrics = metrics)
                 }
 
@@ -189,7 +196,11 @@ fun TrafficDisplay(
 }
 
 @Composable
-private fun DownloadSection(downloadSpeed: Long, metrics: HomeTrafficMetrics) {
+private fun DownloadSection(
+    downloadSpeed: Long,
+    metrics: HomeTrafficMetrics,
+    useVerticalLayout: Boolean = false,
+) {
     Column(
         modifier = Modifier.testTag(TestTags.Home.DownloadSpeed),
         horizontalAlignment = Alignment.Start,
@@ -200,7 +211,11 @@ private fun DownloadSection(downloadSpeed: Long, metrics: HomeTrafficMetrics) {
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
 
-        SpeedValue(speed = downloadSpeed, metrics = metrics)
+        SpeedValue(
+            speed = downloadSpeed,
+            metrics = metrics,
+            useVerticalLayout = useVerticalLayout,
+        )
     }
 }
 
@@ -300,7 +315,11 @@ private fun ProfileModeBadge(
 }
 
 @Composable
-private fun SpeedValue(speed: Long, metrics: HomeTrafficMetrics) {
+private fun SpeedValue(
+    speed: Long,
+    metrics: HomeTrafficMetrics,
+    useVerticalLayout: Boolean = false,
+) {
     val (value, unit) = formatBytesForDisplay(speed)
     val valueStyle =
         MiuixTheme.textStyles.headline1.copy(
@@ -311,24 +330,41 @@ private fun SpeedValue(speed: Long, metrics: HomeTrafficMetrics) {
     val unitStyle = MiuixTheme.textStyles.title2.copy(fontSize = metrics.trafficUnitFontSize)
     val primary = MiuixTheme.colorScheme.primary
 
-    Row(verticalAlignment = Alignment.Bottom) {
-        ReservedMetricText(
-            text = value,
-            placeholder = DOWNLOAD_SPEED_VALUE_PLACEHOLDER,
-            style = valueStyle,
-            color = primary,
-        )
-        ReservedMetricText(
-            text = unit,
-            placeholder = SPEED_UNIT_PLACEHOLDER,
-            style = unitStyle,
-            color = primary.copy(alpha = 0.5f),
-            modifier =
-                Modifier.padding(
-                    bottom = metrics.unitBottomPadding,
-                    start = metrics.unitStartPadding,
-                ),
-        )
+    if (useVerticalLayout) {
+        Column(horizontalAlignment = Alignment.End) {
+            ReservedMetricText(
+                text = value,
+                placeholder = DOWNLOAD_SPEED_VALUE_PLACEHOLDER,
+                style = valueStyle,
+                color = primary,
+            )
+            ReservedMetricText(
+                text = unit,
+                placeholder = SPEED_UNIT_PLACEHOLDER,
+                style = unitStyle,
+                color = primary.copy(alpha = 0.5f),
+            )
+        }
+    } else {
+        Row(verticalAlignment = Alignment.Bottom) {
+            ReservedMetricText(
+                text = value,
+                placeholder = DOWNLOAD_SPEED_VALUE_PLACEHOLDER,
+                style = valueStyle,
+                color = primary,
+            )
+            ReservedMetricText(
+                text = unit,
+                placeholder = SPEED_UNIT_PLACEHOLDER,
+                style = unitStyle,
+                color = primary.copy(alpha = 0.5f),
+                modifier =
+                    Modifier.padding(
+                        bottom = metrics.unitBottomPadding,
+                        start = metrics.unitStartPadding,
+                    ),
+            )
+        }
     }
 }
 
