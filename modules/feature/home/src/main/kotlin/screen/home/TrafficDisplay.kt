@@ -127,18 +127,29 @@ fun TrafficDisplay(
                     .padding(top = metrics.topPadding, bottom = metrics.bottomPadding),
             verticalArrangement = Arrangement.spacedBy(metrics.capsuleSectionSpacing),
         ) {
+            val compact =
+                !availableAdaptiveInfo.isExpandedWidth &&
+                    !availableAdaptiveInfo.isMediumWidth
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier =
+                        Modifier.weight(1f).then(
+                            if (compact) {
+                                Modifier.heightIn(
+                                    min =
+                                        metrics.controlTouchTargetHeight * 2 +
+                                            metrics.controlStackSpacing
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
                     verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
                 ) {
-                    val compact =
-                        !availableAdaptiveInfo.isExpandedWidth &&
-                            !availableAdaptiveInfo.isMediumWidth
                     DownloadSection(
                         downloadSpeed = trafficNow.download,
                         metrics = metrics,
