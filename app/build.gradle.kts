@@ -92,14 +92,10 @@ android {
     androidResources { generateLocaleConfig = false }
 
     lint {
-        // Fail CI/release builds on new issues, but allow current known issues via baseline.
-        // Create the baseline file by running `./gradlew :app:lintDebug`
-        // (if baseline does not exist, it will be generated).
         abortOnError = true
         warningsAsErrors = false
         checkReleaseBuilds = true
         checkDependencies = true
-        baseline = file("lint-baseline.xml")
         disable +=
             setOf(
                 // Handled by our own checkGithubOssLicensePolicy task; lint false-positives here.
