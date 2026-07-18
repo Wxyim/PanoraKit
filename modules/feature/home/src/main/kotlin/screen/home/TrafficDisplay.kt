@@ -72,9 +72,10 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private const val DOWNLOAD_SPEED_VALUE_PLACEHOLDER = "8888"
+private const val DOWNLOAD_SPEED_VALUE_PLACEHOLDER = "888.8"
 private const val SPEED_UNIT_PLACEHOLDER = "GB/s"
-private const val UPLOAD_SPEED_PLACEHOLDER = "8888 GB/s"
+private const val DOWNLOAD_COMPACT_PLACEHOLDER = "888.8 GB/s"
+private const val UPLOAD_SPEED_PLACEHOLDER = "888.8 GB/s"
 
 private enum class HomeControlTone {
     Primary,
@@ -135,13 +136,13 @@ fun TrafficDisplay(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
                 ) {
-                    val useVerticalLayout =
+                    val compact =
                         !availableAdaptiveInfo.isExpandedWidth &&
                             !availableAdaptiveInfo.isMediumWidth
                     DownloadSection(
                         downloadSpeed = trafficNow.download,
                         metrics = metrics,
-                        useVerticalLayout = useVerticalLayout,
+                        compact = compact,
                     )
                     UploadSection(uploadSpeed = trafficNow.upload, metrics = metrics)
                 }
@@ -198,7 +199,7 @@ fun TrafficDisplay(
 private fun DownloadSection(
     downloadSpeed: Long,
     metrics: HomeTrafficMetrics,
-    useVerticalLayout: Boolean = false,
+    compact: Boolean = false,
 ) {
     Column(
         modifier = Modifier.testTag(TestTags.Home.DownloadSpeed),
@@ -213,7 +214,7 @@ private fun DownloadSection(
         SpeedValue(
             speed = downloadSpeed,
             metrics = metrics,
-            useVerticalLayout = useVerticalLayout,
+            compact = compact,
         )
     }
 }
@@ -317,38 +318,32 @@ private fun ProfileModeBadge(
 private fun SpeedValue(
     speed: Long,
     metrics: HomeTrafficMetrics,
-    useVerticalLayout: Boolean = false,
+    compact: Boolean = false,
 ) {
     val (value, unit) = formatBytesForDisplay(speed)
-    val valueStyle =
-        MiuixTheme.textStyles.headline1.copy(
-            fontSize = metrics.trafficFontSize,
-            lineHeight = metrics.trafficFontSize,
-            letterSpacing = metrics.trafficLetterSpacing,
-        )
-    val unitStyle = MiuixTheme.textStyles.title2.copy(fontSize = metrics.trafficUnitFontSize)
     val primary = MiuixTheme.colorScheme.primary
 
-    if (useVerticalLayout) {
-        Column(horizontalAlignment = Alignment.End) {
-            ReservedMetricText(
-                text = value,
-                placeholder = DOWNLOAD_SPEED_VALUE_PLACEHOLDER,
-                style = valueStyle,
-                color = primary,
-            )
-            ReservedMetricText(
-                text = unit,
-                placeholder = SPEED_UNIT_PLACEHOLDER,
-                style = unitStyle,
-                color = primary.copy(alpha = 0.5f),
-            )
-        }
+    if (compact) {
+        val compactStyle = MiuixTheme.textStyles.title2.copy(fontSize = metrics.uploadValueFontSize)
+        ReservedMetricText(
+            text = "$value $unit",
+            placeholder = DOWNLOAD_COMPACT_PLACEHOLDER,
+            style = compactStyle,
+            color = primary,
+        )
     } else {
+        val valueStyle =
+            MiuixTheme.textStyles.headline1.copy(
+                fontSize = metrics.trafficFontSize,
+                lineHeight = metrics.trafficFontSize,
+                letterSpacing = metrics.trafficLetterSpacing,
+            )
+        val unitStyle = MiuixTheme.textStyles.title2.copy(fontSize = metrics.trafficUnitFontSize)
+
         Row(verticalAlignment = Alignment.Bottom) {
             ReservedMetricText(
-                text = value,
-                placeholder = DOWNLOAD_SPEED_VALUE_PLACEHOLDER,
+                text = "$value ",
+                placeholder = "$DOWNLOAD_SPEED_VALUE_PLACEHOLDER ",
                 style = valueStyle,
                 color = primary,
             )
@@ -357,11 +352,6 @@ private fun SpeedValue(
                 placeholder = SPEED_UNIT_PLACEHOLDER,
                 style = unitStyle,
                 color = primary.copy(alpha = 0.5f),
-                modifier =
-                    Modifier.padding(
-                        bottom = metrics.unitBottomPadding,
-                        start = metrics.unitStartPadding,
-                    ),
             )
         }
     }
@@ -412,8 +402,8 @@ private fun ReservedMetricText(
             Modifier
         }
     Box(modifier = modifier.then(heightModifier), contentAlignment = Alignment.BottomStart) {
-        Text(text = placeholder, style = style, color = color.copy(alpha = 0f), maxLines = 1)
-        Text(text = text, style = style, color = color, maxLines = 1, overflow = TextOverflow.Clip)
+        Text(text = placeholder, style = style, color = color.copy(alpha = 0f), maxLines = 1, softWrap = false)
+        Text(text = text, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false)
     }
 }
 
