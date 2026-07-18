@@ -32,7 +32,7 @@ import org.koin.dsl.module
 val homeDiModule = module {
     single { RefreshHomeEntryDataUseCase(get(), get()) }
     single { ReloadHomeProfileUseCase(get(), get()) }
-    single { StartHomeProxyUseCase(androidApplication(), get(), get(), get()) }
+    single { StartHomeProxyUseCase(androidApplication(), get(), get(), get(), get()) }
     single { StopHomeProxyUseCase(get()) }
 
     viewModel {

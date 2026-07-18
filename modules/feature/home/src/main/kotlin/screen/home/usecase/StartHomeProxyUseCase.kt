@@ -23,6 +23,7 @@ package com.github.nomadboxlab.monadbox.feature.home.usecase
 import android.app.Application
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionExecutor
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
@@ -38,6 +39,7 @@ class StartHomeProxyUseCase(
     private val networkSettingsStorage: NetworkSettingsStorage,
     private val logRecordGateway: LogRecordGateway,
     private val runtimeActionExecutor: RuntimeActionExecutor,
+    private val appSettings: AppSettingsStorage,
 ) {
     fun resolveMode(mode: ProxyMode?): ProxyMode {
         return mode ?: networkSettingsStorage.proxyMode.value
@@ -47,7 +49,7 @@ class StartHomeProxyUseCase(
         profileId: String,
         mode: ProxyMode,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
-        if (!logRecordGateway.isRecording) {
+        if (appSettings.autoStartLogRecording.value && !logRecordGateway.isRecording) {
             runCatching { logRecordGateway.start(application) }
                 .onFailure { error -> Timber.d(error, "Skipped eager log recording start") }
         }

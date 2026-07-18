@@ -169,7 +169,10 @@ class LogRecordService : Service() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action ?: return) {
                     Intents.ACTION_CLASH_STARTED -> scheduleSessionRolloverAndAttach()
-                    Intents.ACTION_CLASH_STOPPED -> scheduleObserverDetach()
+                    Intents.ACTION_CLASH_STOPPED -> {
+                        scheduleObserverDetach()
+                        if (isRecording) stopRecording()
+                    }
                 }
             }
         }
