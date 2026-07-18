@@ -134,9 +134,7 @@ internal object ProcFsUidResolver {
         }
     }
 
-    private companion object {
-        const val POLL_INTERVAL_MS = 250L
-    }
+    private const val POLL_INTERVAL_MS = 250L
 
     /**
      * Try to resolve the UID of a UDP socket via `/proc/net/udp[6]`.
