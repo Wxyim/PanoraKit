@@ -118,25 +118,23 @@ private fun IpInfoRow(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.weight(1f).padding(end = 16.dp),
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = label,
-                style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
             if (isRevealable) {
                 Box(
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier.weight(1f)
+                            .padding(end = 16.dp)
                             .heightIn(min = IP_VALUE_MIN_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
                             .appClickable(role = Role.Button, onClick = onToggleVisibility)
@@ -164,38 +162,41 @@ private fun IpInfoRow(
                     color = valueColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.height(INFO_TEXT_HEIGHT),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 16.dp)
+                        .height(INFO_TEXT_HEIGHT),
                 )
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (showRefreshButton) {
-                Box(
-                    modifier =
-                        Modifier.size(28.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                            .appClickable(
-                                role = Role.Button,
-                                enabled = !isRefreshing,
-                                onClick = onRefresh,
-                            ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = MonadIcons.`Redo-dot`,
-                        contentDescription = null,
-                        tint = if (isRefreshing) MiuixTheme.colorScheme.onSurfaceVariantSummary
-                        else MiuixTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showRefreshButton) {
+                    Box(
+                        modifier =
+                            Modifier.size(28.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                                .appClickable(
+                                    role = Role.Button,
+                                    enabled = !isRefreshing,
+                                    onClick = onRefresh,
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = MonadIcons.`Redo-dot`,
+                            contentDescription = null,
+                            tint = if (isRefreshing) MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            else MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
+                CountryBadge(countryCode = countryCode)
             }
-            CountryBadge(countryCode = countryCode)
         }
     }
 }
