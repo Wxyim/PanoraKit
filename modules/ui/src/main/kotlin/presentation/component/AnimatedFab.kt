@@ -167,7 +167,7 @@ fun OverrideAnimatedFab(
         val fabModifier =
             Modifier.navigationBarsPadding()
                 .padding(
-                    end = spacing.xl,
+                    end = spacing.gutter,
                     bottom = spacing.lg + bottomBarOverlayPadding + extraBottomPadding,
                 )
 
@@ -210,7 +210,8 @@ fun OverrideAnimatedFab(
                             min = OverrideFabLayoutDefaults.ExtendedMinWidth,
                             max = OverrideFabLayoutDefaults.ExtendedMaxWidth,
                         )
-                        .heightIn(min = OverrideFabLayoutDefaults.ExtendedMinHeight)
+                        .heightIn(min = OverrideFabLayoutDefaults.ExtendedMinHeight),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
             ) {
                 Row(
                     horizontalArrangement =
