@@ -218,10 +218,11 @@ class NdkTools(private val config: ProjectConfig) {
     }
 
     val ndkDir: File by lazy {
-        val explicitNdk = config.getString("ndk.dir", "")
         val ndkVersion = config.getString("android.ndkVersion", "")
-        val ndkPath =
-            explicitNdk.takeIf { it.isNotEmpty() } ?: File(sdkDir, "ndk/$ndkVersion").absolutePath
+        require(ndkVersion.isNotEmpty()) {
+            "android.ndkVersion is not configured. Set it in gradle.properties."
+        }
+        val ndkPath = File(sdkDir, "ndk/$ndkVersion").absolutePath
 
         File(ndkPath).also { require(it.isDirectory) { "NDK not found: ${it.absolutePath}" } }
     }
@@ -316,6 +317,29 @@ class NdkTools(private val config: ProjectConfig) {
             ?.firstOrNull { it.isFile }
             ?.absolutePath
             ?: throw RuntimeException("Ninja executable not found under ${cmakeRoot.absolutePath}")
+    }
+
+    fun getCmakePolicyVersionMinimumArgument(cmakePath: String): String? {
+        val versionResult =
+            executeCommand(
+                command = listOf(cmakePath, "--version"),
+                printStdout = false,
+                printStderr = false,
+            )
+        val majorVersion =
+            Regex("""cmake version (\d+)\.""")
+                .find(versionResult.output)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull()
+
+        // NDK r27's flags.cmake still declares compatibility below CMake 3.10.
+        // CMake 4 supports this cache variable specifically for unmodified third-party code.
+        return if (majorVersion != null && majorVersion >= 4) {
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.10"
+        } else {
+            null
+        }
     }
 }
 
@@ -563,7 +587,9 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
                 "-DGO_OUTPUT:STRING=${goOutputDir.absolutePath}",
                 "-DMONADBOX_LINKER_FLAGS:STRING=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
                 "-DGIT_INFO_FILE:STRING=${gitInfoFile.absolutePath}",
-            )
+            ).toMutableList().apply {
+                ndkTools.getCmakePolicyVersionMinimumArgument(cmakePath)?.let { add(1, it) }
+            }
         val configureResult =
             executeCommand(
                 command = configureCommand,

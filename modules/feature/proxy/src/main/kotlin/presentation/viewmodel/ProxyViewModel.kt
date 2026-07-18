@@ -62,7 +62,6 @@ class ProxyViewModel(
 ) : ViewModel() {
     private companion object {
         const val PROXY_REFRESH_IDLE_MS = 1500L
-        const val PROXY_REFRESH_TESTING_MS = 400L
         const val PROXY_REFRESH_PREVIEW_MS = 10_000L
         const val PROXY_TESTING_SORT_HOLD_MS = 2200L
     }

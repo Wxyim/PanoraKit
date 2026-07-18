@@ -7,5 +7,4 @@
 # Linux example: /home/<you>/Android/Sdk
 sdk.dir=/absolute/path/to/android/sdk
 
-# Optional explicit NDK path (recommended to match project pin).
-ndk.dir=/absolute/path/to/android/sdk/ndk/27.3.13750724
+# The NDK version is pinned by android.ndkVersion in gradle.properties.

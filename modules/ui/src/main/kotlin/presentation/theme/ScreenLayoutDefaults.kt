@@ -289,10 +289,7 @@ data class HomeTrafficMetrics(
     val trafficFontSize: TextUnit,
     val trafficLetterSpacing: TextUnit,
     val trafficUnitFontSize: TextUnit,
-    val unitBottomPadding: Dp,
-    val unitStartPadding: Dp,
     val uploadSectionSpacing: Dp,
-    val uploadValueSpacing: Dp,
     val uploadValueFontSize: TextUnit,
     val capsuleHeight: Dp,
     val capsuleHorizontalPadding: Dp,
@@ -339,14 +336,8 @@ object HomeTrafficMetricsDefaults {
     val TrafficLetterSpacing = 0.sp
     val TrafficUnitFontSizeMin = 22.sp
     val TrafficUnitFontSizeMax = 26.sp
-    val UnitBottomPaddingMin = 10.dp
-    val UnitBottomPaddingMax = 14.dp
-    val UnitStartPaddingMin = 6.dp
-    val UnitStartPaddingMax = DefaultSpacing.sm
     val UploadSectionSpacingMin = DefaultSpacing.sm
     val UploadSectionSpacingMax = 10.dp
-    val UploadValueSpacingMin = 10.dp
-    val UploadValueSpacingMax = DefaultSpacing.md
     val UploadValueFontSizeMin = 22.sp
     val UploadValueFontSizeMax = 24.sp
     val CapsuleHeightMin = 26.dp
@@ -456,25 +447,10 @@ fun rememberHomeTrafficMetrics(width: Dp): HomeTrafficMetrics {
                         HomeTrafficMetricsDefaults.TrafficUnitFontSizeMax.value,
                     )
                     .sp,
-            unitBottomPadding =
-                (HomeTrafficMetricsDefaults.UnitBottomPaddingMax * scale).coerceIn(
-                    HomeTrafficMetricsDefaults.UnitBottomPaddingMin,
-                    HomeTrafficMetricsDefaults.UnitBottomPaddingMax,
-                ),
-            unitStartPadding =
-                (HomeTrafficMetricsDefaults.UnitStartPaddingMax * scale).coerceIn(
-                    HomeTrafficMetricsDefaults.UnitStartPaddingMin,
-                    HomeTrafficMetricsDefaults.UnitStartPaddingMax,
-                ),
             uploadSectionSpacing =
                 (HomeTrafficMetricsDefaults.UploadSectionSpacingMax * scale).coerceIn(
                     HomeTrafficMetricsDefaults.UploadSectionSpacingMin,
                     HomeTrafficMetricsDefaults.UploadSectionSpacingMax,
-                ),
-            uploadValueSpacing =
-                (HomeTrafficMetricsDefaults.UploadValueSpacingMax * scale).coerceIn(
-                    HomeTrafficMetricsDefaults.UploadValueSpacingMin,
-                    HomeTrafficMetricsDefaults.UploadValueSpacingMax,
                 ),
             uploadValueFontSize =
                 (HomeTrafficMetricsDefaults.UploadValueFontSizeMax.value * scale)
