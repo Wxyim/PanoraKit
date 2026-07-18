@@ -68,7 +68,7 @@ fun NodeInfoDisplay(
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         Column(
             horizontalAlignment = Alignment.Start,

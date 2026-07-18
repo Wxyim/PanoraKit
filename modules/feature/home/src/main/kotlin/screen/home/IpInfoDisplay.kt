@@ -138,9 +138,8 @@ private fun IpInfoRow(
                             .heightIn(min = IP_VALUE_MIN_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
                             .appClickable(role = Role.Button, onClick = onToggleVisibility)
-                            .padding(end = IP_VALUE_HORIZONTAL_PADDING)
-                            .padding(vertical = IP_VALUE_VERTICAL_PADDING),
-                    contentAlignment = Alignment.CenterStart,
+                            .padding(end = IP_VALUE_HORIZONTAL_PADDING),
+                    contentAlignment = Alignment.TopStart,
                 ) {
                     Text(
                         text = value,
