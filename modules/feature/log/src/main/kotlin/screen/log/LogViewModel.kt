@@ -81,6 +81,16 @@ class LogViewModel(
         _isRecording.value = repository.isRecording()
     }
 
+    fun startRecording() {
+        repository.startRecording()
+        _isRecording.value = true
+    }
+
+    fun stopRecording() {
+        repository.stopRecording()
+        _isRecording.value = false
+    }
+
     fun startAutoRefresh(intervalMillis: Long = 500L) {
         if (autoRefreshJob?.isActive == true) return
         autoRefreshJob =

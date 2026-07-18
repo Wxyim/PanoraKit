@@ -49,6 +49,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.Card
 import com.github.nomadboxlab.monadbox.presentation.component.ConfigSettingRow
 import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
 import com.github.nomadboxlab.monadbox.presentation.component.InfoSettingRow
+import com.github.nomadboxlab.monadbox.presentation.component.appClickable
 import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
@@ -267,6 +268,10 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                                 liveCount = logEntries.size,
                                 isRecording = isRecording,
                                 onExportDebugBundle = { showExportConfirmDialog.value = true },
+                                onToggleRecording = {
+                                    if (isRecording) viewModel.stopRecording()
+                                    else viewModel.startRecording()
+                                },
                             )
                         }
                     }
@@ -413,6 +418,10 @@ private fun LogEmptyStateContent(
                     liveCount = liveCount,
                     isRecording = isRecording,
                     onExportDebugBundle = onExportDebugBundle,
+                    onToggleRecording = {
+                        if (isRecording) viewModel.stopRecording()
+                        else viewModel.startRecording()
+                    },
                 )
             }
             item(key = "empty_state") {
@@ -444,20 +453,23 @@ private fun LogOverviewSection(
     liveCount: Int,
     isRecording: Boolean,
     onExportDebugBundle: () -> Unit,
+    onToggleRecording: () -> Unit,
 ) {
     Card {
-        InfoSettingRow(
-            title = MLangStatus.Log.LiveLogs,
-            summary =
-                if (isRecording) {
-                    MLangStatus.Log.Recording
-                } else {
-                    MLangStatus.Log.NotRecording
-                },
-            valueLabel = liveCount.toString(),
-            tone = if (isRecording) SemanticTone.Success else SemanticTone.Neutral,
-            badgeLeadingDot = isRecording,
-        )
+        Box(modifier = Modifier.appClickable(onClick = onToggleRecording)) {
+            InfoSettingRow(
+                title = MLangStatus.Log.LiveLogs,
+                summary =
+                    if (isRecording) {
+                        MLangStatus.Log.Recording
+                    } else {
+                        MLangStatus.Log.NotRecording
+                    },
+                valueLabel = liveCount.toString(),
+                tone = if (isRecording) SemanticTone.Success else SemanticTone.Neutral,
+                badgeLeadingDot = isRecording,
+            )
+        }
         ConfigSettingRow(
             title = MLang.Log.Action.ExportDebugBundle,
             summary = MLang.Log.Action.ExportDebugBundleWarning,

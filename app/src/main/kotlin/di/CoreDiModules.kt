@@ -207,7 +207,7 @@ val appDataRuntimeModule = module {
     single {
         TargetSiteTrafficCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME)))
     }
-    single { RuntimeLogRecordingCoordinator(androidApplication(), get()) }
+    single { RuntimeLogRecordingCoordinator(androidApplication(), get(), get()) }
 }
 
 val coreDiModules: List<Module> = listOf(appFoundationModule, appDataRuntimeModule)

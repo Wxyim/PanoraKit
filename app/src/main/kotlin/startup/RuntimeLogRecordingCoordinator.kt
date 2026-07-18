@@ -28,6 +28,7 @@ import android.content.IntentFilter
 import android.os.Build
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.service.StatusProvider
 import com.github.nomadboxlab.monadbox.service.common.constants.Intents
 import com.github.nomadboxlab.monadbox.service.root.RootTunRuntimeRecovery
@@ -36,6 +37,7 @@ import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 class RuntimeLogRecordingCoordinator(
     private val application: Application,
     private val logRecordGateway: LogRecordGateway,
+    private val appSettings: AppSettingsStorage,
 ) {
     @Volatile private var started = false
 
@@ -61,6 +63,7 @@ class RuntimeLogRecordingCoordinator(
     }
 
     fun ensureRecordingForActiveRuntime() {
+        if (!appSettings.autoStartLogRecording.value) return
         if (!isAnyRuntimeActive()) return
         if (logRecordGateway.isRecording) return
         logRecordGateway.start(application)
