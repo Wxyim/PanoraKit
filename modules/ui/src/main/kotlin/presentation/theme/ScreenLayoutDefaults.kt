@@ -334,11 +334,11 @@ object HomeTrafficMetricsDefaults {
     val ControlStackSpacingMax = DefaultSpacing.md
     val LabelFontSizeMin = 13.sp
     val LabelFontSizeMax = 14.sp
-    val TrafficFontSizeMin = 80.sp
-    val TrafficFontSizeMax = 96.sp
+    val TrafficFontSizeMin = 84.sp
+    val TrafficFontSizeMax = 100.sp
     val TrafficLetterSpacing = 0.sp
-    val TrafficUnitFontSizeMin = 20.sp
-    val TrafficUnitFontSizeMax = 24.sp
+    val TrafficUnitFontSizeMin = 22.sp
+    val TrafficUnitFontSizeMax = 26.sp
     val UnitBottomPaddingMin = 10.dp
     val UnitBottomPaddingMax = 14.dp
     val UnitStartPaddingMin = 6.dp
@@ -347,8 +347,8 @@ object HomeTrafficMetricsDefaults {
     val UploadSectionSpacingMax = 10.dp
     val UploadValueSpacingMin = 10.dp
     val UploadValueSpacingMax = DefaultSpacing.md
-    val UploadValueFontSizeMin = 18.sp
-    val UploadValueFontSizeMax = 20.sp
+    val UploadValueFontSizeMin = 22.sp
+    val UploadValueFontSizeMax = 24.sp
     val CapsuleHeightMin = 26.dp
     val CapsuleHeightMax = 28.dp
     val CapsuleHorizontalPaddingMin = 10.dp

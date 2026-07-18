@@ -215,6 +215,7 @@ private fun DownloadSection(
     Column(
         modifier = Modifier.testTag(TestTags.Home.DownloadSpeed),
         horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
     ) {
         Text(
             text = "DOWNLOAD",
@@ -376,24 +377,19 @@ private fun UploadSection(uploadSpeed: Long, metrics: HomeTrafficMetrics) {
     Column(
         modifier = Modifier.testTag(TestTags.Home.UploadSpeed),
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(metrics.uploadValueSpacing),
-        ) {
-            Text(
-                text = "UPLOAD",
-                style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-            ReservedMetricText(
-                text = "$value $unit",
-                placeholder = UPLOAD_SPEED_PLACEHOLDER,
-                style = valueStyle,
-                color = MiuixTheme.colorScheme.primary,
-            )
-        }
+        Text(
+            text = "UPLOAD",
+            style = MiuixTheme.textStyles.footnote1.copy(fontSize = metrics.labelFontSize),
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        ReservedMetricText(
+            text = "$value $unit",
+            placeholder = UPLOAD_SPEED_PLACEHOLDER,
+            style = valueStyle,
+            color = MiuixTheme.colorScheme.primary,
+        )
     }
 }
 
