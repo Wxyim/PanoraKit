@@ -53,7 +53,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.isSpecified
-import androidx.compose.ui.unit.toDp
 import com.github.nomadboxlab.monadbox.common.util.formatBytesForDisplay
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
