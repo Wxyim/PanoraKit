@@ -148,7 +148,7 @@ fun TrafficDisplay(
                                 Modifier
                             }
                         ),
-                    verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
+                    verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
                 ) {
                     DownloadSection(
                         downloadSpeed = trafficNow.download,
@@ -215,7 +215,7 @@ private fun DownloadSection(
     Column(
         modifier = Modifier.testTag(TestTags.Home.DownloadSpeed),
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
     ) {
         Text(
             text = "DOWNLOAD",
@@ -377,7 +377,7 @@ private fun UploadSection(uploadSpeed: Long, metrics: HomeTrafficMetrics) {
     Column(
         modifier = Modifier.testTag(TestTags.Home.UploadSpeed),
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(metrics.uploadSectionSpacing),
     ) {
         Text(
             text = "UPLOAD",
