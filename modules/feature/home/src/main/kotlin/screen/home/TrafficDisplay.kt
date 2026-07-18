@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -51,6 +52,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.toDp
 import com.github.nomadboxlab.monadbox.common.util.formatBytesForDisplay
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
@@ -366,7 +369,14 @@ private fun ReservedMetricText(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.BottomStart) {
+    val density = LocalDensity.current
+    val heightModifier =
+        if (style.lineHeight.isSpecified) {
+            Modifier.height(density.toDp(style.lineHeight))
+        } else {
+            Modifier
+        }
+    Box(modifier = modifier.then(heightModifier), contentAlignment = Alignment.BottomStart) {
         Text(text = placeholder, style = style, color = color.copy(alpha = 0f), maxLines = 1)
         Text(text = text, style = style, color = color, maxLines = 1, overflow = TextOverflow.Clip)
     }
