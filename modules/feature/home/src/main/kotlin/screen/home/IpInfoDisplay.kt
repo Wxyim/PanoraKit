@@ -124,7 +124,7 @@ private fun IpInfoRow(
             style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -135,11 +135,10 @@ private fun IpInfoRow(
                     modifier =
                         Modifier.weight(1f)
                             .padding(end = 16.dp)
-                            .heightIn(min = IP_VALUE_MIN_HEIGHT)
                             .clip(INFO_VALUE_CORNER_RADIUS)
                             .appClickable(role = Role.Button, onClick = onToggleVisibility)
                             .padding(end = IP_VALUE_HORIZONTAL_PADDING),
-                    contentAlignment = Alignment.TopStart,
+                    contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
                         text = value,

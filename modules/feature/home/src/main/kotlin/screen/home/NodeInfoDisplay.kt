@@ -79,7 +79,7 @@ fun NodeInfoDisplay(
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             if (hasKnownNode) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -123,7 +123,7 @@ fun NodeInfoDisplay(
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 12.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             PingValue(
                 ping =
                     if (tunnelMode == TunnelState.Mode.Direct) {
@@ -138,39 +138,27 @@ fun NodeInfoDisplay(
 
 @Composable
 private fun PingValue(ping: Int?) {
-    when {
-        ping == null || ping == 0 -> {
-            Text(
-                text = "--",
-                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT),
-            )
-        }
-
-        ping < 0 -> {
-            Text(
-                text = "TIMEOUT",
-                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT),
-            )
-        }
-
+    val (text, color) = when {
+        ping == null || ping == 0 -> "--" to MiuixTheme.colorScheme.onSurfaceVariantSummary
+        ping < 0 -> "TIMEOUT" to MiuixTheme.colorScheme.onSurfaceVariantSummary
         else -> {
-            val color =
-                when {
-                    ping <= 300 -> Color(0xFF007906)
-                    ping <= 1000 -> Color(0xFFFFB300)
-                    else -> Color(0xFFE53935)
-                }
-            Text(
-                text = "${ping}ms",
-                style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
-                color = color,
-                modifier = Modifier.height(INFO_TEXT_HEIGHT),
-            )
+            val c = when {
+                ping <= 300 -> Color(0xFF007906)
+                ping <= 1000 -> Color(0xFFFFB300)
+                else -> Color(0xFFE53935)
+            }
+            "${ping}ms" to c
         }
+    }
+    Box(
+        modifier = Modifier.height(INFO_TEXT_HEIGHT),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),
+            color = color,
+        )
     }
 }
 
