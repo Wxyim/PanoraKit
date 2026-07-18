@@ -218,6 +218,10 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 onExportDebugBundle = { showExportConfirmDialog.value = true },
                 liveCount = logEntries.size,
                 isRecording = isRecording,
+                onToggleRecording = {
+                    if (isRecording) viewModel.stopRecording()
+                    else viewModel.startRecording()
+                },
             )
             return@Scaffold
         }
@@ -400,6 +404,7 @@ private fun LogEmptyStateContent(
     onExportDebugBundle: () -> Unit,
     liveCount: Int,
     isRecording: Boolean,
+    onToggleRecording: () -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val spacing = AppTheme.spacing
@@ -418,10 +423,7 @@ private fun LogEmptyStateContent(
                     liveCount = liveCount,
                     isRecording = isRecording,
                     onExportDebugBundle = onExportDebugBundle,
-                    onToggleRecording = {
-                        if (isRecording) viewModel.stopRecording()
-                        else viewModel.startRecording()
-                    },
+                    onToggleRecording = onToggleRecording,
                 )
             }
             item(key = "empty_state") {
