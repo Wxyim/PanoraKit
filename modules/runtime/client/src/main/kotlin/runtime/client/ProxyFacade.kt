@@ -353,6 +353,14 @@ class ProxyFacade(
         )
     val runtimeFailureEvents: SharedFlow<RuntimeFailureEvent> = _runtimeFailureEvents.asSharedFlow()
 
+    private val _proxySelectionEvents =
+        MutableSharedFlow<String>(
+            replay = 0,
+            extraBufferCapacity = 4,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+    val proxySelectionEvents: SharedFlow<String> = _proxySelectionEvents.asSharedFlow()
+
     private val previewCache = ProxyFacadePreviewCache()
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
@@ -548,6 +556,9 @@ class ProxyFacade(
             }
             if (snapshot.running) {
                 delay(200.milliseconds)
+                // Stale external IP — notify listeners so the home screen can
+                // clear its cached IP and prompt the user to re-query.
+                _proxySelectionEvents.tryEmit(group)
             }
             refreshProxyGroups()
         }

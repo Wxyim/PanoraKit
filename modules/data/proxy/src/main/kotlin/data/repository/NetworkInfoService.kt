@@ -129,7 +129,7 @@ class NetworkInfoService(
         isProxyActiveFlow: Flow<Boolean>,
         externalIpFlow: Flow<IpInfo?> = flowOf(null),
     ): Flow<IpMonitoringState> = combine(
-        externalIpFlow.onStart { emit(null) },
+        externalIpFlow,
         isProxyActiveFlow,
     ) { externalIp, isProxyActive ->
         try {

@@ -606,6 +606,7 @@ class HomeViewModel(
         syncProxyModeState()
         observeProfileChanges()
         clearExternalIpCacheOnStop()
+        clearExternalIpCacheOnSelection()
     }
 
     fun setScreenActive(active: Boolean) {
@@ -643,6 +644,18 @@ class HomeViewModel(
                 if (!running) {
                     externalIpCache.value = null
                 }
+            }
+        }
+    }
+
+    /**
+     * Clear the cached external IP when a proxy node is switched while the VPN
+     * is running — the exit IP is likely to change and the cached value is stale.
+     */
+    private fun clearExternalIpCacheOnSelection() {
+        viewModelScope.launch {
+            proxyFacade.proxySelectionEvents.collect {
+                externalIpCache.value = null
             }
         }
     }
