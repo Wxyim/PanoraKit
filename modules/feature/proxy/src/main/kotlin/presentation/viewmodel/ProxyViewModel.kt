@@ -500,7 +500,7 @@ class ProxyViewModel(
                     val delayMillis =
                         when {
                             !proxyFacade.isRunning.value -> PROXY_REFRESH_PREVIEW_MS
-                            _testingGroupNames.value.isNotEmpty() -> 100
+                            _testingGroupNames.value.isNotEmpty() -> 250
                             else -> PROXY_REFRESH_IDLE_MS
                         }
                     delay(delayMillis.milliseconds)

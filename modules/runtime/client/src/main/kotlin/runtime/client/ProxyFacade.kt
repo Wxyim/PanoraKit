@@ -390,14 +390,14 @@ class ProxyFacade(
         ProxyFacadeTrafficPoller(scope = scope) { tick ->
             val snapshot = runtimeSnapshot.value
             if (!snapshot.running) {
-                delay(1000L.milliseconds)
+                delay(2000L.milliseconds)
                 return@ProxyFacadeTrafficPoller
             }
 
             try {
                 connectCurrentBackend()
                 queryTrafficNow()
-                if (tick % 5 == 0) {
+                if (tick % 3 == 0) {
                     queryTrafficTotal()
                 }
             } catch (e: ControllerError) {
@@ -406,11 +406,11 @@ class ProxyFacade(
                 Timber.d(e, "Traffic polling skipped")
             }
 
-            if (tick % 3 == 0 && shouldRefreshRuntimePayload()) {
+            if (tick % 2 == 0 && shouldRefreshRuntimePayload()) {
                 refreshAllSafely()
             }
 
-            delay(1000L.milliseconds)
+            delay(2000L.milliseconds)
         }
 
     init {

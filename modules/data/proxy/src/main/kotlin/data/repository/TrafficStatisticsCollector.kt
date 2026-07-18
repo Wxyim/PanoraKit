@@ -128,17 +128,16 @@ class TrafficStatisticsCollector(
                 windowStartMillis = lastSampleAt,
                 windowEndMillis = collectedAt,
             )
+            lastTotalUpload = currentUpload
+            lastTotalDownload = currentDownload
+            lastSampleAt = collectedAt
+            trafficStatisticsStore.setLastTraffic(
+                currentUpload,
+                currentDownload,
+                currentProfileId,
+                timestamp = collectedAt,
+            )
         }
-
-        lastTotalUpload = currentUpload
-        lastTotalDownload = currentDownload
-        lastSampleAt = collectedAt
-        trafficStatisticsStore.setLastTraffic(
-            currentUpload,
-            currentDownload,
-            currentProfileId,
-            timestamp = collectedAt,
-        )
     }
 
     private fun resetLastValues() {
