@@ -82,6 +82,7 @@ class TunModule(private val vpn: VpnService) : Module<Unit>(vpn) {
     }
 
     fun attach(device: TunDevice) {
+        ProcFsUidResolver.startMonitoring()
         Clash.startTun(
             fd = device.fd,
             stack = device.stack,
@@ -94,6 +95,7 @@ class TunModule(private val vpn: VpnService) : Module<Unit>(vpn) {
     }
 
     suspend fun close() {
+        ProcFsUidResolver.stopMonitoring()
         close.send(Unit)
     }
 

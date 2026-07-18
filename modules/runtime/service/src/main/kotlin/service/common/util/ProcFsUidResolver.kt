@@ -23,6 +23,7 @@ import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetSocketAddress
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Fallback UID resolver that reads [procfs] when [ConnectivityManager.getConnectionOwnerUid]
@@ -38,12 +39,147 @@ internal object ProcFsUidResolver {
     private var udp6UidIndex = -1
 
     /**
+     * Port-level UID cache to handle short-lived UDP sockets that disappear from
+     * /proc/net/udp before [resolveUdpUid] can read them.  UDP source ports are
+     * typically reused by the same app within a short window (DNS resolver, push
+     * notifications, etc.).
+     *
+     * Key: source port, Value: (timestamp, uid)
+     */
+    private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
+    private const val PORT_CACHE_TTL_MS = 5_000L
+
+    /**
+     * Continuous background monitor that periodically snapshots
+     * `/proc/net/udp[6]` into an in-memory `port → uid` map.  This catches
+     * extremely short-lived UDP sockets (e.g. DNS queries) that may be gone by
+     * the time [resolveUdpUid] performs an on-demand read.
+     */
+    private val liveUdpMap = ConcurrentHashMap<Int, Int>()
+    @Volatile private var monitorRunning = false
+    private val monitorLock = Any()
+
+    fun startMonitoring() {
+        synchronized(monitorLock) {
+            if (monitorRunning) return
+            monitorRunning = true
+        }
+        Thread({
+            while (monitorRunning) {
+                try {
+                    refreshLiveMap("/proc/net/udp")
+                    refreshLiveMap("/proc/net/udp6")
+                } catch (_: Exception) {
+                    // procfs may briefly be unavailable; retry on next cycle.
+                }
+                try {
+                    Thread.sleep(POLL_INTERVAL_MS)
+                } catch (_: InterruptedException) {
+                    break
+                }
+            }
+        }, "procfs-udp-monitor").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    fun stopMonitoring() {
+        synchronized(monitorLock) { monitorRunning = false }
+        liveUdpMap.clear()
+    }
+
+    private fun refreshLiveMap(path: String) {
+        if (!File(path).canRead()) return
+        ensureIndicesFor(path)
+        val (localIdx, uidIdx) =
+            when (path) {
+                "/proc/net/udp6" -> Pair(udp6LocalAddrIndex, udp6UidIndex)
+                else -> Pair(udpLocalAddrIndex, udpUidIndex)
+            }
+        if (localIdx < 0 || uidIdx < 0) return
+
+        File(path).bufferedReader().use { reader ->
+            reader.readLine() ?: return
+            reader.lineSequence().forEach { line ->
+                val fields = line.trim().split("\\s+".toRegex())
+                if (fields.size > maxOf(localIdx, uidIdx)) {
+                    val uid = fields[uidIdx].toIntOrNull() ?: return@forEach
+                    if (uid > 0) {
+                        val port = parsePortFromLocalAddress(fields[localIdx])
+                        if (port > 0) {
+                            liveUdpMap[port] = uid
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Extract the port number from the `local_address` column.
+     * Format: `HHHHHHHH:PPPP` — last 4 hex digits are the port in
+     * big-endian.
+     */
+    private fun parsePortFromLocalAddress(raw: String): Int {
+        val colon = raw.lastIndexOf(':')
+        if (colon < 0 || colon + 1 >= raw.length) return -1
+        return raw.substring(colon + 1).toIntOrNull(16) ?: -1
+    }
+
+    private fun ensureIndicesFor(path: String) {
+        when (path) {
+            "/proc/net/udp6" -> ensureUdp6Indices()
+            else -> ensureUdpIndices()
+        }
+    }
+
+    private companion object {
+        const val POLL_INTERVAL_MS = 250L
+    }
+
+    /**
      * Try to resolve the UID of a UDP socket via `/proc/net/udp[6]`.
+     *
+     * Results are cached by source port with a short TTL so that subsequent
+     * packets from the same ephemeral port (common with DNS and other
+     * short-lived UDP exchanges) can skip the procfs read.
      *
      * @return UID of the owning process, or -1 when the socket is not found or procfs is
      *   unavailable.
      */
     fun resolveUdpUid(source: InetSocketAddress): Int {
+        val port = source.port
+
+        // 1. Check the short-term snapshot cache (successful past resolutions).
+        portUidCache[port]?.let { (timestamp, uid) ->
+            if (System.currentTimeMillis() - timestamp < PORT_CACHE_TTL_MS) {
+                return uid
+            }
+        }
+
+        // 2. Check the live monitoring map — captures sockets that
+        //    come and go between poll cycles, including extremely
+        //    short-lived ones like DNS queries.
+        liveUdpMap[port]?.let { uid ->
+            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
+            return uid
+        }
+
+        // 3. Direct on-demand procfs read (original approach).
+        val uid = resolveUdpUidInternal(source)
+        if (uid > 0) {
+            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
+            // Lazy eviction: trim expired entries when the cache grows large.
+            if (portUidCache.size > 2000) {
+                prunePortCache()
+            }
+        }
+
+        return uid
+    }
+
+    private fun resolveUdpUidInternal(source: InetSocketAddress): Int {
         val address = source.address
         val port = source.port
         return when (address) {
@@ -147,5 +283,16 @@ internal object ProcFsUidResolver {
                 Pair(localIdx, uidIdx)
             }
         }.getOrDefault(Pair(-1, -1))
+    }
+
+    private fun prunePortCache() {
+        val now = System.currentTimeMillis()
+        val iterator = portUidCache.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now - entry.value.first > PORT_CACHE_TTL_MS) {
+                iterator.remove()
+            }
+        }
     }
 }
