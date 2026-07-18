@@ -296,16 +296,43 @@ object Clash {
         )
     }
 
+    private val logcatChannels = mutableSetOf<Channel<LogMessage>>()
+    @Volatile private var nativeLogcatRegistered = false
+
     fun subscribeLogcat(): ReceiveChannel<LogMessage> {
-        return Channel<LogMessage>(32).apply {
-            Bridge.nativeSubscribeLogcat(
-                object : LogcatInterface {
-                    override fun received(jsonPayload: String) {
-                        trySend(Json.decodeFromString(LogMessage.serializer(), jsonPayload))
+        val channel = Channel<LogMessage>(32)
+        synchronized(logcatChannels) {
+            logcatChannels.add(channel)
+            if (!nativeLogcatRegistered) {
+                Bridge.nativeSubscribeLogcat(
+                    object : LogcatInterface {
+                        override fun received(jsonPayload: String) {
+                            val log =
+                                runCatching {
+                                        Json.decodeFromString(
+                                            LogMessage.serializer(),
+                                            jsonPayload,
+                                        )
+                                    }
+                                    .getOrNull() ?: return
+                            val channels: List<Channel<LogMessage>>
+                            synchronized(logcatChannels) { channels = logcatChannels.toList() }
+                            channels.forEach { it.trySend(log) }
+                        }
                     }
-                }
-            )
+                )
+                nativeLogcatRegistered = true
+            }
         }
+        channel.invokeOnClose { _ ->
+            synchronized(logcatChannels) {
+                logcatChannels.remove(channel)
+                if (logcatChannels.isEmpty()) {
+                    nativeLogcatRegistered = false
+                }
+            }
+        }
+        return channel
     }
 
     fun setCustomUserAgent(userAgent: String) {
