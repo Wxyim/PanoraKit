@@ -123,10 +123,22 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 // Overlay persisted selections so the UI shows the correct node
                 // immediately, even before the async patch from syncSelectionSnapshotSafely
                 // takes effect. This mirrors queryProfileProxyGroups() overlay logic.
+                //
+                // When proxy-providers haven't resolved yet (proxies list is empty),
+                // trust the persisted selection anyway to avoid a flash from empty
+                // to the eventual node. Once the provider resolves, the regular
+                // validity check kicks in.
                 val persisted = selections.find { it.proxy == group.name }
                 if (persisted != null) {
                     val nodeName = persisted.selected.trim()
-                    val isValid = group.proxies.any { it.name.trim() == nodeName }
+                    if (nodeName.isEmpty()) return@let group
+                    val isValid =
+                        if (group.proxies.isEmpty()) {
+                            // Provider not yet resolved — trust persisted selection
+                            true
+                        } else {
+                            group.proxies.any { it.name.trim() == nodeName }
+                        }
                     if (isValid) group.copy(now = nodeName) else group
                 } else {
                     group
