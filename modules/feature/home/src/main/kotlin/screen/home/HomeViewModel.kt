@@ -26,7 +26,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
-import com.github.nomadboxlab.monadbox.data.repository.IpInfo
 import com.github.nomadboxlab.monadbox.data.repository.IpMonitoringState
 import com.github.nomadboxlab.monadbox.data.repository.NetworkInfoService
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
@@ -309,8 +308,6 @@ class HomeViewModel(
     private val externalIpQueryInFlight = MutableStateFlow(false)
     val isExternalIpQuerying: StateFlow<Boolean> = externalIpQueryInFlight.asStateFlow()
 
-    private val externalIpCache = MutableStateFlow<IpInfo?>(null)
-
     private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
 
@@ -381,7 +378,13 @@ class HomeViewModel(
                 groups,
                 tunnelMode,
                 visibleGroupNames ->
-                if (!RuntimeStateMapper.isActuallyRunning(snapshot) || groups.isEmpty()) {
+                if (
+                    !RuntimeStateMapper.isActuallyRunning(snapshot) ||
+                        !snapshot.payloadReady ||
+                        !snapshot.configReady ||
+                        !snapshot.transportReady ||
+                        groups.isEmpty()
+                ) {
                     return@combine null
                 }
 
@@ -461,7 +464,7 @@ class HomeViewModel(
         isRunning
             .flatMapLatest { running ->
                 if (running) {
-                    networkInfoService.startIpMonitoring(isRunning, externalIpCache)
+                    networkInfoService.startIpMonitoring(isRunning, networkInfoService.externalIp)
                 } else {
                     flowOf(IpMonitoringState.Loading)
                 }
@@ -534,7 +537,7 @@ class HomeViewModel(
                     runtimeSnapshot.value.owner,
                 )
                 val info = networkInfoService.queryExternalIp()
-                externalIpCache.value = info
+                networkInfoService.cacheExternalIp(info)
                 Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
                 if (info == null) {
                     showError(MLang.Home.Message.ExternalIpLookupFailed)
@@ -650,8 +653,11 @@ class HomeViewModel(
             isRunning
                 .debounce(2_000L)
                 .collect { running ->
-                    if (!running) {
-                        externalIpCache.value = null
+                    if (
+                        !running &&
+                            runtimeSnapshot.value.phase in setOf(RuntimePhase.Idle, RuntimePhase.Failed)
+                    ) {
+                        networkInfoService.clearExternalIp()
                     }
                 }
         }
@@ -664,7 +670,7 @@ class HomeViewModel(
     private fun clearExternalIpCacheOnSelection() {
         viewModelScope.launch {
             proxyFacade.proxySelectionEvents.collect {
-                externalIpCache.value = null
+                networkInfoService.clearExternalIp()
             }
         }
     }

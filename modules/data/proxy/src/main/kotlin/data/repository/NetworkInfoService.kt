@@ -56,6 +56,11 @@ class NetworkInfoService(
 ) : Closeable {
     private val json = Json { ignoreUnknownKeys = true }
 
+    // This service is application-scoped. Keep the manually queried value here
+    // so recreating the home destination does not discard it while the VPN is active.
+    private val externalIpCache = MutableStateFlow<IpInfo?>(null)
+    val externalIp: StateFlow<IpInfo?> = externalIpCache.asStateFlow()
+
     private val httpClient = HttpClient {
         install(HttpTimeout) {
             requestTimeoutMillis = 5000
@@ -78,6 +83,14 @@ class NetworkInfoService(
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
+    }
+
+    fun cacheExternalIp(value: IpInfo?) {
+        externalIpCache.value = value
+    }
+
+    fun clearExternalIp() {
+        externalIpCache.value = null
     }
 
     suspend fun getLocalIp(): String? {
