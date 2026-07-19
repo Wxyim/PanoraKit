@@ -36,6 +36,7 @@ import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -150,6 +151,7 @@ class CompiledConfigPipeline(private val context: Context) {
      * This method is idempotent: if no selections exist or no changes are needed,
      * the override file is left untouched.
      */
+    @OptIn(ExperimentalSerializationApi::class)
     fun ensureSelectionOverrideFile(profileUuid: String, profileDir: String) {
         val uuid = runCatching { UUID.fromString(profileUuid) }.getOrNull() ?: return
         val selections = SelectionDao.querySelections(uuid)

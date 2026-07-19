@@ -59,6 +59,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -643,6 +644,7 @@ class HomeViewModel(
      * first-launch race conditions where the runtime may briefly leave the
      * Running phase while mihomo finishes its initial setup.
      */
+    @OptIn(FlowPreview::class)
     private fun clearExternalIpCacheOnStop() {
         viewModelScope.launch {
             isRunning
