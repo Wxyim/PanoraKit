@@ -44,10 +44,6 @@ object TrafficStatisticsScreenLayoutDefaults {
     val RequestChipVerticalPadding = 3.dp
 }
 
-object ConnectionScreenLayoutDefaults {
-    val ItemVerticalPadding = 6.dp
-}
-
 object ProxyPageLayoutDefaults {
     val ContentTop = DefaultSpacing.xl
     val ContentHorizontal = DefaultSpacing.md

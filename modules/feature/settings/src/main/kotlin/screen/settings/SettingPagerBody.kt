@@ -78,7 +78,6 @@ class SettingPagerNavigation(
     val onNavigateMetaFeature: () -> Unit,
     val onNavigateAccessControl: () -> Unit,
     val onNavigateTrafficStatistics: () -> Unit,
-    val onNavigateConnection: () -> Unit,
     val onNavigateLog: () -> Unit,
     val onNavigateAbout: () -> Unit,
 )
@@ -279,14 +278,6 @@ private fun MoreSettingsCard(
             imageVector = MonadIcons.`Chart-column`,
             tone = SemanticTone.Info,
             onClick = navigation.onNavigateTrafficStatistics,
-        )
-        SettingsDivider()
-        SettingsRow(
-            title = MLang.Connection.Title,
-            summary = MLang.Connection.Summary,
-            imageVector = MonadIcons.`Scan-eye`,
-            tone = SemanticTone.Info,
-            onClick = navigation.onNavigateConnection,
         )
         SettingsDivider()
         SettingsRow(

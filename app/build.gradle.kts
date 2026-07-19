@@ -335,7 +335,6 @@ dependencies {
     implementation(project(":feature:about"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:log"))
-    implementation(project(":feature:connection"))
     implementation(project(":feature:traffic"))
     implementation(project(":feature:home"))
     implementation(project(":feature:settings"))

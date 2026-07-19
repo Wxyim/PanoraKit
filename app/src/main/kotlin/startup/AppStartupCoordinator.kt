@@ -23,7 +23,6 @@ import android.app.Application
 import com.github.nomadboxlab.monadbox.common.util.PlatformIdentifier
 import com.github.nomadboxlab.monadbox.common.util.StorageCleanupManager
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
-import com.github.nomadboxlab.monadbox.data.repository.TargetSiteTrafficCollector
 import com.github.nomadboxlab.monadbox.data.repository.TrafficStatisticsCollector
 import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
@@ -81,7 +80,6 @@ class AppStartupCoordinator(
             koin.get<RuntimeLogRecordingCoordinator>().start()
             koin.get<TrafficStatisticsCollector>()
             koin.get<ConnectionActivityRepository>()
-            koin.get<TargetSiteTrafficCollector>()
             PlatformIdentifier.getPlatformIdentifier()
         }
     }

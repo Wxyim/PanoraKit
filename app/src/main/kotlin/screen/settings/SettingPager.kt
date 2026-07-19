@@ -29,7 +29,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.MetaFeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsScreenDestination
@@ -62,9 +61,6 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     navigator.navigate(TrafficStatisticsScreenDestination) {
                         launchSingleTop = true
                     }
-                },
-                onNavigateConnection = {
-                    navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true }
                 },
                 onNavigateLog = {
                     navigator.navigate(LogScreenDestination) { launchSingleTop = true }

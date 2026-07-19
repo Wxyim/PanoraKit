@@ -25,9 +25,7 @@ import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityReposit
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
-import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
-import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.DefaultConnectionExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.DefaultTrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.RuntimeConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
@@ -35,7 +33,6 @@ import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import org.koin.dsl.module
 
 val featureMetaContractModule = module {
-    single<ConnectionExplorer> { DefaultConnectionExplorer(get<ConnectionActivityRepository>()) }
     single<TrafficStatisticsExplorer> {
         DefaultTrafficStatisticsExplorer(
             get<TrafficStatisticsStore>(),

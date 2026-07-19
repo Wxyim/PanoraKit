@@ -81,18 +81,6 @@ data class ProfileTrafficUsage(
         get() = totalUpload + totalDownload
 }
 
-@Serializable
-data class TargetSiteTrafficUsage(
-    val siteKey: String,
-    val displayName: String,
-    val totalUpload: Long,
-    val totalDownload: Long,
-    val lastSeenAt: Long,
-) {
-    val totalBytes: Long
-        get() = totalUpload + totalDownload
-}
-
 enum class StatisticsTimeRange(val days: Int) {
     TODAY(1),
     WEEK(7);

@@ -167,39 +167,6 @@ object `MLang` {
     }
 
     object `Connection` {
-        val `Title`
-            get() = MLangConnection.`Title`
-
-        val `Summary`
-            get() = MLangConnection.`Summary`
-
-        val `Search`
-            get() = MLangConnection.`Search`
-
-        val `SearchHint`
-            get() = MLangConnection.`SearchHint`
-
-        val `SortBy`
-            get() = MLangConnection.`SortBy`
-
-        val `Loading`
-            get() = MLangConnection.`Loading`
-
-        val `Empty`
-            get() = MLangConnection.`Empty`
-
-        val `NoResults`
-            get() = MLangConnection.`NoResults`
-
-        val `Tab`
-            get() = MLangConnection.`Tab`
-
-        val `Sort`
-            get() = MLangConnection.`Sort`
-
-        val `RelativeTime`
-            get() = MLangConnection.`RelativeTime`
-
         val `Detail`
             get() = MLangConnection.`Detail`
     }
@@ -1019,17 +986,8 @@ object `MLang` {
         val `Title`
             get() = MLangTrafficStatistics.`Title`
 
-        val `EntrySummary`
-            get() = MLangTrafficStatistics.`EntrySummary`
-
         val `OverviewTitle`
             get() = MLangTrafficStatistics.`OverviewTitle`
-
-        val `Detail`
-            get() = MLangTrafficStatistics.`Detail`
-
-        val `TargetSites`
-            get() = MLangTrafficStatistics.`TargetSites`
 
         val `RecentRequests`
             get() = MLangTrafficStatistics.`RecentRequests`

@@ -35,13 +35,6 @@ object MLangTrafficStatistics {
     fun `Title`(vararg args: Any): String =
         LocaleBootstrap.getString(R.string.traffic_statistics_title, *args)
 
-    val `EntrySummary`: String
-        get() = LocaleBootstrap.getString(R.string.traffic_statistics_entry_summary)
-
-    @Composable
-    fun `EntrySummary`(vararg args: Any): String =
-        LocaleBootstrap.getString(R.string.traffic_statistics_entry_summary, *args)
-
     val `OverviewTitle`: String
         get() = LocaleBootstrap.getString(R.string.traffic_statistics_overview_title)
 
@@ -49,65 +42,6 @@ object MLangTrafficStatistics {
     fun `OverviewTitle`(vararg args: Any): String =
         LocaleBootstrap.getString(R.string.traffic_statistics_overview_title, *args)
 
-    object `Detail` {
-        val `Title`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_detail_title)
-
-        @Composable
-        fun `Title`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_detail_title, *args)
-
-        val `Summary`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_detail_summary)
-
-        @Composable
-        fun `Summary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_detail_summary, *args)
-    }
-
-    object `TargetSites` {
-        val `Title`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_title)
-
-        @Composable
-        fun `Title`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_title, *args)
-
-        val `Summary`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_summary)
-
-        @Composable
-        fun `Summary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_summary, *args)
-
-        val `Empty`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_empty)
-
-        @Composable
-        fun `Empty`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_empty, *args)
-
-        val `Count`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_count)
-
-        @Composable
-        fun `Count`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_count, *args)
-
-        val `Upload`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_upload)
-
-        @Composable
-        fun `Upload`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_upload, *args)
-
-        val `Download`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_download)
-
-        @Composable
-        fun `Download`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_target_sites_download, *args)
-    }
 
     object `RecentRequests` {
         val `Title`: String

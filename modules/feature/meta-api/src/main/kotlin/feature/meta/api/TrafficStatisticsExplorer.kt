@@ -38,17 +38,6 @@ data class RecentRequestRecord(
     val sourcePackageName: String?,
 )
 
-data class TargetSiteRecord(
-    val siteKey: String,
-    val displayName: String,
-    val totalUpload: Long,
-    val totalDownload: Long,
-    val lastSeenAt: Long,
-) {
-    val totalBytes: Long
-        get() = totalUpload + totalDownload
-}
-
 interface TrafficStatisticsExplorer {
     val selectedTimeRange: StateFlow<TrafficStatisticsRange>
     val selectedBarIndex: StateFlow<Int>
@@ -56,7 +45,6 @@ interface TrafficStatisticsExplorer {
     val recentRequests: StateFlow<List<RecentRequestRecord>>
     val todayTotalBytes: StateFlow<Long>
     val weekTotalBytes: StateFlow<Long>
-    val targetSites: StateFlow<List<TargetSiteRecord>>
     val trafficDifferenceBytes: StateFlow<Long>
     val chartItems: StateFlow<List<TrafficChartPoint>>
 

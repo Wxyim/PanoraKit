@@ -23,7 +23,6 @@ package com.github.nomadboxlab.monadbox.feature.meta.presentation.contract
 
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.data.model.DailyTrafficSummary
-import com.github.nomadboxlab.monadbox.data.model.TargetSiteTrafficUsage
 import com.github.nomadboxlab.monadbox.data.model.TimeSlot
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
 import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
@@ -31,7 +30,6 @@ import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
 import com.github.nomadboxlab.monadbox.feature.meta.api.RecentRequestRecord
-import com.github.nomadboxlab.monadbox.feature.meta.api.TargetSiteRecord
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficChartPoint
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
@@ -158,30 +156,6 @@ class DefaultTrafficStatisticsExplorer(
             }
             .stateIn(scope, SharingStarted.WhileSubscribed(5000), 0L)
 
-    override val targetSites: StateFlow<List<TargetSiteRecord>> =
-        combine(
-                trafficStatisticsStore.targetSiteUsages,
-                trafficStatisticsStore.targetSiteOverflowRevision,
-            ) { _, _ ->
-                trafficStatisticsStore
-                    .getTargetSiteUsagesSorted()
-                    .sortedWith(
-                        compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
-                            .thenByDescending { it.lastSeenAt }
-                    )
-                    .take(MAX_TARGET_SITES)
-                    .map { usage ->
-                        TargetSiteRecord(
-                            siteKey = usage.siteKey,
-                            displayName = usage.displayName,
-                            totalUpload = usage.totalUpload,
-                            totalDownload = usage.totalDownload,
-                            lastSeenAt = usage.lastSeenAt,
-                        )
-                    }
-            }
-            .stateIn(scope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     override val trafficDifferenceBytes: StateFlow<Long> =
         combine(todaySummary, yesterdaySummary) { today, yesterday ->
                 today.total - yesterday.total
@@ -306,7 +280,6 @@ class DefaultTrafficStatisticsExplorer(
     }
 
     companion object {
-        private const val MAX_RECENT_REQUESTS = 30
-        private const val MAX_TARGET_SITES = 10
+        private const val MAX_RECENT_REQUESTS = 50
     }
 }

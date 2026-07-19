@@ -157,7 +157,6 @@ class StorageCleanupManager(
     }
 
     private fun clearRuntimeTrafficRecords() {
-        trafficStatisticsStore.clearTargetSiteUsages()
         ConnectionHistoryManager.clear()
     }
 

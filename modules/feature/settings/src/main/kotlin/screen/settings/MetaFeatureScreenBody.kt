@@ -64,7 +64,6 @@ fun MetaFeatureScreenBody(
     navigator: DestinationsNavigator,
     onNavigateToOverrideConfigPreview: () -> Unit = {},
     onNavigateToLog: () -> Unit = {},
-    onNavigateToConnection: () -> Unit = {},
     onNavigateToProviders: () -> Unit = {},
 ) {
     val viewModel = koinViewModel<MetaFeatureViewModel>()
@@ -195,14 +194,6 @@ fun MetaFeatureScreenBody(
                                         tone = SemanticTone.Neutral,
                                         iconTone = SemanticTone.Warning,
                                         onClick = { onNavigateToLog() },
-                                    ),
-                                    MetaCapabilityEntry(
-                                        title = MLang.Connection.Title,
-                                        summary = MLang.Connection.Summary,
-                                        imageVector = MonadIcons.Link,
-                                        tone = SemanticTone.Neutral,
-                                        iconTone = SemanticTone.Brand,
-                                        onClick = { onNavigateToConnection() },
                                     ),
                                     MetaCapabilityEntry(
                                         title = MLang.Providers.Title,

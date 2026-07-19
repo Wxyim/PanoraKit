@@ -24,7 +24,6 @@ package com.github.nomadboxlab.monadbox.data.store
 import android.util.Log
 import com.github.nomadboxlab.monadbox.data.model.DailyTrafficSummary
 import com.github.nomadboxlab.monadbox.data.model.ProfileTrafficUsage
-import com.github.nomadboxlab.monadbox.data.model.TargetSiteTrafficUsage
 import com.github.nomadboxlab.monadbox.data.model.TimeSlot
 import com.github.nomadboxlab.monadbox.data.model.TrafficSlotData
 import com.tencent.mmkv.MMKV
@@ -53,14 +52,11 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         private const val TAG = "TrafficStatisticsStore"
         private const val KEY_DAILY_SUMMARIES = "daily_summaries"
         private const val KEY_PROFILE_USAGES = "profile_usages"
-        private const val KEY_TARGET_SITE_USAGES = "target_site_usages"
-        private const val KEY_TARGET_SITE_USAGES_OVERFLOW = "target_site_usages_overflow"
         private const val KEY_LAST_TRAFFIC_UPLOAD = "last_traffic_upload"
         private const val KEY_LAST_TRAFFIC_DOWNLOAD = "last_traffic_download"
         private const val KEY_LAST_PROFILE_ID = "last_profile_id"
         private const val KEY_LAST_TRAFFIC_TIMESTAMP = "last_traffic_timestamp"
         private const val MAX_DAYS_TO_KEEP = 90
-        private const val MAX_TARGET_SITE_IN_MEMORY = 256
     }
 
     private val _dailySummaries = MutableStateFlow<Map<Long, DailyTrafficSummary>>(emptyMap())
@@ -68,14 +64,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
 
     private val _profileUsages = MutableStateFlow<Map<String, ProfileTrafficUsage>>(emptyMap())
     val profileUsages: StateFlow<Map<String, ProfileTrafficUsage>> = _profileUsages.asStateFlow()
-
-    private val _targetSiteUsages =
-        MutableStateFlow<Map<String, TargetSiteTrafficUsage>>(emptyMap())
-    val targetSiteUsages: StateFlow<Map<String, TargetSiteTrafficUsage>> =
-        _targetSiteUsages.asStateFlow()
-
-    private val _targetSiteOverflowRevision = MutableStateFlow(0L)
-    val targetSiteOverflowRevision: StateFlow<Long> = _targetSiteOverflowRevision.asStateFlow()
 
     init {
         loadData()
@@ -95,13 +83,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
                 _profileUsages.value = usages
             }
         }
-
-        mmkv.decodeString(KEY_TARGET_SITE_USAGES)?.let { jsonStr ->
-            runCatching {
-                val usages: Map<String, TargetSiteTrafficUsage> = json.decodeFromString(jsonStr)
-                _targetSiteUsages.value = usages
-            }
-        }
     }
 
     private fun saveDailySummaries() {
@@ -118,69 +99,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         }
     }
 
-    private fun saveTargetSiteUsages() {
-        runCatching {
-            val jsonStr = json.encodeToString(_targetSiteUsages.value)
-            mmkv.encode(KEY_TARGET_SITE_USAGES, jsonStr)
-        }
-    }
-
-    private fun loadTargetSiteOverflowUsages(): MutableMap<String, TargetSiteTrafficUsage> {
-        val raw = mmkv.decodeString(KEY_TARGET_SITE_USAGES_OVERFLOW).orEmpty()
-        if (raw.isBlank()) return mutableMapOf()
-        return runCatching {
-                val decoded: Map<String, TargetSiteTrafficUsage> = json.decodeFromString(raw)
-                decoded.toMutableMap()
-            }
-            .getOrDefault(mutableMapOf())
-    }
-
-    private fun saveTargetSiteOverflowUsages(usages: Map<String, TargetSiteTrafficUsage>) {
-        runCatching {
-                if (usages.isEmpty()) {
-                    mmkv.remove(KEY_TARGET_SITE_USAGES_OVERFLOW)
-                } else {
-                    mmkv.encode(KEY_TARGET_SITE_USAGES_OVERFLOW, json.encodeToString(usages))
-                }
-            }
-            .onSuccess {
-                _targetSiteOverflowRevision.value = _targetSiteOverflowRevision.value + 1L
-            }
-    }
-
-    private fun compactTargetSiteUsagesForMemory(): MutableMap<String, TargetSiteTrafficUsage> {
-        val current = _targetSiteUsages.value.toMutableMap()
-        if (current.size <= MAX_TARGET_SITE_IN_MEMORY) return current
-
-        val sorted =
-            current.values.sortedWith(
-                compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
-                    .thenByDescending { it.lastSeenAt }
-                    .thenBy { it.displayName.lowercase(Locale.ROOT) }
-            )
-        val keep = sorted.take(MAX_TARGET_SITE_IN_MEMORY)
-        val overflow = sorted.drop(MAX_TARGET_SITE_IN_MEMORY)
-        if (overflow.isNotEmpty()) {
-            val overflowMap = loadTargetSiteOverflowUsages()
-            overflow.forEach { usage ->
-                val existing = overflowMap[usage.siteKey]
-                overflowMap[usage.siteKey] =
-                    if (existing == null) {
-                        usage
-                    } else {
-                        existing.copy(
-                            displayName = usage.displayName,
-                            totalUpload = existing.totalUpload + usage.totalUpload,
-                            totalDownload = existing.totalDownload + usage.totalDownload,
-                            lastSeenAt = maxOf(existing.lastSeenAt, usage.lastSeenAt),
-                        )
-                    }
-                current.remove(usage.siteKey)
-            }
-            saveTargetSiteOverflowUsages(overflowMap)
-        }
-        return keep.associateBy { it.siteKey }.toMutableMap()
-    }
 
     fun recordTraffic(
         uploadDelta: Long,
@@ -318,113 +236,9 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         return _profileUsages.value.values.sortedByDescending { it.totalBytes }
     }
 
-    fun recordTargetSiteTraffic(
-        siteKey: String,
-        displayName: String,
-        uploadDelta: Long,
-        downloadDelta: Long,
-        seenAt: Long = System.currentTimeMillis(),
-    ) {
-        if (siteKey.isBlank() || displayName.isBlank()) return
-        if (uploadDelta <= 0 && downloadDelta <= 0) return
-
-        val currentUsages = _targetSiteUsages.value.toMutableMap()
-        val currentUsage =
-            currentUsages[siteKey]
-                ?: TargetSiteTrafficUsage(
-                    siteKey = siteKey,
-                    displayName = displayName,
-                    totalUpload = 0L,
-                    totalDownload = 0L,
-                    lastSeenAt = seenAt,
-                )
-
-        currentUsages[siteKey] =
-            currentUsage.copy(
-                displayName = displayName,
-                totalUpload = currentUsage.totalUpload + uploadDelta,
-                totalDownload = currentUsage.totalDownload + downloadDelta,
-                lastSeenAt = maxOf(currentUsage.lastSeenAt, seenAt),
-            )
-        _targetSiteUsages.value = currentUsages
-        saveTargetSiteUsages()
-    }
-
-    fun recordTargetSiteTrafficBatch(
-        usages: Collection<TargetSiteTrafficUsage>,
-        seenAt: Long = System.currentTimeMillis(),
-    ) {
-        if (usages.isEmpty()) return
-
-        val currentUsages = _targetSiteUsages.value.toMutableMap()
-        val overflowUsages = loadTargetSiteOverflowUsages()
-        var changed = false
-        usages.forEach { usage ->
-            if (usage.siteKey.isBlank() || usage.displayName.isBlank()) return@forEach
-            if (usage.totalUpload <= 0 && usage.totalDownload <= 0) return@forEach
-
-            val current =
-                currentUsages[usage.siteKey]
-                    ?: overflowUsages.remove(usage.siteKey)
-                    ?: TargetSiteTrafficUsage(
-                        siteKey = usage.siteKey,
-                        displayName = usage.displayName,
-                        totalUpload = 0L,
-                        totalDownload = 0L,
-                        lastSeenAt = seenAt,
-                    )
-            currentUsages[usage.siteKey] =
-                current.copy(
-                    displayName = usage.displayName,
-                    totalUpload = current.totalUpload + usage.totalUpload,
-                    totalDownload = current.totalDownload + usage.totalDownload,
-                    lastSeenAt = maxOf(current.lastSeenAt, usage.lastSeenAt, seenAt),
-                )
-            changed = true
-        }
-
-        if (!changed) return
-        _targetSiteUsages.value = currentUsages
-        _targetSiteUsages.value = compactTargetSiteUsagesForMemory()
-        saveTargetSiteUsages()
-        saveTargetSiteOverflowUsages(overflowUsages)
-    }
-
-    fun getTargetSiteUsagesSorted(limit: Int? = null): List<TargetSiteTrafficUsage> {
-        val merged = _targetSiteUsages.value.toMutableMap()
-        loadTargetSiteOverflowUsages().forEach { (siteKey, usage) ->
-            val current = merged[siteKey]
-            merged[siteKey] =
-                if (current == null) {
-                    usage
-                } else {
-                    current.copy(
-                        displayName = usage.displayName,
-                        totalUpload = current.totalUpload + usage.totalUpload,
-                        totalDownload = current.totalDownload + usage.totalDownload,
-                        lastSeenAt = maxOf(current.lastSeenAt, usage.lastSeenAt),
-                    )
-                }
-        }
-        val sorted =
-            merged.values.sortedWith(
-                compareByDescending<TargetSiteTrafficUsage> { it.totalBytes }
-                    .thenByDescending { it.lastSeenAt }
-                    .thenBy { it.displayName.lowercase(Locale.ROOT) }
-            )
-        return limit?.let(sorted::take) ?: sorted
-    }
-
-    fun clearTargetSiteUsages() {
-        _targetSiteUsages.value = emptyMap()
-        saveTargetSiteUsages()
-        saveTargetSiteOverflowUsages(emptyMap())
-    }
-
     fun clearAll() {
         _dailySummaries.value = emptyMap()
         _profileUsages.value = emptyMap()
-        clearTargetSiteUsages()
         mmkv.remove(KEY_DAILY_SUMMARIES)
         mmkv.remove(KEY_PROFILE_USAGES)
     }

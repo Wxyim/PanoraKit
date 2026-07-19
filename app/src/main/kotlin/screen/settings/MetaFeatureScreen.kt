@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import com.github.nomadboxlab.monadbox.feature.settings.MetaFeatureScreenBody
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.ConnectionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
@@ -40,9 +39,6 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
             navigator.navigate(OverrideConfigPreviewRouteDestination) { launchSingleTop = true }
         },
         onNavigateToLog = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
-        onNavigateToConnection = {
-            navigator.navigate(ConnectionScreenDestination) { launchSingleTop = true }
-        },
         onNavigateToProviders = {
             navigator.navigate(ProvidersScreenDestination) { launchSingleTop = true }
         },

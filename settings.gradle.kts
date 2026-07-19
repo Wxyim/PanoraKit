@@ -77,7 +77,6 @@ include(
     ":feature:about",
     ":feature:onboarding",
     ":feature:log",
-    ":feature:connection",
     ":feature:traffic",
     ":feature:home:api",
     ":feature:home",
@@ -124,7 +123,6 @@ project(":feature:onboarding").projectDir = file("modules/feature/onboarding")
 
 project(":feature:log").projectDir = file("modules/feature/log")
 
-project(":feature:connection").projectDir = file("modules/feature/connection")
 
 project(":feature:traffic").projectDir = file("modules/feature/traffic")
 

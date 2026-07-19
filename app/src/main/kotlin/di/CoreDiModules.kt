@@ -204,9 +204,6 @@ val appDataRuntimeModule = module {
     single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
     single { ConnectionActivityRepository(get(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single<ConnectionActivityProvider> { get<ConnectionActivityRepository>() }
-    single {
-        TargetSiteTrafficCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME)))
-    }
     single { RuntimeLogRecordingCoordinator(androidApplication(), get(), get()) }
 }
 
