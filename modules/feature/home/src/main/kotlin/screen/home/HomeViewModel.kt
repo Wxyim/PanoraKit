@@ -59,6 +59,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -597,7 +598,7 @@ class HomeViewModel(
                     trafficNow = runtimeUi.trafficNow,
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeScreenState())
+            .stateIn(viewModelScope, SharingStarted.Eagerly, HomeScreenState())
 
     init {
         refreshProfiles()
@@ -635,16 +636,22 @@ class HomeViewModel(
     }
 
     /**
-     * Clear the cached external IP whenever the VPN is stopped so that
-     * re-enabling the VPN forces a fresh query instead of showing stale data.
+     * Clear the cached external IP whenever the VPN is fully stopped.
+     *
+     * Uses [debounce] to ignore transient phase changes during initialization
+     * — only a sustained stop (>2 s) clears the cache. This prevents
+     * first-launch race conditions where the runtime may briefly leave the
+     * Running phase while mihomo finishes its initial setup.
      */
     private fun clearExternalIpCacheOnStop() {
         viewModelScope.launch {
-            isRunning.collect { running ->
-                if (!running) {
-                    externalIpCache.value = null
+            isRunning
+                .debounce(2_000L)
+                .collect { running ->
+                    if (!running) {
+                        externalIpCache.value = null
+                    }
                 }
-            }
         }
     }
 

@@ -530,16 +530,30 @@ class SessionRuntime(
     }
 
     private suspend fun compileAndLoad(spec: RuntimeSpec) {
+        // Inject persisted proxy group selections into the runtime internal
+        // override file before compilation so that the selected nodes become
+        // the defaults when mihomo starts. This eliminates the visual flash
+        // where the UI briefly shows the config default before the async
+        // selection restore takes effect.
+        compiledConfigPipeline.ensureSelectionOverrideFile(
+            spec.profileUuid,
+            spec.profileDir,
+        )
+        // Re-resolve override paths to include the newly created (or updated)
+        // runtime internal override file in the compilation.
+        val updatedOverridePaths =
+            compiledConfigPipeline.resolveOverridePaths(spec.profileUuid)
+        val compiledSpec = spec.copy(overridePaths = updatedOverridePaths)
         startupLog(
             spec,
             "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}",
         )
         startupLog(
             spec,
-            "runtime override: overridePaths=${spec.overridePaths.size} " +
-                spec.overridePaths.joinToString(prefix = "[", postfix = "]"),
+            "runtime override: overridePaths=${compiledSpec.overridePaths.size} " +
+                compiledSpec.overridePaths.joinToString(prefix = "[", postfix = "]"),
         )
-        compiledConfigPipeline.applyOverrideToRuntimeFile(spec)
+        compiledConfigPipeline.applyOverrideToRuntimeFile(compiledSpec)
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
         withContext(Dispatchers.IO) {

@@ -113,10 +113,24 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
+        val current = store.activeProfile
         val groupNames = Clash.queryGroupNames(excludeNotSelectable)
+        val selections = if (current != null) SelectionDao.querySelections(current) else emptyList()
         return groupNames.map { groupName ->
             Clash.queryGroup(groupName, ProxySort.Default).also { group ->
                 syncSelectionSnapshotSafely(groupName, group)
+            }.let { group ->
+                // Overlay persisted selections so the UI shows the correct node
+                // immediately, even before the async patch from syncSelectionSnapshotSafely
+                // takes effect. This mirrors queryProfileProxyGroups() overlay logic.
+                val persisted = selections.find { it.proxy == group.name }
+                if (persisted != null) {
+                    val nodeName = persisted.selected.trim()
+                    val isValid = group.proxies.any { it.name.trim() == nodeName }
+                    if (isValid) group.copy(now = nodeName) else group
+                } else {
+                    group
+                }
             }
         }
     }

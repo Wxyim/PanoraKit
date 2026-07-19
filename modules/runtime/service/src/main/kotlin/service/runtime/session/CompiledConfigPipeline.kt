@@ -30,8 +30,10 @@ import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverrideRuleSanit
 import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
 import java.io.File
 import java.security.MessageDigest
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -40,7 +42,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class CompiledConfigPipeline(private val context: Context) {
     private val json = Json {
@@ -129,6 +133,95 @@ class CompiledConfigPipeline(private val context: Context) {
             systemPresetOverridePath = systemPresetOverridePath,
             runtimeInternalOverridePath = runtimeInternalOverridePath,
             paths = paths,
+        )
+    }
+
+    /**
+     * Ensures that persisted proxy group selections are injected into the runtime
+     * internal override file before config compilation. This eliminates the visual
+     * flash where the home page briefly shows the config default node before
+     * SelectionRestoreExecutor's async patch takes effect.
+     *
+     * For each proxy group with a persisted selection, the proxies list in the
+     * override is reordered so the selected node appears first, making it the
+     * default when mihomo starts.
+     *
+     * This method is idempotent: if no selections exist or no changes are needed,
+     * the override file is left untouched.
+     */
+    fun ensureSelectionOverrideFile(profileUuid: String, profileDir: String) {
+        val uuid = runCatching { UUID.fromString(profileUuid) }.getOrNull() ?: return
+        val selections = SelectionDao.querySelections(uuid)
+        if (selections.isEmpty()) {
+            // No selections — remove any stale override file so it doesn't
+            // incorrectly reorder proxies from a previous session.
+            val overridesDir = context.filesDir.resolve("overrides")
+            val staleFile =
+                overridesDir.resolve(
+                    "configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
+                )
+            if (staleFile.exists()) staleFile.delete()
+            return
+        }
+
+        val profileDirFile = File(profileDir)
+        val configFile = profileDirFile.resolve("config.yaml")
+        if (!configFile.exists()) return
+
+        val configYaml = configFile.readText()
+        val compiled = Clash.inspectCompiledConfig(configYaml) ?: return
+        val proxyGroups = compiled.proxyGroups ?: return
+        if (proxyGroups.isEmpty()) return
+
+        var hasChanges = false
+        val updatedGroups = proxyGroups.map { groupDef ->
+            val groupName =
+                groupDef["name"]?.jsonPrimitive?.content ?: return@map groupDef
+            val selection =
+                selections.find { it.proxy == groupName } ?: return@map groupDef
+
+            val targetNode = selection.selected.trim()
+            if (targetNode.isEmpty()) return@map groupDef
+
+            val proxies = groupDef["proxies"]?.jsonArray ?: return@map groupDef
+            if (proxies.size < 2) return@map groupDef
+
+            // Already correct — selected node is first proxy (the default)
+            val firstProxy = proxies.firstOrNull()?.jsonPrimitive?.content
+            if (firstProxy == targetNode) return@map groupDef
+
+            // Reorder: selected node first, rest maintain their relative order
+            val reordered = buildJsonArray {
+                addAll(proxies.filter {
+                    it.jsonPrimitive.content == targetNode
+                })
+                addAll(proxies.filter {
+                    it.jsonPrimitive.content != targetNode
+                })
+            }
+
+            hasChanges = true
+            groupDef.toMutableMap().apply { put("proxies", reordered) }
+        }
+
+        if (!hasChanges) return
+
+        val overridesDir = context.filesDir.resolve("overrides")
+        val configsDir = overridesDir.resolve("configs")
+        configsDir.mkdirs()
+
+        val file =
+            configsDir.resolve(
+                "${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
+            )
+
+        // Write only the proxy-groups field to avoid unintentionally overriding
+        // other settings (ports, dns, tun, etc.) that may be in the profile config.
+        val overrideJson = buildJsonObject {
+            put("proxy-groups", JsonArray(updatedGroups))
+        }
+        file.writeText(
+            json.encodeToString(JsonElement.serializer(), overrideJson)
         )
     }
 

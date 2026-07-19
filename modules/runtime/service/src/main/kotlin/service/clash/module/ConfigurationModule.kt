@@ -78,6 +78,18 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                     ImportedDao.queryByUUID(current)
                         ?: throw NullPointerException("No profile selected")
 
+                // Inject persisted proxy group selections into the runtime override
+                // file before resolving override paths. This ensures the selected
+                // proxy nodes become the defaults when mihomo starts, eliminating
+                // the visual flash where the UI briefly shows the config default
+                // before SelectionRestoreExecutor's async patch takes effect.
+                val profileDir =
+                    service.importedDir.resolve(active.uuid.toString()).absolutePath
+                compiledConfigPipeline.ensureSelectionOverrideFile(
+                    active.uuid.toString(),
+                    profileDir,
+                )
+
                 val spec = runtimeSpecFactory.createHttpSpec()
                 compiledConfigPipeline.applyOverrideToRuntimeFile(spec)
                 Clash.loadCompiledConfig(
