@@ -42,6 +42,7 @@ import java.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 
 private data class StatisticsClockSnapshot(
@@ -51,6 +52,7 @@ private data class StatisticsClockSnapshot(
     val timeZoneId: String,
 )
 
+@OptIn(FlowPreview::class)
 class DefaultTrafficStatisticsExplorer(
     private val trafficStatisticsStore: TrafficStatisticsStore,
     connectionActivityRepository: ConnectionActivityRepository,
