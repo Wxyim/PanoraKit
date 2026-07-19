@@ -68,7 +68,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
@@ -96,25 +95,6 @@ private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
  * routing is already proven stable.
  */
 private const val FIRST_QUERY_ROUTING_DELAY_MS = 1500L
-
-data class SpeedHistoryBuffer(
-    val samples: LongArray,
-    val head: Int,
-    val size: Int,
-    val version: Long,
-) {
-    companion object {
-        fun create(capacity: Int): SpeedHistoryBuffer {
-            val normalized = capacity.coerceAtLeast(1)
-            return SpeedHistoryBuffer(
-                samples = LongArray(normalized),
-                head = 0,
-                size = 0,
-                version = 0L,
-            )
-        }
-    }
-}
 
 @Stable
 data class HomeUiState(
@@ -151,7 +131,6 @@ data class HomeChromeState(
 @Stable
 private data class RuntimeUiSnapshot(
     val ipState: IpMonitoringState,
-    val speedHistory: SpeedHistoryBuffer,
     val trafficNow: Long,
     val externalIpEnabled: Boolean,
     val externalIpQuerying: Boolean,
@@ -172,54 +151,8 @@ data class HomeScreenState(
     val ipMonitoringState: IpMonitoringState = IpMonitoringState.Loading,
     val isExternalIpLookupEnabled: Boolean = false,
     val isExternalIpQuerying: Boolean = false,
-    val speedHistory: SpeedHistoryBuffer = SpeedHistoryBuffer.create(24),
     val trafficNow: Long = 0L,
 )
-
-private object HomeSpeedSampler {
-    fun sampleTraffic(
-        phase: RuntimePhase,
-        trafficReady: Boolean,
-        latestTraffic: Long,
-        previousSample: Long,
-    ): Long {
-        return when {
-            phase == RuntimePhase.Idle || phase == RuntimePhase.Failed -> 0L
-            phase == RuntimePhase.Starting && !trafficReady -> previousSample
-            phase.running -> {
-                val traffic =
-                    com.github.nomadboxlab.monadbox.domain.model.TrafficData.from(latestTraffic)
-                (traffic.upload + traffic.download).coerceAtLeast(0L)
-            }
-
-            else -> 0L
-        }
-    }
-
-    fun latestSample(state: SpeedHistoryBuffer): Long {
-        if (state.size <= 0 || state.samples.isEmpty()) return 0L
-        val capacity = state.samples.size
-        val lastIndex = if (state.head == 0) capacity - 1 else state.head - 1
-        return state.samples[lastIndex]
-    }
-
-    fun appendSample(state: SpeedHistoryBuffer, sample: Long): SpeedHistoryBuffer {
-        if (state.samples.isEmpty()) return state
-        val capacity = state.samples.size
-        state.samples[state.head] = sample
-        return state.copy(
-            head = (state.head + 1) % capacity,
-            size = (state.size + 1).coerceAtMost(capacity),
-            version = state.version + 1,
-        )
-    }
-
-    fun reset(state: SpeedHistoryBuffer): SpeedHistoryBuffer {
-        if (state.size == 0) return state
-        state.samples.fill(0L)
-        return state.copy(head = 0, size = 0, version = state.version + 1)
-    }
-}
 
 private data class HomeTrafficSample(
     val phase: RuntimePhase,
@@ -450,36 +383,6 @@ class HomeViewModel(
             .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val speedHistory: StateFlow<SpeedHistoryBuffer> =
-        combine(runtimeSnapshot, trafficNow) { snapshot, latestTraffic ->
-                HomeTrafficSample(
-                    phase = snapshot.phase,
-                    trafficReady = snapshot.trafficReady,
-                    latestTraffic = latestTraffic,
-                )
-            }
-            .scan(SpeedHistoryBuffer.create(24)) { previous, sample ->
-                if (sample.phase == RuntimePhase.Idle || sample.phase == RuntimePhase.Failed) {
-                    HomeSpeedSampler.reset(previous)
-                } else {
-                    HomeSpeedSampler.appendSample(
-                        state = previous,
-                        sample =
-                            HomeSpeedSampler.sampleTraffic(
-                                phase = sample.phase,
-                                trafficReady = sample.trafficReady,
-                                latestTraffic = sample.latestTraffic,
-                                previousSample = HomeSpeedSampler.latestSample(previous),
-                            ),
-                    )
-                }
-            }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                SpeedHistoryBuffer.create(24),
-            )
-
     @OptIn(ExperimentalCoroutinesApi::class)
     val ipMonitoringState: StateFlow<IpMonitoringState> =
         isRunning
@@ -568,14 +471,12 @@ class HomeViewModel(
                 },
                 combine(
                     ipMonitoringState,
-                    speedHistory,
                     trafficNow,
                     isExternalIpLookupEnabled,
                     isExternalIpQuerying,
-                ) { ipState, sh, tn, externalIpEnabled, externalIpQuerying ->
+                ) { ipState, tn, externalIpEnabled, externalIpQuerying ->
                     RuntimeUiSnapshot(
                         ipState = ipState,
-                        speedHistory = sh,
                         trafficNow = tn,
                         externalIpEnabled = externalIpEnabled,
                         externalIpQuerying = externalIpQuerying,
@@ -604,7 +505,6 @@ class HomeViewModel(
                     ipMonitoringState = runtimeUi.ipState,
                     isExternalIpLookupEnabled = runtimeUi.externalIpEnabled,
                     isExternalIpQuerying = runtimeUi.externalIpQuerying,
-                    speedHistory = runtimeUi.speedHistory,
                     trafficNow = runtimeUi.trafficNow,
                 )
             }

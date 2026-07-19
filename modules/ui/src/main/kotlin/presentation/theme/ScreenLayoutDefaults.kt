@@ -575,11 +575,6 @@ fun rememberHomeTrafficMetrics(width: Dp): HomeTrafficMetrics {
     }
 }
 
-object SpeedChartLayoutDefaults {
-    val BarGap = 5.dp
-    val BarCornerRadius = 6.dp
-}
-
 object PrivacyPolicySheetLayoutDefaults {
     val MaxHeight = 450.dp
 }
