@@ -71,6 +71,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
@@ -82,6 +83,13 @@ private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
         payloadReady &&
         configReady &&
         transportReady
+
+/**
+ * Delay before retrying a failed external IP query on first launch.
+ * The TUN interface needs a brief moment after trafficReady=true for
+ * routing to fully establish and pass the first packet through the tunnel.
+ */
+private const val WARM_UP_RETRY_DELAY_MS = 800L
 
 data class SpeedHistoryBuffer(
     val samples: LongArray,
@@ -518,7 +526,19 @@ class HomeViewModel(
                     appSettings.externalIpLookupUrl.value.isNotBlank(),
                     runtimeSnapshot.value.owner,
                 )
-                val info = networkInfoService.queryExternalIp()
+                var info = networkInfoService.queryExternalIp()
+
+                // When the VPN just started, the TUN interface may have been
+                // created but routing is not yet passing traffic. The first
+                // packet through the tunnel needs a brief moment to establish.
+                // Retry once with a warm-up delay instead of immediately
+                // showing an error.
+                if (info == null) {
+                    Timber.d("External IP query first attempt returned null, retrying after warm-up delay")
+                    delay(WARM_UP_RETRY_DELAY_MS)
+                    info = networkInfoService.queryExternalIp()
+                }
+
                 networkInfoService.cacheExternalIp(info)
                 Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
                 if (info == null) {
