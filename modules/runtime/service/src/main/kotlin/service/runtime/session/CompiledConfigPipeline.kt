@@ -44,6 +44,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 
 class CompiledConfigPipeline(private val context: Context) {
@@ -191,13 +192,11 @@ class CompiledConfigPipeline(private val context: Context) {
             if (firstProxy == targetNode) return@map groupDef
 
             // Reorder: selected node first, rest maintain their relative order
+            val selected = proxies.filter { e -> e.jsonPrimitive.content == targetNode }
+            val rest = proxies.filter { e -> e.jsonPrimitive.content != targetNode }
             val reordered = buildJsonArray {
-                addAll(proxies.filter {
-                    it.jsonPrimitive.content == targetNode
-                })
-                addAll(proxies.filter {
-                    it.jsonPrimitive.content != targetNode
-                })
+                addAll(selected)
+                addAll(rest)
             }
 
             hasChanges = true
@@ -218,7 +217,7 @@ class CompiledConfigPipeline(private val context: Context) {
         // Write only the proxy-groups field to avoid unintentionally overriding
         // other settings (ports, dns, tun, etc.) that may be in the profile config.
         val overrideJson = buildJsonObject {
-            put("proxy-groups", JsonArray(updatedGroups))
+            put("proxy-groups", JsonArray(updatedGroups.map { JsonObject(it) }))
         }
         file.writeText(
             json.encodeToString(JsonElement.serializer(), overrideJson)
