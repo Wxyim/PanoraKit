@@ -1006,9 +1006,6 @@ object `MLang` {
 
         val `Compare`
             get() = MLangTrafficStatistics.`Compare`
-
-        val `Chart`
-            get() = MLangTrafficStatistics.`Chart`
     }
 
     object `Util` {

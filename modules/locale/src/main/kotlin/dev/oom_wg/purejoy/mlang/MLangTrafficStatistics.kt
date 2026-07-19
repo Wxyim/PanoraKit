@@ -195,19 +195,4 @@ object MLangTrafficStatistics {
             LocaleBootstrap.getString(R.string.traffic_statistics_compare_week_stats, *args)
     }
 
-    object `Chart` {
-        val `Hourly`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_chart_hourly)
-
-        @Composable
-        fun `Hourly`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_chart_hourly, *args)
-
-        val `Daily`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_chart_daily)
-
-        @Composable
-        fun `Daily`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_chart_daily, *args)
-    }
 }

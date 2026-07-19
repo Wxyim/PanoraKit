@@ -48,9 +48,7 @@ data class PollingTimerSpec(
 }
 
 object PollingTimerSpecs {
-    val HomeSpeedSampling = PollingTimerSpec("home_speed_sampling", 1_000L, 0L)
     val LogScreenRefresh = PollingTimerSpec("log_screen_refresh", 500L, 0L)
-    val ConnectionsPolling = PollingTimerSpec("connections_polling", 1_000L, 0L)
     val RuntimeTrafficPolling = PollingTimerSpec("runtime_traffic_polling", 1_000L, 0L)
     val RuntimeProxyGroupSyncFast = PollingTimerSpec("runtime_proxy_group_sync_fast", 1_000L, 0L)
     val RuntimeProxyGroupSyncSlow = PollingTimerSpec("runtime_proxy_group_sync_slow", 3_000L, 0L)

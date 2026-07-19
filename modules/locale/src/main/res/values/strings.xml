@@ -1228,7 +1228,5 @@
     <string name="traffic_statistics_compare_less_than_yesterday">vs yesterday %s</string>
     <string name="traffic_statistics_compare_same_as_yesterday">Same as yesterday</string>
     <string name="traffic_statistics_compare_week_stats">Last 7 days stats</string>
-    <string name="traffic_statistics_chart_hourly">4 Hours</string>
-    <string name="traffic_statistics_chart_daily">Daily</string>
     <string name="util_error_unknown_error">Unknown error</string>
 </resources>

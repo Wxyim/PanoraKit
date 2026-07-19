@@ -23,17 +23,6 @@ package com.github.nomadboxlab.monadbox.data.model
 
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class TrafficRecord(
-    val timestamp: Long,
-    val upload: Long,
-    val download: Long,
-    val profileId: String? = null,
-) {
-    val total: Long
-        get() = upload + download
-}
-
 enum class TimeSlot(val startHour: Int, val endHour: Int, val label: String) {
     SLOT_0_4(0, 4, "0-4"),
     SLOT_4_8(4, 8, "4-8"),
@@ -81,26 +70,3 @@ data class ProfileTrafficUsage(
         get() = totalUpload + totalDownload
 }
 
-enum class StatisticsTimeRange(val days: Int) {
-    TODAY(1),
-    WEEK(7);
-
-    val label: String
-        get() =
-            when (this) {
-                TODAY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Today
-                WEEK -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.TimeRange.Week
-            }
-}
-
-enum class ChartGranularity {
-    HOURLY,
-    DAILY;
-
-    val label: String
-        get() =
-            when (this) {
-                HOURLY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Hourly
-                DAILY -> dev.oom_wg.purejoy.mlang.MLang.TrafficStatistics.Chart.Daily
-            }
-}

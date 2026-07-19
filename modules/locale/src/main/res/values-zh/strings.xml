@@ -1228,7 +1228,5 @@
     <string name="traffic_statistics_compare_less_than_yesterday">较昨日 %s</string>
     <string name="traffic_statistics_compare_same_as_yesterday">与昨日持平</string>
     <string name="traffic_statistics_compare_week_stats">近 7 天统计</string>
-    <string name="traffic_statistics_chart_hourly">4 小时</string>
-    <string name="traffic_statistics_chart_daily">按天</string>
     <string name="util_error_unknown_error">未知错误</string>
 </resources>
