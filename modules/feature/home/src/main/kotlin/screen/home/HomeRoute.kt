@@ -52,7 +52,6 @@ import org.koin.compose.koinInject
 fun HomeRoute(
     mainInnerPadding: PaddingValues,
     isActive: Boolean,
-    onNavigateToTrafficStatistics: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -127,7 +126,6 @@ fun HomeRoute(
             isExternalIpLookupEnabled = screenState.isExternalIpLookupEnabled,
             isExternalIpQuerying = screenState.isExternalIpQuerying,
             onQueryExternalIp = { homeViewModel.queryExternalIp() },
-            speedHistory = screenState.speedHistory,
             proxyMode = screenState.proxyMode,
             uiError = screenState.ui.error ?: proxyUiState.error,
             uiMessage = screenState.ui.message ?: proxyUiState.message,
@@ -142,7 +140,6 @@ fun HomeRoute(
             onProxyToggleRequest = requestProxyToggle,
             onModeSwitchRequest = { showQuickModePanel = true },
             onModeBadgeBoundsChanged = { bounds -> modeBadgeBounds = bounds },
-            onNavigateToTrafficStatistics = onNavigateToTrafficStatistics,
         )
 
         HomeModeSwitchOverlay(

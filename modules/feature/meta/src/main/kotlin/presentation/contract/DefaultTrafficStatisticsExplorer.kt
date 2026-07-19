@@ -307,6 +307,6 @@ class DefaultTrafficStatisticsExplorer(
 
     companion object {
         private const val MAX_RECENT_REQUESTS = 30
-        private const val MAX_TARGET_SITES = 8
+        private const val MAX_TARGET_SITES = 10
     }
 }

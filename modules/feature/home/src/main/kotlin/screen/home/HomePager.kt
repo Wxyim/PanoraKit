@@ -43,8 +43,6 @@ import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindo
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun HomePager(
@@ -64,7 +62,6 @@ fun HomePager(
     isExternalIpLookupEnabled: Boolean = false,
     isExternalIpQuerying: Boolean = false,
     onQueryExternalIp: () -> Unit = {},
-    speedHistory: SpeedHistoryBuffer,
     proxyMode: ProxyMode,
     uiError: String?,
     uiMessage: String?,
@@ -80,7 +77,6 @@ fun HomePager(
         },
     onModeSwitchRequest: () -> Unit = {},
     onModeBadgeBoundsChanged: (Rect) -> Unit = {},
-    onNavigateToTrafficStatistics: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -99,7 +95,6 @@ fun HomePager(
         profilesLoaded && hasEnabledProfile && recommendedProfile != null && !isToggling
     val canToggleProxy =
         profilesLoaded && hasProfiles && !isToggling && (displayRunning || canStartProxy)
-    val hasTrafficHistory = speedHistory.size > 0
 
     val handleProxyToggle = {
         if (!hasEnabledProfile || recommendedProfile == null) {
@@ -148,20 +143,6 @@ fun HomePager(
                                     HomePagerLayoutDefaults.InfoSpacingMin,
                                     HomePagerLayoutDefaults.InfoSpacingBase,
                                 )
-                            }
-                        val chartHeight =
-                            when {
-                                displayRunning ->
-                                    (AppConstants.UI.SPEED_CHART_HEIGHT * contentScale).coerceIn(
-                                        HomePagerLayoutDefaults.RunningChartHeightMin,
-                                        AppConstants.UI.SPEED_CHART_HEIGHT,
-                                    )
-                                hasTrafficHistory ->
-                                    (AppConstants.UI.SPEED_CHART_HEIGHT * 0.82f).coerceIn(
-                                        HomePagerLayoutDefaults.HistoryChartHeightMin,
-                                        HomePagerLayoutDefaults.HistoryChartHeightMax,
-                                    )
-                                else -> HomePagerLayoutDefaults.IdleChartHeight
                             }
                         val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
                         val visibleTraffic = if (displayRunning) trafficNow else TrafficData.ZERO
@@ -214,12 +195,6 @@ fun HomePager(
                                             )
                                         }
 
-                                        HomeTrafficChartSection(
-                                            speedHistory = speedHistory,
-                                            isRunning = displayRunning,
-                                            chartHeight = chartHeight,
-                                            onClick = onNavigateToTrafficStatistics,
-                                        )
                                     }
                                 }
                             }
@@ -258,12 +233,6 @@ fun HomePager(
                                         )
                                     }
 
-                                    HomeTrafficChartSection(
-                                        speedHistory = speedHistory,
-                                        isRunning = displayRunning,
-                                        chartHeight = chartHeight,
-                                        onClick = onNavigateToTrafficStatistics,
-                                    )
                                 }
                             }
                         }
@@ -273,32 +242,5 @@ fun HomePager(
 
             item { Spacer(modifier = Modifier.height(AppTheme.spacing.xxxl)) }
         }
-    }
-}
-
-@Composable
-private fun HomeTrafficChartSection(
-    speedHistory: SpeedHistoryBuffer,
-    isRunning: Boolean,
-    chartHeight: androidx.compose.ui.unit.Dp,
-    onClick: () -> Unit,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(HomePagerLayoutDefaults.ChartSectionSpacing)
-    ) {
-        if (!isRunning) {
-            Text(
-                text = MLang.TrafficStatistics.Title,
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
-
-        SpeedChart(
-            speedHistory = speedHistory,
-            isRunning = isRunning,
-            chartHeight = chartHeight,
-            onClick = onClick,
-        )
     }
 }

@@ -109,7 +109,6 @@ import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.generated.destinations.LocalProfileConfigEditRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.OverrideConfigPreviewRouteDestination
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
@@ -446,11 +445,6 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                             HomeRoute(
                                 mainInnerPadding = safeMainPadding,
                                 isActive = page == pagerState.currentPage,
-                                onNavigateToTrafficStatistics = {
-                                    navigator.navigate(TrafficStatisticsScreenDestination) {
-                                        launchSingleTop = true
-                                    }
-                                },
                             )
                         1 ->
                             ProxyPager(
