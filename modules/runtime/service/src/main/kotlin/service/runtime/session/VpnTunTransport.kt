@@ -194,10 +194,11 @@ class VpnTunTransport(
                 .getOrDefault(-1)
         if (uid > 0) return uid
 
-        // getConnectionOwnerUid is unreliable for UDP sockets.
-        // Fall back to reading /proc/net/udp[6] to resolve the UID.
+        // getConnectionOwnerUid may miss sockets that are already closed,
+        // in TIME_WAIT, or otherwise untracked by the kernel. Fall back to
+        // reading /proc/net/{tcp,udp}[6] with a protocol-specific resolver.
         if (uid <= 0) {
-            val procUid = ProcFsUidResolver.resolveUdpUid(source)
+            val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
             if (procUid > 0) return procUid
         }
         return -1

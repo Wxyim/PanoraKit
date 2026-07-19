@@ -466,7 +466,7 @@ class HomeViewModel(
             }
             .stateIn(
                 viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
+                SharingStarted.Eagerly,
                 IpMonitoringState.Loading,
             )
 
