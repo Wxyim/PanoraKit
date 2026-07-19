@@ -85,11 +85,12 @@ private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
         transportReady
 
 /**
- * Delay before retrying a failed external IP query on first launch.
- * The TUN interface needs a brief moment after trafficReady=true for
- * routing to fully establish and pass the first packet through the tunnel.
+ * Brief delay before issuing an external IP query to allow the Android
+ * routing table to stabilize after VPN establishment. Without this delay,
+ * the HTTP request may leak through the default network and reveal the
+ * real IP instead of the VPN exit IP.
  */
-private const val WARM_UP_RETRY_DELAY_MS = 800L
+private const val ROUTING_STABILIZE_DELAY_MS = 800L
 
 data class SpeedHistoryBuffer(
     val samples: LongArray,
@@ -526,18 +527,15 @@ class HomeViewModel(
                     appSettings.externalIpLookupUrl.value.isNotBlank(),
                     runtimeSnapshot.value.owner,
                 )
-                var info = networkInfoService.queryExternalIp()
 
-                // When the VPN just started, the TUN interface may have been
-                // created but routing is not yet passing traffic. The first
-                // packet through the tunnel needs a brief moment to establish.
-                // Retry once with a warm-up delay instead of immediately
-                // showing an error.
-                if (info == null) {
-                    Timber.d("External IP query first attempt returned null, retrying after warm-up delay")
-                    delay(WARM_UP_RETRY_DELAY_MS)
-                    info = networkInfoService.queryExternalIp()
-                }
+                // When the VPN just started, Android's routing table may not have
+                // been fully updated yet even though the TUN interface exists.
+                // This brief delay ensures the system routes the HTTP request
+                // through the VPN tunnel instead of leaking through the default
+                // network, which would reveal the real IP.
+                delay(ROUTING_STABILIZE_DELAY_MS)
+
+                val info = networkInfoService.queryExternalIp()
 
                 networkInfoService.cacheExternalIp(info)
                 Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
