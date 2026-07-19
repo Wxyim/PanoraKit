@@ -50,6 +50,7 @@ import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
 import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,10 +72,15 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
 data class HomeSelectedServerState(val groupName: String?, val name: String?, val delay: Int?)
+
+private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
+    RuntimeStateMapper.isActuallyRunning(this) &&
+        payloadReady &&
+        configReady &&
+        transportReady
 
 data class SpeedHistoryBuffer(
     val samples: LongArray,
@@ -336,8 +342,8 @@ class HomeViewModel(
             )
 
     val isExternalIpLookupEnabled: StateFlow<Boolean> =
-        combine(appSettings.externalIpLookupUrl.state, isRunning) { url, running ->
-            url.isNotBlank() && running
+        combine(appSettings.externalIpLookupUrl.state, runtimeSnapshot) { url, snapshot ->
+            url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
         }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val currentTunnelMode: StateFlow<TunnelState.Mode> =
@@ -378,13 +384,7 @@ class HomeViewModel(
                 groups,
                 tunnelMode,
                 visibleGroupNames ->
-                if (
-                    !RuntimeStateMapper.isActuallyRunning(snapshot) ||
-                        !snapshot.payloadReady ||
-                        !snapshot.configReady ||
-                        !snapshot.transportReady ||
-                        groups.isEmpty()
-                ) {
+                if (!snapshot.isHomeRuntimePayloadReady() || groups.isEmpty()) {
                     return@combine null
                 }
 
@@ -492,13 +492,18 @@ class HomeViewModel(
                 return@launch
             }
 
-            // VPN must be running before any external IP query is allowed.
-            if (!snapshot.running) {
+            // Use the same stable payload gate as the node display so the
+            // lookup cannot escape through a half-ready tunnel.
+            if (!snapshot.isHomeRuntimePayloadReady()) {
                 Timber.d(
-                    "External IP query skipped: runtime not running " +
-                        "(phase=%s, owner=%s)",
+                    "External IP query skipped: runtime payload not ready " +
+                        "(phase=%s, groupsReady=%s, trafficReady=%s, configReady=%s, " +
+                        "transportReady=%s)",
                     snapshot.phase,
-                    snapshot.owner,
+                    snapshot.groupsReady,
+                    snapshot.trafficReady,
+                    snapshot.configReady,
+                    snapshot.transportReady,
                 )
                 showError(MLang.Home.Message.ExternalIpLookupNotRunning)
                 return@launch
@@ -507,30 +512,6 @@ class HomeViewModel(
             // Show query-in-flight immediately so the user gets visual feedback.
             externalIpQueryInFlight.value = true
             try {
-                // Wait for transport to be fully ready so the request goes through
-                // the proxy tunnel, not the raw underlying network (privacy).
-                if (!snapshot.transportReady) {
-                    Timber.d(
-                        "External IP query waiting for transport: phase=%s owner=%s",
-                        snapshot.phase,
-                        snapshot.owner,
-                    )
-                    val becameReady =
-                        withTimeoutOrNull(5_000L) {
-                            runtimeSnapshot.map { it.transportReady }.first { it }
-                        }
-                    if (becameReady != true) {
-                        Timber.w(
-                            "External IP query skipped: transport not ready within timeout " +
-                                "(phase=%s, owner=%s)",
-                            runtimeSnapshot.value.phase,
-                            runtimeSnapshot.value.owner,
-                        )
-                        showError(MLang.Home.Message.ExternalIpLookupTransportTimeout)
-                        return@launch
-                    }
-                }
-
                 Timber.d(
                     "External IP query dispatching: urlConfigured=%s owner=%s",
                     appSettings.externalIpLookupUrl.value.isNotBlank(),
