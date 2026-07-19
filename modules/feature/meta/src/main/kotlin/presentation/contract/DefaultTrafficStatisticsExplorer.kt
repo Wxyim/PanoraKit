@@ -130,7 +130,8 @@ class DefaultTrafficStatisticsExplorer(
                     .take(MAX_RECENT_REQUESTS)
                     .toList()
             }
-            .stateIn(scope, SharingStarted.Eagerly, emptyList())
+            .sample(3000)
+            .stateIn(scope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val todaySummary: StateFlow<DailyTrafficSummary> =
         combine(trafficStatisticsStore.dailySummaries, statisticsClock) { _, _ ->

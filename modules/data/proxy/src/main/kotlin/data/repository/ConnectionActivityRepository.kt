@@ -44,7 +44,7 @@ class ConnectionActivityRepository(
     private val scope: CoroutineScope,
 ) : ConnectionActivityProvider {
     companion object {
-        private const val POLL_INTERVAL_MS = 2000L
+        private const val POLL_INTERVAL_MS = 5000L
     }
 
     private val _activeConnections = MutableStateFlow<List<ConnectionInfo>>(emptyList())
