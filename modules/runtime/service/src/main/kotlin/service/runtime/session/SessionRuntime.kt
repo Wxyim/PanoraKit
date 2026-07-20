@@ -368,6 +368,7 @@ class SessionRuntime(
     private suspend fun startInternal(spec: RuntimeSpec) {
         validateStartupSpec(spec)
         val startedAt = System.currentTimeMillis()
+        val wasIdle = currentSnapshot.phase == RuntimePhase.Idle
         currentSpec = spec
         publishSnapshot(
             RuntimeSnapshot(
@@ -383,9 +384,26 @@ class SessionRuntime(
         )
         host.onStarting(spec)
 
-        teardownCore()
-        measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
-        measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
+        // Cold start: Go runtime is fresh from coreInit — no listeners or
+        // connections to tear down. Skipping reset() + hub.ApplyConfig(empty)
+        // saves ~200-500ms on first start.
+        if (!wasIdle) {
+            teardownCore()
+        }
+        // VPN establish (Android IPC) and config compilation (Go JNI) are
+        // independent — overlap them to reduce total wall-clock time.
+        coroutineScope {
+            val prepareJob =
+                async {
+                    measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
+                }
+            val compileJob =
+                async {
+                    measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
+                }
+            prepareJob.await()
+            compileJob.await()
+        }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
             currentSnapshot.copy(

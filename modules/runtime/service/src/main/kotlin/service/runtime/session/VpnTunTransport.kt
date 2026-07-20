@@ -43,10 +43,17 @@ class VpnTunTransport(
     private val random = SecureRandom()
     private val startupLogStore =
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
+    @Volatile private var pendingDevice: TunDevice? = null
 
-    override fun start(spec: RuntimeSpec) {
-        startupLogStore.append("LOCAL_TUN transport start: begin")
-        val device =
+    /**
+     * Phase 1: build VPN parameters and call [VpnService.establish].
+     * This involves Android IPC to the system VPN service (~0.5-1s) and is
+     * independent of the Go runtime.  It runs in parallel with config
+     * compilation to overlap I/O.
+     */
+    override fun prepare(spec: RuntimeSpec) {
+        startupLogStore.append("LOCAL_TUN transport prepare: begin")
+        pendingDevice =
             with(vpnService.Builder()) {
                 addAddress(TUN_GATEWAY, TUN_SUBNET_PREFIX)
                 if (store.allowIpv6) {
@@ -146,7 +153,18 @@ class VpnTunTransport(
                         else (TUN_DNS + if (store.allowIpv6) ",$TUN_DNS6" else ""),
                 )
             }
+        startupLogStore.append("LOCAL_TUN transport prepare: done fd=${pendingDevice?.fd}")
+    }
 
+    /**
+     * Phase 2: hand the established VPN fd to the Go TUN stack.
+     * Requires [prepare] to have completed (Go runtime must also be ready).
+     */
+    override fun start(spec: RuntimeSpec) {
+        val device =
+            pendingDevice ?: error("transport.prepare() must be called before transport.start()")
+        pendingDevice = null
+        startupLogStore.append("LOCAL_TUN transport start: begin fd=${device.fd}")
         ProcFsUidResolver.startMonitoring()
         com.github.nomadboxlab.monadbox.core.Clash.startTun(
             fd = device.fd,
