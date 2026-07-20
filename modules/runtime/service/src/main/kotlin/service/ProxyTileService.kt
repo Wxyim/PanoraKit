@@ -108,7 +108,7 @@ class ProxyTileService : TileService() {
             scope.launch {
                 while (isActive) {
                     updateTileState(currentSnapshot())
-                    delay(500)
+                    delay(1000)
                 }
             }
     }

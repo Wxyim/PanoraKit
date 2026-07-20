@@ -52,7 +52,6 @@ private val COUNTRY_NAME_TO_CODE =
         "德国" to "DE",
         "日本" to "JP",
         "韩国" to "KR",
-        "韩国" to "KR",
         "新加坡" to "SG",
         "澳大利亚" to "AU",
         "澳洲" to "AU",

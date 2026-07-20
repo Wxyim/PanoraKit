@@ -30,8 +30,6 @@ internal object MergeHelper {
     fun <T> mergeList(
         base: List<T>?,
         replace: List<T>?,
-        @Suppress("UNUSED_PARAMETER") start: List<T>?,
-        @Suppress("UNUSED_PARAMETER") end: List<T>?,
     ): List<T>? {
         val merged =
             when {
@@ -45,7 +43,7 @@ internal object MergeHelper {
 
     /** Simplified overload for the common case where start/end are always null. */
     fun <T> mergeListSimple(base: List<T>?, replace: List<T>?): List<T>? {
-        return mergeList(base, replace, start = null, end = null)
+        return mergeList(base, replace)
     }
 
     fun <K, V> mergeMap(base: Map<K, V>?, replace: Map<K, V>?, merge: Map<K, V>?): Map<K, V>? {
@@ -60,9 +58,7 @@ internal object MergeHelper {
 
     fun mergeProxyList(
         base: List<Map<String, JsonElement>>?,
-        @Suppress("UNUSED_PARAMETER") start: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
-        @Suppress("UNUSED_PARAMETER") end: List<Map<String, JsonElement>>?,
     ): List<Map<String, JsonElement>>? {
         val allProxies = buildList {
             base?.let(::addAll)
@@ -77,7 +73,7 @@ internal object MergeHelper {
         base: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
     ): List<Map<String, JsonElement>>? {
-        return mergeProxyList(base, start = null, replace = replace, end = null)
+        return mergeProxyList(base, replace)
     }
 
     fun mergeProviderMap(
@@ -96,9 +92,7 @@ internal object MergeHelper {
 
     fun mergeProxyGroupList(
         base: List<Map<String, JsonElement>>?,
-        @Suppress("UNUSED_PARAMETER") start: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
-        @Suppress("UNUSED_PARAMETER") end: List<Map<String, JsonElement>>?,
     ): List<Map<String, JsonElement>>? {
         val allGroups = buildList {
             base?.let(::addAll)
@@ -113,7 +107,7 @@ internal object MergeHelper {
         base: List<Map<String, JsonElement>>?,
         replace: List<Map<String, JsonElement>>?,
     ): List<Map<String, JsonElement>>? {
-        return mergeProxyGroupList(base, start = null, replace = replace, end = null)
+        return mergeProxyGroupList(base, replace)
     }
 
     private fun deduplicateByName(

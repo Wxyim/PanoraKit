@@ -73,7 +73,7 @@ class LogRecordService : Service() {
         private const val MAX_LOG_FILE_BYTES = 512L * 1024L
         private const val MAX_TOTAL_BYTES = 8L * 1024L * 1024L
         private const val MAX_IN_MEMORY_LOG_BYTES = 256L * 1024L
-        private const val ROOT_LOG_POLL_INTERVAL_MS = 300L
+        private const val ROOT_LOG_POLL_INTERVAL_MS = 2000L
 
         @Volatile
         var isRecording: Boolean = false

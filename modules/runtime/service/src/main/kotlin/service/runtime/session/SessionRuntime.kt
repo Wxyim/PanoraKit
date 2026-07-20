@@ -59,6 +59,7 @@ class SessionRuntime(
     private val operationMutex = Mutex()
     private var currentSpec: RuntimeSpec? = null
     private var currentSnapshot: RuntimeSnapshot = RuntimeSnapshot(targetMode = host.mode)
+    private var lastCompiledFingerprint: String? = null
     private var networkObserver: ServiceNetworkObserver? = null
     private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
@@ -384,8 +385,6 @@ class SessionRuntime(
 
         teardownCore()
         measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
-        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
-        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
@@ -400,6 +399,13 @@ class SessionRuntime(
         )
         host.onStarted(spec)
         startupLog(spec, "runtime ready: payload warm-up continue in background")
+
+        // Deferred non-blocking warm-up: selections and app mapping don't gate
+        // the first packet — the compiled runtime.yaml already has selection
+        // defaults injected by ensureSelectionOverrideFile.
+        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
+        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
+
         startObservers()
         notifyRuntimeSideEffects()
         startConnectionTracking()
@@ -544,6 +550,28 @@ class SessionRuntime(
         val updatedOverridePaths =
             compiledConfigPipeline.resolveOverridePaths(spec.profileUuid)
         val compiledSpec = spec.copy(overridePaths = updatedOverridePaths)
+
+        val recompileFingerprint = buildRecompileFingerprint(compiledSpec)
+        val runtimeFile = File(spec.runtimeConfigPath)
+        val fingerprintFile = File("${spec.runtimeConfigPath}.fingerprint")
+
+        if (runtimeFile.exists() && fingerprintFile.exists() &&
+            fingerprintFile.readText().trim() == recompileFingerprint
+        ) {
+            // runtime.yaml matches current inputs — skip YAML merge, just load into Go
+            startupLog(spec, "runtime override: skipped (output up-to-date)")
+            startupLog(
+                spec,
+                "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin",
+            )
+            withContext(Dispatchers.IO) {
+                Clash.loadCompiledConfig(runtimeFile).await()
+            }
+            startupLog(spec, "runtime load: loadCompiledConfig done")
+            lastCompiledFingerprint = recompileFingerprint
+            return
+        }
+
         startupLog(
             spec,
             "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}",
@@ -555,17 +583,32 @@ class SessionRuntime(
         )
         compiledConfigPipeline.applyOverrideToRuntimeFile(compiledSpec)
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
+        // Persist fingerprint sidecar so the next cold start can skip compilation
+        fingerprintFile.writeText(recompileFingerprint)
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
         withContext(Dispatchers.IO) {
-            Clash.loadCompiledConfig(File(spec.runtimeConfigPath)).await()
+            Clash.loadCompiledConfig(runtimeFile).await()
         }
         startupLog(spec, "runtime load: loadCompiledConfig done")
+        lastCompiledFingerprint = recompileFingerprint
         val runtimeConfiguration =
             runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
         startupLog(
             spec,
             "runtime load: uiConfiguration=${MihomoControllerEndpoint.diagnostics(runtimeConfiguration).summary()}",
         )
+    }
+
+    /** Fingerprint of all inputs to the YAML compilation step. */
+    private fun buildRecompileFingerprint(spec: RuntimeSpec): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        digest.update(spec.profileUuid.toByteArray())
+        digest.update(File(spec.profileDir).resolve("config.yaml").readBytes())
+        spec.overridePaths.forEach { path ->
+            digest.update(path.toByteArray())
+            digest.update(File(path).readBytes())
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun validateStartupSpec(spec: RuntimeSpec) {
@@ -915,6 +958,6 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
-        private const val CONNECTION_TRACKING_INTERVAL_MS = 2000L
+        private const val CONNECTION_TRACKING_INTERVAL_MS = 5000L
     }
 }

@@ -28,6 +28,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.PowerManager
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -53,6 +54,7 @@ class ServiceNotificationManager(private val service: Service, private val confi
         MMKV.mmkvWithID(StoreIds.SETTINGS, MMKV.MULTI_PROCESS_MODE)
     }
     private val notificationManager by lazy { NotificationManagerCompat.from(service) }
+    private val powerManager by lazy { service.getSystemService(Service.POWER_SERVICE) as PowerManager }
 
     fun createChannel() {
         notificationManager.createNotificationChannel(
@@ -73,7 +75,7 @@ class ServiceNotificationManager(private val service: Service, private val confi
     fun startTrafficUpdate(scope: CoroutineScope): Job {
         return scope.launch(Dispatchers.Default) {
             while (isActive) {
-                if (canPostNotifications()) {
+                if (powerManager.isInteractive && canPostNotifications()) {
                     runCatching {
                         notificationManager.notify(
                             config.notificationId,
@@ -81,9 +83,18 @@ class ServiceNotificationManager(private val service: Service, private val confi
                         )
                     }
                 }
-                delay(1000L.milliseconds)
+                delay(resolveUpdateInterval())
             }
         }
+    }
+
+    /** Returns the polling interval based on screen state and traffic display preference. */
+    private fun resolveUpdateInterval(): kotlin.time.Duration {
+        if (!shouldShowTrafficNotification()) {
+            // Static notification — no need to refresh frequently
+            return if (powerManager.isInteractive) 30_000L.milliseconds else 60_000L.milliseconds
+        }
+        return if (powerManager.isInteractive) 4000L.milliseconds else 8000L.milliseconds
     }
 
     private fun canPostNotifications(): Boolean {

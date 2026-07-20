@@ -148,7 +148,7 @@ internal object ProcFsUidResolver {
         }
     }
 
-    private const val POLL_INTERVAL_MS = 250L
+    private const val POLL_INTERVAL_MS = 1000L
 
     // ═══════════════════════════════════════════════════════════════
     //  Protocol dispatch

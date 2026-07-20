@@ -36,7 +36,6 @@ data class Proxy(
     val hidden: Boolean = false,
     val icon: String? = null,
 ) : Parcelable {
-    @Suppress("unused")
     enum class Type(val group: Boolean) {
         Direct(false),
         Reject(false),

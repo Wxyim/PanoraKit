@@ -31,6 +31,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -56,6 +57,7 @@ import kotlinx.coroutines.*
 class RootTunService : BaseService() {
     private val stateStore by lazy { RootTunStateStore(appContextOrSelf) }
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
+    private val powerManager by lazy { getSystemService(PowerManager::class.java) }
     private var notificationJob: Job? = null
 
     override fun onCreate() {
@@ -160,7 +162,7 @@ class RootTunService : BaseService() {
                                         stopSelf()
                                         break
                                     }
-                                    delay(1000L.milliseconds)
+                                    delay(resolveNotificationDelay())
                                     continue
                                 }
 
@@ -197,8 +199,11 @@ class RootTunService : BaseService() {
                                     } else {
                                         describeStatus(snapshot)
                                     }
-                                postNotification(profileName, content)
-                                delay(1000L.milliseconds)
+                                // Skip traffic notification updates when screen is off
+                                if (powerManager.isInteractive) {
+                                    postNotification(profileName, content)
+                                }
+                                delay(resolveNotificationDelay())
                             }
                         }
                 }
@@ -314,6 +319,10 @@ class RootTunService : BaseService() {
             3 -> (data * 1024L * 1024L * 1024L) / 100L
             else -> 0L
         }
+    }
+
+    private fun resolveNotificationDelay(): Long {
+        return if (powerManager.isInteractive) 4000L else 8000L
     }
 
     private fun syncStatus(status: RootTunStatus) {
