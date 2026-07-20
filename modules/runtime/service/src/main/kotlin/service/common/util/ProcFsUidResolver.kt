@@ -19,6 +19,7 @@
 
 package com.github.nomadboxlab.monadbox.service.common.util
 
+import android.os.SystemClock
 import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -36,6 +37,35 @@ import java.util.concurrent.ConcurrentHashMap
  * A single background thread snapshots all four procfs tables into in-memory
  * port→uid maps so that even short-lived sockets (DNS queries, brief TCP
  * connections in TIME_WAIT, etc.) can be resolved.
+ *
+ * ## Adaptive polling strategy
+ *
+ * The background monitor switches between three speeds to balance accuracy
+ * and battery:
+ * - **Fast phase** (250 ms): engaged while resolution queries are actively
+ *   flowing (last query within [ACTIVE_WINDOW_MS]).  Dense enough to capture
+ *   most DNS queries and connection-setup sockets.
+ * - **Neutral phase** (750 ms): brief settling period after the last query
+ *   before slowing all the way down.
+ * - **Slow phase** (2000 ms): entered after [IDLE_THRESHOLD_MS] of inactivity.
+ *   Minimises CPU wakeups when the VPN is idle.
+ *
+ * ## Reactive flush (on-miss refresh)
+ *
+ * When all three resolution tiers fail (cache → live-map → on-demand read),
+ * the resolver signals the monitor thread to perform an immediate full refresh
+ * of all four procfs tables.  This catches co-occurring short-lived sockets
+ * that would otherwise be invisible until the next scheduled poll.
+ * The signal also shifts the poll cadence back into **fast phase**, so the
+ * next round of connections benefits from tighter coverage.
+ *
+ * ## Port cache
+ *
+ * Successfully resolved (port → uid) pairs are cached for [PORT_CACHE_TTL_MS]
+ * so that subsequent packets from the same ephemeral port can skip the procfs
+ * read entirely.  Most apps reuse source ports for burst traffic within a
+ * short window (DNS resolvers, push, RTC), so a generously-sized TTL
+ * substantially reduces procfs I/O.
  */
 internal object ProcFsUidResolver {
     // ── UDP indices ────────────────────────────────────────────────
@@ -56,10 +86,12 @@ internal object ProcFsUidResolver {
      * typically reused by the same app within a short window (DNS resolver,
      * push notifications, etc.).
      *
-     * Key: source port, Value: (timestamp, uid)
+     * Key: source port, Value: Pair(resolutionTimestamp, uid)
      */
     private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
-    private const val PORT_CACHE_TTL_MS = 5_000L
+
+    /** How long a cached (port → uid) mapping remains valid. */
+    private const val PORT_CACHE_TTL_MS = 10_000L
 
     // ── Live monitoring maps ───────────────────────────────────────
     /** port → uid snapshot from continuous `/proc/net/udp[6]` scans. */
@@ -71,11 +103,44 @@ internal object ProcFsUidResolver {
     @Volatile private var monitorRunning = false
     private val monitorLock = Any()
 
+    // ── Adaptive-polling state ─────────────────────────────────────
+
+    /** Poll interval when the resolver is actively being queried. */
+    private const val FAST_POLL_MS = 250L
+
+    /** Poll interval during the settle-down phase after activity. */
+    private const val NEUTRAL_POLL_MS = 750L
+
+    /** Poll interval after prolonged inactivity (power-saving). */
+    private const val SLOW_POLL_MS = 2000L
+
+    /** Time window in which a recent query keeps us in fast phase. */
+    private const val ACTIVE_WINDOW_MS = 10_000L
+
+    /** After this many ms of no queries, enter slow phase. */
+    private const val IDLE_THRESHOLD_MS = 30_000L
+
+    /**
+     * Timestamp (elapsedRealtime) of the most recent resolution query.
+     * Written by query threads, read by the monitor thread.
+     */
+    @Volatile private var lastQueryElapsed: Long = 0L
+
+    /**
+     * When true, the monitor thread should skip its sleep and immediately
+     * perform a full refresh of all live maps.  Set by resolution threads
+     * on a triple-miss to catch sibling short-lived sockets.
+     */
+    @Volatile private var reactiveFlushPending = false
+
+    // ── Monitor lifecycle ──────────────────────────────────────────
+
     fun startMonitoring() {
         synchronized(monitorLock) {
             if (monitorRunning) return
             monitorRunning = true
         }
+        lastQueryElapsed = SystemClock.elapsedRealtime()
         Thread({
             while (monitorRunning) {
                 try {
@@ -86,10 +151,20 @@ internal object ProcFsUidResolver {
                 } catch (_: Exception) {
                     // procfs may briefly be unavailable; retry on next cycle.
                 }
-                try {
-                    Thread.sleep(POLL_INTERVAL_MS)
-                } catch (_: InterruptedException) {
-                    break
+
+                reactiveFlushPending = false
+
+                // ── Adaptive sleep: wake early on reactive-flush signal ──
+                val pollMs = resolvePollInterval()
+                var remaining = pollMs
+                while (remaining > 0 && monitorRunning && !reactiveFlushPending) {
+                    val chunk = minOf(remaining, 200L)
+                    try {
+                        Thread.sleep(chunk)
+                    } catch (_: InterruptedException) {
+                        break
+                    }
+                    remaining -= chunk
                 }
             }
         }, "procfs-uid-monitor").apply {
@@ -103,6 +178,18 @@ internal object ProcFsUidResolver {
         liveUdpMap.clear()
         liveTcpMap.clear()
     }
+
+    /** Choose the poll speed based on how recently any resolution was attempted. */
+    private fun resolvePollInterval(): Long {
+        val sinceQuery = SystemClock.elapsedRealtime() - lastQueryElapsed
+        return when {
+            sinceQuery < ACTIVE_WINDOW_MS -> FAST_POLL_MS
+            sinceQuery < IDLE_THRESHOLD_MS -> NEUTRAL_POLL_MS
+            else -> SLOW_POLL_MS
+        }
+    }
+
+    // ── Live-map refresh ───────────────────────────────────────────
 
     private fun refreshLiveMap(path: String, targetMap: ConcurrentHashMap<Int, Int>) {
         if (!File(path).canRead()) return
@@ -148,8 +235,6 @@ internal object ProcFsUidResolver {
         }
     }
 
-    private const val POLL_INTERVAL_MS = 1000L
-
     // ═══════════════════════════════════════════════════════════════
     //  Protocol dispatch
     // ═══════════════════════════════════════════════════════════════
@@ -187,6 +272,8 @@ internal object ProcFsUidResolver {
      *   or procfs is unavailable.
      */
     fun resolveUdpUid(source: InetSocketAddress): Int {
+        bumpActivity()
+
         val port = source.port
 
         // 1. Check the short-term snapshot cache (successful past resolutions).
@@ -211,6 +298,11 @@ internal object ProcFsUidResolver {
             if (portUidCache.size > 2000) {
                 prunePortCache()
             }
+        } else {
+            // All three tiers missed — signal the monitor to do an immediate
+            // full refresh so sibling short-lived sockets are captured now
+            // rather than waiting for the next poll cycle.
+            reactiveFlushPending = true
         }
         return uid
     }
@@ -248,6 +340,8 @@ internal object ProcFsUidResolver {
      *   or procfs is unavailable.
      */
     fun resolveTcpUid(source: InetSocketAddress): Int {
+        bumpActivity()
+
         val port = source.port
 
         // 1. Check the short-term snapshot cache.
@@ -270,6 +364,9 @@ internal object ProcFsUidResolver {
             if (portUidCache.size > 2000) {
                 prunePortCache()
             }
+        } else {
+            // All three tiers missed — trigger reactive flush.
+            reactiveFlushPending = true
         }
         return uid
     }
@@ -295,6 +392,14 @@ internal object ProcFsUidResolver {
     // ═══════════════════════════════════════════════════════════════
     //  Shared infra
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Touch the activity timestamp so the monitor thread stays in (or
+     * returns to) fast-poll phase while resolution queries are incoming.
+     */
+    private fun bumpActivity() {
+        lastQueryElapsed = SystemClock.elapsedRealtime()
+    }
 
     private fun queryProcFs(
         path: String,

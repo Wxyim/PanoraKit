@@ -404,6 +404,9 @@ class SessionRuntime(
             prepareJob.await()
             compileJob.await()
         }
+        // App→UID mappings must arrive before traffic starts, otherwise the
+        // first connections are attributed to wrong/unresolved processes.
+        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
             currentSnapshot.copy(
@@ -418,16 +421,30 @@ class SessionRuntime(
         host.onStarted(spec)
         startupLog(spec, "runtime ready: payload warm-up continue in background")
 
-        // Deferred non-blocking warm-up: selections and app mapping don't gate
-        // the first packet — the compiled runtime.yaml already has selection
-        // defaults injected by ensureSelectionOverrideFile.
-        measureStartupStep(spec, "runtime selection restore") { restoreSelections(spec) }
-        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
+        // Deferred non-blocking warm-up: proxy selections don't gate the first
+        // packet — the compiled runtime.yaml already has selection defaults
+        // injected by ensureSelectionOverrideFile.
+        //
+        // Both restoreSelections and awaitProxyGroupsReady are waiting for Go
+        // to finish hub.ApplyConfig() internally.  Running them concurrently
+        // cuts the wall-clock wait from sum → max so the node label and IP
+        // info appear sooner after the "Running" indicator.
+        coroutineScope {
+            launch {
+                measureStartupStep(spec, "runtime selection restore") {
+                    restoreSelections(spec)
+                }
+            }
+            launch {
+                measureStartupStep(spec, "runtime groups ready") {
+                    awaitProxyGroupsReady(spec)
+                }
+            }
+        }
 
         startObservers()
         notifyRuntimeSideEffects()
         startConnectionTracking()
-        measureStartupStep(spec, "runtime groups ready") { awaitProxyGroupsReady(spec) }
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
         measureStartupStep(spec, "runtime snapshot refresh") { refreshRuntimeSnapshotWithLog(spec) }
 
