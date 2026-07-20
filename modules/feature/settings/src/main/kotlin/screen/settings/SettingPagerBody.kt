@@ -52,7 +52,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Chart-column`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Git-merge`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Github
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Meta
-import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.UserKey
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`

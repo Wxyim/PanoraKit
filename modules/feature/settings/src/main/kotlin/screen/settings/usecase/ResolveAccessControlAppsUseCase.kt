@@ -22,7 +22,6 @@ package com.github.nomadboxlab.monadbox.feature.settings.usecase
 
 import android.app.Application
 import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccess
-import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccessMode
 import com.github.nomadboxlab.monadbox.common.util.InstalledAppsAccessState
 import com.github.nomadboxlab.monadbox.feature.settings.AccessControlAppInfo
 import com.github.nomadboxlab.monadbox.feature.settings.AccessControlAppLoader
