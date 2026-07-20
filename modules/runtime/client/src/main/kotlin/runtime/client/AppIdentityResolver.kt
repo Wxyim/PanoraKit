@@ -209,6 +209,51 @@ class AppIdentityResolver(context: Context) {
         return label
     }
 
+    /** Resolve a display label for the given package name, with caching.
+     *  Returns the application label (e.g. "微信") or falls back to [packageName] itself. */
+    fun resolveAppLabel(packageName: String): String {
+        if (packageName.isBlank()) return UNKNOWN_APP_NAME
+        return resolveLabel(packageName).ifBlank { packageName }
+    }
+
+    /**
+     * Extract the package name from mihomo metadata, with UID fallback.
+     * Uses mihomo's `packageName` field first; if absent, resolves UID via
+     * [android.content.pm.PackageManager.getPackagesForUid].
+     * Returns null when neither source yields a result.
+     */
+    fun resolvePackageFromMetadata(metadata: JsonObject): String? {
+        // 1. mihomo-provided package name (reliable with find-process-name: "always").
+        val pkg = metadata.firstNonBlankValue("packageName", "package", "package-name", "package_name")
+        if (pkg.isNotBlank() && findInstalledPackage(pkg) != null) return pkg
+
+        // 2. UID fallback for non-root / procfs-unavailable cases.
+        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid")
+        if (uid != null && uid > 0) {
+            resolveByUid(uid)?.let { return it }
+        }
+
+        // 3. Process name fallback — split and match each segment against installed packages.
+        val process = metadata.firstNonBlankValue(
+            "process", "processName", "process-name", "process_name", "appProcess",
+        )
+        if (process.isNotBlank()) {
+            resolveByProcess(process)?.let { return it }
+        }
+
+        return null
+    }
+
+    /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
+    fun resolveFallbackDisplayName(metadata: JsonObject): String {
+        return metadata.firstNonBlankValue(
+            "process", "processName", "process-name", "process_name", "appProcess",
+        ).ifBlank {
+            metadata.firstUidValue("uid", "sourceUid", "source_uid")
+                ?.let { "UID $it" }.orEmpty()
+        }.ifBlank { UNKNOWN_APP_NAME }
+    }
+
     companion object {
         const val UNKNOWN_APP_KEY = "unknown"
         const val UNKNOWN_APP_NAME = "Unknown App"

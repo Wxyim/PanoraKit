@@ -19,7 +19,6 @@
 
 package com.github.nomadboxlab.monadbox.service.common.util
 
-import android.os.SystemClock
 import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -30,42 +29,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Fallback UID resolver that reads [procfs] when [ConnectivityManager.getConnectionOwnerUid]
  * returns -1.
  *
- * Provides dedicated pathways for both UDP and TCP:
- * - [resolveUdpUid] reads `/proc/net/udp[6]`
- * - [resolveTcpUid] reads `/proc/net/tcp[6]`
- *
- * A single background thread snapshots all four procfs tables into in-memory
- * port→uid maps so that even short-lived sockets (DNS queries, brief TCP
- * connections in TIME_WAIT, etc.) can be resolved.
- *
- * ## Adaptive polling strategy
- *
- * The background monitor switches between three speeds to balance accuracy
- * and battery:
- * - **Fast phase** (250 ms): engaged while resolution queries are actively
- *   flowing (last query within [ACTIVE_WINDOW_MS]).  Dense enough to capture
- *   most DNS queries and connection-setup sockets.
- * - **Neutral phase** (750 ms): brief settling period after the last query
- *   before slowing all the way down.
- * - **Slow phase** (2000 ms): entered after [IDLE_THRESHOLD_MS] of inactivity.
- *   Minimises CPU wakeups when the VPN is idle.
- *
- * ## Reactive flush (on-miss refresh)
- *
- * When all three resolution tiers fail (cache → live-map → on-demand read),
- * the resolver signals the monitor thread to perform an immediate full refresh
- * of all four procfs tables.  This catches co-occurring short-lived sockets
- * that would otherwise be invisible until the next scheduled poll.
- * The signal also shifts the poll cadence back into **fast phase**, so the
- * next round of connections benefits from tighter coverage.
- *
- * ## Port cache
- *
- * Successfully resolved (port → uid) pairs are cached for [PORT_CACHE_TTL_MS]
- * so that subsequent packets from the same ephemeral port can skip the procfs
- * read entirely.  Most apps reuse source ports for burst traffic within a
- * short window (DNS resolvers, push, RTC), so a generously-sized TTL
- * substantially reduces procfs I/O.
+ * A single background thread snapshots `/proc/net/{tcp,tcp6,udp,udp6}` every
+ * [POLL_INTERVAL_MS] into in-memory port→uid maps.  Resolution is three-tier:
+ * port cache → live map → on-demand procfs read.
  */
 internal object ProcFsUidResolver {
     // ── UDP indices ────────────────────────────────────────────────
@@ -80,58 +46,27 @@ internal object ProcFsUidResolver {
     private var tcp6LocalAddrIndex = -1
     private var tcp6UidIndex = -1
 
+    private const val POLL_INTERVAL_MS = 2000L
+
     /**
-     * Port-level UID cache to handle short-lived sockets that disappear from
-     * procfs before an on-demand read can find them.  Source ports are
-     * typically reused by the same app within a short window (DNS resolver,
-     * push notifications, etc.).
-     *
+     * Port-level UID cache for short-lived sockets that disappear from
+     * procfs before an on-demand read can find them.
      * Key: source port, Value: Pair(resolutionTimestamp, uid)
      */
     private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
 
-    /** How long a cached (port → uid) mapping remains valid. */
-    private const val PORT_CACHE_TTL_MS = 10_000L
+    private const val PORT_CACHE_TTL_MS = 5_000L
+
+    /** Pre-compiled regex for splitting `/proc/net/` columns. Avoids re-compiling
+     *  on every row of every refresh (4 files × ~100 lines × 1/s). */
+    private val PROC_FIELD_REGEX = "\\s+".toRegex()
 
     // ── Live monitoring maps ───────────────────────────────────────
-    /** port → uid snapshot from continuous `/proc/net/udp[6]` scans. */
     private val liveUdpMap = ConcurrentHashMap<Int, Int>()
-
-    /** port → uid snapshot from continuous `/proc/net/tcp[6]` scans. */
     private val liveTcpMap = ConcurrentHashMap<Int, Int>()
 
     @Volatile private var monitorRunning = false
     private val monitorLock = Any()
-
-    // ── Adaptive-polling state ─────────────────────────────────────
-
-    /** Poll interval when the resolver is actively being queried. */
-    private const val FAST_POLL_MS = 250L
-
-    /** Poll interval during the settle-down phase after activity. */
-    private const val NEUTRAL_POLL_MS = 750L
-
-    /** Poll interval after prolonged inactivity (power-saving). */
-    private const val SLOW_POLL_MS = 2000L
-
-    /** Time window in which a recent query keeps us in fast phase. */
-    private const val ACTIVE_WINDOW_MS = 10_000L
-
-    /** After this many ms of no queries, enter slow phase. */
-    private const val IDLE_THRESHOLD_MS = 30_000L
-
-    /**
-     * Timestamp (elapsedRealtime) of the most recent resolution query.
-     * Written by query threads, read by the monitor thread.
-     */
-    @Volatile private var lastQueryElapsed: Long = 0L
-
-    /**
-     * When true, the monitor thread should skip its sleep and immediately
-     * perform a full refresh of all live maps.  Set by resolution threads
-     * on a triple-miss to catch sibling short-lived sockets.
-     */
-    @Volatile private var reactiveFlushPending = false
 
     // ── Monitor lifecycle ──────────────────────────────────────────
 
@@ -140,10 +75,11 @@ internal object ProcFsUidResolver {
             if (monitorRunning) return
             monitorRunning = true
         }
-        lastQueryElapsed = SystemClock.elapsedRealtime()
         Thread({
             while (monitorRunning) {
                 try {
+                    liveTcpMap.clear()
+                    liveUdpMap.clear()
                     refreshLiveMap("/proc/net/tcp", liveTcpMap)
                     refreshLiveMap("/proc/net/tcp6", liveTcpMap)
                     refreshLiveMap("/proc/net/udp", liveUdpMap)
@@ -151,20 +87,10 @@ internal object ProcFsUidResolver {
                 } catch (_: Exception) {
                     // procfs may briefly be unavailable; retry on next cycle.
                 }
-
-                reactiveFlushPending = false
-
-                // ── Adaptive sleep: wake early on reactive-flush signal ──
-                val pollMs = resolvePollInterval()
-                var remaining = pollMs
-                while (remaining > 0 && monitorRunning && !reactiveFlushPending) {
-                    val chunk = minOf(remaining, 200L)
-                    try {
-                        Thread.sleep(chunk)
-                    } catch (_: InterruptedException) {
-                        break
-                    }
-                    remaining -= chunk
+                try {
+                    Thread.sleep(POLL_INTERVAL_MS)
+                } catch (_: InterruptedException) {
+                    break
                 }
             }
         }, "procfs-uid-monitor").apply {
@@ -177,16 +103,6 @@ internal object ProcFsUidResolver {
         synchronized(monitorLock) { monitorRunning = false }
         liveUdpMap.clear()
         liveTcpMap.clear()
-    }
-
-    /** Choose the poll speed based on how recently any resolution was attempted. */
-    private fun resolvePollInterval(): Long {
-        val sinceQuery = SystemClock.elapsedRealtime() - lastQueryElapsed
-        return when {
-            sinceQuery < ACTIVE_WINDOW_MS -> FAST_POLL_MS
-            sinceQuery < IDLE_THRESHOLD_MS -> NEUTRAL_POLL_MS
-            else -> SLOW_POLL_MS
-        }
     }
 
     // ── Live-map refresh ───────────────────────────────────────────
@@ -205,7 +121,7 @@ internal object ProcFsUidResolver {
         File(path).bufferedReader().use { reader ->
             reader.readLine() ?: return
             reader.lineSequence().forEach { line ->
-                val fields = line.trim().split("\\s+".toRegex())
+                val fields = line.trim().split(PROC_FIELD_REGEX)
                 if (fields.size > maxOf(localIdx, uidIdx)) {
                     val uid = fields[uidIdx].toIntOrNull() ?: return@forEach
                     if (uid > 0) {
@@ -242,67 +158,40 @@ internal object ProcFsUidResolver {
     private const val IPPROTO_TCP = 6
     private const val IPPROTO_UDP = 17
 
-    /**
-     * Resolve a socket UID via procfs using the appropriate table for the
-     * given IP protocol number.
-     *
-     * @param protocol IP protocol number (e.g. 6 = TCP, 17 = UDP).
-     * @param source   the local socket address (IP + port).
-     * @return UID of the owning process, or -1 when unresolved.
-     */
     fun resolveByProtocol(protocol: Int, source: InetSocketAddress): Int =
         when (protocol) {
             IPPROTO_TCP -> resolveTcpUid(source)
             IPPROTO_UDP -> resolveUdpUid(source)
-            else -> resolveUdpUid(source)  // default to UDP for backward compat
+            else -> resolveUdpUid(source)
         }
 
     // ═══════════════════════════════════════════════════════════════
     //  UDP resolution
     // ═══════════════════════════════════════════════════════════════
 
-    /**
-     * Try to resolve the UID of a UDP socket via `/proc/net/udp[6]`.
-     *
-     * Results are cached by source port with a short TTL so that subsequent
-     * packets from the same ephemeral port (common with DNS and other
-     * short-lived UDP exchanges) can skip the procfs read.
-     *
-     * @return UID of the owning process, or -1 when the socket is not found
-     *   or procfs is unavailable.
-     */
     fun resolveUdpUid(source: InetSocketAddress): Int {
-        bumpActivity()
-
         val port = source.port
 
-        // 1. Check the short-term snapshot cache (successful past resolutions).
+        // 1. Port cache — successful past resolutions with TTL.
         portUidCache[port]?.let { (timestamp, uid) ->
             if (System.currentTimeMillis() - timestamp < PORT_CACHE_TTL_MS) {
                 return uid
             }
         }
 
-        // 2. Check the live monitoring map — captures sockets that
-        //    come and go between poll cycles.
+        // 2. Live monitoring map — sockets captured between poll cycles.
         liveUdpMap[port]?.let { uid ->
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
             return uid
         }
 
-        // 3. Direct on-demand procfs read (original approach).
+        // 3. Direct on-demand procfs read.
         val uid = resolveUdpUidInternal(source)
         if (uid > 0) {
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
-            // Lazy eviction: trim expired entries when the cache grows large.
             if (portUidCache.size > 2000) {
                 prunePortCache()
             }
-        } else {
-            // All three tiers missed — signal the monitor to do an immediate
-            // full refresh so sibling short-lived sockets are captured now
-            // rather than waiting for the next poll cycle.
-            reactiveFlushPending = true
         }
         return uid
     }
@@ -329,29 +218,17 @@ internal object ProcFsUidResolver {
     //  TCP resolution
     // ═══════════════════════════════════════════════════════════════
 
-    /**
-     * Try to resolve the UID of a TCP socket via `/proc/net/tcp[6]`.
-     *
-     * Used as a fallback when [ConnectivityManager.getConnectionOwnerUid]
-     * fails for TCP connections (e.g. socket already in TIME_WAIT, process
-     * exited before the query, or device-specific kernel quirks).
-     *
-     * @return UID of the owning process, or -1 when the socket is not found
-     *   or procfs is unavailable.
-     */
     fun resolveTcpUid(source: InetSocketAddress): Int {
-        bumpActivity()
-
         val port = source.port
 
-        // 1. Check the short-term snapshot cache.
+        // 1. Port cache.
         portUidCache[port]?.let { (timestamp, uid) ->
             if (System.currentTimeMillis() - timestamp < PORT_CACHE_TTL_MS) {
                 return uid
             }
         }
 
-        // 2. Check the live monitoring map.
+        // 2. Live monitoring map.
         liveTcpMap[port]?.let { uid ->
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
             return uid
@@ -364,9 +241,6 @@ internal object ProcFsUidResolver {
             if (portUidCache.size > 2000) {
                 prunePortCache()
             }
-        } else {
-            // All three tiers missed — trigger reactive flush.
-            reactiveFlushPending = true
         }
         return uid
     }
@@ -393,14 +267,6 @@ internal object ProcFsUidResolver {
     //  Shared infra
     // ═══════════════════════════════════════════════════════════════
 
-    /**
-     * Touch the activity timestamp so the monitor thread stays in (or
-     * returns to) fast-poll phase while resolution queries are incoming.
-     */
-    private fun bumpActivity() {
-        lastQueryElapsed = SystemClock.elapsedRealtime()
-    }
-
     private fun queryProcFs(
         path: String,
         ip: ByteArray,
@@ -412,10 +278,9 @@ internal object ProcFsUidResolver {
         val localHex = formatLocalAddress(ip, port)
         return runCatching {
             File(path).bufferedReader().use { reader ->
-                // Skip header line
                 reader.readLine() ?: return@use -1
                 reader.lineSequence().forEach { line ->
-                    val fields = line.trim().split("\\s+".toRegex())
+                    val fields = line.trim().split(PROC_FIELD_REGEX)
                     if (fields.size > maxOf(localAddrIdx, uidIdx) &&
                         fields[localAddrIdx].equals(localHex, ignoreCase = true)
                     ) {
@@ -427,11 +292,7 @@ internal object ProcFsUidResolver {
         }.getOrDefault(-1)
     }
 
-    /**
-     * Format IP + port as the `local_address` column in `/proc/net/`:
-     *   - IP: native-endian hex (little-endian on ARM/Android)
-     *   - Port: big-endian hex
-     */
+    /** Format IP + port as the `local_address` column: IP little-endian hex, port big-endian hex. */
     private fun formatLocalAddress(ip: ByteArray, port: Int): String {
         val sb = StringBuilder(ip.size * 2 + 5)
         var i = 0
@@ -485,18 +346,11 @@ internal object ProcFsUidResolver {
         }
     }
 
-    /**
-     * Parse the `/proc/net/` header to find column positions.
-     *
-     * Kernel versions differ in the columns they expose (`tx_queue`, `rx_queue`,
-     * `tr`, `tm->when`, `retrnsmt` are optional), so column indices must be
-     * resolved dynamically from the header.
-     */
     private fun parseIndices(path: String): Pair<Int, Int> {
         return runCatching {
             File(path).bufferedReader().use { reader ->
                 val header = reader.readLine() ?: return@use Pair(-1, -1)
-                val columns = header.trim().split("\\s+".toRegex())
+                val columns = header.trim().split(PROC_FIELD_REGEX)
                 val localIdx = columns.indexOfFirst { it == "local_address" }
                 val uidIdx = columns.indexOfFirst { it == "uid" }
                 Pair(localIdx, uidIdx)

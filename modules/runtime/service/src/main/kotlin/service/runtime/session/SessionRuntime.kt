@@ -24,7 +24,7 @@ package com.github.nomadboxlab.monadbox.service.runtime.session
 import android.os.SystemClock
 import com.github.nomadboxlab.monadbox.core.Clash
 import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
-import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
+
 import com.github.nomadboxlab.monadbox.core.model.*
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
@@ -63,7 +63,7 @@ class SessionRuntime(
     private var networkObserver: ServiceNetworkObserver? = null
     private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
-    private var connectionTrackingJob: Job? = null
+
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
     private val logSeq = AtomicLong(0L)
     private val recentLogs = ArrayDeque<Pair<Long, String>>()
@@ -444,7 +444,6 @@ class SessionRuntime(
 
         startObservers()
         notifyRuntimeSideEffects()
-        startConnectionTracking()
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
         measureStartupStep(spec, "runtime snapshot refresh") { refreshRuntimeSnapshotWithLog(spec) }
 
@@ -526,7 +525,6 @@ class SessionRuntime(
             )
         )
         stopLogStream()
-        stopConnectionTracking()
         stopInstalledAppsPublisher()
         stopObservers()
         runCatching { transport.stop() }
@@ -898,27 +896,6 @@ class SessionRuntime(
         host.onLogReady(false)
     }
 
-    private fun startConnectionTracking() {
-        stopConnectionTracking()
-        connectionTrackingJob =
-            scope.launch(Dispatchers.IO) {
-                while (isActive) {
-                    runCatching {
-                        val snapshot = Clash.queryConnections()
-                        ConnectionHistoryManager.updateConnections(
-                            snapshot.connections ?: emptyList()
-                        )
-                    }
-                    delay(CONNECTION_TRACKING_INTERVAL_MS)
-                }
-            }
-    }
-
-    private fun stopConnectionTracking() {
-        connectionTrackingJob?.cancel()
-        connectionTrackingJob = null
-    }
-
     private fun publishSnapshot(snapshot: RuntimeSnapshot) {
         val next = snapshot.copy(running = snapshot.phase.running)
         if (next == currentSnapshot) return
@@ -993,6 +970,5 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
-        private const val CONNECTION_TRACKING_INTERVAL_MS = 5000L
     }
 }

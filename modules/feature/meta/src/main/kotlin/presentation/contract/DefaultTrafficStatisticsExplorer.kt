@@ -103,27 +103,27 @@ class DefaultTrafficStatisticsExplorer(
                         .asSequence()
                         .filterNot { it.id in activeIds }
                         .map { connection ->
-                            val sourceApp = appIdentityResolver.resolve(connection.metadata)
+                            val (appName, packageName) = resolveAppIdentity(connection)
                             RecentRequestRecord(
                                 connection = connection,
                                 isActive = false,
                                 topLevelGroupName =
                                     resolveTopLevelGroupName(connection, proxyGroups),
                                 bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
-                                sourceAppName = sourceApp.appName,
-                                sourcePackageName = sourceApp.packageName,
+                                sourceAppName = appName,
+                                sourcePackageName = packageName,
                             )
                         }
                 val activeRequests =
                     activeConnections.asSequence().map { connection ->
-                        val sourceApp = appIdentityResolver.resolve(connection.metadata)
+                        val (appName, packageName) = resolveAppIdentity(connection)
                         RecentRequestRecord(
                             connection = connection,
                             isActive = true,
                             topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
                             bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
-                            sourceAppName = sourceApp.appName,
-                            sourcePackageName = sourceApp.packageName,
+                            sourceAppName = appName,
+                            sourcePackageName = packageName,
                         )
                     }
 
@@ -132,7 +132,7 @@ class DefaultTrafficStatisticsExplorer(
                     .take(MAX_RECENT_REQUESTS)
                     .toList()
             }
-            .sample(3000)
+            .sample(SAMPLE_INTERVAL_MS)
             .stateIn(scope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val todaySummary: StateFlow<DailyTrafficSummary> =
@@ -233,6 +233,13 @@ class DefaultTrafficStatisticsExplorer(
         return cal.timeInMillis
     }
 
+    /** Extract the package name from mihomo metadata (with UID fallback) and resolve its display label. */
+    private fun resolveAppIdentity(connection: ConnectionInfo): Pair<String, String?> {
+        val pkg = appIdentityResolver.resolvePackageFromMetadata(connection.metadata)
+        if (pkg != null) return appIdentityResolver.resolveAppLabel(pkg) to pkg
+        return appIdentityResolver.resolveFallbackDisplayName(connection.metadata) to null
+    }
+
     private fun parseConnectionStartMillis(start: String): Long {
         if (start.isBlank()) return Long.MIN_VALUE
         return runCatching { OffsetDateTime.parse(start).toInstant().toEpochMilli() }
@@ -283,6 +290,16 @@ class DefaultTrafficStatisticsExplorer(
     }
 
     companion object {
+        /** Maximum number of recent requests to surface in the UI. */
         private const val MAX_RECENT_REQUESTS = 50
+
+        /**
+         * Sample interval for the recent-requests pipeline.
+         *
+         * Raw connection snapshots arrive every [POLL_INTERVAL_MS] (1 s) from
+         * [ConnectionActivityRepository]; [sample] throttles downstream
+         * recompositions to a pace that keeps the list smooth without jank.
+         */
+        private const val SAMPLE_INTERVAL_MS = 1000L
     }
 }

@@ -44,7 +44,9 @@ class ConnectionActivityRepository(
     private val scope: CoroutineScope,
 ) : ConnectionActivityProvider {
     companion object {
-        private const val POLL_INTERVAL_MS = 5000L
+        /** Snapshot connections every second so short-lived DNS / TCP handshake
+         *  sockets are captured before they disappear from the Go core. */
+        private const val POLL_INTERVAL_MS = 1000L
     }
 
     private val _activeConnections = MutableStateFlow<List<ConnectionInfo>>(emptyList())
@@ -58,11 +60,17 @@ class ConnectionActivityRepository(
 
     private var monitorJob: Job? = null
 
+    /** Guard that ensures [ConnectionHistoryManager] is only cleared once per
+     *  VPN session, not when the runtime is already running and polling restarts. */
+    private var needsSessionClear = true
+
     init {
         start()
     }
 
-    private fun start() {
+    /** Start watching runtime state and poll connections while the VPN is running.
+     *  Idempotent — safe to call when already active. */
+    fun start() {
         if (monitorJob?.isActive == true) return
         monitorJob =
             scope.launch {
@@ -70,20 +78,28 @@ class ConnectionActivityRepository(
                     if (!isRunning) {
                         _activeConnections.value = emptyList()
                         _closedConnections.value = ConnectionHistoryManager.getClosedConnections()
+                        needsSessionClear = true
                         return@collectLatest
                     }
 
-                    // Start a fresh recent-request session when runtime enters running state.
-                    ConnectionHistoryManager.clear()
-                    _closedConnections.value = emptyList()
+                    if (needsSessionClear) {
+                        // Start a fresh recent-request session when runtime enters running state.
+                        ConnectionHistoryManager.clear()
+                        _closedConnections.value = emptyList()
+                        needsSessionClear = false
+                    }
 
                     while (runtimeStateReader.isRuntimeRunning.value) {
                         runCatching {
                                 val connections = runtimeConnectionReader.queryConnections()
                                 ConnectionHistoryManager.updateConnections(connections)
                                 _activeConnections.value = connections
-                                _closedConnections.value =
-                                    ConnectionHistoryManager.getClosedConnections()
+                                val closed = ConnectionHistoryManager.getClosedConnections()
+                                // Only emit when the closed set actually changed
+                                // (avoids driving combine recomputation every 1000 ms).
+                                if (closedChanged(closed)) {
+                                    _closedConnections.value = closed
+                                }
                             }
                             .onFailure { error ->
                                 if (error is CancellationException) throw error
@@ -99,5 +115,20 @@ class ConnectionActivityRepository(
                     }
                 }
             }
+    }
+
+    /** Returns true when [closed] differs from the currently-held snapshot by connection id set. */
+    private fun closedChanged(closed: List<ConnectionInfo>): Boolean {
+        val prev = _closedConnections.value
+        if (prev.size != closed.size) return true
+        val prevIds = prev.asSequence().map { it.id }.toSet()
+        val closedIds = closed.asSequence().map { it.id }.toSet()
+        return prevIds != closedIds
+    }
+
+    /** Stop connection polling. StateFlows retain their last-emitted values. */
+    fun stop() {
+        monitorJob?.cancel()
+        monitorJob = null
     }
 }
