@@ -165,7 +165,6 @@ class VpnTunTransport(
             pendingDevice ?: error("transport.prepare() must be called before transport.start()")
         pendingDevice = null
         startupLogStore.append("LOCAL_TUN transport start: begin fd=${device.fd}")
-        ProcFsUidResolver.startMonitoring()
         com.github.nomadboxlab.monadbox.core.Clash.startTun(
             fd = device.fd,
             stack = device.stack,
@@ -179,7 +178,6 @@ class VpnTunTransport(
     }
 
     override fun stop() {
-        ProcFsUidResolver.stopMonitoring()
         com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener()
         com.github.nomadboxlab.monadbox.core.Clash.stopTun()
     }

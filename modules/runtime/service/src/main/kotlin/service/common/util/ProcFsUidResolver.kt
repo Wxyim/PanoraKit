@@ -29,9 +29,10 @@ import java.util.concurrent.ConcurrentHashMap
  * Fallback UID resolver that reads [procfs] when [ConnectivityManager.getConnectionOwnerUid]
  * returns -1.
  *
- * A single background thread snapshots `/proc/net/{tcp,tcp6,udp,udp6}` every
- * [POLL_INTERVAL_MS] into in-memory port→uid maps.  Resolution is three-tier:
- * port cache → live map → on-demand procfs read.
+ * Resolution is two-tier: port cache → on-demand procfs read.  The port cache avoids
+ * redundant file reads for short-lived sockets that appear in rapid succession.
+ * No background threads — procfs is only read when a JNI callback calls
+ * [resolveByProtocol] and the port is not already cached.
  */
 internal object ProcFsUidResolver {
     // ── UDP indices ────────────────────────────────────────────────
@@ -46,8 +47,6 @@ internal object ProcFsUidResolver {
     private var tcp6LocalAddrIndex = -1
     private var tcp6UidIndex = -1
 
-    private const val POLL_INTERVAL_MS = 2000L
-
     /**
      * Port-level UID cache for short-lived sockets that disappear from
      * procfs before an on-demand read can find them.
@@ -56,100 +55,6 @@ internal object ProcFsUidResolver {
     private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
 
     private const val PORT_CACHE_TTL_MS = 5_000L
-
-    /** Pre-compiled regex for splitting `/proc/net/` columns. Avoids re-compiling
-     *  on every row of every refresh (4 files × ~100 lines × 1/s). */
-    private val PROC_FIELD_REGEX = "\\s+".toRegex()
-
-    // ── Live monitoring maps ───────────────────────────────────────
-    private val liveUdpMap = ConcurrentHashMap<Int, Int>()
-    private val liveTcpMap = ConcurrentHashMap<Int, Int>()
-
-    @Volatile private var monitorRunning = false
-    private val monitorLock = Any()
-
-    // ── Monitor lifecycle ──────────────────────────────────────────
-
-    fun startMonitoring() {
-        synchronized(monitorLock) {
-            if (monitorRunning) return
-            monitorRunning = true
-        }
-        Thread({
-            while (monitorRunning) {
-                try {
-                    liveTcpMap.clear()
-                    liveUdpMap.clear()
-                    refreshLiveMap("/proc/net/tcp", liveTcpMap)
-                    refreshLiveMap("/proc/net/tcp6", liveTcpMap)
-                    refreshLiveMap("/proc/net/udp", liveUdpMap)
-                    refreshLiveMap("/proc/net/udp6", liveUdpMap)
-                } catch (_: Exception) {
-                    // procfs may briefly be unavailable; retry on next cycle.
-                }
-                try {
-                    Thread.sleep(POLL_INTERVAL_MS)
-                } catch (_: InterruptedException) {
-                    break
-                }
-            }
-        }, "procfs-uid-monitor").apply {
-            isDaemon = true
-            start()
-        }
-    }
-
-    fun stopMonitoring() {
-        synchronized(monitorLock) { monitorRunning = false }
-        liveUdpMap.clear()
-        liveTcpMap.clear()
-    }
-
-    // ── Live-map refresh ───────────────────────────────────────────
-
-    private fun refreshLiveMap(path: String, targetMap: ConcurrentHashMap<Int, Int>) {
-        if (!File(path).canRead()) return
-        ensureIndicesFor(path)
-        val (localIdx, uidIdx) = when (path) {
-            "/proc/net/udp6" -> Pair(udp6LocalAddrIndex, udp6UidIndex)
-            "/proc/net/tcp" -> Pair(tcpLocalAddrIndex, tcpUidIndex)
-            "/proc/net/tcp6" -> Pair(tcp6LocalAddrIndex, tcp6UidIndex)
-            else -> Pair(udpLocalAddrIndex, udpUidIndex)
-        }
-        if (localIdx < 0 || uidIdx < 0) return
-
-        File(path).bufferedReader().use { reader ->
-            reader.readLine() ?: return
-            reader.lineSequence().forEach { line ->
-                val fields = line.trim().split(PROC_FIELD_REGEX)
-                if (fields.size > maxOf(localIdx, uidIdx)) {
-                    val uid = fields[uidIdx].toIntOrNull() ?: return@forEach
-                    if (uid > 0) {
-                        val port = parsePortFromLocalAddress(fields[localIdx])
-                        if (port > 0) {
-                            targetMap[port] = uid
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /** Extract the port from the `local_address` column. Format: `HHHHHHHH:PPPP`. */
-    private fun parsePortFromLocalAddress(raw: String): Int {
-        val colon = raw.lastIndexOf(':')
-        if (colon < 0 || colon + 1 >= raw.length) return -1
-        return raw.substring(colon + 1).toIntOrNull(16) ?: -1
-    }
-
-    private fun ensureIndicesFor(path: String) {
-        when (path) {
-            "/proc/net/udp6" -> ensureUdp6Indices()
-            "/proc/net/tcp" -> ensureTcpIndices()
-            "/proc/net/tcp6" -> ensureTcp6Indices()
-            else -> ensureUdpIndices()
-        }
-    }
 
     // ═══════════════════════════════════════════════════════════════
     //  Protocol dispatch
@@ -179,13 +84,7 @@ internal object ProcFsUidResolver {
             }
         }
 
-        // 2. Live monitoring map — sockets captured between poll cycles.
-        liveUdpMap[port]?.let { uid ->
-            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
-            return uid
-        }
-
-        // 3. Direct on-demand procfs read.
+        // 2. Direct on-demand procfs read.
         val uid = resolveUdpUidInternal(source)
         if (uid > 0) {
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
@@ -228,13 +127,7 @@ internal object ProcFsUidResolver {
             }
         }
 
-        // 2. Live monitoring map.
-        liveTcpMap[port]?.let { uid ->
-            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
-            return uid
-        }
-
-        // 3. Direct on-demand procfs read.
+        // 2. Direct on-demand procfs read.
         val uid = resolveTcpUidInternal(source)
         if (uid > 0) {
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
@@ -280,7 +173,7 @@ internal object ProcFsUidResolver {
             File(path).bufferedReader().use { reader ->
                 reader.readLine() ?: return@use -1
                 reader.lineSequence().forEach { line ->
-                    val fields = line.trim().split(PROC_FIELD_REGEX)
+                    val fields = line.trim().split("\\s+".toRegex())
                     if (fields.size > maxOf(localAddrIdx, uidIdx) &&
                         fields[localAddrIdx].equals(localHex, ignoreCase = true)
                     ) {
@@ -350,7 +243,7 @@ internal object ProcFsUidResolver {
         return runCatching {
             File(path).bufferedReader().use { reader ->
                 val header = reader.readLine() ?: return@use Pair(-1, -1)
-                val columns = header.trim().split(PROC_FIELD_REGEX)
+                val columns = header.trim().split("\\s+".toRegex())
                 val localIdx = columns.indexOfFirst { it == "local_address" }
                 val uidIdx = columns.indexOfFirst { it == "uid" }
                 Pair(localIdx, uidIdx)
