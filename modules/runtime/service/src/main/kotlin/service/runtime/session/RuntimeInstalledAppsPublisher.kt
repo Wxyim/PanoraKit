@@ -102,14 +102,15 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
     /**
      * Publish immediately, bypassing the debounce window. Reserved for the
-     * initial sync on session start, where latency matters.
+     * initial sync on session start, where latency matters and the calling
+     * thread is already a background coroutine — we publish synchronously so
+     * that the UID→package map is populated before the VPN TUN starts
+     * accepting connections.
      */
     private fun publishNow() {
         publishJob?.cancel()
-        publishJob =
-            scope.launch(Dispatchers.IO) {
-                publish()
-            }
+        publishJob = null
+        publish()
     }
 
     private fun publish() {
