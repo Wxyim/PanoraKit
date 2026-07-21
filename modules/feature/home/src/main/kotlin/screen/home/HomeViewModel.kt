@@ -961,7 +961,6 @@ class HomeViewModel(
                         }
                     }
                 }
-                .distinctUntilChanged()
                 .collect { computed ->
                     val snapshot = runtimeSnapshot.value
                     val runtimeStopped =
@@ -985,7 +984,6 @@ class HomeViewModel(
             combine(appSettings.externalIpLookupUrl.state, runtimeSnapshot) { url, snapshot ->
                     url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
                 }
-                .distinctUntilChanged()
                 .collect { enabled ->
                     val snapshot = runtimeSnapshot.value
                     val runtimeStopped =
