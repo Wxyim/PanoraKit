@@ -29,7 +29,6 @@ import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplore
 import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.DefaultTrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.presentation.contract.RuntimeConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import org.koin.dsl.module
 
 val featureMetaContractModule = module {
@@ -37,8 +36,6 @@ val featureMetaContractModule = module {
         DefaultTrafficStatisticsExplorer(
             get<TrafficStatisticsStore>(),
             get<ConnectionActivityRepository>(),
-            get<ProxyFacade>(),
-            get<ProxyChainResolver>(),
             get<AppIdentityResolver>(),
         )
     }

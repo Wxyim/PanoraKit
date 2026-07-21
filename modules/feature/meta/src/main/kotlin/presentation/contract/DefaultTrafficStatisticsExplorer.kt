@@ -25,7 +25,7 @@ import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.data.model.DailyTrafficSummary
 import com.github.nomadboxlab.monadbox.data.model.TimeSlot
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
-import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
+
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
@@ -34,7 +34,7 @@ import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficChartPoint
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -56,8 +56,6 @@ private data class StatisticsClockSnapshot(
 class DefaultTrafficStatisticsExplorer(
     private val trafficStatisticsStore: TrafficStatisticsStore,
     connectionActivityRepository: ConnectionActivityRepository,
-    proxyFacade: ProxyFacade,
-    private val proxyChainResolver: ProxyChainResolver,
     private val appIdentityResolver: AppIdentityResolver,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) : TrafficStatisticsExplorer {
@@ -95,8 +93,7 @@ class DefaultTrafficStatisticsExplorer(
         combine(
                 connectionActivityRepository.activeConnections,
                 connectionActivityRepository.closedConnections,
-                proxyFacade.proxyGroups,
-            ) { activeConnections, closedConnections, proxyGroups ->
+            ) { activeConnections, closedConnections ->
                 val activeIds = activeConnections.asSequence().map(ConnectionInfo::id).toSet()
                 val closedRequests =
                     closedConnections
@@ -107,9 +104,8 @@ class DefaultTrafficStatisticsExplorer(
                             RecentRequestRecord(
                                 connection = connection,
                                 isActive = false,
-                                topLevelGroupName =
-                                    resolveTopLevelGroupName(connection, proxyGroups),
-                                bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                                topLevelGroupName = resolveTopLevelGroupName(connection),
+                                bottomNodeName = resolveBottomNodeName(connection),
                                 sourceAppName = appName,
                                 sourcePackageName = packageName,
                             )
@@ -120,8 +116,8 @@ class DefaultTrafficStatisticsExplorer(
                         RecentRequestRecord(
                             connection = connection,
                             isActive = true,
-                            topLevelGroupName = resolveTopLevelGroupName(connection, proxyGroups),
-                            bottomNodeName = resolveBottomNodeName(connection, proxyGroups),
+                            topLevelGroupName = resolveTopLevelGroupName(connection),
+                            bottomNodeName = resolveBottomNodeName(connection),
                             sourceAppName = appName,
                             sourcePackageName = packageName,
                         )
@@ -246,31 +242,31 @@ class DefaultTrafficStatisticsExplorer(
             .getOrDefault(Long.MIN_VALUE)
     }
 
-    private fun resolveTopLevelGroupName(
-        connection: ConnectionInfo,
-        proxyGroups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
-    ): String? {
+    /**
+     * Extract the top-level proxy group name from the connection's recorded
+     * [ConnectionInfo.chains]. Uses the original chain data — independent of
+     * the current proxy group state — so historical entries don't change when
+     * the user switches nodes.
+     */
+    private fun resolveTopLevelGroupName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return null
-
-        return chains.asReversed().firstNotNullOfOrNull { chainName ->
-            proxyGroups
-                .firstOrNull { group ->
-                    group.type.group && group.name.equals(chainName, ignoreCase = true)
-                }
-                ?.name
-        }
+        // The first non-built-in chain element is typically the user-facing
+        // proxy-group name (e.g. "自动选择"). Built-in policies like "Proxy"
+        // or "Rule" are skipped as they are too generic.
+        val builtIn = setOf("PROXY", "DIRECT", "REJECT", "REJECT-DROP", "代理", "直连", "拦截")
+        return chains.firstOrNull { it !in builtIn }
     }
 
-    private fun resolveBottomNodeName(
-        connection: ConnectionInfo,
-        proxyGroups: List<com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo>,
-    ): String? {
+    /**
+     * Extract the final (leaf) node name from the connection's recorded
+     * [ConnectionInfo.chains]. The last chain element is the actual node that
+     * handled the connection — this is the same data shown in the detail sheet.
+     */
+    private fun resolveBottomNodeName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return localizeBuiltInProxyName("DIRECT")
-
-        val resolved = proxyChainResolver.resolveEndNode(chains.last(), proxyGroups)?.name
-        return localizeBuiltInProxyName(resolved ?: chains.last())
+        return localizeBuiltInProxyName(chains.last())
     }
 
     private fun localizeBuiltInProxyName(name: String): String {
