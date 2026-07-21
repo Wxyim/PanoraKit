@@ -58,9 +58,22 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 		}
 
 		uid := app.QuerySocketUid(metadata.RawSrcAddr, metadata.RawDstAddr)
+
+		// Always stash the UID so the Kotlin-side AppIdentityResolver can fall
+		// back to PackageManager.getPackagesForUid() when FindPackageName yields
+		// an empty package name.  This is essential for CMFA builds where
+		// metadata.Uid is otherwise never populated.
+		if uid > 0 {
+			metadata.Uid = uid
+		}
+
 		pkg := app.QueryAppByUid(uid)
 
 		log.Debugln("[PKG] %s --> %s by %d[%s]", metadata.SourceAddress(), metadata.RemoteAddress(), uid, pkg)
+
+		if pkg == "" {
+			return "", process.ErrNotFound
+		}
 
 		return pkg, nil
 	}

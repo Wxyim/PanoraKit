@@ -223,8 +223,13 @@ class AppIdentityResolver(context: Context) {
      * Returns null when neither source yields a result.
      */
     fun resolvePackageFromMetadata(metadata: JsonObject): String? {
-        // 1. mihomo-provided package name (reliable with find-process-name: "always").
-        val pkg = metadata.firstNonBlankValue("packageName", "package", "package-name", "package_name")
+        // 1. Mihomo-provided package name.
+        //    Mihomo's Metadata struct has NO dedicated "packageName" field; when
+        //    FindPackageName succeeds it writes the Android package name into the
+        //    "process" field. Check "process" first, then legacy aliases.
+        val pkg = metadata.firstNonBlankValue(
+            "process", "packageName", "package", "package-name", "package_name",
+        )
         if (pkg.isNotBlank() && findInstalledPackage(pkg) != null) return pkg
 
         // 2. UID fallback for non-root / procfs-unavailable cases.
