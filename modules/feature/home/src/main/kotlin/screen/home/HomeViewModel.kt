@@ -295,10 +295,8 @@ class HomeViewModel(
                 RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
             )
 
-    val isExternalIpLookupEnabled: StateFlow<Boolean> =
-        combine(appSettings.externalIpLookupUrl.state, runtimeSnapshot) { url, snapshot ->
-            url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val isExternalIpLookupEnabled: StateFlow<Boolean> get() = _isExternalIpLookupEnabled
+    private val _isExternalIpLookupEnabled = MutableStateFlow(false)
 
     private val currentTunnelMode: StateFlow<TunnelState.Mode> =
         proxyDisplaySettingsStore.proxyMode.state.stateIn(
@@ -332,56 +330,8 @@ class HomeViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    val selectedServer: StateFlow<HomeSelectedServerState?> =
-        combine(runtimeSnapshot, proxyGroups, currentTunnelMode, visibleProxyGroupNames) {
-                snapshot,
-                groups,
-                tunnelMode,
-                visibleGroupNames ->
-                if (!snapshot.isHomeRuntimePayloadReady() || groups.isEmpty()) {
-                    return@combine null
-                }
-
-                when (tunnelMode) {
-                    TunnelState.Mode.Direct ->
-                        HomeSelectedServerState(
-                            groupName = null,
-                            name = MLang.Home.Profile.Direct,
-                            delay = null,
-                        )
-
-                    TunnelState.Mode.Global -> {
-                        val mainGroup =
-                            HomeProxySelectionResolver.resolveGlobalDisplayGroup(groups)
-                                ?: HomeProxySelectionResolver.resolveFirstStrategyGroup(
-                                    groups,
-                                    visibleGroupNames,
-                                )
-                                ?: return@combine null
-                        HomeProxySelectionResolver.buildSelectedServerState(
-                            mainGroup,
-                            groups,
-                            proxyChainResolver::resolveEndNode,
-                        )
-                    }
-
-                    TunnelState.Mode.Rule,
-                    TunnelState.Mode.Script -> {
-                        val mainGroup =
-                            HomeProxySelectionResolver.resolveFirstStrategyGroup(
-                                groups,
-                                visibleGroupNames,
-                            ) ?: return@combine null
-                        HomeProxySelectionResolver.buildSelectedServerState(
-                            mainGroup,
-                            groups,
-                            proxyChainResolver::resolveEndNode,
-                        )
-                    }
-                }
-            }
-            .distinctUntilChanged()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val selectedServer: StateFlow<HomeSelectedServerState?> get() = _selectedServer
+    private val _selectedServer = MutableStateFlow<HomeSelectedServerState?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val ipMonitoringState: StateFlow<IpMonitoringState> =
@@ -518,6 +468,8 @@ class HomeViewModel(
         observeProfileChanges()
         clearExternalIpCacheOnStop()
         clearExternalIpCacheOnSelection()
+        collectSelectedServer()
+        collectExternalIpEnabled()
     }
 
     fun setScreenActive(active: Boolean) {
@@ -948,6 +900,103 @@ class HomeViewModel(
             } else {
                 current.copy(ui = current.ui.copy(error = null))
             }
+        }
+    }
+
+    /**
+     * Feed [selectedServer] from the canonical combine, but with a sticky-hold
+     * strategy: when the runtime payload gate transiently drops during startup
+     * (e.g. mihomo reloading imported config), keep the last non-null value
+     * instead of flipping back to `null` ("Unknown").
+     *
+     * Only truly clear the server when the runtime is definitively stopped
+     * (Idle / Failed).
+     */
+    private fun collectSelectedServer() {
+        viewModelScope.launch {
+            combine(runtimeSnapshot, proxyGroups, currentTunnelMode, visibleProxyGroupNames) {
+                    snapshot,
+                    groups,
+                    tunnelMode,
+                    visibleGroupNames ->
+                    if (!snapshot.isHomeRuntimePayloadReady() || groups.isEmpty()) {
+                        return@combine null
+                    }
+
+                    when (tunnelMode) {
+                        TunnelState.Mode.Direct ->
+                            HomeSelectedServerState(
+                                groupName = null,
+                                name = MLang.Home.Profile.Direct,
+                                delay = null,
+                            )
+
+                        TunnelState.Mode.Global -> {
+                            val mainGroup =
+                                HomeProxySelectionResolver.resolveGlobalDisplayGroup(groups)
+                                    ?: HomeProxySelectionResolver.resolveFirstStrategyGroup(
+                                        groups,
+                                        visibleGroupNames,
+                                    )
+                                    ?: return@combine null
+                            HomeProxySelectionResolver.buildSelectedServerState(
+                                mainGroup,
+                                groups,
+                                proxyChainResolver::resolveEndNode,
+                            )
+                        }
+
+                        TunnelState.Mode.Rule,
+                        TunnelState.Mode.Script -> {
+                            val mainGroup =
+                                HomeProxySelectionResolver.resolveFirstStrategyGroup(
+                                    groups,
+                                    visibleGroupNames,
+                                ) ?: return@combine null
+                            HomeProxySelectionResolver.buildSelectedServerState(
+                                mainGroup,
+                                groups,
+                                proxyChainResolver::resolveEndNode,
+                            )
+                        }
+                    }
+                }
+                .distinctUntilChanged()
+                .collect { computed ->
+                    val snapshot = runtimeSnapshot.value
+                    val runtimeStopped =
+                        snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed
+
+                    when {
+                        computed != null -> _selectedServer.value = computed
+                        runtimeStopped -> _selectedServer.value = null
+                        // Transient drop: hold last value, suppress flash.
+                    }
+                }
+        }
+    }
+
+    /**
+     * Feed [isExternalIpLookupEnabled] from the canonical combine, with the
+     * same sticky-hold strategy as [collectSelectedServer].
+     */
+    private fun collectExternalIpEnabled() {
+        viewModelScope.launch {
+            combine(appSettings.externalIpLookupUrl.state, runtimeSnapshot) { url, snapshot ->
+                    url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
+                }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    val snapshot = runtimeSnapshot.value
+                    val runtimeStopped =
+                        snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed
+
+                    when {
+                        enabled -> _isExternalIpLookupEnabled.value = true
+                        runtimeStopped -> _isExternalIpLookupEnabled.value = false
+                        // Transient drop: hold last value, suppress flash.
+                    }
+                }
         }
     }
 }
