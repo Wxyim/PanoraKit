@@ -64,7 +64,7 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 		// an empty package name.  This is essential for CMFA builds where
 		// metadata.Uid is otherwise never populated.
 		if uid > 0 {
-			metadata.Uid = uid
+			metadata.Uid = uint32(uid)
 		}
 
 		pkg := app.QueryAppByUid(uid)
