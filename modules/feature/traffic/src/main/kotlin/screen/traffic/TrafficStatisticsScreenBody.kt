@@ -43,6 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
@@ -547,19 +550,30 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (record.sourceAppName.isNotBlank()) {
-                        Text(
-                            text =
-                                record.sourcePackageName
-                                    ?.takeIf { it.isNotBlank() && it != record.sourceAppName }
-                                    ?.let { "${record.sourceAppName} · $it" }
-                                    ?: record.sourceAppName,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    val appName = record.sourceAppName
+                    val pkgName = record.sourcePackageName
+                        ?.takeIf { it.isNotBlank() && it != appName }
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(
+                                fontWeight = FontWeight.Medium,
+                                color = MiuixTheme.colorScheme.onSurface,
+                            )) {
+                                append(appName.ifBlank { pkgName ?: "" })
+                            }
+                            if (pkgName != null && appName.isNotBlank()) {
+                                withStyle(SpanStyle(
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                )) {
+                                    append(" · ")
+                                    append(pkgName)
+                                }
+                            }
+                        },
+                        style = MiuixTheme.textStyles.footnote1,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 Column(
                     horizontalAlignment = Alignment.End,
