@@ -22,6 +22,8 @@
 package com.github.nomadboxlab.monadbox.core.domain
 
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Tracks connection lifecycle by diffing successive [ConnectionInfo] snapshots
@@ -68,9 +70,18 @@ object ConnectionHistoryManager {
 
             // Detect newly-closed connections: IDs in the previous snapshot
             // that are absent from the current one.
+            // Stash the close timestamp so downstream consumers can calculate
+            // accurate connection duration (closeTime → start instead of now → start).
             previousConnections.keys.minus(currentIds).forEach { closedId ->
                 previousConnections[closedId]?.let { conn ->
-                    _closedConnections.add(0, now to conn)
+                    val enriched = conn.copy(
+                        metadata = JsonObject(
+                            conn.metadata.toMutableMap().apply {
+                                put("_closeTimeMs", JsonPrimitive(now))
+                            }
+                        )
+                    )
+                    _closedConnections.add(0, now to enriched)
                 }
             }
 

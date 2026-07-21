@@ -33,7 +33,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
+import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.feature.meta.api.RecentRequestRecord
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
@@ -94,19 +95,8 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
     val todayTimeContext by trafficStatisticsExplorer.todayTimeContext.collectAsStateWithLifecycle()
     val selectedBarIndex by trafficStatisticsExplorer.selectedBarIndex.collectAsStateWithLifecycle()
     val recentRequests by trafficStatisticsExplorer.recentRequests.collectAsStateWithLifecycle()
-    var selectedConnectionId by rememberSaveable { mutableStateOf<String?>(null) }
     var showConnectionDetail by rememberSaveable { mutableStateOf(false) }
-    val selectedConnection =
-        remember(selectedConnectionId, recentRequests) {
-            recentRequests.firstOrNull { it.connection.id == selectedConnectionId }?.connection
-        }
-
-    LaunchedEffect(showConnectionDetail, selectedConnectionId, selectedConnection) {
-        if (showConnectionDetail && selectedConnectionId != null && selectedConnection == null) {
-            showConnectionDetail = false
-            selectedConnectionId = null
-        }
-    }
+    var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
 
     Scaffold(
         topBar = {
@@ -179,7 +169,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                                 DetailsCard(
                                     recentRequests = recentRequests,
                                     onRecentRequestClick = { request ->
-                                        selectedConnectionId = request.connection.id
+                                        selectedConnection = request.connection
                                         showConnectionDetail = true
                                     },
                                     modifier = Modifier.weight(1f),
@@ -221,7 +211,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                                 DetailsCard(
                                     recentRequests = recentRequests,
                                     onRecentRequestClick = { request ->
-                                        selectedConnectionId = request.connection.id
+                                        selectedConnection = request.connection
                                         showConnectionDetail = true
                                     },
                                     modifier = Modifier.fillMaxWidth(),
@@ -237,7 +227,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
             show = showConnectionDetail && selectedConnection != null,
             connectionInfo = selectedConnection,
             onDismiss = { showConnectionDetail = false },
-            onDismissFinished = { selectedConnectionId = null },
+            onDismissFinished = { selectedConnection = null },
         )
     }
 }

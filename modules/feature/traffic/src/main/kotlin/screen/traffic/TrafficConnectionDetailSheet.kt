@@ -44,6 +44,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomShe
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -65,11 +66,27 @@ internal fun ConnectionDetailSheet(
             connectionInfo?.metadata?.get("process")?.jsonPrimitive?.content ?: ""
         }
     val displayAddress = remember(connectionInfo) { connectionInfo?.toConnectionDisplayAddress() }
+    val closeTimeMs =
+        remember(connectionInfo) {
+            connectionInfo?.metadata?.get("_closeTimeMs")?.jsonPrimitive?.longOrNull
+        }
     val durationText by
-        produceState(initialValue = "00:00:00", key1 = show, key2 = connectionInfo?.start) {
-            while (show && connectionInfo?.start != null) {
-                value = calculateDuration(connectionInfo.start)
+        produceState(
+            initialValue = connectionInfo?.start?.let { calculateDuration(it, closeTimeMs) } ?: "00:00:00",
+            key1 = show,
+            key2 = connectionInfo?.start,
+            key3 = closeTimeMs,
+        ) {
+            // Active connections (no close time): tick every second.
+            // Closed connections: duration is fixed, no ticking needed.
+            while (show && connectionInfo?.start != null && closeTimeMs == null) {
+                value = calculateDuration(connectionInfo.start, null)
                 delay(1000L)
+            }
+            // Final update when close time is known or sheet is still open.
+            val start = connectionInfo?.start
+            if (show && start != null) {
+                value = calculateDuration(start, closeTimeMs)
             }
         }
     val sourceApp =
@@ -275,12 +292,13 @@ private fun InfoRow(
     }
 }
 
-private fun calculateDuration(start: String): String {
+private fun calculateDuration(start: String, closeTimeMs: Long? = null): String {
     if (start.isEmpty()) return "00:00:00"
     return try {
         val startTime = java.time.OffsetDateTime.parse(start).toInstant()
-        val now = java.time.Instant.now()
-        val duration = java.time.Duration.between(startTime, now)
+        val endTime = closeTimeMs?.let { java.time.Instant.ofEpochMilli(it) }
+            ?: java.time.Instant.now()
+        val duration = java.time.Duration.between(startTime, endTime)
         val hours = duration.toHours()
         val minutes = duration.toMinutes() % 60
         val seconds = duration.seconds % 60
