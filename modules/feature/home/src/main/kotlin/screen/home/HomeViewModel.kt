@@ -249,9 +249,7 @@ class HomeViewModel(
     private val externalIpQueryInFlight = MutableStateFlow(false)
     val isExternalIpQuerying: StateFlow<Boolean> = externalIpQueryInFlight.asStateFlow()
 
-    // Tracks whether the current VPN session has had its first external-IP
-    // query. Reset to true whenever the VPN stops so the next query gets
-	    private val chromeStateMutable = MutableStateFlow(HomeChromeState())
+    private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
 
     val runtimeSnapshot = proxyFacade.runtimeSnapshot

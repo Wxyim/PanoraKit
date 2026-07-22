@@ -411,16 +411,18 @@ class SessionRuntime(
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         startupLog(spec, "runtime ready: awaiting proxy groups and selection restore")
 
-        // Wait for proxy groups to be queryable and selections to be
-        // validated *before* signaling Running, so the node label and IP
-        // button are ready the moment the UI transitions.
+        // Wait for proxy groups to be queryable, selections validated, AND
+        // Android's VPN routing table to stabilise — all before signaling
+        // Running so the node label and IP button are ready the moment the
+        // UI transitions.
         //
         // ensureSelectionOverrideFile already injected the user's saved
         // selections into the compiled runtime.yaml as defaults, so
         // restoreSelections is a validation pass (no visual flash).
         //
-        // Both steps wait for Go's internal hub.ApplyConfig(); running them
-        // concurrently cuts wall-clock from sum→max.
+        // The routing delay runs concurrently with the two warm-up steps;
+        // wall-clock cost is max(warm-up, ROUTING_STABILISE_DELAY_MS) rather
+        // than warm-up + delay.
         coroutineScope {
             launch {
                 measureStartupStep(spec, "runtime selection restore") {
@@ -431,6 +433,9 @@ class SessionRuntime(
                 measureStartupStep(spec, "runtime groups ready") {
                     awaitProxyGroupsReady(spec)
                 }
+            }
+            launch {
+                delay(ROUTING_STABILISE_DELAY_MS)
             }
         }
 
@@ -963,5 +968,6 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
+        private const val ROUTING_STABILISE_DELAY_MS = 1000L
     }
 }
