@@ -409,17 +409,27 @@ class SessionRuntime(
         // sequential after compileAndLoad to avoid concurrent JNI into Go.
         measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
-        startupLog(spec, "runtime ready: awaiting proxy groups and selection restore")
+        publishSnapshot(
+            currentSnapshot.copy(
+                phase = RuntimePhase.Running,
+                profileReady = true,
+                configReady = true,
+                transportReady = true,
+                startedAt = startedAt,
+                effectiveFingerprint = spec.effectiveFingerprint,
+            )
+        )
+        host.onStarted(spec)
+        startupLog(spec, "runtime ready: payload warm-up continue in background")
 
-        // Wait for proxy groups to be queryable, selections validated, AND
-        // Android's VPN routing table to stabilise — all before signaling
-        // Running so the node label and IP button are ready the moment the
-        // UI transitions.
+        // Deferred non-blocking warm-up: proxy selections don't gate the first
+        // packet — the compiled runtime.yaml already has selection defaults
+        // injected by ensureSelectionOverrideFile.
         //
-        // ensureSelectionOverrideFile already injected the user's saved
-        // selections into the compiled runtime.yaml as defaults, so
-        // restoreSelections is a validation pass (no visual flash).
-        //
+        // Both restoreSelections and awaitProxyGroupsReady are waiting for Go
+        // to finish hub.ApplyConfig() internally.  Running them concurrently
+        // cuts the wall-clock wait from sum → max so the node label and IP
+        // info appear sooner after the "Running" indicator.
         coroutineScope {
             launch {
                 measureStartupStep(spec, "runtime selection restore") {
@@ -451,7 +461,6 @@ class SessionRuntime(
                 effectiveFingerprint = spec.effectiveFingerprint,
             )
         )
-        host.onStarted(spec)
         host.onProfileLoaded(spec.profileUuid)
         startupLog(spec, "payload ready")
     }
