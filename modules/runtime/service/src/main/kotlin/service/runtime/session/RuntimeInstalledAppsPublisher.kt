@@ -42,6 +42,13 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     private var receiver: BroadcastReceiver? = null
     private var publishJob: Job? = null
 
+    // Last known-good mapping, used as fallback when a subsequent publish
+    // returns empty (e.g. PackageManager transiently unavailable after
+    // force-stop).  Never let Go's installedAppsUid be replaced with an
+    // empty map — that blinds UID resolution for every connection.
+    @Volatile
+    private var lastKnownMappings: List<Pair<Int, String>> = emptyList()
+
     fun start() {
         if (receiver != null) {
             publishNow()
@@ -84,6 +91,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
             runCatching { appContext.unregisterReceiver(registered) }
         }
         RootPackageShell.invalidateCaches()
+        lastKnownMappings = emptyList()
     }
 
     /**
@@ -114,16 +122,22 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     }
 
     private fun publish() {
-        val mappings = resolveMappings()
-        // Never overwrite Go's installedAppsUid with an empty list —
-        // it would blind UID→package resolution for every subsequent
-        // connection.  PackageManager may be transiently unavailable
-        // right after force-stop, causing resolveMappings to return
-        // empty; the next cycle (or next VPN start) will repopulate.
-        if (mappings.isEmpty()) {
-            Timber.w("RuntimeInstalledAppsPublisher skipping: resolved 0 mappings")
-            return
-        }
+        val fresh = resolveMappings()
+        val mappings =
+            if (fresh.isNotEmpty()) {
+                lastKnownMappings = fresh
+                fresh
+            } else if (lastKnownMappings.isNotEmpty()) {
+                Timber.w(
+                    "RuntimeInstalledAppsPublisher resolved 0 mappings; " +
+                        "falling back to last-known (%s entries)",
+                    lastKnownMappings.size,
+                )
+                lastKnownMappings
+            } else {
+                Timber.w("RuntimeInstalledAppsPublisher resolved 0 mappings; no fallback — skipping")
+                return
+            }
         Clash.notifyInstalledAppsChanged(mappings)
         Timber.d(
             "RuntimeInstalledAppsPublisher published %s app uid mappings",
@@ -137,10 +151,16 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
             ?.let(InstalledAppUidMappings::fromRootPackageUidMap)
             ?.takeIf { it.isNotEmpty() }
             ?.let {
+                Timber.d("RuntimeInstalledAppsPublisher: root shell returned %s entries", it.size)
                 return it
             }
 
-        if (!InstalledAppsAccess.resolve(appContext).canEnumerateInstalledApps) {
+        val accessState = InstalledAppsAccess.resolve(appContext)
+        if (!accessState.canEnumerateInstalledApps) {
+            Timber.w(
+                "RuntimeInstalledAppsPublisher: cannot enumerate (mode=%s); returning empty",
+                accessState.mode,
+            )
             return emptyList()
         }
 
