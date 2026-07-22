@@ -47,7 +47,7 @@ class AppIdentityResolver(context: Context) {
                 "process_name",
                 "appProcess",
             )
-        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid")
+        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         val fallbackHost =
             metadata.firstNonBlankValue(
                 "host",
@@ -233,7 +233,7 @@ class AppIdentityResolver(context: Context) {
         if (pkg.isNotBlank() && findInstalledPackage(pkg) != null) return pkg
 
         // 2. UID fallback for non-root / procfs-unavailable cases.
-        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid")
+        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         if (uid != null && uid > 0) {
             resolveByUid(uid)?.let { return it }
         }
@@ -254,7 +254,7 @@ class AppIdentityResolver(context: Context) {
         return metadata.firstNonBlankValue(
             "process", "processName", "process-name", "process_name", "appProcess",
         ).ifBlank {
-            metadata.firstUidValue("uid", "sourceUid", "source_uid")
+            metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
                 ?.let { "UID $it" }.orEmpty()
         }.ifBlank { UNKNOWN_APP_NAME }
     }

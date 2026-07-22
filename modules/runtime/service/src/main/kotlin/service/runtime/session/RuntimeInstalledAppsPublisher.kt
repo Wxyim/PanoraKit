@@ -115,6 +115,15 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
     private fun publish() {
         val mappings = resolveMappings()
+        // Never overwrite Go's installedAppsUid with an empty list —
+        // it would blind UID→package resolution for every subsequent
+        // connection.  PackageManager may be transiently unavailable
+        // right after force-stop, causing resolveMappings to return
+        // empty; the next cycle (or next VPN start) will repopulate.
+        if (mappings.isEmpty()) {
+            Timber.w("RuntimeInstalledAppsPublisher skipping: resolved 0 mappings")
+            return
+        }
         Clash.notifyInstalledAppsChanged(mappings)
         Timber.d(
             "RuntimeInstalledAppsPublisher published %s app uid mappings",
