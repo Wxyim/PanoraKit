@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -244,6 +245,12 @@ class HomeViewModel(
     private val profilesStateMutable = MutableStateFlow(HomeProfilesState())
     val profilesState: StateFlow<HomeProfilesState> = profilesStateMutable.asStateFlow()
 
+    // During cold-start the proxy chain establishes connections lazily on
+    // the first outbound packet.  The IP button is delayed 1.5 s after the
+    // runtime signals "ready" so the proxy dial/handshake has time to complete
+    // before the user can tap.  Cancelled when the VPN stops.
+    private var ipButtonDelayJob: Job? = null
+
     // Privacy: external IP is only ever queried when the user taps the button.
     // This state flow publishes the result of the most recent manual query.
     private val externalIpQueryInFlight = MutableStateFlow(false)
@@ -339,7 +346,6 @@ class HomeViewModel(
      */
     fun queryExternalIp() {
         viewModelScope.launch {
-            val snapshot = runtimeSnapshot.value
             val lookupUrl = appSettings.externalIpLookupUrl.value.trim()
             if (lookupUrl.isBlank()) {
                 Timber.d("External IP query skipped: lookup URL not configured")
@@ -347,19 +353,10 @@ class HomeViewModel(
                 return@launch
             }
 
-            // Use the same stable payload gate as the node display so the
-            // lookup cannot escape through a half-ready tunnel.
-            if (!snapshot.isHomeRuntimePayloadReady()) {
-                Timber.d(
-                    "External IP query skipped: runtime payload not ready " +
-                        "(phase=%s, groupsReady=%s, trafficReady=%s, configReady=%s, " +
-                        "transportReady=%s)",
-                    snapshot.phase,
-                    snapshot.groupsReady,
-                    snapshot.trafficReady,
-                    snapshot.configReady,
-                    snapshot.transportReady,
-                )
+            // Use the same gate as the IP-button visibility so that a click
+            // on a visible button never hits a TOCTOU mismatch.
+            if (!isExternalIpLookupEnabled.value) {
+                Timber.d("External IP query skipped: lookup not enabled")
                 showError(MLang.Home.Message.ExternalIpLookupNotRunning)
                 return@launch
             }
@@ -368,7 +365,6 @@ class HomeViewModel(
             externalIpQueryInFlight.value = true
             try {
                 val info = networkInfoService.queryExternalIp()
-
                 networkInfoService.cacheExternalIp(info)
                 Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
                 if (info == null) {
@@ -488,6 +484,8 @@ class HomeViewModel(
                         !running &&
                             runtimeSnapshot.value.phase in setOf(RuntimePhase.Idle, RuntimePhase.Failed)
                     ) {
+                        ipButtonDelayJob?.cancel()
+                        ipButtonDelayJob = null
                         networkInfoService.clearExternalIp()
                     }
                 }
@@ -942,8 +940,13 @@ class HomeViewModel(
     }
 
     /**
-     * Feed [isExternalIpLookupEnabled] from the canonical combine, with the
-     * same sticky-hold strategy as [collectSelectedServer].
+     * Feed [isExternalIpLookupEnabled] from the runtime-snapshot combine.
+     *
+     * During cold-start the proxy chain establishes connections lazily —
+     * the first outbound packet triggers the dial/handshake.  The button is
+     * delayed 1.5 s after the runtime signals "ready" so that the chain has
+     * time to warm up before the user can tap.  If the VPN stops during the
+     * delay window the job is cancelled and the button stays hidden.
      */
     private fun collectExternalIpEnabled() {
         viewModelScope.launch {
@@ -951,12 +954,20 @@ class HomeViewModel(
                     url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
                 }
                 .collect { enabled ->
+                    ipButtonDelayJob?.cancel()
+                    ipButtonDelayJob = null
+
                     val snapshot = runtimeSnapshot.value
                     val runtimeStopped =
                         snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed
 
                     when {
-                        enabled -> _isExternalIpLookupEnabled.value = true
+                        enabled -> {
+                            ipButtonDelayJob = viewModelScope.launch {
+                                delay(1500L)
+                                _isExternalIpLookupEnabled.value = true
+                            }
+                        }
                         runtimeStopped -> _isExternalIpLookupEnabled.value = false
                         // Transient drop: hold last value, suppress flash.
                     }
