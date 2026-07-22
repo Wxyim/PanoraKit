@@ -420,9 +420,6 @@ class SessionRuntime(
         // selections into the compiled runtime.yaml as defaults, so
         // restoreSelections is a validation pass (no visual flash).
         //
-        // The routing delay runs concurrently with the two warm-up steps;
-        // wall-clock cost is max(warm-up, ROUTING_STABILISE_DELAY_MS) rather
-        // than warm-up + delay.
         coroutineScope {
             launch {
                 measureStartupStep(spec, "runtime selection restore") {
@@ -433,9 +430,6 @@ class SessionRuntime(
                 measureStartupStep(spec, "runtime groups ready") {
                     awaitProxyGroupsReady(spec)
                 }
-            }
-            launch {
-                delay(ROUTING_STABILISE_DELAY_MS)
             }
         }
 
@@ -968,6 +962,5 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
-        private const val ROUTING_STABILISE_DELAY_MS = 1000L
     }
 }
