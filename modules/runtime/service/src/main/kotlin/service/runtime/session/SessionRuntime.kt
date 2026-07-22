@@ -404,31 +404,23 @@ class SessionRuntime(
             prepareJob.await()
             compileJob.await()
         }
-        // App→UID mappings must arrive before traffic starts, otherwise the
-        // first connections are attributed to wrong/unresolved processes.
+        // App→UID mappings must be populated before transport.start() so Go's
+        // QueryAppByUid resolves package names from the first packet. Kept
+        // sequential after compileAndLoad to avoid concurrent JNI into Go.
         measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
-        publishSnapshot(
-            currentSnapshot.copy(
-                phase = RuntimePhase.Running,
-                profileReady = true,
-                configReady = true,
-                transportReady = true,
-                startedAt = startedAt,
-                effectiveFingerprint = spec.effectiveFingerprint,
-            )
-        )
-        host.onStarted(spec)
-        startupLog(spec, "runtime ready: payload warm-up continue in background")
+        startupLog(spec, "runtime ready: awaiting proxy groups and selection restore")
 
-        // Deferred non-blocking warm-up: proxy selections don't gate the first
-        // packet — the compiled runtime.yaml already has selection defaults
-        // injected by ensureSelectionOverrideFile.
+        // Wait for proxy groups to be queryable and selections to be
+        // validated *before* signaling Running, so the node label and IP
+        // button are ready the moment the UI transitions.
         //
-        // Both restoreSelections and awaitProxyGroupsReady are waiting for Go
-        // to finish hub.ApplyConfig() internally.  Running them concurrently
-        // cuts the wall-clock wait from sum → max so the node label and IP
-        // info appear sooner after the "Running" indicator.
+        // ensureSelectionOverrideFile already injected the user's saved
+        // selections into the compiled runtime.yaml as defaults, so
+        // restoreSelections is a validation pass (no visual flash).
+        //
+        // Both steps wait for Go's internal hub.ApplyConfig(); running them
+        // concurrently cuts wall-clock from sum→max.
         coroutineScope {
             launch {
                 measureStartupStep(spec, "runtime selection restore") {
@@ -460,6 +452,7 @@ class SessionRuntime(
                 effectiveFingerprint = spec.effectiveFingerprint,
             )
         )
+        host.onStarted(spec)
         host.onProfileLoaded(spec.profileUuid)
         startupLog(spec, "payload ready")
     }

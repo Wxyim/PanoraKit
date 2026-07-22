@@ -83,21 +83,8 @@ private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
         configReady &&
         transportReady
 
-/**
- * Delay applied before the **first** external-IP query of a VPN session.
- *
- * When the VPN tunnel has just come up, Android's routing table may not
- * have been fully updated yet — the HTTP request could leak through the
- * default network and reveal the real IP. A one-time 1.5 s pause ensures
- * the system routes the request through the VPN tunnel.
- *
- * Subsequent queries within the same session skip this delay because the
- * routing is already proven stable.
- */
-private const val FIRST_QUERY_ROUTING_DELAY_MS = 1500L
-
-@Stable
-data class HomeUiState(
+	@Stable
+	data class HomeUiState(
     val isLoading: Boolean = false,
     val isStartingProxy: Boolean = false,
     val loadingProgress: String? = null,
@@ -264,11 +251,7 @@ class HomeViewModel(
 
     // Tracks whether the current VPN session has had its first external-IP
     // query. Reset to true whenever the VPN stops so the next query gets
-    // the extra routing-stabilisation delay.
-    @Volatile
-    private var firstQueryInSession = true
-
-    private val chromeStateMutable = MutableStateFlow(HomeChromeState())
+	    private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
 
     val runtimeSnapshot = proxyFacade.runtimeSnapshot
@@ -386,14 +369,6 @@ class HomeViewModel(
             // Show query-in-flight immediately so the user gets visual feedback.
             externalIpQueryInFlight.value = true
             try {
-                // The first query of a VPN session needs extra time for the
-                // routing table to stabilise; subsequent queries within the
-                // same session skip this delay.
-                if (firstQueryInSession) {
-                    delay(FIRST_QUERY_ROUTING_DELAY_MS)
-                    firstQueryInSession = false
-                }
-
                 val info = networkInfoService.queryExternalIp()
 
                 networkInfoService.cacheExternalIp(info)
@@ -516,7 +491,6 @@ class HomeViewModel(
                             runtimeSnapshot.value.phase in setOf(RuntimePhase.Idle, RuntimePhase.Failed)
                     ) {
                         networkInfoService.clearExternalIp()
-                        firstQueryInSession = true
                     }
                 }
         }
@@ -530,12 +504,6 @@ class HomeViewModel(
         viewModelScope.launch {
             proxyFacade.proxySelectionEvents.collect {
                 networkInfoService.clearExternalIp()
-                // Only skip the first-query routing delay when the VPN is
-                // already running; node selections during startup are part of
-                // initialisation and the routing table isn't proven yet.
-                if (isRunning.value) {
-                    firstQueryInSession = false
-                }
             }
         }
     }
