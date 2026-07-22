@@ -294,7 +294,7 @@ class ServiceStore {
         }
 
     var showTrafficNotification by
-        store.boolean(key = "show_traffic_notification", defaultValue = true)
+        store.boolean(key = "show_traffic_notification", defaultValue = false)
 
     private companion object {
         val json = Json { ignoreUnknownKeys = true }
