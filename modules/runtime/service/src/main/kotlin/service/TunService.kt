@@ -213,7 +213,7 @@ class TunService : VpnService(), CoroutineScope {
         runCatching { unregisterReceiver(runtimeEventsReceiver) }
         reloadJob?.cancel()
         reloadJob = null
-        notificationJob?.cancel()
+        notificationManager.stopTrafficUpdate()
         notificationJob = null
 
         if (this::runtime.isInitialized) {

@@ -218,7 +218,7 @@ class ClashService : BaseService() {
         runCatching { unregisterReceiver(runtimeEventsReceiver) }
         reloadJob?.cancel()
         reloadJob = null
-        notificationJob?.cancel()
+        notificationManager.stopTrafficUpdate()
         notificationJob = null
 
         if (this::runtime.isInitialized) {

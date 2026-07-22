@@ -26,7 +26,10 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.PowerManager
 import androidx.core.app.NotificationChannelCompat
@@ -56,6 +59,29 @@ class ServiceNotificationManager(private val service: Service, private val confi
     private val notificationManager by lazy { NotificationManagerCompat.from(service) }
     private val powerManager by lazy { service.getSystemService(Service.POWER_SERVICE) as PowerManager }
 
+    // ── Update lifecycle ──────────────────────────────────────────
+
+    private var updateJob: Job? = null
+    private var hostScope: CoroutineScope? = null
+
+    /**
+     * Receives screen-on/off broadcasts so we can suspend traffic-speed
+     * polling while the screen is off and resume it when the user turns
+     * the screen back on.
+     */
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> cancelUpdateJob()
+                Intent.ACTION_SCREEN_ON -> hostScope?.let { startTrafficUpdate(it) }
+            }
+        }
+    }
+
+    @Volatile private var receiverRegistered = false
+
+    // ── Channel & initial notification ─────────────────────────────
+
     fun createChannel() {
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(
@@ -71,11 +97,31 @@ class ServiceNotificationManager(private val service: Service, private val confi
         return buildRunningNotification()
     }
 
+    // ── Traffic update ─────────────────────────────────────────────
+
+    /**
+     * Starts a screen-aware traffic-speed update loop.
+     *
+     * Updates are posted every [ACTIVE_POLL_MS] while the screen is on
+     * *and* the user has enabled the traffic-speed notification.
+     * When the screen is off, or the traffic display is disabled, the
+     * loop cancels itself — no background polling, no CPU wakeups.
+     *
+     * The loop is automatically restarted when the screen turns on
+     * (via [screenReceiver]).
+     */
     @SuppressLint("MissingPermission")
     fun startTrafficUpdate(scope: CoroutineScope): Job {
-        return scope.launch(Dispatchers.Default) {
+        hostScope = scope
+        registerScreenReceiver()
+        cancelUpdateJob()
+
+        if (!powerManager.isInteractive) return Job()  // screen off → no work
+        if (!shouldShowTrafficNotification()) return Job()  // traffic display disabled → no work
+
+        val job = scope.launch(Dispatchers.Default) {
             while (isActive) {
-                if (powerManager.isInteractive && canPostNotifications()) {
+                if (canPostNotifications()) {
                     runCatching {
                         notificationManager.notify(
                             config.notificationId,
@@ -83,20 +129,56 @@ class ServiceNotificationManager(private val service: Service, private val confi
                         )
                     }
                 }
-                delay(resolveUpdateInterval())
+                // Re-check conditions each cycle so we stop promptly when
+                // traffic display is toggled off while the screen stays on.
+                if (!shouldShowTrafficNotification()) {
+                    cancelUpdateJob()
+                    return@launch
+                }
+                delay(ACTIVE_POLL_MS)
             }
         }
+        updateJob = job
+        return job
     }
 
-    /** Returns the polling interval based on screen state and traffic display preference. */
-    private fun resolveUpdateInterval(): kotlin.time.Duration {
-        if (!shouldShowTrafficNotification()) {
-            // Static notification — no need to refresh frequently
-            return if (powerManager.isInteractive) 30_000L.milliseconds else 60_000L.milliseconds
+    /** Cancels the update loop without touching the host scope or receiver. */
+    private fun cancelUpdateJob() {
+        updateJob?.cancel()
+        updateJob = null
+    }
+
+    /**
+     * Call from the hosting service's [Service.onDestroy] to tear down
+     * the screen receiver and release the scope reference.
+     */
+    fun stopTrafficUpdate() {
+        cancelUpdateJob()
+        unregisterScreenReceiver()
+        hostScope = null
+    }
+
+    // ── Receiver registration ─────────────────────────────────────
+
+    private fun registerScreenReceiver() {
+        if (receiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
         }
-        return if (powerManager.isInteractive) 4000L.milliseconds else 8000L.milliseconds
+        service.registerReceiver(screenReceiver, filter)
+        receiverRegistered = true
     }
 
+    private fun unregisterScreenReceiver() {
+        if (!receiverRegistered) return
+        runCatching { service.unregisterReceiver(screenReceiver) }
+        receiverRegistered = false
+    }
+
+    // ── Notification building ─────────────────────────────────────
+
+    @SuppressLint("MissingPermission")
     private fun canPostNotifications(): Boolean {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
             return true
@@ -182,6 +264,9 @@ class ServiceNotificationManager(private val service: Service, private val confi
     }
 
     companion object {
+        /** Polling interval when screen is on and traffic display is enabled. */
+        private val ACTIVE_POLL_MS = 2000L.milliseconds
+
         val VPN_CONFIG =
             Config(
                 notificationId = 1001,
