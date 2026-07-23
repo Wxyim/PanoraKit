@@ -29,6 +29,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.VpnService
 import android.os.Build
+import android.os.PowerManager
 import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.controller.ControllerError
 import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
@@ -362,6 +363,9 @@ class ProxyFacade(
     val proxySelectionEvents: SharedFlow<String> = _proxySelectionEvents.asSharedFlow()
 
     private val previewCache = ProxyFacadePreviewCache()
+    private val powerManager by lazy {
+        appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+    }
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
@@ -390,7 +394,14 @@ class ProxyFacade(
         ProxyFacadeTrafficPoller(scope = scope) { tick ->
             val snapshot = runtimeSnapshot.value
             if (!snapshot.running) {
-                delay(2000L.milliseconds)
+                delay(BACKGROUND_POLL_MS.milliseconds)
+                return@ProxyFacadeTrafficPoller
+            }
+
+            // The service owns the foreground notification refresh. The client only
+            // needs high-frequency state while the app is interactive.
+            if (!powerManager.isInteractive) {
+                delay(BACKGROUND_POLL_MS.milliseconds)
                 return@ProxyFacadeTrafficPoller
             }
 
@@ -410,7 +421,7 @@ class ProxyFacade(
                 refreshAllSafely()
             }
 
-            delay(2000L.milliseconds)
+            delay(ACTIVE_POLL_MS.milliseconds)
         }
 
     init {
@@ -1474,6 +1485,8 @@ class ProxyFacade(
     }
 
     private companion object {
+        private const val ACTIVE_POLL_MS = 2_000L
+        private const val BACKGROUND_POLL_MS = 15_000L
         private const val START_WAIT_RETRY_COUNT = 80
         private const val START_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_WAIT_RETRY_COUNT = 80

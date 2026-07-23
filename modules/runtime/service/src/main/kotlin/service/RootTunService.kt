@@ -38,6 +38,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
 import com.github.nomadboxlab.monadbox.common.util.formatSpeed
+import com.github.nomadboxlab.monadbox.core.util.decodeTrafficValue
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.runtime.service.R
@@ -237,10 +238,10 @@ class RootTunService : BaseService() {
             runCatching { RootTunServiceBridge.queryTrafficTotal(appContextOrSelf) }
                 .getOrDefault(0L)
 
-        val upNow = decodeTrafficHalf(now ushr 32)
-        val downNow = decodeTrafficHalf(now and 0xFFFFFFFFL)
-        val upTotal = decodeTrafficHalf(total ushr 32)
-        val downTotal = decodeTrafficHalf(total and 0xFFFFFFFFL)
+        val upNow = decodeTrafficValue(now ushr 32)
+        val downNow = decodeTrafficValue(now and 0xFFFFFFFFL)
+        val upTotal = decodeTrafficValue(total ushr 32)
+        val downTotal = decodeTrafficValue(total and 0xFFFFFFFFL)
 
         val speedStr = "↓ ${formatSpeed(downNow)} ↑ ${formatSpeed(upNow)}"
         val totalStr =
@@ -307,18 +308,6 @@ class RootTunService : BaseService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun decodeTrafficHalf(encoded: Long): Long {
-        val type = (encoded ushr 30) and 0x3L
-        val data = encoded and 0x3FFFFFFFL
-        return when (type.toInt()) {
-            0 -> data
-            1 -> (data * 1024L) / 100L
-            2 -> (data * 1024L * 1024L) / 100L
-            3 -> (data * 1024L * 1024L * 1024L) / 100L
-            else -> 0L
-        }
     }
 
     private fun resolveNotificationDelay(): Long {
