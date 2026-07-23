@@ -24,6 +24,20 @@ import org.junit.Test
 
 class InstalledAppUidMappingsTest {
     @Test
+    fun `merge keeps entries from a partial root result`() {
+        val mappings =
+            InstalledAppUidMappings.merge(
+                listOf(10001 to "com.example.first"),
+                listOf(10001 to "com.example.first", 10002 to "com.example.second"),
+            )
+
+        assertEquals(
+            listOf(10001 to "com.example.first", 10002 to "com.example.second"),
+            mappings,
+        )
+    }
+
+    @Test
     fun `fromEntries keeps package name for single-package uid`() {
         val mappings =
             InstalledAppUidMappings.fromEntries(

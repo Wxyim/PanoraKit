@@ -86,10 +86,10 @@ class AppIdentityResolver(context: Context) {
 
         val identity = resolveIdentity(explicitPackageName, processName, uid, fallbackHost)
 
-        // Only cache when there are meaningful identifiers; avoid caching
-        // "Unknown App" for all-empty tuples, which would falsely match
-        // other connections that also have no metadata.
-        if (explicitPackageName.isNotBlank() || processName.isNotBlank() || (uid != null && uid > 0)) {
+        // Cache only a confirmed installed package. UID/process fallbacks can
+        // be produced while the VPN's first UID lookup is still warming up;
+        // caching those results would prevent a later successful resolution.
+        if (identity.appKey.startsWith("package:")) {
             packageCache[cacheKey] = identity
         }
         return identity

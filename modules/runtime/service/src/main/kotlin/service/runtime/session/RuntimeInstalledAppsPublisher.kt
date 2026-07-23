@@ -81,6 +81,14 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         // Initial sync bypasses the debounce: we want mihomo to know the current
         // list as soon as the session is up, not 300 ms later.
         publishNow()
+        // The initial publish happens before the VPN transport is handed to Go.
+        // Retry after startup so a transient PackageManager result cannot leave
+        // the native UID table empty for the rest of the session.
+        publishJob =
+            scope.launch(Dispatchers.IO) {
+                delay(INITIAL_RETRY_DELAY_MS)
+                publish()
+            }
     }
 
     fun stop() {
@@ -146,25 +154,29 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     }
 
     private fun resolveMappings(): List<Pair<Int, String>> {
-        RootPackageShell.queryPackageUidMap()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let(InstalledAppUidMappings::fromRootPackageUidMap)
-            ?.takeIf { it.isNotEmpty() }
-            ?.let {
-                Timber.d("RuntimeInstalledAppsPublisher: root shell returned %s entries", it.size)
-                return it
-            }
+        val rootMappings =
+            RootPackageShell.queryPackageUidMap()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let(InstalledAppUidMappings::fromRootPackageUidMap)
+                ?.takeIf { it.isNotEmpty() }
+                .orEmpty()
+        if (rootMappings.isNotEmpty()) {
+            Timber.d(
+                "RuntimeInstalledAppsPublisher: root shell returned %s entries",
+                rootMappings.size,
+            )
+        }
 
         val accessState = InstalledAppsAccess.resolve(appContext)
         if (!accessState.canEnumerateInstalledApps) {
             Timber.w(
-                "RuntimeInstalledAppsPublisher: cannot enumerate (mode=%s); returning empty",
+                "RuntimeInstalledAppsPublisher: cannot enumerate (mode=%s); using root mappings",
                 accessState.mode,
             )
-            return emptyList()
+            return rootMappings
         }
 
-        return runCatching {
+        val packageManagerMappings = runCatching {
                 installedPackages()
                     .mapNotNull { info ->
                         val uid = info.applicationInfo?.uid ?: return@mapNotNull null
@@ -180,6 +192,11 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
                 Timber.w(error, "Failed to enumerate installed apps for runtime attribution")
             }
             .getOrDefault(emptyList())
+
+        // A root package query can be transiently partial during the first VPN
+        // start. Merge both sources by UID so a non-empty partial root result
+        // cannot hide packages returned by PackageManager.
+        return InstalledAppUidMappings.merge(rootMappings, packageManagerMappings)
     }
 
     private fun installedPackages(): List<PackageInfo> {
@@ -191,6 +208,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     }
 
     private companion object {
+        private const val INITIAL_RETRY_DELAY_MS = 750L
         // 300 ms is short enough to be invisible to a user watching the proxy
         // state, and long enough to absorb typical broadcast bursts from
         // auto-update (Google Play typically fans out 5–30 PACKAGE_REPLACED

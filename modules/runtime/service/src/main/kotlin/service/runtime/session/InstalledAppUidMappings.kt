@@ -26,6 +26,16 @@ internal data class InstalledAppUidEntry(
 )
 
 internal object InstalledAppUidMappings {
+    fun merge(vararg mappings: List<Pair<Int, String>>): List<Pair<Int, String>> {
+        return mappings
+            .asSequence()
+            .flatten()
+            .filter { (uid, packageName) -> uid > 0 && packageName.isNotBlank() }
+            .groupBy { it.first }
+            .map { (uid, entries) -> uid to entries.first().second }
+            .sortedBy { it.first }
+    }
+
     fun fromEntries(entries: List<InstalledAppUidEntry>): List<Pair<Int, String>> {
         if (entries.isEmpty()) return emptyList()
 
