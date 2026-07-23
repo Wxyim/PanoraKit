@@ -43,9 +43,10 @@ object InstalledAppsAccess {
     const val MiuiPermission = "com.android.permission.GET_INSTALLED_APPS"
 
     /**
-     * Cached result of the runtime query-all-packages verification.
-     * Permissions do not change at runtime without a process restart,
-     * so caching for the process lifetime is safe.
+     * Cached successful result of the runtime query-all-packages verification.
+     * A failed check is intentionally not cached: on a fresh install some ROMs
+     * briefly return a filtered PackageManager result while package visibility
+     * is still settling. Caching that transient failure breaks first VPN start.
      */
     @Volatile
     private var verifiedFullAccess: Boolean? = null
@@ -128,7 +129,9 @@ object InstalledAppsAccess {
                     apps.size >= MIN_EXPECTED_APP_COUNT
                 }
                 .getOrDefault(false)
-        verifiedFullAccess = result
+        if (result) {
+            verifiedFullAccess = true
+        }
         return result
     }
 

@@ -88,6 +88,8 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
             scope.launch(Dispatchers.IO) {
                 delay(INITIAL_RETRY_DELAY_MS)
                 publish()
+                delay(SECOND_RETRY_DELAY_MS)
+                publish()
             }
     }
 
@@ -209,6 +211,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
     private companion object {
         private const val INITIAL_RETRY_DELAY_MS = 750L
+        private const val SECOND_RETRY_DELAY_MS = 2_000L
         // 300 ms is short enough to be invisible to a user watching the proxy
         // state, and long enough to absorb typical broadcast bursts from
         // auto-update (Google Play typically fans out 5–30 PACKAGE_REPLACED
