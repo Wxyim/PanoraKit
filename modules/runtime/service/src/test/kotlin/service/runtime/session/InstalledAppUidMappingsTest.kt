@@ -38,6 +38,20 @@ class InstalledAppUidMappingsTest {
     }
 
     @Test
+    fun `merge prefers fresh mapping while retaining old entries`() {
+        val mappings =
+            InstalledAppUidMappings.merge(
+                listOf(10001 to "com.example.updated"),
+                listOf(10001 to "com.example.old", 10002 to "com.example.other"),
+            )
+
+        assertEquals(
+            listOf(10001 to "com.example.updated", 10002 to "com.example.other"),
+            mappings,
+        )
+    }
+
+    @Test
     fun `fromEntries keeps package name for single-package uid`() {
         val mappings =
             InstalledAppUidMappings.fromEntries(

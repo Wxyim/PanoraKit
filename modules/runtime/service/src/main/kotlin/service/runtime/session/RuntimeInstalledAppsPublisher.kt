@@ -135,8 +135,20 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         val fresh = resolveMappings()
         val mappings =
             if (fresh.isNotEmpty()) {
-                lastKnownMappings = fresh
-                fresh
+                // PackageManager can briefly return a partial list after a
+                // fresh install or package broadcast. Keep the previous
+                // session mapping as a safety net; fresh entries win when a
+                // UID is present in both lists.
+                if (lastKnownMappings.isNotEmpty() && fresh.size < lastKnownMappings.size) {
+                    Timber.w(
+                        "RuntimeInstalledAppsPublisher received smaller mapping: fresh=%s previous=%s",
+                        fresh.size,
+                        lastKnownMappings.size,
+                    )
+                }
+                InstalledAppUidMappings.merge(fresh, lastKnownMappings).also {
+                    lastKnownMappings = it
+                }
             } else if (lastKnownMappings.isNotEmpty()) {
                 Timber.w(
                     "RuntimeInstalledAppsPublisher resolved 0 mappings; " +
