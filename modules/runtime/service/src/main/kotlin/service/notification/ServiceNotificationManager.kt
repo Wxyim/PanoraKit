@@ -247,7 +247,7 @@ class ServiceNotificationManager(private val service: Service, private val confi
     private fun shouldShowTrafficNotification(): Boolean {
         val settings = settingsStore
         if (settings.containsKey("showTrafficNotification")) {
-            return settings.decodeBool("showTrafficNotification", true)
+            return settings.decodeBool("showTrafficNotification", false)
         }
         return serviceStore.showTrafficNotification
     }

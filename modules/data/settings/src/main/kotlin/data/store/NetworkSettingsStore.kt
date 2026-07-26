@@ -39,11 +39,11 @@ class NetworkSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv =
 
     val proxyMode by enumFlow(ProxyMode.Tun)
 
-    val bypassPrivateNetwork by boolFlow(true)
+    val bypassPrivateNetwork by boolFlow(false)
     val dnsHijack by boolFlow(true)
-    val allowBypass by boolFlow(true)
-    val enableIPv6 by boolFlow(false)
-    val systemProxy by boolFlow(true)
+    val allowBypass by boolFlow(false)
+    val enableIPv6 by boolFlow(true)
+    val systemProxy by boolFlow(false)
 
     val tunStack by enumFlow(TunStack.System)
     val rootTunIfName by strFlow("monad")

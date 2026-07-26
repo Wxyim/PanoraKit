@@ -112,7 +112,7 @@ class ServiceStore {
             readBoolean(
                 newKey = "bypassPrivateNetwork",
                 legacyKey = "bypass_private_network",
-                defaultValue = true,
+                defaultValue = false,
             )
         set(value) {
             networkSettings.encode("bypassPrivateNetwork", value)
@@ -172,14 +172,14 @@ class ServiceStore {
         }
 
     var systemProxy: Boolean
-        get() = readBoolean(newKey = "systemProxy", legacyKey = "system_proxy", defaultValue = true)
+        get() = readBoolean(newKey = "systemProxy", legacyKey = "system_proxy", defaultValue = false)
         set(value) {
             networkSettings.encode("systemProxy", value)
             store.provider.setBoolean("system_proxy", value)
         }
 
     var allowBypass: Boolean
-        get() = readBoolean(newKey = "allowBypass", legacyKey = "allow_bypass", defaultValue = true)
+        get() = readBoolean(newKey = "allowBypass", legacyKey = "allow_bypass", defaultValue = false)
         set(value) {
             networkSettings.encode("allowBypass", value)
             store.provider.setBoolean("allow_bypass", value)
@@ -189,8 +189,8 @@ class ServiceStore {
         get() =
             when {
                 networkSettings.containsKey("enableIPv6") ->
-                    networkSettings.decodeBool("enableIPv6", false)
-                else -> store.provider.getBoolean("allow_ipv6", false)
+                    networkSettings.decodeBool("enableIPv6", true)
+                else -> store.provider.getBoolean("allow_ipv6", true)
             }
         set(value) {
             networkSettings.encode("enableIPv6", value)
