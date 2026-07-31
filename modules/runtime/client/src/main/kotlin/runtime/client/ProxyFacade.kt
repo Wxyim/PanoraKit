@@ -37,6 +37,7 @@ import com.github.nomadboxlab.monadbox.core.model.Proxy
 import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
 import com.github.nomadboxlab.monadbox.core.model.ProxySort
 import com.github.nomadboxlab.monadbox.core.model.Traffic
+import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.core.model.UiConfiguration
 import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
