@@ -48,6 +48,8 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     // empty map — that blinds UID resolution for every connection.
     @Volatile
     private var lastKnownMappings: List<Pair<Int, String>> = emptyList()
+    @Volatile
+    private var lastPublishedMappings: List<Pair<Int, String>> = emptyList()
 
     fun start() {
         if (receiver != null) {
@@ -102,6 +104,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         }
         RootPackageShell.invalidateCaches()
         lastKnownMappings = emptyList()
+        lastPublishedMappings = emptyList()
     }
 
     /**
@@ -160,6 +163,14 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
                 Timber.w("RuntimeInstalledAppsPublisher resolved 0 mappings; no fallback — skipping")
                 return
             }
+        if (mappings == lastPublishedMappings) {
+            Timber.d(
+                "RuntimeInstalledAppsPublisher skipped unchanged mapping (%s entries)",
+                mappings.size,
+            )
+            return
+        }
+        lastPublishedMappings = mappings
         Clash.notifyInstalledAppsChanged(mappings)
         Timber.d(
             "RuntimeInstalledAppsPublisher published %s app uid mappings",

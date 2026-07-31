@@ -53,7 +53,16 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     private companion object {
         const val EXTERNAL_SELECTION_CONFIRM_MS = 1200L
+        const val PROXY_GROUP_CACHE_TTL_MS = 500L
+        const val CONNECTION_CACHE_TTL_MS = 100L
     }
+
+    private data class ProxyGroupCache(
+        val profile: String?,
+        val excludeNotSelectable: Boolean,
+        val createdAt: Long,
+        val groups: List<ProxyGroup>,
+    )
 
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val store = ServiceStore()
@@ -64,6 +73,11 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     private var logReceiver: ReceiveChannel<LogMessage>? = null
     private var logObserverJob: Job? = null
     private val externalCandidates = ConcurrentHashMap<String, ExternalSelectionCandidate>()
+    private val proxyGroupCacheLock = Any()
+    @Volatile private var proxyGroupCache: ProxyGroupCache? = null
+    private val connectionCacheLock = Any()
+    private var connectionCacheAt = 0L
+    private var connectionCache: ConnectionSnapshot? = null
 
     override fun queryTunnelState(): TunnelState {
         return Clash.queryTunnelState()
@@ -79,8 +93,24 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         return Clash.queryTrafficTotal()
     }
 
+    override fun queryTrafficSnapshot(): TrafficSnapshot {
+        if (!StatusProvider.serviceRunning) return TrafficSnapshot(0L, 0L)
+        return Clash.queryTrafficSnapshot()
+    }
+
     override fun queryConnections(): ConnectionSnapshot {
-        return Clash.queryConnections()
+        val now = android.os.SystemClock.elapsedRealtime()
+        synchronized(connectionCacheLock) {
+            connectionCache?.takeIf { now - connectionCacheAt < CONNECTION_CACHE_TTL_MS }?.let {
+                return it
+            }
+        }
+        val snapshot = Clash.queryConnections()
+        synchronized(connectionCacheLock) {
+            connectionCacheAt = android.os.SystemClock.elapsedRealtime()
+            connectionCache = snapshot
+        }
+        return snapshot
     }
 
     override fun queryProfileProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
@@ -114,11 +144,27 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         val current = store.activeProfile
-        val groupNames = Clash.queryGroupNames(excludeNotSelectable)
-        val selections = if (current != null) SelectionDao.querySelections(current) else emptyList()
-        return groupNames.map { groupName ->
-            Clash.queryGroup(groupName, ProxySort.Default).also { group ->
-                syncSelectionSnapshotSafely(groupName, group)
+        val now = android.os.SystemClock.elapsedRealtime()
+        synchronized(proxyGroupCacheLock) {
+            proxyGroupCache?.let { cached ->
+                if (
+                    cached.profile == current?.toString() &&
+                        cached.excludeNotSelectable == excludeNotSelectable &&
+                        now - cached.createdAt < PROXY_GROUP_CACHE_TTL_MS
+                ) {
+                    return cached.groups
+                }
+            }
+        }
+        val selections =
+            if (current != null) {
+                SelectionDao.querySelections(current).associateBy { it.proxy }
+            } else {
+                emptyMap()
+            }
+        val groups = Clash.queryGroups(excludeNotSelectable, ProxySort.Default).map { group ->
+            group.also {
+                syncSelectionSnapshotSafely(group.name, it)
             }.let { group ->
                 // Overlay persisted selections so the UI shows the correct node
                 // immediately, even before the async patch from syncSelectionSnapshotSafely
@@ -128,7 +174,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 // trust the persisted selection anyway to avoid a flash from empty
                 // to the eventual node. Once the provider resolves, the regular
                 // validity check kicks in.
-                val persisted = selections.find { it.proxy == group.name }
+                val persisted = selections[group.name]
                 if (persisted != null) {
                     val nodeName = persisted.selected.trim()
                     if (nodeName.isEmpty()) return@let group
@@ -145,6 +191,16 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 }
             }
         }
+        synchronized(proxyGroupCacheLock) {
+            proxyGroupCache =
+                ProxyGroupCache(
+                    profile = current?.toString(),
+                    excludeNotSelectable = excludeNotSelectable,
+                    createdAt = android.os.SystemClock.elapsedRealtime(),
+                    groups = groups,
+                )
+        }
+        return groups
     }
 
     override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
@@ -167,6 +223,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override fun patchSelector(group: String, name: String): Boolean {
         val ok = Clash.patchSelector(group, name)
+        invalidateProxyGroupCache()
         val current = store.activeProfile
         if (current == null) return ok
 
@@ -185,15 +242,29 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         return ok
     }
 
+    private fun invalidateProxyGroupCache() {
+        synchronized(proxyGroupCacheLock) { proxyGroupCache = null }
+    }
+
+    private fun invalidateConnectionCache() {
+        synchronized(connectionCacheLock) {
+            connectionCache = null
+            connectionCacheAt = 0L
+        }
+    }
+
     override fun closeConnection(id: String): Boolean {
-        return Clash.closeConnection(id)
+        return Clash.closeConnection(id).also { invalidateConnectionCache() }
     }
 
     override fun closeAllConnections() {
         Clash.closeAllConnections()
+        invalidateConnectionCache()
     }
 
     override fun requestStop() {
+        invalidateProxyGroupCache()
+        invalidateConnectionCache()
         runCatching { context.sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
     }
 
@@ -319,6 +390,8 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun close() {
+        invalidateProxyGroupCache()
+        invalidateConnectionCache()
         synchronized(this) { clearLogObserverLocked() }
         managerScope.cancel()
     }

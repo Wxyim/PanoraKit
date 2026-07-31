@@ -57,6 +57,17 @@ func queryTotal(upload, download *C.uint64_t) {
 	*download = C.uint64_t(down)
 }
 
+//export queryTrafficSnapshot
+func queryTrafficSnapshot(nowUpload, nowDownload, totalUpload, totalDownload *C.uint64_t) {
+	nowUp, nowDown := tunnel.Now()
+	totalUp, totalDown := tunnel.Total()
+
+	*nowUpload = C.uint64_t(nowUp)
+	*nowDownload = C.uint64_t(nowDown)
+	*totalUpload = C.uint64_t(totalUp)
+	*totalDownload = C.uint64_t(totalDown)
+}
+
 //export queryConnections
 func queryConnections() *C.char {
 	return marshalJson(tunnel.QueryConnections())
@@ -102,6 +113,28 @@ func queryGroup(name C.c_string, sortMode C.c_string) *C.char {
 	}
 
 	return marshalJson(response)
+}
+
+//export queryGroups
+func queryGroups(excludeNotSelectable C.int, sortMode C.c_string) *C.char {
+	names := tunnel.QueryProxyGroupNames(excludeNotSelectable != 0)
+	mode := tunnel.Default
+	switch C.GoString(sortMode) {
+	case "Title":
+		mode = tunnel.Title
+	case "Delay":
+		mode = tunnel.Delay
+	}
+
+	groups := make([]*tunnel.ProxyGroup, 0, len(names))
+	pattern := app.SubtitlePattern()
+	for _, name := range names {
+		if group := tunnel.QueryProxyGroup(name, mode, pattern); group != nil {
+			groups = append(groups, group)
+		}
+	}
+
+	return marshalJson(groups)
 }
 
 //export healthCheck

@@ -119,6 +119,14 @@ object RootTunController {
         return RootTunRemoteClient.remoteCall(context) { service -> service.queryTrafficTotal() }
     }
 
+    suspend fun queryTrafficSnapshot(context: Context): TrafficSnapshot {
+        return RootTunRemoteClient.remoteCall(context) { service ->
+            val values = service.queryTrafficSnapshot()
+            check(values.size >= 2) { "Invalid root traffic snapshot" }
+            TrafficSnapshot(now = values[0], total = values[1])
+        }
+    }
+
     suspend fun queryConnections(context: Context): ConnectionSnapshot {
         return RootTunRemoteClient.remoteCall(context) { service ->
             RootTunJson.decode<ConnectionSnapshot>(service.queryConnectionsJson())

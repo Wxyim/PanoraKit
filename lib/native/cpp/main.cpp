@@ -112,6 +112,25 @@ JNIEXPORT jlong JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_
   return (jlong)(down_scale_traffic(upload) << 32u | down_scale_traffic(download));
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryTrafficSnapshot(
+    JNIEnv* env, jobject thiz) {
+  TRACE_METHOD();
+
+  uint64_t now_upload = 0l, now_download = 0l;
+  uint64_t total_upload = 0l, total_download = 0l;
+  queryTrafficSnapshot(&now_upload, &now_download, &total_upload, &total_download);
+
+  jlong values[2] = {
+      (jlong)(down_scale_traffic(now_upload) << 32u | down_scale_traffic(now_download)),
+      (jlong)(down_scale_traffic(total_upload) << 32u | down_scale_traffic(total_download)),
+  };
+  jlongArray result = env->NewLongArray(2);
+  if (result == NULL) return NULL;
+  env->SetLongArrayRegion(result, 0, 2, values);
+  return result;
+}
+
 JNIEXPORT jstring JNICALL
 Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryConnections(JNIEnv* env,
                                                                            jobject thiz) {
@@ -246,6 +265,17 @@ JNIEXPORT jstring JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridg
   scoped_string response = queryGroup(_name, _mode);
 
   return new_nullable_string(env, response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryGroups(
+    JNIEnv* env, jobject thiz, jboolean exclude_not_selectable, jstring mode) {
+  TRACE_METHOD();
+
+  scoped_string _mode = get_string(mode);
+  scoped_string response = queryGroups((int)exclude_not_selectable, _mode);
+
+  return new_string(response);
 }
 
 JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeHealthCheck(

@@ -39,6 +39,9 @@ val appAbiList =
         .map { it.trim() }
         .filter { it.isNotEmpty() }
 
+val universalApkEnabled =
+    providers.gradleProperty("abi.universal.enabled").orNull?.toBooleanStrictOrNull() ?: false
+
 val kernelProperties =
     Properties().apply {
         val kernelPropertiesFile = rootProject.file("config/kernel.properties")
@@ -142,7 +145,7 @@ android {
                 gradle.startParameter.taskNames.none { it.contains("bundle", ignoreCase = true) }
             reset()
             include(*appAbiList.toTypedArray())
-            isUniversalApk = appAbiList.size > 1
+            isUniversalApk = universalApkEnabled
         }
     }
 

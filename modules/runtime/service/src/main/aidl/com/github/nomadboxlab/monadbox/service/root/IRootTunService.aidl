@@ -9,6 +9,7 @@ interface IRootTunService {
     String queryTunnelStateJson();
     long queryTrafficNow();
     long queryTrafficTotal();
+    long[] queryTrafficSnapshot();
     String queryConnectionsJson();
     String queryAllProxyGroupsJson(boolean excludeNotSelectable);
     String queryProxyGroupNamesJson(boolean excludeNotSelectable);

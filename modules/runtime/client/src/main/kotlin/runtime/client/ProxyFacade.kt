@@ -65,7 +65,6 @@ import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import com.tencent.mmkv.MMKV
 import java.io.Closeable
-import java.net.HttpURLConnection
 import java.net.URL
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -78,6 +77,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -227,6 +229,13 @@ internal fun isLoopbackControllerHost(host: String): Boolean {
 }
 
 internal class MihomoControllerClient(private val json: Json) {
+    private val httpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .callTimeout(6, TimeUnit.SECONDS)
+            .build()
+
     fun fetchProxyGroupMetadata(configuration: UiConfiguration): Map<String, ProxyGroupMetadata> {
         return parseProxyGroupMetadata(requestJson(configuration, "/proxies"))
     }
@@ -236,51 +245,38 @@ internal class MihomoControllerClient(private val json: Json) {
             resolveControllerUrl(configuration) ?: error("Controller API unavailable")
         requireLoopbackController(controllerUrl)
         val normalizedPath = if (path.startsWith('/')) path else "/$path"
-        val connection =
-            (URL("$controllerUrl$normalizedPath").openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 5000
-                readTimeout = 5000
-                setRequestProperty("Accept", "application/json")
-                configuration.secret
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let {
-                        setRequestProperty(
-                            "Authorization",
-                            MihomoControllerEndpoint.bearerAuthorization(it),
-                        )
-                    }
+        val requestBuilder =
+            Request.Builder()
+                .url(URL("$controllerUrl$normalizedPath"))
+                .header("Accept", "application/json")
+        configuration.secret
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let {
+                requestBuilder.header(
+                    "Authorization",
+                    MihomoControllerEndpoint.bearerAuthorization(it),
+                )
             }
 
         return try {
-            val body =
-                (if (connection.responseCode in 200..299) {
-                        connection.inputStream
-                    } else {
-                        connection.errorStream
-                    })
-                    ?.bufferedReader()
-                    ?.use { it.readText() }
-                    .orEmpty()
-
-            if (connection.responseCode !in 200..299) {
-                when (connection.responseCode) {
-                    401 -> throw ControllerError.Unauthorized()
-                    else ->
-                        throw ControllerError.Unknown(
-                            "Controller API ${connection.responseCode}: $body"
-                        )
+            httpClient.newCall(requestBuilder.build()).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    when (response.code) {
+                        401 -> throw ControllerError.Unauthorized()
+                        else ->
+                            throw ControllerError.Unknown(
+                                "Controller API ${response.code}: $body"
+                            )
+                    }
                 }
+                body
             }
-
-            body
         } catch (e: ControllerError) {
             throw e
         } catch (e: java.net.ConnectException) {
             throw ControllerError.Unavailable(e)
-        } finally {
-            connection.disconnect()
         }
     }
 
@@ -407,10 +403,7 @@ class ProxyFacade(
 
             try {
                 connectCurrentBackend()
-                queryTrafficNow()
-                if (tick % 3 == 0) {
-                    queryTrafficTotal()
-                }
+                queryTrafficSnapshot()
             } catch (e: ControllerError) {
                 Timber.d(e, "Traffic polling skipped: ${e.message}")
             } catch (e: Exception) {
@@ -418,7 +411,9 @@ class ProxyFacade(
             }
 
             if (tick % 2 == 0 && shouldRefreshRuntimePayload()) {
-                refreshAllSafely()
+                // Traffic was already queried above in this tick. Keep the
+                // metadata refresh from issuing the same JNI/Binder calls again.
+                refreshAllSafely(includeTraffic = false)
             }
 
             delay(ACTIVE_POLL_MS.milliseconds)
@@ -637,6 +632,20 @@ class ProxyFacade(
         return traffic
     }
 
+    suspend fun queryTrafficSnapshot(): TrafficSnapshot {
+        if (!runtimeSnapshot.value.running) {
+            runtimeState.setTrafficNow(0L)
+            runtimeState.setTrafficTotal(0L)
+            return TrafficSnapshot(0L, 0L)
+        }
+        connectCurrentBackend()
+        val traffic = ServiceClient.clash().queryTrafficSnapshot()
+        runtimeState.setTrafficNow(traffic.now)
+        runtimeState.setTrafficTotal(traffic.total)
+        runtimeState.updateTrafficReady()
+        return traffic
+    }
+
     suspend fun reloadCurrentProfile(): Result<Unit> {
         return try {
             val profileManager = ServiceClient.profile()
@@ -780,13 +789,12 @@ class ProxyFacade(
         }
     }
 
-    suspend fun refreshAll() {
+    suspend fun refreshAll(includeTraffic: Boolean = true) {
         refreshCurrentProfile()
         refreshProxyGroups()
-        if (runtimeSnapshot.value.phase == RuntimePhase.Running) {
-            queryTrafficNow()
-            queryTrafficTotal()
-        } else {
+        if (includeTraffic && runtimeSnapshot.value.phase == RuntimePhase.Running) {
+            queryTrafficSnapshot()
+        } else if (includeTraffic) {
             runtimeState.setTrafficNow(0L)
             runtimeState.setTrafficTotal(0L)
         }
@@ -1019,7 +1027,9 @@ class ProxyFacade(
             )
         )
         startTrafficPolling()
-        refreshAllSafely()
+        // The service emits profileLoaded after selection restoration and its
+        // runtime snapshot refresh. Waiting for that event avoids a duplicate
+        // startup-wide refresh immediately after clashStarted.
     }
 
     private suspend fun handleRuntimeStopped(reason: String?) {
@@ -1104,11 +1114,11 @@ class ProxyFacade(
         scope.launch { refreshPreviewStateSafely() }
     }
 
-    private suspend fun refreshAllSafely() {
+    private suspend fun refreshAllSafely(includeTraffic: Boolean = true) {
         if (runtimeSnapshot.value.phase != RuntimePhase.Running) {
             return
         }
-        runCatching { refreshAll() }
+        runCatching { refreshAll(includeTraffic = includeTraffic) }
             .onFailure { error -> Timber.d(error, "Refresh runtime data skipped") }
     }
 

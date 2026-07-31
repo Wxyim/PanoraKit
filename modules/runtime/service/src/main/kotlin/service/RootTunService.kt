@@ -39,6 +39,7 @@ import androidx.core.content.ContextCompat
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
 import com.github.nomadboxlab.monadbox.common.util.formatSpeed
 import com.github.nomadboxlab.monadbox.core.util.decodeTrafficValue
+import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.runtime.service.R
@@ -232,11 +233,11 @@ class RootTunService : BaseService() {
     }
 
     private suspend fun buildTrafficContent(): String {
-        val now =
-            runCatching { RootTunServiceBridge.queryTrafficNow(appContextOrSelf) }.getOrDefault(0L)
-        val total =
-            runCatching { RootTunServiceBridge.queryTrafficTotal(appContextOrSelf) }
-                .getOrDefault(0L)
+        val traffic =
+            runCatching { RootTunServiceBridge.queryTrafficSnapshot(appContextOrSelf) }
+                .getOrDefault(TrafficSnapshot(0L, 0L))
+        val now = traffic.now
+        val total = traffic.total
 
         val upNow = decodeTrafficValue(now ushr 32)
         val downNow = decodeTrafficValue(now and 0xFFFFFFFFL)

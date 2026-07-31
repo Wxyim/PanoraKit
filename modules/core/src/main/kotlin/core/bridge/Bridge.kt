@@ -79,6 +79,8 @@ object Bridge {
 
     external fun nativeQueryTrafficTotal(): Long
 
+    external fun nativeQueryTrafficSnapshot(): LongArray
+
     external fun nativeQueryConnections(): String
 
     external fun nativeNotifyDnsChanged(dnsList: String)
@@ -130,6 +132,8 @@ object Bridge {
     external fun nativeQueryGroupNames(excludeNotSelectable: Boolean): String
 
     external fun nativeQueryGroup(name: String, sort: String): String?
+
+    external fun nativeQueryGroups(excludeNotSelectable: Boolean, sort: String): String
 
     external fun nativeHealthCheck(
         completable: kotlinx.coroutines.CompletableDeferred<Unit>,

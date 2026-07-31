@@ -85,6 +85,12 @@ object Clash {
         return Bridge.nativeQueryTrafficTotal()
     }
 
+    fun queryTrafficSnapshot(): TrafficSnapshot {
+        val values = Bridge.nativeQueryTrafficSnapshot()
+        check(values.size >= 2) { "Invalid traffic snapshot returned by native bridge" }
+        return TrafficSnapshot(now = values[0], total = values[1])
+    }
+
     fun queryConnections(): ConnectionSnapshot {
         return ConnectionJson.decodeFromString(
             ConnectionSnapshot.serializer(),
@@ -224,6 +230,14 @@ object Clash {
         return Bridge.nativeQueryGroup(name, sort.name)?.let {
             Json.decodeFromString(ProxyGroup.serializer(), it)
         } ?: ProxyGroup(name = name, type = Proxy.Type.Unknown, proxies = emptyList(), now = "")
+    }
+
+    fun queryGroups(excludeNotSelectable: Boolean, sort: ProxySort): List<ProxyGroup> {
+        val payload = Bridge.nativeQueryGroups(excludeNotSelectable, sort.name)
+        return Json.decodeFromString(
+            kotlinx.serialization.builtins.ListSerializer(ProxyGroup.serializer()),
+            payload,
+        )
     }
 
     fun healthCheck(name: String): CompletableDeferred<Unit> {

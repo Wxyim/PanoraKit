@@ -65,6 +65,10 @@ class SessionRuntime(
     private var logJob: Job? = null
 
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
+    private var proxyGroupsCachedAt = 0L
+    private val connectionCacheLock = Any()
+    private var cachedConnectionsAt = 0L
+    private var cachedConnections: ConnectionSnapshot? = null
     private val logSeq = AtomicLong(0L)
     private val recentLogs = ArrayDeque<Pair<Long, String>>()
     private val recentLogsLock = Any()
@@ -214,19 +218,42 @@ class SessionRuntime(
         }
     }
 
+    fun queryTrafficSnapshot(): TrafficSnapshot {
+        if (currentSnapshot.phase != RuntimePhase.Running) return TrafficSnapshot(0L, 0L)
+        return Clash.queryTrafficSnapshot().also { traffic ->
+            runtimeSnapshot =
+                runtimeSnapshot.copy(trafficNow = traffic.now, trafficTotal = traffic.total)
+            publishSnapshot(currentSnapshot.copy(trafficReady = true))
+        }
+    }
+
     fun queryConnections(): ConnectionSnapshot {
         if (currentSnapshot.phase != RuntimePhase.Running) return ConnectionSnapshot()
-        return Clash.queryConnections()
+        val now = SystemClock.elapsedRealtime()
+        synchronized(connectionCacheLock) {
+            cachedConnections?.takeIf { now - cachedConnectionsAt < CONNECTION_CACHE_TTL_MS }?.let {
+                return it
+            }
+        }
+        val snapshot = Clash.queryConnections()
+        synchronized(connectionCacheLock) {
+            cachedConnectionsAt = SystemClock.elapsedRealtime()
+            cachedConnections = snapshot
+        }
+        return snapshot
     }
 
     fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         if (currentSnapshot.phase != RuntimePhase.Running) return emptyList()
+        if (!excludeNotSelectable) {
+            val now = SystemClock.elapsedRealtime()
+            val cached = runtimeSnapshot.proxyGroups
+            if (cached.isNotEmpty() && now - proxyGroupsCachedAt < PROXY_GROUP_CACHE_TTL_MS) {
+                return cached
+            }
+        }
         val groups =
-            runCatching {
-                    Clash.queryGroupNames(excludeNotSelectable).map {
-                        Clash.queryGroup(it, ProxySort.Default)
-                    }
-                }
+            runCatching { Clash.queryGroups(excludeNotSelectable, ProxySort.Default) }
                 .getOrElse {
                     if (excludeNotSelectable) {
                         val selectable = Clash.queryGroupNames(true).toSet()
@@ -236,6 +263,7 @@ class SessionRuntime(
                     }
                 }
         runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = groups)
+        proxyGroupsCachedAt = SystemClock.elapsedRealtime()
         publishSnapshot(currentSnapshot.copy(groupsReady = groups.isNotEmpty()))
         return groups
     }
@@ -262,6 +290,7 @@ class SessionRuntime(
                             groups + group
                         }
                 )
+            proxyGroupsCachedAt = SystemClock.elapsedRealtime()
         }
         return group
     }
@@ -286,12 +315,20 @@ class SessionRuntime(
 
     fun closeConnection(id: String): Boolean {
         if (currentSnapshot.phase != RuntimePhase.Running) return false
-        return Clash.closeConnection(id)
+        return Clash.closeConnection(id).also { invalidateConnectionCache() }
     }
 
     fun closeAllConnections() {
         if (currentSnapshot.phase != RuntimePhase.Running) return
         Clash.closeAllConnections()
+        invalidateConnectionCache()
+    }
+
+    private fun invalidateConnectionCache() {
+        synchronized(connectionCacheLock) {
+            cachedConnections = null
+            cachedConnectionsAt = 0L
+        }
     }
 
     suspend fun healthCheck(group: String): String? {
@@ -443,6 +480,8 @@ class SessionRuntime(
             }
         }
 
+        startupLog(spec, "runtime startup: deferred checks complete")
+
         startObservers()
         notifyRuntimeSideEffects()
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
@@ -462,7 +501,10 @@ class SessionRuntime(
             )
         )
         host.onProfileLoaded(spec.profileUuid)
-        startupLog(spec, "payload ready")
+        startupLog(
+            spec,
+            "payload ready totalCost=${SystemClock.elapsedRealtime() - startedAt}ms",
+        )
     }
 
     private suspend fun reloadInternal(spec: RuntimeSpec) {
@@ -834,20 +876,18 @@ class SessionRuntime(
             runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
         val providers = runCatching { Clash.queryProviders() }.getOrDefault(emptyList())
         val proxyGroups =
-            runCatching {
-                    Clash.queryGroupNames(false).map { Clash.queryGroup(it, ProxySort.Default) }
-                }
+            runCatching { Clash.queryGroups(false, ProxySort.Default) }
                 .getOrDefault(emptyList())
-        val trafficNow = runCatching { Clash.queryTrafficNow() }.getOrDefault(0L)
-        val trafficTotal = runCatching { Clash.queryTrafficTotal() }.getOrDefault(0L)
+        val traffic = runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
         runtimeSnapshot =
             RuntimeQuerySnapshot(
                 configuration = configuration,
                 providers = providers,
                 proxyGroups = proxyGroups,
-                trafficNow = trafficNow,
-                trafficTotal = trafficTotal,
+                trafficNow = traffic.now,
+                trafficTotal = traffic.total,
             )
+        proxyGroupsCachedAt = SystemClock.elapsedRealtime()
     }
 
     private fun ensureRuntimeSnapshot(): RuntimeQuerySnapshot {
@@ -971,5 +1011,7 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
+        private const val CONNECTION_CACHE_TTL_MS = 100L
+        private const val PROXY_GROUP_CACHE_TTL_MS = 500L
     }
 }

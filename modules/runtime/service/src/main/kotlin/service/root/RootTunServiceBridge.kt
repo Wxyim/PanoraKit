@@ -22,6 +22,7 @@ package com.github.nomadboxlab.monadbox.service.root
 
 import android.content.Context
 import com.github.nomadboxlab.monadbox.core.model.ConnectionSnapshot
+import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 
@@ -61,6 +62,14 @@ internal object RootTunServiceBridge {
 
     suspend fun queryTrafficTotal(context: Context): Long {
         return RootTunRemoteClient.remoteCall(context) { service -> service.queryTrafficTotal() }
+    }
+
+    suspend fun queryTrafficSnapshot(context: Context): TrafficSnapshot {
+        return RootTunRemoteClient.remoteCall(context) { service ->
+            val values = service.queryTrafficSnapshot()
+            check(values.size >= 2) { "Invalid root traffic snapshot" }
+            TrafficSnapshot(now = values[0], total = values[1])
+        }
     }
 
     suspend fun queryConnections(context: Context): ConnectionSnapshot {

@@ -206,6 +206,11 @@ class RootTunRootService : RootService() {
 
             override fun queryTrafficTotal(): Long = runtime.queryTrafficTotal()
 
+            override fun queryTrafficSnapshot(): LongArray {
+                val traffic = runtime.queryTrafficSnapshot()
+                return longArrayOf(traffic.now, traffic.total)
+            }
+
             override fun queryConnectionsJson(): String {
                 return RootTunJson.encode(runtime.queryConnections())
             }

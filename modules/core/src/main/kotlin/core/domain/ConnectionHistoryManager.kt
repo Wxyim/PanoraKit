@@ -104,10 +104,9 @@ object ConnectionHistoryManager {
      */
     fun getClosedConnections(): List<ConnectionInfo> {
         synchronized(lock) {
-            return _closedConnections
-                .sortedByDescending { (timestamp, _) -> timestamp }
-                .map { (_, conn) -> conn }
-                .toList()
+            // Entries are inserted newest-first, so avoid sorting the full
+            // history on every one-second connection poll.
+            return _closedConnections.map { (_, conn) -> conn }.toList()
         }
     }
 

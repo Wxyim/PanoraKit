@@ -72,6 +72,14 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) :
         )
     }
 
+    override fun queryTrafficSnapshot(): TrafficSnapshot {
+        return queryWithRuntime(
+            rootCall = { rootCallBlocking { RootTunController.queryTrafficSnapshot(appContext) } },
+            localCall = { local.queryTrafficSnapshot() },
+            fallbackOnRootFailure = false,
+        )
+    }
+
     override fun queryConnections(): ConnectionSnapshot {
         return queryWithRuntime(
             rootCall = { rootCallBlocking { RootTunController.queryConnections(appContext) } },

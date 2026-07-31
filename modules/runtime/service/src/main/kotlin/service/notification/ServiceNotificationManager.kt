@@ -40,6 +40,7 @@ import com.github.nomadboxlab.monadbox.common.util.formatBytes
 import com.github.nomadboxlab.monadbox.common.util.formatSpeed
 import com.github.nomadboxlab.monadbox.core.Clash
 import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
 import com.github.nomadboxlab.monadbox.core.util.decodeTrafficValue
 import com.github.nomadboxlab.monadbox.runtime.service.R
 import com.github.nomadboxlab.monadbox.service.common.constants.Components
@@ -194,8 +195,9 @@ class ServiceNotificationManager(private val service: Service, private val confi
             return buildNotification(profileName, MLang.Service.Notification.Running)
         }
 
-        val now = runCatching { Clash.queryTrafficNow() }.getOrDefault(0L)
-        val total = runCatching { Clash.queryTrafficTotal() }.getOrDefault(0L)
+        val traffic = runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
+        val now = traffic.now
+        val total = traffic.total
 
         val upNow = decodeTrafficValue(now ushr 32)
         val downNow = decodeTrafficValue(now and 0xFFFFFFFFL)
