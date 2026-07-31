@@ -24,11 +24,32 @@ package main
 import "C"
 
 import (
+	"sync"
+	"time"
 	"unsafe"
 
 	"cfa/native/app"
+	"cfa/native/config"
 	"cfa/native/tunnel"
 )
+
+const proxyGroupCacheTTL = 250 * time.Millisecond
+
+var proxyGroupCache struct {
+	sync.Mutex
+	createdAt            time.Time
+	excludeNotSelectable bool
+	sortMode             tunnel.SortMode
+	subtitlePattern      string
+	groups               []*tunnel.ProxyGroup
+}
+
+func invalidateProxyGroupCache() {
+	proxyGroupCache.Lock()
+	proxyGroupCache.groups = nil
+	proxyGroupCache.createdAt = time.Time{}
+	proxyGroupCache.Unlock()
+}
 
 //export queryTunnelState
 func queryTunnelState() *C.char {
@@ -66,6 +87,51 @@ func queryTrafficSnapshot(nowUpload, nowDownload, totalUpload, totalDownload *C.
 	*nowDownload = C.uint64_t(nowDown)
 	*totalUpload = C.uint64_t(totalUp)
 	*totalDownload = C.uint64_t(totalDown)
+}
+
+//export queryRuntimeSnapshot
+func queryRuntimeSnapshot() *C.char {
+	nowUpload, nowDownload := tunnel.Now()
+	totalUpload, totalDownload := tunnel.Total()
+
+	return marshalJson(&struct {
+		Configuration config.RuntimeUiConfiguration `json:"configuration"`
+		Providers     []*tunnel.Provider             `json:"providers"`
+		ProxyGroups   []*tunnel.ProxyGroup           `json:"proxyGroups"`
+		TrafficNow    int64                          `json:"trafficNow"`
+		TrafficTotal  int64                          `json:"trafficTotal"`
+	}{
+		Configuration: config.QueryUiConfiguration(),
+		Providers:     tunnel.QueryProviders(),
+		ProxyGroups:   queryProxyGroups(false, tunnel.Default),
+		TrafficNow:    packTraffic(nowUpload, nowDownload),
+		TrafficTotal:  packTraffic(totalUpload, totalDownload),
+	})
+}
+
+func packTraffic(upload, download uint64) int64 {
+	return int64(downScaleTraffic(upload)<<32 | downScaleTraffic(download))
+}
+
+func downScaleTraffic(value uint64) uint64 {
+	const (
+		gbThresh  = 1024 * 1024 * 1024
+		mbThresh  = 1024 * 1024
+		kbThresh  = 1024
+		scale     = 100
+		valueMask = 0x3FFFFFFF
+	)
+
+	switch {
+	case value > gbThresh:
+		return ((value * scale / 1024 / 1024 / 1024) & valueMask) | (3 << 30)
+	case value > mbThresh:
+		return ((value * scale / 1024 / 1024) & valueMask) | (2 << 30)
+	case value > kbThresh:
+		return ((value * scale / 1024) & valueMask) | (1 << 30)
+	default:
+		return value & valueMask
+	}
 }
 
 //export queryConnections
@@ -117,7 +183,6 @@ func queryGroup(name C.c_string, sortMode C.c_string) *C.char {
 
 //export queryGroups
 func queryGroups(excludeNotSelectable C.int, sortMode C.c_string) *C.char {
-	names := tunnel.QueryProxyGroupNames(excludeNotSelectable != 0)
 	mode := tunnel.Default
 	switch C.GoString(sortMode) {
 	case "Title":
@@ -126,15 +191,44 @@ func queryGroups(excludeNotSelectable C.int, sortMode C.c_string) *C.char {
 		mode = tunnel.Delay
 	}
 
-	groups := make([]*tunnel.ProxyGroup, 0, len(names))
+	return marshalJson(queryProxyGroups(excludeNotSelectable != 0, mode))
+}
+
+func queryProxyGroups(excludeNotSelectable bool, mode tunnel.SortMode) []*tunnel.ProxyGroup {
 	pattern := app.SubtitlePattern()
+	patternText := ""
+	if pattern != nil {
+		patternText = pattern.String()
+	}
+	now := time.Now()
+	proxyGroupCache.Lock()
+	if proxyGroupCache.groups != nil &&
+		proxyGroupCache.excludeNotSelectable == excludeNotSelectable &&
+		proxyGroupCache.sortMode == mode &&
+		proxyGroupCache.subtitlePattern == patternText &&
+		now.Sub(proxyGroupCache.createdAt) < proxyGroupCacheTTL {
+		groups := proxyGroupCache.groups
+		proxyGroupCache.Unlock()
+		return groups
+	}
+	proxyGroupCache.Unlock()
+
+	names := tunnel.QueryProxyGroupNames(excludeNotSelectable)
+	groups := make([]*tunnel.ProxyGroup, 0, len(names))
 	for _, name := range names {
 		if group := tunnel.QueryProxyGroup(name, mode, pattern); group != nil {
 			groups = append(groups, group)
 		}
 	}
 
-	return marshalJson(groups)
+	proxyGroupCache.Lock()
+	proxyGroupCache.createdAt = now
+	proxyGroupCache.excludeNotSelectable = excludeNotSelectable
+	proxyGroupCache.sortMode = mode
+	proxyGroupCache.subtitlePattern = patternText
+	proxyGroupCache.groups = groups
+	proxyGroupCache.Unlock()
+	return groups
 }
 
 //export healthCheck
@@ -143,6 +237,7 @@ func healthCheck(completable unsafe.Pointer, name C.c_string) {
 
 	completeAsync(completable, func() error {
 		tunnel.HealthCheck(nameStr)
+		invalidateProxyGroupCache()
 		return nil
 	})
 }
@@ -150,6 +245,7 @@ func healthCheck(completable unsafe.Pointer, name C.c_string) {
 //export healthCheckAll
 func healthCheckAll() {
 	tunnel.HealthCheckAll()
+	invalidateProxyGroupCache()
 }
 
 //export healthCheckProxy
@@ -158,6 +254,7 @@ func healthCheckProxy(completable unsafe.Pointer, proxyName C.c_string) {
 
 	completeJsonAsync(completable, func() any {
 		delay := tunnel.HealthCheckProxy(proxyNameStr)
+		invalidateProxyGroupCache()
 		return &struct {
 			Delay int `json:"delay"`
 		}{delay}
@@ -170,6 +267,7 @@ func patchSelector(selector, name C.c_string) C.int {
 	n := C.GoString(name)
 
 	if tunnel.PatchSelector(s, n) {
+		invalidateProxyGroupCache()
 		return 1
 	}
 
@@ -187,7 +285,11 @@ func updateProvider(completable unsafe.Pointer, pType C.c_string, name C.c_strin
 	nameStr := C.GoString(name)
 
 	completeAsync(completable, func() error {
-		return tunnel.UpdateProvider(pTypeStr, nameStr)
+		err := tunnel.UpdateProvider(pTypeStr, nameStr)
+		if err == nil {
+			invalidateProxyGroupCache()
+		}
+		return err
 	})
 }
 

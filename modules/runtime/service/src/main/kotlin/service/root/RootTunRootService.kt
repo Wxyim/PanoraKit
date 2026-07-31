@@ -211,6 +211,10 @@ class RootTunRootService : RootService() {
                 return longArrayOf(traffic.now, traffic.total)
             }
 
+            override fun queryRuntimeSnapshotJson(): String {
+                return RootTunJson.encode(runtime.queryRuntimeDataSnapshot())
+            }
+
             override fun queryConnectionsJson(): String {
                 return RootTunJson.encode(runtime.queryConnections())
             }

@@ -132,6 +132,15 @@ Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryTrafficSnapsh
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryRuntimeSnapshot(
+    JNIEnv* env, jobject thiz) {
+  TRACE_METHOD();
+
+  scoped_string response = queryRuntimeSnapshot();
+  return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryConnections(JNIEnv* env,
                                                                            jobject thiz) {
   TRACE_METHOD();

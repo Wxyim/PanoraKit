@@ -32,6 +32,8 @@ interface IClashManager {
 
     fun queryTrafficSnapshot(): TrafficSnapshot
 
+    fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot
+
     fun queryConnections(): ConnectionSnapshot
 
     fun queryProfileProxyGroupNames(excludeNotSelectable: Boolean): List<String>

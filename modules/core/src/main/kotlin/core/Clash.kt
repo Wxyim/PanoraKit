@@ -91,6 +91,13 @@ object Clash {
         return TrafficSnapshot(now = values[0], total = values[1])
     }
 
+    fun queryRuntimeSnapshot(): RuntimeDataSnapshot {
+        return Json.decodeFromString(
+            RuntimeDataSnapshot.serializer(),
+            Bridge.nativeQueryRuntimeSnapshot(),
+        )
+    }
+
     fun queryConnections(): ConnectionSnapshot {
         return ConnectionJson.decodeFromString(
             ConnectionSnapshot.serializer(),

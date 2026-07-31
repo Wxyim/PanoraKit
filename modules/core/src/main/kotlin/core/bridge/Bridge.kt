@@ -81,6 +81,8 @@ object Bridge {
 
     external fun nativeQueryTrafficSnapshot(): LongArray
 
+    external fun nativeQueryRuntimeSnapshot(): String
+
     external fun nativeQueryConnections(): String
 
     external fun nativeNotifyDnsChanged(dnsList: String)

@@ -72,6 +72,12 @@ internal object RootTunServiceBridge {
         }
     }
 
+    suspend fun queryRuntimeDataSnapshot(context: Context): RuntimeDataSnapshot {
+        return RootTunRemoteClient.remoteCall(context) { service ->
+            RootTunJson.decode<RuntimeDataSnapshot>(service.queryRuntimeSnapshotJson())
+        }
+    }
+
     suspend fun queryConnections(context: Context): ConnectionSnapshot {
         return RootTunRemoteClient.remoteCall(context) { service ->
             RootTunJson.decode<ConnectionSnapshot>(service.queryConnectionsJson())

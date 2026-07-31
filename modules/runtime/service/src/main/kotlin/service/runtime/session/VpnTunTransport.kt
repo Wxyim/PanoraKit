@@ -35,12 +35,14 @@ import com.github.nomadboxlab.monadbox.service.runtime.config.AccessControlMode
 import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
 import com.github.nomadboxlab.monadbox.service.runtime.util.parseCIDR
 import java.security.SecureRandom
+import java.util.concurrent.ConcurrentHashMap
 
 class VpnTunTransport(
     private val vpnService: VpnService,
     private val store: ServiceStore = ServiceStore(),
 ) : RuntimeTransport {
     private val random = SecureRandom()
+    private val uidCache = ConcurrentHashMap<UidQueryKey, UidCacheEntry>()
     private val startupLogStore =
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
     @Volatile private var pendingDevice: TunDevice? = null
@@ -52,6 +54,7 @@ class VpnTunTransport(
      * compilation to overlap I/O.
      */
     override fun prepare(spec: RuntimeSpec) {
+        uidCache.clear()
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
         pendingDevice =
             with(vpnService.Builder()) {
@@ -178,11 +181,13 @@ class VpnTunTransport(
     }
 
     override fun stop() {
+        uidCache.clear()
         com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener()
         com.github.nomadboxlab.monadbox.core.Clash.stopTun()
     }
 
     override fun onNetworkChanged() {
+        uidCache.clear()
         if (Build.VERSION.SDK_INT in 22..28) {
             @Suppress("DEPRECATION") vpnService.setUnderlyingNetworks(null)
         }
@@ -204,21 +209,64 @@ class VpnTunTransport(
         if (Build.VERSION.SDK_INT < 29) {
             return -1
         }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val key =
+            UidQueryKey(
+                protocol = protocol,
+                source = endpointKey(source),
+                target = endpointKey(target),
+            )
+        uidCache[key]?.takeIf { it.expiresAt > now }?.let { return it.uid }
+
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
         val uid =
             runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
                 .getOrDefault(-1)
-        if (uid > 0) return uid
+        if (uid > 0) {
+            cacheUid(key, uid, now + UID_CACHE_TTL_MS)
+            return uid
+        }
 
         // getConnectionOwnerUid may miss sockets that are already closed,
         // in TIME_WAIT, or otherwise untracked by the kernel. Fall back to
         // reading /proc/net/{tcp,udp}[6] with a protocol-specific resolver.
         if (uid <= 0) {
             val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
-            if (procUid > 0) return procUid
+            if (procUid > 0) {
+                cacheUid(key, procUid, now + UID_CACHE_TTL_MS)
+                return procUid
+            }
         }
+        cacheUid(key, -1, now + UID_NEGATIVE_CACHE_TTL_MS)
         return -1
     }
+
+    private fun endpointKey(endpoint: java.net.InetSocketAddress): String {
+        return "${endpoint.address?.hostAddress ?: endpoint.hostString}:${endpoint.port}"
+    }
+
+    private fun cacheUid(key: UidQueryKey, uid: Int, expiresAt: Long) {
+        uidCache[key] = UidCacheEntry(uid = uid, expiresAt = expiresAt)
+        if (uidCache.size > UID_CACHE_MAX_ENTRIES) {
+            val cutoff = expiresAt - UID_CACHE_TTL_MS
+            uidCache.entries.forEach { entry ->
+                if (entry.value.expiresAt <= cutoff) {
+                    uidCache.remove(entry.key, entry.value)
+                }
+            }
+        }
+    }
+
+    private data class UidQueryKey(
+        val protocol: Int,
+        val source: String,
+        val target: String,
+    )
+
+    private data class UidCacheEntry(
+        val uid: Int,
+        val expiresAt: Long,
+    )
 
     private data class TunDevice(
         val fd: Int,
@@ -240,6 +288,9 @@ class VpnTunTransport(
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
+        private const val UID_CACHE_TTL_MS = 500L
+        private const val UID_NEGATIVE_CACHE_TTL_MS = 100L
+        private const val UID_CACHE_MAX_ENTRIES = 512
 
         private val HTTP_PROXY_LOCAL_LIST =
             listOf(

@@ -98,6 +98,11 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         return Clash.queryTrafficSnapshot()
     }
 
+    override fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot {
+        if (!StatusProvider.serviceRunning) return RuntimeDataSnapshot()
+        return Clash.queryRuntimeSnapshot()
+    }
+
     override fun queryConnections(): ConnectionSnapshot {
         val now = android.os.SystemClock.elapsedRealtime()
         synchronized(connectionCacheLock) {
@@ -135,9 +140,10 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         // here rather than in the client so that every call site benefits.
         val selections = SelectionDao.querySelections(profileUuid)
         if (selections.isEmpty()) return groups
+        val selectionsByGroup = selections.associateBy { it.proxy }
 
         return groups.map { group ->
-            val persisted = selections.find { it.proxy == group.name }
+            val persisted = selectionsByGroup[group.name]
             if (persisted != null) group.copy(now = persisted.selected) else group
         }
     }

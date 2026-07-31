@@ -30,6 +30,7 @@ import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverrideRuleSanit
 import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
 import java.io.File
 import java.security.MessageDigest
@@ -155,15 +156,17 @@ class CompiledConfigPipeline(private val context: Context) {
     fun ensureSelectionOverrideFile(profileUuid: String, profileDir: String) {
         val uuid = runCatching { UUID.fromString(profileUuid) }.getOrNull() ?: return
         val selections = SelectionDao.querySelections(uuid)
+        val overridesDir = context.filesDir.resolve("overrides")
+        val configsDir = overridesDir.resolve("configs")
+        val file = configsDir.resolve("${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json")
+        val fingerprintFile =
+            configsDir.resolve("${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.fingerprint")
+        configsDir.mkdirs()
         if (selections.isEmpty()) {
             // No selections — remove any stale override file so it doesn't
             // incorrectly reorder proxies from a previous session.
-            val overridesDir = context.filesDir.resolve("overrides")
-            val staleFile =
-                overridesDir.resolve(
-                    "configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
-                )
-            if (staleFile.exists()) staleFile.delete()
+            file.delete()
+            fingerprintFile.delete()
             return
         }
 
@@ -171,17 +174,28 @@ class CompiledConfigPipeline(private val context: Context) {
         val configFile = profileDirFile.resolve("config.yaml")
         if (!configFile.exists()) return
 
-        val configYaml = configFile.readText()
+        val configBytes = configFile.readBytes()
+        val selectionFingerprint = selectionFingerprint(configBytes, selections)
+        if (fingerprintFile.isFile && fingerprintFile.readText().trim() == selectionFingerprint) {
+            return
+        }
+
+        val configYaml = configBytes.toString(Charsets.UTF_8)
         val compiled = Clash.inspectCompiledConfig(configYaml) ?: return
         val proxyGroups = compiled.proxyGroups ?: return
-        if (proxyGroups.isEmpty()) return
+        if (proxyGroups.isEmpty()) {
+            file.delete()
+            fingerprintFile.writeText(selectionFingerprint)
+            return
+        }
+
+        val selectionsByGroup = selections.associateBy { it.proxy }
 
         var hasChanges = false
         val updatedGroups = proxyGroups.map { groupDef ->
             val groupName =
                 groupDef["name"]?.jsonPrimitive?.content ?: return@map groupDef
-            val selection =
-                selections.find { it.proxy == groupName } ?: return@map groupDef
+            val selection = selectionsByGroup[groupName] ?: return@map groupDef
 
             val targetNode = selection.selected.trim()
             if (targetNode.isEmpty()) return@map groupDef
@@ -205,16 +219,13 @@ class CompiledConfigPipeline(private val context: Context) {
             groupDef.toMutableMap().apply { put("proxies", reordered) }
         }
 
-        if (!hasChanges) return
-
-        val overridesDir = context.filesDir.resolve("overrides")
-        val configsDir = overridesDir.resolve("configs")
-        configsDir.mkdirs()
-
-        val file =
-            configsDir.resolve(
-                "${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
-            )
+        if (!hasChanges) {
+            // The selected nodes are already first, so an old override file is
+            // unnecessary and could preserve a stale ordering.
+            file.delete()
+            fingerprintFile.writeText(selectionFingerprint)
+            return
+        }
 
         // Write only the proxy-groups field to avoid unintentionally overriding
         // other settings (ports, dns, tun, etc.) that may be in the profile config.
@@ -224,6 +235,26 @@ class CompiledConfigPipeline(private val context: Context) {
         file.writeText(
             json.encodeToString(JsonElement.serializer(), overrideJson)
         )
+        fingerprintFile.writeText(selectionFingerprint)
+    }
+
+    private fun selectionFingerprint(
+        configBytes: ByteArray,
+        selections: List<Selection>,
+    ): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val separator = byteArrayOf(0)
+        digest.update(configBytes)
+        selections
+            .asSequence()
+            .sortedBy { it.proxy }
+            .forEach { selection ->
+                digest.update(selection.proxy.toByteArray(Charsets.UTF_8))
+                digest.update(separator)
+                digest.update(selection.selected.toByteArray(Charsets.UTF_8))
+                digest.update(separator)
+            }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     suspend fun applyOverrideToRuntimeFile(spec: RuntimeSpec): String =

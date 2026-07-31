@@ -712,8 +712,8 @@ class ProxyFacade(
                         }
 
                         connectCurrentBackend()
-                        val rawGroups =
-                            ServiceClient.clash().queryAllProxyGroups(excludeNotSelectable = false)
+                        val runtimeData = ServiceClient.clash().queryRuntimeDataSnapshot()
+                        val rawGroups = runtimeData.proxyGroups
                         if (captureObservedGroupNames.isNotEmpty()) {
                             latencyObservations.bind(latencyScopeKey)
                             rawGroups
@@ -726,7 +726,7 @@ class ProxyFacade(
                         latencyObservations.merge(
                             enrichProxyGroupsFromController(
                                 groups,
-                                ServiceClient.clash().queryConfiguration(),
+                                runtimeData.configuration,
                             )
                         )
                     } catch (e: ControllerError) {

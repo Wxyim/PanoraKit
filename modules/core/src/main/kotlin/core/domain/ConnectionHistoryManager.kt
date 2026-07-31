@@ -53,6 +53,7 @@ object ConnectionHistoryManager {
 
     private val _closedConnections = mutableListOf<Pair<Long, ConnectionInfo>>()
     private var previousConnections: Map<String, ConnectionInfo> = emptyMap()
+    private var closedRevision = 0L
     private val lock = Any()
 
     /**
@@ -82,6 +83,7 @@ object ConnectionHistoryManager {
                         )
                     )
                     _closedConnections.add(0, now to enriched)
+                    closedRevision++
                 }
             }
 
@@ -117,10 +119,18 @@ object ConnectionHistoryManager {
         }
     }
 
+    /** Monotonic revision for consumers that only need to refresh on changes. */
+    fun closedConnectionsRevision(): Long {
+        synchronized(lock) {
+            return closedRevision
+        }
+    }
+
     fun clear() {
         synchronized(lock) {
             _closedConnections.clear()
             previousConnections = emptyMap()
+            closedRevision++
         }
     }
 }

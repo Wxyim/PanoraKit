@@ -55,7 +55,11 @@ func loadCompiledConfig(completable unsafe.Pointer, path C.c_string) {
 	pathStr := C.GoString(path)
 
 	completeAsync(completable, func() error {
-		return config.LoadCompiled(pathStr)
+		err := config.LoadCompiled(pathStr)
+		if err == nil {
+			invalidateProxyGroupCache()
+		}
+		return err
 	})
 }
 

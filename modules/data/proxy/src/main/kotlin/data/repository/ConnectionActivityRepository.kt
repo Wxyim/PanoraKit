@@ -59,6 +59,7 @@ class ConnectionActivityRepository(
         _closedConnections.asStateFlow()
 
     private var monitorJob: Job? = null
+    private var lastClosedRevision = ConnectionHistoryManager.closedConnectionsRevision()
 
     /** Guard that ensures [ConnectionHistoryManager] is only cleared once per
      *  VPN session, not when the runtime is already running and polling restarts. */
@@ -78,6 +79,7 @@ class ConnectionActivityRepository(
                     if (!isRunning) {
                         _activeConnections.value = emptyList()
                         _closedConnections.value = ConnectionHistoryManager.getClosedConnections()
+                        lastClosedRevision = ConnectionHistoryManager.closedConnectionsRevision()
                         needsSessionClear = true
                         return@collectLatest
                     }
@@ -86,6 +88,7 @@ class ConnectionActivityRepository(
                         // Start a fresh recent-request session when runtime enters running state.
                         ConnectionHistoryManager.clear()
                         _closedConnections.value = emptyList()
+                        lastClosedRevision = ConnectionHistoryManager.closedConnectionsRevision()
                         needsSessionClear = false
                     }
 
@@ -94,11 +97,15 @@ class ConnectionActivityRepository(
                                 val connections = runtimeConnectionReader.queryConnections()
                                 ConnectionHistoryManager.updateConnections(connections)
                                 _activeConnections.value = connections
-                                val closed = ConnectionHistoryManager.getClosedConnections()
-                                // Only emit when the closed set actually changed
-                                // (avoids driving combine recomputation every 1000 ms).
-                                if (closedChanged(closed)) {
-                                    _closedConnections.value = closed
+                                val revision = ConnectionHistoryManager.closedConnectionsRevision()
+                                if (revision != lastClosedRevision) {
+                                    val closed = ConnectionHistoryManager.getClosedConnections()
+                                    // Only emit when the closed set actually changed
+                                    // (avoids driving combine recomputation every 1000 ms).
+                                    if (closedChanged(closed)) {
+                                        _closedConnections.value = closed
+                                    }
+                                    lastClosedRevision = revision
                                 }
                             }
                             .onFailure { error ->

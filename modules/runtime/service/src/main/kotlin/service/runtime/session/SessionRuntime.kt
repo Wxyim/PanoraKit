@@ -23,8 +23,6 @@ package com.github.nomadboxlab.monadbox.service.runtime.session
 
 import android.os.SystemClock
 import com.github.nomadboxlab.monadbox.core.Clash
-import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
-
 import com.github.nomadboxlab.monadbox.core.model.*
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
@@ -225,6 +223,18 @@ class SessionRuntime(
                 runtimeSnapshot.copy(trafficNow = traffic.now, trafficTotal = traffic.total)
             publishSnapshot(currentSnapshot.copy(trafficReady = true))
         }
+    }
+
+    fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot {
+        if (currentSnapshot.phase != RuntimePhase.Running) return RuntimeDataSnapshot()
+        val snapshot = ensureRuntimeSnapshot()
+        return RuntimeDataSnapshot(
+            configuration = snapshot.configuration,
+            providers = snapshot.providers,
+            proxyGroups = snapshot.proxyGroups,
+            trafficNow = snapshot.trafficNow,
+            trafficTotal = snapshot.trafficTotal,
+        )
     }
 
     fun queryConnections(): ConnectionSnapshot {
@@ -667,12 +677,6 @@ class SessionRuntime(
         }
         startupLog(spec, "runtime load: loadCompiledConfig done")
         lastCompiledFingerprint = recompileFingerprint
-        val runtimeConfiguration =
-            runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
-        startupLog(
-            spec,
-            "runtime load: uiConfiguration=${MihomoControllerEndpoint.diagnostics(runtimeConfiguration).summary()}",
-        )
     }
 
     /** Fingerprint of all inputs to the YAML compilation step. */
@@ -872,20 +876,16 @@ class SessionRuntime(
             return
         }
 
-        val configuration =
-            runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
-        val providers = runCatching { Clash.queryProviders() }.getOrDefault(emptyList())
-        val proxyGroups =
-            runCatching { Clash.queryGroups(false, ProxySort.Default) }
-                .getOrDefault(emptyList())
-        val traffic = runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
+        val data =
+            runCatching { Clash.queryRuntimeSnapshot() }
+                .getOrDefault(RuntimeDataSnapshot())
         runtimeSnapshot =
             RuntimeQuerySnapshot(
-                configuration = configuration,
-                providers = providers,
-                proxyGroups = proxyGroups,
-                trafficNow = traffic.now,
-                trafficTotal = traffic.total,
+                configuration = data.configuration,
+                providers = data.providers,
+                proxyGroups = data.proxyGroups,
+                trafficNow = data.trafficNow,
+                trafficTotal = data.trafficTotal,
             )
         proxyGroupsCachedAt = SystemClock.elapsedRealtime()
     }
