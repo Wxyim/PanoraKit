@@ -357,8 +357,7 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
 
     fun buildAll() {
         if (!sourceDir.exists()) {
-            println("[Go] Source directory not found: ${sourceDir.absolutePath}")
-            return
+            error("[Go] Source directory not found: ${sourceDir.absolutePath}")
         }
 
         // Refuse the `debug` build tag: it pulls in lib/native/go/native/debug.go which
@@ -386,8 +385,7 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
         val arch =
             abiToGoArch[abi]
                 ?: run {
-                    println("[Go] Unsupported ABI: $abi")
-                    return
+                    error("[Go] Unsupported ABI: $abi")
                 }
 
         println("[building] Building for $abi (arch: $arch)...")
@@ -428,7 +426,12 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
             println("[building] Successfully built $abi")
         } else {
             val reason = result.error.ifBlank { result.output }.trim()
-            println("[building] Failed to build $abi: $reason")
+            error("[Go][$abi] Failed to build: $reason")
+        }
+
+        check(outputFile.isFile) { "[Go][$abi] Output library not found: ${outputFile.absolutePath}" }
+        check(File(appJniRoot, "$abi/libclash.so").isFile) {
+            "[Go][$abi] JNI library was not copied: ${File(appJniRoot, "$abi/libclash.so").absolutePath}"
         }
     }
 
@@ -481,8 +484,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
 
     fun buildAll() {
         if (!sourceDir.exists()) {
-            println("[C++] Source directory not found: ${sourceDir.absolutePath}")
-            return
+            error("[C++] Source directory not found: ${sourceDir.absolutePath}")
         }
 
         PathBudgetGuard.warn(sourceDir.absolutePath, "C++ source")
@@ -546,8 +548,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
         val goHeader = File(goLibDir, "libclash.h")
         val goLibrary = File(goLibDir, "libclash.so")
         if (!goHeader.exists() || !goLibrary.exists()) {
-            println("[building][$abi] Skipping: Go outputs missing at ${goLibDir.absolutePath}")
-            return
+            error("[C++][$abi] Go outputs missing at ${goLibDir.absolutePath}")
         }
 
         println("[building] Building for $abi (C++)...")
@@ -599,8 +600,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
             )
         if (!configureResult.success) {
             val reason = configureResult.error.ifBlank { configureResult.output }.trim()
-            println("[building][$abi] Failed to configure: $reason")
-            return
+            error("[C++][$abi] Failed to configure: $reason")
         }
 
         val buildResult =
@@ -612,18 +612,19 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
             )
         if (!buildResult.success) {
             val reason = buildResult.error.ifBlank { buildResult.output }.trim()
-            println("[building][$abi] Failed to build: $reason")
-            return
+            error("[C++][$abi] Failed to build: $reason")
         }
 
         val builtLib = File(objDir, "libbridge.so")
         if (!builtLib.exists()) {
-            println("[building][$abi] Output library not found: ${builtLib.absolutePath}")
-            return
+            error("[C++][$abi] Output library not found: ${builtLib.absolutePath}")
         }
 
         stripLibrary(builtLib)
         copyToAppJni(abi, builtLib)
+        check(File(appJniRoot, "$abi/libbridge.so").isFile) {
+            "[C++][$abi] JNI library was not copied: ${File(appJniRoot, "$abi/libbridge.so").absolutePath}"
+        }
         println("[building][$abi] Successfully built (C++)")
     }
 
@@ -643,6 +644,24 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
             outputName = "libbridge.so",
             label = "C++",
         )
+    }
+}
+
+private fun verifyNativeOutputs(config: ProjectConfig) {
+    val abis = config.getCsv("abi.app.list", "armeabi-v7a,arm64-v8a,x86,x86_64")
+    val missing = buildList {
+        abis.forEach { abi ->
+            listOf(
+                File("build/native/go/$abi/libclash.so"),
+                File("build/native/cpp/obj/$abi/libbridge.so"),
+                File("build/jniLibs/$abi/libclash.so"),
+                File("build/jniLibs/$abi/libbridge.so"),
+            ).filterNot(File::isFile).forEach { add(it) }
+        }
+    }
+    check(missing.isEmpty()) {
+        "Native build completed without all required libraries:\n" +
+            missing.joinToString("\n") { "  ${it.absolutePath}" }
     }
 }
 
@@ -804,6 +823,10 @@ fun main(args: Array<String>) {
 
     if (downloadGeo) {
         ResourceDownloader(config).downloadGeoFiles()
+    }
+
+    if (buildGo || buildCpp) {
+        verifyNativeOutputs(config)
     }
 
     println("=== Build Complete ===")

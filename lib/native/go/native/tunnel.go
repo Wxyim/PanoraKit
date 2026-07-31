@@ -109,8 +109,16 @@ func queryRuntimeSnapshot() *C.char {
 	})
 }
 
-func packTraffic(upload, download uint64) int64 {
-	return int64(downScaleTraffic(upload)<<32 | downScaleTraffic(download))
+func packTraffic(upload, download int64) int64 {
+	return int64(downScaleTraffic(nonNegativeTraffic(upload))<<32 |
+		downScaleTraffic(nonNegativeTraffic(download)))
+}
+
+func nonNegativeTraffic(value int64) uint64 {
+	if value <= 0 {
+		return 0
+	}
+	return uint64(value)
 }
 
 func downScaleTraffic(value uint64) uint64 {
