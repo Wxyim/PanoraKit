@@ -287,6 +287,35 @@ val syncBuiltNativeJniLibs =
         val abiList = appAbiList
         val cppRoot = nativeCppOutputDir.get().asFile
         val goRoot = nativeGoOutputDir.get().asFile
+        val packagedRoot = unifiedJniLibsDir.get().asFile
+
+        fun hasNativeRootOutputs(): Boolean {
+            return abiList.all { abi ->
+                cppRoot.resolve("$abi/libbridge.so").isFile &&
+                    goRoot.resolve("$abi/libclash.so").isFile
+            }
+        }
+
+        fun hasPackagedOutputs(): Boolean {
+            return abiList.all { abi ->
+                packagedRoot.resolve("$abi/libbridge.so").isFile &&
+                    packagedRoot.resolve("$abi/libclash.so").isFile
+            }
+        }
+
+        // Reusable CI native jobs may upload the final jniLibs tree instead of
+        // the intermediate build/native tree. In that layout the libraries
+        // are already in the task destination and must not be synced over.
+        onlyIf {
+            if (hasNativeRootOutputs()) {
+                true
+            } else if (hasPackagedOutputs()) {
+                logger.lifecycle("Native JNI libraries already unpacked under ${packagedRoot.absolutePath}")
+                false
+            } else {
+                true
+            }
+        }
 
         doFirst {
             val missing = mutableListOf<String>()
