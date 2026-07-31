@@ -22,6 +22,7 @@ package com.github.nomadboxlab.monadbox.service.root
 
 import android.content.Context
 import com.github.nomadboxlab.monadbox.core.model.ConnectionSnapshot
+import com.github.nomadboxlab.monadbox.core.model.RuntimeDataSnapshot
 import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
