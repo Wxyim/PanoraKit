@@ -93,6 +93,24 @@ class RuntimeTransitionPolicyTest {
     }
 
     @Test
+    fun isReadyRequiresRuntimePayloadAndTransport() {
+        val base =
+            RuntimeSnapshot(
+                phase = RuntimePhase.Running,
+                profileReady = true,
+                groupsReady = true,
+                trafficReady = true,
+                configReady = true,
+                transportReady = true,
+            )
+
+        assertTrue(RuntimeStateMapper.isReady(base))
+        assertFalse(RuntimeStateMapper.isReady(base.copy(groupsReady = false)))
+        assertFalse(RuntimeStateMapper.isReady(base.copy(transportReady = false)))
+        assertFalse(RuntimeStateMapper.isReady(base.copy(phase = RuntimePhase.Starting)))
+    }
+
+    @Test
     fun resolveFailureMessageFallsBackDeterministically() {
         assertEquals(
             "ROOT_RUNTIME_DISCONNECTED: root runtime failed",

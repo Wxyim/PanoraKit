@@ -36,12 +36,19 @@ object RuntimeStateMapper {
         return snapshot.phase == RuntimePhase.Running
     }
 
+    fun isReady(snapshot: RuntimeSnapshot): Boolean {
+        return isActuallyRunning(snapshot) &&
+            snapshot.payloadReady &&
+            snapshot.configReady &&
+            snapshot.transportReady
+    }
+
     fun lifecycleState(snapshot: RuntimeSnapshot): ProductLifecycleState {
         return when (snapshot.phase) {
             RuntimePhase.Idle -> ProductLifecycleState.Idle
             RuntimePhase.Starting -> ProductLifecycleState.Preparing
             RuntimePhase.Running ->
-                if (snapshot.payloadReady && snapshot.configReady && snapshot.transportReady) {
+                if (isReady(snapshot)) {
                     ProductLifecycleState.Active
                 } else {
                     ProductLifecycleState.Degraded

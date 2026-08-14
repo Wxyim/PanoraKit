@@ -52,6 +52,10 @@ class AccessControlViewModel(
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
     private val resolveAccessControlAppsUseCase: ResolveAccessControlAppsUseCase,
 ) : ViewModel() {
+    private companion object {
+        const val APPLY_DEBOUNCE_MS = 250L
+    }
+
     data class ImportResult(val addedCount: Int, val ignoredCount: Int, val totalCount: Int)
 
     private val _uiState = MutableStateFlow(AccessControlUiState())
@@ -324,9 +328,10 @@ class AccessControlViewModel(
         networkSettingsStorage.accessControlPackages.set(_uiState.value.selectedPackages)
 
         applyPackagesJob?.cancel()
-        applyPackagesJob =
+            applyPackagesJob =
             viewModelScope.launch {
-                delay(50L)
+                // Batch rapid checkbox changes into one runtime restart.
+                delay(APPLY_DEBOUNCE_MS)
 
                 val snapshot = proxyFacade.runtimeSnapshot.value
                 if (snapshot.phase != RuntimePhase.Running) return@launch

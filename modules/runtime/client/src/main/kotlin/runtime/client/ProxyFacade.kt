@@ -562,10 +562,10 @@ class ProxyFacade(
                 }
             }
             if (snapshot.running) {
-                delay(200.milliseconds)
                 // Stale external IP — notify listeners so the home screen can
                 // clear its cached IP and prompt the user to re-query.
                 _proxySelectionEvents.tryEmit(group)
+                delay(200.milliseconds)
             }
             refreshProxyGroups()
         }

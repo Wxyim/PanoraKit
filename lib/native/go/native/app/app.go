@@ -21,12 +21,14 @@ package app
 import (
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var appVersionName string
 var platformVersion int
 var installedAppsUid = map[int]string{}
+var installedAppsUidMu sync.RWMutex
 
 func ApplyVersionName(versionName string) {
 	appVersionName = versionName
@@ -48,7 +50,7 @@ func NotifyInstallAppsChanged(uidList string) {
 	uids := map[int]string{}
 
 	for _, item := range strings.Split(uidList, ",") {
-		kv := strings.Split(item, ":")
+		kv := strings.SplitN(item, ":", 2)
 		if len(kv) == 2 {
 			uid, err := strconv.Atoi(kv[0])
 			if err != nil {
@@ -59,10 +61,19 @@ func NotifyInstallAppsChanged(uidList string) {
 		}
 	}
 
+	// Never erase a usable table because a transient PackageManager query
+	// returned an empty payload during the first VPN start.
+	if len(uids) == 0 {
+		return
+	}
+	installedAppsUidMu.Lock()
 	installedAppsUid = uids
+	installedAppsUidMu.Unlock()
 }
 
 func QueryAppByUid(uid int) string {
+	installedAppsUidMu.RLock()
+	defer installedAppsUidMu.RUnlock()
 	return installedAppsUid[uid]
 }
 

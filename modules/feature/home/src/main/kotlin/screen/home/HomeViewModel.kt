@@ -59,9 +59,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -71,18 +68,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
 data class HomeSelectedServerState(val groupName: String?, val name: String?, val delay: Int?)
-
-private fun RuntimeSnapshot.isHomeRuntimePayloadReady(): Boolean =
-    RuntimeStateMapper.isActuallyRunning(this) &&
-        payloadReady &&
-        configReady &&
-        transportReady
 
 	@Stable
 	data class HomeUiState(
@@ -245,16 +235,11 @@ class HomeViewModel(
     private val profilesStateMutable = MutableStateFlow(HomeProfilesState())
     val profilesState: StateFlow<HomeProfilesState> = profilesStateMutable.asStateFlow()
 
-    // During cold-start the proxy chain establishes connections lazily on
-    // the first outbound packet.  The IP button is delayed 1.5 s after the
-    // runtime signals "ready" so the proxy dial/handshake has time to complete
-    // before the user can tap.  Cancelled when the VPN stops.
-    private var ipButtonDelayJob: Job? = null
-
     // Privacy: external IP is only ever queried when the user taps the button.
     // This state flow publishes the result of the most recent manual query.
     private val externalIpQueryInFlight = MutableStateFlow(false)
     val isExternalIpQuerying: StateFlow<Boolean> = externalIpQueryInFlight.asStateFlow()
+    private val externalIpSelectionEpoch = MutableStateFlow(0L)
 
     private val chromeStateMutable = MutableStateFlow(HomeChromeState())
     val chromeState: StateFlow<HomeChromeState> = chromeStateMutable.asStateFlow()
@@ -275,12 +260,12 @@ class HomeViewModel(
 
     val isRunning: StateFlow<Boolean> =
         runtimeSnapshot
-            .map(RuntimeStateMapper::isActuallyRunning)
+            .map(RuntimeStateMapper::isReady)
             .distinctUntilChanged()
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
-                RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
+                RuntimeStateMapper.isReady(runtimeSnapshot.value),
             )
 
     val isExternalIpLookupEnabled: StateFlow<Boolean> get() = _isExternalIpLookupEnabled
@@ -294,7 +279,7 @@ class HomeViewModel(
         )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val visibleProxyGroupNames: StateFlow<Set<String>> =
+    private val visibleProxyGroupNames: StateFlow<Set<String>?> =
         runtimeSnapshot
             .map { snapshot ->
                 if (RuntimeStateMapper.isActuallyRunning(snapshot)) snapshot.generation else null
@@ -302,7 +287,7 @@ class HomeViewModel(
             .distinctUntilChanged()
             .flatMapLatest { runningGeneration ->
                 if (runningGeneration == null) {
-                    flowOf(emptySet())
+                    flowOf<Set<String>?>(null)
                 } else {
                     flow {
                         val names =
@@ -316,10 +301,24 @@ class HomeViewModel(
                     }
                 }
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val homeRuntimeReady: StateFlow<Boolean> =
+        combine(runtimeSnapshot, visibleProxyGroupNames) { snapshot, visibleNames ->
+                RuntimeStateMapper.isReady(snapshot) && visibleNames != null
+            }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val selectedServer: StateFlow<HomeSelectedServerState?> get() = _selectedServer
     private val _selectedServer = MutableStateFlow<HomeSelectedServerState?>(null)
+
+    private val homePresentationReady: StateFlow<Boolean> =
+        combine(homeRuntimeReady, selectedServer) { runtimeReady, selected ->
+                runtimeReady && selected != null
+            }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val ipMonitoringState: StateFlow<IpMonitoringState> =
@@ -363,9 +362,20 @@ class HomeViewModel(
 
             // Show query-in-flight immediately so the user gets visual feedback.
             externalIpQueryInFlight.value = true
+            val requestGeneration = runtimeSnapshot.value.generation
+            val requestSelectionEpoch = externalIpSelectionEpoch.value
             try {
                 val info = networkInfoService.queryExternalIp()
-                networkInfoService.cacheExternalIp(info)
+                val currentSnapshot = runtimeSnapshot.value
+                val requestStillCurrent =
+                    RuntimeStateMapper.isReady(currentSnapshot) &&
+                        currentSnapshot.generation == requestGeneration &&
+                        externalIpSelectionEpoch.value == requestSelectionEpoch
+                if (requestStillCurrent) {
+                    networkInfoService.cacheExternalIp(info)
+                } else {
+                    networkInfoService.clearExternalIp()
+                }
                 Timber.d("External IP query completed: result=%s", info?.ip ?: "<null>")
                 if (info == null) {
                     showError(MLang.Home.Message.ExternalIpLookupFailed)
@@ -385,8 +395,10 @@ class HomeViewModel(
     val screenState: StateFlow<HomeScreenState> =
         combine(
                 combine(chromeState, profilesState) { chrome, profiles -> chrome to profiles },
-                combine(confirmedCurrentProfile, selectedServer) { currentProfile, selectedServer ->
-                    currentProfile to selectedServer
+                combine(confirmedCurrentProfile, selectedServer, homePresentationReady) {
+                        currentProfile, selectedServer, runtimeReady ->
+                    currentProfile to
+                        selectedServer.takeIf { runtimeReady }
                 },
                 combine(
                     ipMonitoringState,
@@ -466,29 +478,15 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Clear the cached external IP whenever the VPN is fully stopped.
-     *
-     * Uses [debounce] to ignore transient phase changes during initialization
-     * — only a sustained stop (>2 s) clears the cache. This prevents
-     * first-launch race conditions where the runtime may briefly leave the
-     * Running phase while mihomo finishes its initial setup.
-     */
-    @OptIn(FlowPreview::class)
+    /** Clear the cached result whenever the current VPN generation is not ready. */
     private fun clearExternalIpCacheOnStop() {
         viewModelScope.launch {
-            isRunning
-                .debounce(2_000L)
-                .collect { running ->
-                    if (
-                        !running &&
-                            runtimeSnapshot.value.phase in setOf(RuntimePhase.Idle, RuntimePhase.Failed)
-                    ) {
-                        ipButtonDelayJob?.cancel()
-                        ipButtonDelayJob = null
-                        networkInfoService.clearExternalIp()
-                    }
+            runtimeSnapshot.collect { snapshot ->
+                if (!RuntimeStateMapper.isReady(snapshot)) {
+                    externalIpSelectionEpoch.update { it + 1L }
+                    networkInfoService.clearExternalIp()
                 }
+            }
         }
     }
 
@@ -499,6 +497,7 @@ class HomeViewModel(
     private fun clearExternalIpCacheOnSelection() {
         viewModelScope.launch {
             proxyFacade.proxySelectionEvents.collect {
+                externalIpSelectionEpoch.update { it + 1L }
                 networkInfoService.clearExternalIp()
             }
         }
@@ -516,9 +515,12 @@ class HomeViewModel(
 
     private fun syncDisplayState() {
         viewModelScope.launch {
-            runtimeSnapshot.collect { snapshot ->
-                val runningOrStarting = RuntimeStateMapper.isRunningOrStarting(snapshot)
-                val isStarting = snapshot.phase == RuntimePhase.Starting
+            combine(runtimeSnapshot, homePresentationReady) { snapshot, runtimeReady ->
+                snapshot to runtimeReady
+            }.collect { (snapshot, runtimeReady) ->
+                val isStarting =
+                    snapshot.phase == RuntimePhase.Starting ||
+                        (snapshot.phase == RuntimePhase.Running && !runtimeReady)
                 val loadingProgress = if (isStarting) MLang.Home.Message.Preparing else null
                 chromeStateMutable.update { current ->
                     val nextUi =
@@ -539,7 +541,21 @@ class HomeViewModel(
                             current.copy(
                                 ui = nextUi,
                                 runtimeVisualState = HomeRuntimeVisualState.Starting,
-                                displayRunning = true,
+                                displayRunning = false,
+                                isToggling = true,
+                            )
+
+                        RuntimePhase.Running ->
+                            current.copy(
+                                ui = nextUi,
+                                runtimeVisualState =
+                                    if (runtimeReady) {
+                                        HomeRuntimeVisualState.Running
+                                    } else {
+                                        HomeRuntimeVisualState.Starting
+                                    },
+                                displayRunning = runtimeReady,
+                                isToggling = !runtimeReady,
                             )
 
                         RuntimePhase.Stopping ->
@@ -547,18 +563,14 @@ class HomeViewModel(
                                 ui = nextUi,
                                 runtimeVisualState = HomeRuntimeVisualState.Stopping,
                                 displayRunning = false,
+                                isToggling = true,
                             )
 
                         else ->
                             current.copy(
                                 ui = nextUi,
-                                runtimeVisualState =
-                                    if (snapshot.phase == RuntimePhase.Running) {
-                                        HomeRuntimeVisualState.Running
-                                    } else {
-                                        HomeRuntimeVisualState.Idle
-                                    },
-                                displayRunning = runningOrStarting,
+                                runtimeVisualState = HomeRuntimeVisualState.Idle,
+                                displayRunning = false,
                                 isToggling = false,
                             )
                     }
@@ -873,8 +885,8 @@ class HomeViewModel(
      * (e.g. mihomo reloading imported config), keep the last non-null value
      * instead of flipping back to `null` ("Unknown").
      *
-     * Only truly clear the server when the runtime is definitively stopped
-     * (Idle / Failed).
+     * Clear the previous generation as soon as a new startup begins, and
+     * clear it again when the runtime is definitively stopped (Idle / Failed).
      */
     private fun collectSelectedServer() {
         viewModelScope.launch {
@@ -883,7 +895,10 @@ class HomeViewModel(
                     groups,
                     tunnelMode,
                     visibleGroupNames ->
-                    if (!snapshot.isHomeRuntimePayloadReady() || groups.isEmpty()) {
+                    if (!RuntimeStateMapper.isReady(snapshot) ||
+                        visibleGroupNames == null ||
+                        groups.isEmpty()
+                    ) {
                         return@combine null
                     }
 
@@ -932,6 +947,8 @@ class HomeViewModel(
 
                     when {
                         computed != null -> _selectedServer.value = computed
+                        snapshot.phase == RuntimePhase.Starting -> _selectedServer.value = null
+                        snapshot.phase == RuntimePhase.Stopping -> _selectedServer.value = null
                         runtimeStopped -> _selectedServer.value = null
                         // Transient drop: hold last value, suppress flash.
                     }
@@ -942,36 +959,16 @@ class HomeViewModel(
     /**
      * Feed [isExternalIpLookupEnabled] from the runtime-snapshot combine.
      *
-     * During cold-start the proxy chain establishes connections lazily —
-     * the first outbound packet triggers the dial/handshake.  The button is
-     * delayed 1.5 s after the runtime signals "ready" so that the chain has
-     * time to warm up before the user can tap.  If the VPN stops during the
-     * delay window the job is cancelled and the button stays hidden.
+     * Uses the same canonical readiness gate as the node display and the
+     * home start/stop control, so the query action cannot race VPN startup.
      */
     private fun collectExternalIpEnabled() {
         viewModelScope.launch {
-            combine(appSettings.externalIpLookupUrl.state, runtimeSnapshot) { url, snapshot ->
-                    url.isNotBlank() && snapshot.isHomeRuntimePayloadReady()
+            combine(appSettings.externalIpLookupUrl.state, homePresentationReady) {
+                    url, presentationReady ->
+                    url.isNotBlank() && presentationReady
                 }
-                .collect { enabled ->
-                    ipButtonDelayJob?.cancel()
-                    ipButtonDelayJob = null
-
-                    val snapshot = runtimeSnapshot.value
-                    val runtimeStopped =
-                        snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed
-
-                    when {
-                        enabled -> {
-                            ipButtonDelayJob = viewModelScope.launch {
-                                delay(1500L)
-                                _isExternalIpLookupEnabled.value = true
-                            }
-                        }
-                        runtimeStopped -> _isExternalIpLookupEnabled.value = false
-                        // Transient drop: hold last value, suppress flash.
-                    }
-                }
+                .collect { enabled -> _isExternalIpLookupEnabled.value = enabled }
         }
     }
 }

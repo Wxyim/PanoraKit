@@ -51,9 +51,9 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     @Volatile
     private var lastPublishedMappings: List<Pair<Int, String>> = emptyList()
 
-    fun start() {
+    suspend fun start() {
         if (receiver != null) {
-            publishNow()
+            publishInitial()
             return
         }
 
@@ -82,7 +82,7 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
         receiver = packageReceiver
         // Initial sync bypasses the debounce: we want mihomo to know the current
         // list as soon as the session is up, not 300 ms later.
-        publishNow()
+        publishInitial()
         // The initial publish happens before the VPN transport is handed to Go.
         // Retry after startup so a transient PackageManager result cannot leave
         // the native UID table empty for the rest of the session.
@@ -128,10 +128,16 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
      * that the UID→package map is populated before the VPN TUN starts
      * accepting connections.
      */
-    private fun publishNow() {
+    private suspend fun publishInitial() {
         publishJob?.cancel()
         publishJob = null
-        publish()
+        repeat(INITIAL_SYNC_ATTEMPTS) { attempt ->
+            publish()
+            if (lastPublishedMappings.isNotEmpty()) return
+            if (attempt + 1 < INITIAL_SYNC_ATTEMPTS) {
+                delay(INITIAL_SYNC_RETRY_DELAY_MS)
+            }
+        }
     }
 
     private fun publish() {
@@ -235,6 +241,8 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
     private companion object {
         private const val INITIAL_RETRY_DELAY_MS = 750L
         private const val SECOND_RETRY_DELAY_MS = 2_000L
+        private const val INITIAL_SYNC_ATTEMPTS = 3
+        private const val INITIAL_SYNC_RETRY_DELAY_MS = 100L
         // 300 ms is short enough to be invisible to a user watching the proxy
         // state, and long enough to absorb typical broadcast bursts from
         // auto-update (Google Play typically fans out 5–30 PACKAGE_REPLACED

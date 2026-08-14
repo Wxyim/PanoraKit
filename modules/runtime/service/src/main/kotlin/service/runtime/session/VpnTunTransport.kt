@@ -46,6 +46,7 @@ class VpnTunTransport(
     private val startupLogStore =
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
     @Volatile private var pendingDevice: TunDevice? = null
+    @Volatile private var uidWarmupUntilElapsedMs = 0L
 
     /**
      * Phase 1: build VPN parameters and call [VpnService.establish].
@@ -55,6 +56,8 @@ class VpnTunTransport(
      */
     override fun prepare(spec: RuntimeSpec) {
         uidCache.clear()
+        uidWarmupUntilElapsedMs =
+            android.os.SystemClock.elapsedRealtime() + UID_WARMUP_WINDOW_MS
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
         pendingDevice =
             with(vpnService.Builder()) {
@@ -219,9 +222,18 @@ class VpnTunTransport(
         uidCache[key]?.takeIf { it.expiresAt > now }?.let { return it.uid }
 
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
-        val uid =
-            runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
-                .getOrDefault(-1)
+        var uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
+        // During the first VPN start Android can publish the socket owner a
+        // few milliseconds after the TUN is established. Retry only in this
+        // short warm-up window; normal traffic keeps a single IPC query.
+        if (uid <= 0 && android.os.SystemClock.elapsedRealtime() < uidWarmupUntilElapsedMs) {
+            repeat(UID_WARMUP_RETRIES) {
+                if (uid <= 0) {
+                    android.os.SystemClock.sleep(UID_WARMUP_RETRY_DELAY_MS)
+                    uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
+                }
+            }
+        }
         if (uid > 0) {
             cacheUid(key, uid, now + UID_CACHE_TTL_MS)
             return uid
@@ -237,8 +249,23 @@ class VpnTunTransport(
                 return procUid
             }
         }
-        cacheUid(key, -1, now + UID_NEGATIVE_CACHE_TTL_MS)
+        // A miss is inherently transient during VPN startup: Android may not
+        // have published the socket owner yet, and procfs may lag behind the
+        // first packet. Do not negative-cache it, otherwise the same socket
+        // can remain unattributed for the rest of its short lifetime.
+        uidCache.remove(key)
         return -1
+    }
+
+    private fun queryConnectionOwnerUid(
+        connectivity: android.net.ConnectivityManager?,
+        protocol: Int,
+        source: java.net.InetSocketAddress,
+        target: java.net.InetSocketAddress,
+    ): Int {
+        return runCatching {
+            connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1
+        }.getOrDefault(-1)
     }
 
     private fun endpointKey(endpoint: java.net.InetSocketAddress): String {
@@ -289,8 +316,10 @@ class VpnTunTransport(
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
         private const val UID_CACHE_TTL_MS = 500L
-        private const val UID_NEGATIVE_CACHE_TTL_MS = 100L
         private const val UID_CACHE_MAX_ENTRIES = 512
+        private const val UID_WARMUP_WINDOW_MS = 3_000L
+        private const val UID_WARMUP_RETRIES = 2
+        private const val UID_WARMUP_RETRY_DELAY_MS = 2L
 
         private val HTTP_PROXY_LOCAL_LIST =
             listOf(

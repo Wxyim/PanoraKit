@@ -53,4 +53,46 @@ class AccessControlPoliciesTest {
 
         assertEquals(setOf("com.example.manual"), updated.selectedPackages)
     }
+
+    @Test
+    fun filterApps_keepsSelectedFirstAndSortsRemainingByLabel() {
+        val apps =
+            listOf(
+                AccessControlAppInfo("com.z.last", "Zulu", false, false, false),
+                AccessControlAppInfo("com.a.selected", "Alpha", false, false, true),
+                AccessControlAppInfo("com.b.selected", "Beta", false, false, true),
+            )
+
+        val result =
+            AccessControlFilter.filterApps(
+                apps = apps,
+                query = "",
+                showSystemApps = false,
+                sortMode = AccessControlSortMode.LABEL,
+                selectedFirst = true,
+            )
+
+        assertEquals(
+            listOf("com.a.selected", "com.b.selected", "com.z.last"),
+            result.map { it.packageName },
+        )
+    }
+
+    @Test
+    fun visiblePackages_doesNotDependOnSortSettings() {
+        val apps =
+            listOf(
+                AccessControlAppInfo("com.example.b", "Beta", false, false, false),
+                AccessControlAppInfo("com.example.a", "Alpha", false, false, false),
+            )
+
+        assertEquals(
+            setOf("com.example.a", "com.example.b"),
+            AccessControlFilter.visiblePackages(
+                apps = apps,
+                query = "example",
+                showSystemApps = false,
+            ),
+        )
+    }
 }

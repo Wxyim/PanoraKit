@@ -59,6 +59,13 @@ internal object SelectionRestoreExecutor {
                 return@forEach
             }
 
+            // CompiledConfigPipeline normally puts the persisted node first,
+            // so mihomo may already have the desired selector. Avoid issuing
+            // a second patch when the runtime state is already converged.
+            if (group.now.trim() == targetNode) {
+                return@forEach
+            }
+
             if (!patchSelectorWithRetry(groupName, targetNode)) {
                 Log.w(
                     "$tag restore selector patch failed: profile=$profileUuid group=$groupName node=$targetNode"

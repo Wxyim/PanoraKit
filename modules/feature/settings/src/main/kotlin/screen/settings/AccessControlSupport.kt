@@ -135,6 +135,18 @@ internal object AccessControlAppLoader {
 }
 
 internal object AccessControlFilter {
+    private fun matches(
+        app: AccessControlAppInfo,
+        query: String,
+        showSystemApps: Boolean,
+    ): Boolean {
+        val matchesQuery =
+            query.isEmpty() ||
+                app.label.contains(query, ignoreCase = true) ||
+                app.packageName.contains(query, ignoreCase = true)
+        return matchesQuery && (showSystemApps || !app.isSystemApp)
+    }
+
     fun filterApps(
         apps: List<AccessControlAppInfo>,
         query: String,
@@ -143,15 +155,7 @@ internal object AccessControlFilter {
         selectedFirst: Boolean,
         descending: Boolean = false,
     ): List<AccessControlAppInfo> {
-        val filtered =
-            apps.filter { app ->
-                val matchesQuery =
-                    query.isEmpty() ||
-                        app.label.contains(query, ignoreCase = true) ||
-                        app.packageName.contains(query, ignoreCase = true)
-                val matchesSystemFilter = showSystemApps || !app.isSystemApp
-                matchesQuery && matchesSystemFilter
-            }
+        val filtered = apps.filter { app -> matches(app, query, showSystemApps) }
         val comparator =
             when (sortMode) {
                 AccessControlSortMode.PACKAGE_NAME ->
@@ -160,23 +164,36 @@ internal object AccessControlFilter {
                 AccessControlSortMode.INSTALL_TIME -> compareBy { it.installTime }
                 AccessControlSortMode.UPDATE_TIME -> compareBy { it.updateTime }
             }
-        val sorted =
-            if (descending) filtered.sortedWith(comparator.reversed())
-            else filtered.sortedWith(comparator)
-        return if (selectedFirst) sorted.sortedByDescending { it.isSelected } else sorted
+        val orderedComparator =
+            if (descending) comparator.reversed() else comparator
+        val finalComparator =
+            if (selectedFirst) {
+                compareByDescending<AccessControlAppInfo> { it.isSelected }
+                    .then(orderedComparator)
+            } else {
+                orderedComparator
+            }
+        return filtered.sortedWith(finalComparator)
+    }
+
+    fun visiblePackages(
+        apps: List<AccessControlAppInfo>,
+        query: String,
+        showSystemApps: Boolean,
+    ): Set<String> {
+        return apps.asSequence()
+            .filter { app -> matches(app, query, showSystemApps) }
+            .mapTo(linkedSetOf()) { it.packageName }
     }
 }
 
 internal object AccessControlSelection {
     fun visiblePackages(state: AccessControlUiState): Set<String> {
-        return AccessControlFilter.filterApps(
-                apps = state.apps,
-                query = state.searchQuery,
-                showSystemApps = state.showSystemApps,
-                sortMode = state.sortMode,
-                selectedFirst = state.selectedFirst,
-            )
-            .mapTo(linkedSetOf()) { it.packageName }
+        return AccessControlFilter.visiblePackages(
+            apps = state.apps,
+            query = state.searchQuery,
+            showSystemApps = state.showSystemApps,
+        )
     }
 
     fun updateSelection(state: AccessControlUiState, packages: Set<String>): AccessControlUiState {
