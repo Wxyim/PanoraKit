@@ -1290,12 +1290,14 @@ class ProxyFacade(
         val ownerActive = isOwnerActive(owner)
         if (processStarted || ownerActive) {
             Timber.w(
-                "Start receipt missing; reconciling stale starting marker for ${owner.name} (mode=${mode.name})"
+                "Start receipt missing; accepting active local runtime for ${owner.name} " +
+                    "(mode=${mode.name}) and waiting for profileLoaded"
             )
             handleRuntimeStarted(forceOwner = owner)
-            if (runtimeSnapshot.value.phase == RuntimePhase.Running) {
-                return
-            }
+            // The service sends profileLoaded after configuration and selector
+            // restoration. The client intentionally remains in Starting until
+            // that event, so Running is not required for this start receipt.
+            return
         }
 
         throw RuntimeGatewayException(

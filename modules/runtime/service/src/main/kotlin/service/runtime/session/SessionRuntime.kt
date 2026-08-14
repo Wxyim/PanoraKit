@@ -837,7 +837,7 @@ class SessionRuntime(
         networkObserver = null
     }
 
-    private suspend fun startInstalledAppsPublisher() {
+    private fun startInstalledAppsPublisher() {
         val publisher =
             installedAppsPublisher
                 ?: RuntimeInstalledAppsPublisher(host.context, scope).also {
