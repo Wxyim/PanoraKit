@@ -412,6 +412,7 @@ JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_n
 
 static jmethodID m_tun_interface_mark_socket;
 static jmethodID m_tun_interface_query_socket_uid;
+static jmethodID m_tun_interface_query_package_name;
 static jmethodID m_completable_complete;
 static jmethodID m_completable_complete_exceptionally;
 static jmethodID m_logcat_interface_received;
@@ -441,6 +442,26 @@ static int call_tun_interface_query_socket_uid_impl(void* tun_interface, int pro
   return env->CallIntMethod((jobject)tun_interface, (jmethodID)m_tun_interface_query_socket_uid,
                             (jint)protocol, (jstring)new_string(source),
                             (jstring)new_string(target));
+}
+
+static char* call_tun_interface_query_package_name_impl(void* tun_interface, int uid) {
+  TRACE_METHOD();
+
+  ATTACH_JNI();
+
+  jstring result = (jstring)env->CallObjectMethod(
+      (jobject)tun_interface, (jmethodID)m_tun_interface_query_package_name, (jint)uid);
+  if (result == NULL) return NULL;
+
+  const char* chars = env->GetStringUTFChars(result, NULL);
+  if (chars == NULL) {
+    env->DeleteLocalRef(result);
+    return NULL;
+  }
+  char* copy = strdup(chars);
+  env->ReleaseStringUTFChars(result, chars);
+  env->DeleteLocalRef(result);
+  return copy;
 }
 
 static void call_completable_complete_impl(void* completable, const char* exception) {
@@ -566,6 +587,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
   m_tun_interface_mark_socket = find_method(c_tun_interface, "markSocket", "(I)V");
   m_tun_interface_query_socket_uid =
       find_method(c_tun_interface, "querySocketUid", "(ILjava/lang/String;Ljava/lang/String;)I");
+  m_tun_interface_query_package_name =
+      find_method(c_tun_interface, "queryPackageName", "(I)Ljava/lang/String;");
   m_completable_complete = find_method(c_completable, "complete", "(Ljava/lang/Object;)Z");
   m_fetch_callback_report = find_method(c_fetch_callback, "report", "(Ljava/lang/String;)V");
   m_fetch_callback_complete = find_method(c_fetch_callback, "complete", "(Ljava/lang/String;)V");
@@ -586,6 +609,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 
   mark_socket_func = &call_tun_interface_mark_socket_impl;
   query_socket_uid_func = &call_tun_interface_query_socket_uid_impl;
+  query_package_name_func = &call_tun_interface_query_package_name_impl;
   complete_func = &call_completable_complete_impl;
   complete_with_string_func = &call_completable_complete_with_string_impl;
   fetch_report_func = &call_fetch_callback_report_impl;

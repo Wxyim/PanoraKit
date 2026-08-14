@@ -27,6 +27,7 @@ import (
 
 var markSocketImpl func(fd int)
 var querySocketUidImpl func(protocol int, source, target string) int
+var queryPackageNameImpl func(uid int) string
 
 func MarkSocket(fd int) {
 	markSocketImpl(fd)
@@ -59,11 +60,25 @@ func ApplyTunContext(markSocket func(fd int), querySocketUid func(int, string, s
 	if querySocketUid == nil {
 		querySocketUid = func(int, string, string) int { return -1 }
 	}
-
 	markSocketImpl = markSocket
 	querySocketUidImpl = querySocketUid
 }
 
+func ApplyPackageNameResolver(resolver func(int) string) {
+	if resolver == nil {
+		resolver = func(int) string { return "" }
+	}
+	queryPackageNameImpl = resolver
+}
+
+func QueryPackageName(uid int) string {
+	if uid <= 0 {
+		return ""
+	}
+	return queryPackageNameImpl(uid)
+}
+
 func init() {
 	ApplyTunContext(nil, nil)
+	ApplyPackageNameResolver(nil)
 }

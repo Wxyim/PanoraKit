@@ -134,6 +134,7 @@ object Clash {
         dns: String,
         markSocket: (Int) -> Boolean,
         querySocketUid: (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int,
+        queryPackageName: (uid: Int) -> String,
     ) {
         Bridge.nativeStartTun(
             fd,
@@ -153,6 +154,8 @@ object Clash {
                         parseInetSocketAddress(target),
                     )
                 }
+
+                override fun queryPackageName(uid: Int): String = queryPackageName(uid)
             },
         )
     }

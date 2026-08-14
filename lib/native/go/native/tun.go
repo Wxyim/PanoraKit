@@ -72,6 +72,22 @@ func (t *remoteTun) querySocketUid(protocol int, source, target string) int {
 	return int(C.query_socket_uid(t.callback, C.int(protocol), C.CString(source), C.CString(target)))
 }
 
+func (t *remoteTun) queryPackageName(uid int) string {
+	_ = t.limit.Acquire(context.Background(), 1)
+	defer t.limit.Release(1)
+
+	if t.closed {
+		return ""
+	}
+
+	result := C.query_package_name(t.callback, C.int(uid))
+	if result == nil {
+		return ""
+	}
+	defer C.free(unsafe.Pointer(result))
+	return C.GoString(result)
+}
+
 func (t *remoteTun) close() {
 	t.closed = true
 	ctx, cancel := context.WithTimeout(context.Background(), tunCloseAcquireTimeout)
@@ -82,6 +98,7 @@ func (t *remoteTun) close() {
 			_ = t.closer.Close()
 		}
 		app.ApplyTunContext(nil, nil)
+		app.ApplyPackageNameResolver(nil)
 		return
 	}
 	defer t.limit.Release(4)
@@ -91,6 +108,7 @@ func (t *remoteTun) close() {
 	}
 
 	app.ApplyTunContext(nil, nil)
+	app.ApplyPackageNameResolver(nil)
 
 	C.release_object(t.callback)
 }
@@ -107,6 +125,7 @@ func closeCurrentTunLocked() {
 	}
 
 	app.ApplyTunContext(nil, nil)
+	app.ApplyPackageNameResolver(nil)
 }
 
 //export startTun
@@ -125,6 +144,7 @@ func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.
 	remote := &remoteTun{callback: callback, closed: false, limit: semaphore.NewWeighted(4)}
 
 	app.ApplyTunContext(remote.markSocket, remote.querySocketUid)
+	app.ApplyPackageNameResolver(remote.queryPackageName)
 
 	closer, err := tun.Start(f, s, g, p, d)
 	if err != nil {

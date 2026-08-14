@@ -13,6 +13,7 @@ void (*mark_socket_func)(void* tun_interface, int fd);
 
 int (*query_socket_uid_func)(void* tun_interface, int protocol, const char* source,
                              const char* target);
+char* (*query_package_name_func)(void* tun_interface, int uid);
 
 void (*complete_func)(void* completable, const char* exception);
 
@@ -43,6 +44,12 @@ int query_socket_uid(void* interface, int protocol, char* source, char* target) 
   free(target);
 
   return result;
+}
+
+char* query_package_name(void* interface, int uid) {
+  TRACE_METHOD();
+
+  return query_package_name_func(interface, uid);
 }
 
 void complete(void* obj, char* error) {

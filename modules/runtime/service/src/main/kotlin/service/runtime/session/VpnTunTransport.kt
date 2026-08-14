@@ -43,6 +43,7 @@ class VpnTunTransport(
 ) : RuntimeTransport {
     private val random = SecureRandom()
     private val uidCache = ConcurrentHashMap<UidQueryKey, UidCacheEntry>()
+    private val packageNameCache = ConcurrentHashMap<Int, String>()
     private val startupLogStore =
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
     @Volatile private var pendingDevice: TunDevice? = null
@@ -56,6 +57,7 @@ class VpnTunTransport(
      */
     override fun prepare(spec: RuntimeSpec) {
         uidCache.clear()
+        packageNameCache.clear()
         uidWarmupUntilElapsedMs =
             android.os.SystemClock.elapsedRealtime() + UID_WARMUP_WINDOW_MS
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
@@ -179,12 +181,14 @@ class VpnTunTransport(
             dns = device.dns,
             markSocket = vpnService::protect,
             querySocketUid = this::queryUid,
+            queryPackageName = this::queryPackageName,
         )
         startupLogStore.append("LOCAL_TUN transport start: done")
     }
 
     override fun stop() {
         uidCache.clear()
+        packageNameCache.clear()
         com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener()
         com.github.nomadboxlab.monadbox.core.Clash.stopTun()
     }
@@ -266,6 +270,21 @@ class VpnTunTransport(
         return runCatching {
             connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1
         }.getOrDefault(-1)
+    }
+
+    private fun queryPackageName(uid: Int): String {
+        if (uid <= 0) return ""
+        packageNameCache[uid]?.let { return it }
+        return runCatching {
+                vpnService.packageManager.getPackagesForUid(uid)
+                    ?.asSequence()
+                    ?.firstOrNull { it.isNotBlank() }
+                    .orEmpty()
+            }
+            .getOrDefault("")
+            .also { packageName ->
+                if (packageName.isNotBlank()) packageNameCache[uid] = packageName
+            }
     }
 
     private fun endpointKey(endpoint: java.net.InetSocketAddress): String {

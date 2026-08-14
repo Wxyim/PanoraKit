@@ -73,8 +73,12 @@ func NotifyInstallAppsChanged(uidList string) {
 
 func QueryAppByUid(uid int) string {
 	installedAppsUidMu.RLock()
-	defer installedAppsUidMu.RUnlock()
-	return installedAppsUid[uid]
+	packageName := installedAppsUid[uid]
+	installedAppsUidMu.RUnlock()
+	if packageName != "" {
+		return packageName
+	}
+	return QueryPackageName(uid)
 }
 
 func NotifyTimeZoneChanged(name string, offset int) {

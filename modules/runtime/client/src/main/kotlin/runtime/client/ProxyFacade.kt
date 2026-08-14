@@ -135,6 +135,7 @@ private class ProxyFacadeEventBus(
     private val actions: RuntimeEventActions,
     private val onClashStarted: () -> Unit,
     private val onClashStopped: (String?) -> Unit,
+    private val onProfileLoaded: () -> Unit,
     private val onRefreshRequested: () -> Unit,
     private val onRootRuntimeFailed: (String, String?) -> Unit,
 ) {
@@ -147,7 +148,7 @@ private class ProxyFacadeEventBus(
                     actions.clashStarted -> onClashStarted()
                     actions.clashStopped ->
                         onClashStopped(intent.getStringExtra(Intents.EXTRA_STOP_REASON))
-                    actions.profileLoaded,
+                    actions.profileLoaded -> onProfileLoaded()
                     actions.profileChanged,
                     actions.overrideChanged,
                     actions.serviceRecreated -> onRefreshRequested()
@@ -373,6 +374,7 @@ class ProxyFacade(
             actions = actions,
             onClashStarted = { scope.launch { handleRuntimeStarted() } },
             onClashStopped = { reason -> scope.launch { handleRuntimeStopped(reason) } },
+            onProfileLoaded = { scope.launch { handleRuntimeProfileLoaded() } },
             onRefreshRequested = {
                 scope.launch {
                     if (runtimeSnapshot.value.phase == RuntimePhase.Running) {
@@ -469,7 +471,7 @@ class ProxyFacade(
 
             val generation = runtimeState.nextGeneration()
 
-            runtimeState.clearRuntimePayload(resetGroups = false)
+            runtimeState.clearRuntimePayload(resetGroups = true)
             runtimeState.setCurrentProfile(activeProfile)
             publishRuntimeSnapshot(
                 RuntimeSnapshot(
@@ -702,7 +704,7 @@ class ProxyFacade(
             val groups =
                 withContext(Dispatchers.IO) {
                     try {
-                        if (!snapshot.running) {
+                        if (!snapshot.running && snapshot.phase != RuntimePhase.Starting) {
                             latencyObservations.clear()
                             return@withContext queryPreviewProxyGroups()
                         }
@@ -1016,7 +1018,7 @@ class ProxyFacade(
             )
         if (owner == RuntimeOwner.None) return
 
-        publishRuntimeSnapshot(
+        val started =
             RuntimeTransitionPolicy.startedSnapshot(
                 currentSnapshot = currentSnapshot,
                 owner = owner,
@@ -1026,11 +1028,23 @@ class ProxyFacade(
                         networkSettingsStorage.proxyMode.value,
                     ),
             )
-        )
+        // clashStarted only means that the process/TUN exists. The service
+        // emits profileLoaded after config loading, selector restoration, and
+        // the first runtime snapshot refresh. Keep the client in Starting so
+        // home and traffic UI cannot consume the default selector state.
+        publishRuntimeSnapshot(started.copy(phase = RuntimePhase.Starting))
         startTrafficPolling()
         // The service emits profileLoaded after selection restoration and its
         // runtime snapshot refresh. Waiting for that event avoids a duplicate
         // startup-wide refresh immediately after clashStarted.
+    }
+
+    private suspend fun handleRuntimeProfileLoaded() {
+        refreshAllSafely()
+        val snapshot = runtimeSnapshot.value
+        if (snapshot.phase == RuntimePhase.Starting || snapshot.phase == RuntimePhase.Running) {
+            publishRuntimeSnapshot(snapshot.copy(phase = RuntimePhase.Running))
+        }
     }
 
     private suspend fun handleRuntimeStopped(reason: String?) {
@@ -1116,7 +1130,9 @@ class ProxyFacade(
     }
 
     private suspend fun refreshAllSafely(includeTraffic: Boolean = true) {
-        if (runtimeSnapshot.value.phase != RuntimePhase.Running) {
+        if (runtimeSnapshot.value.phase != RuntimePhase.Running &&
+            runtimeSnapshot.value.phase != RuntimePhase.Starting
+        ) {
             return
         }
         runCatching { refreshAll(includeTraffic = includeTraffic) }
