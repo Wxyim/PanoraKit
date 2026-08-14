@@ -277,10 +277,8 @@ class AppIdentityResolver(context: Context) {
         }
 
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
-        return if (uid != null) {
-            metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
-                ?.let { "UID $it" }.orEmpty()
-        }.ifBlank { UNKNOWN_APP_NAME }
+        if (uid != null) return "UID $uid"
+        return UNKNOWN_APP_NAME
     }
 
     companion object {
