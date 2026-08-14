@@ -20,6 +20,8 @@
 package com.github.nomadboxlab.monadbox.runtime.client
 
 import android.content.Context
+import java.net.InetAddress
+import java.net.NetworkInterface
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -59,11 +61,13 @@ class AppIdentityResolver(context: Context) {
                 "dns-name",
                 "dns_name",
             )
+        val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
         return resolve(
             explicitPackageName = explicitPackageName,
             processName = processName,
             uid = uid,
             fallbackHost = fallbackHost,
+            fallbackSourceIp = sourceIp,
         )
     }
 
@@ -72,6 +76,7 @@ class AppIdentityResolver(context: Context) {
         processName: String,
         uid: Int?,
         fallbackHost: String = "",
+        fallbackSourceIp: String = "",
     ): AppIdentity {
         val cacheKey = buildString {
             append(explicitPackageName)
@@ -79,12 +84,15 @@ class AppIdentityResolver(context: Context) {
             append(processName)
             append('|')
             append(uid ?: "")
+            append('|')
+            append(fallbackSourceIp)
         }
         packageCache[cacheKey]?.let {
             return it
         }
 
-        val identity = resolveIdentity(explicitPackageName, processName, uid, fallbackHost)
+        val identity =
+            resolveIdentity(explicitPackageName, processName, uid, fallbackHost, fallbackSourceIp)
 
         // Cache only a confirmed installed package. UID/process fallbacks can
         // be produced while the VPN's first UID lookup is still warming up;
@@ -100,6 +108,7 @@ class AppIdentityResolver(context: Context) {
         processName: String,
         uid: Int?,
         fallbackHost: String,
+        fallbackSourceIp: String,
     ): AppIdentity {
         val packageName =
             findInstalledPackage(explicitPackageName)
@@ -118,6 +127,12 @@ class AppIdentityResolver(context: Context) {
                     appKey = "package-hint:$explicitPackageName",
                     packageName = explicitPackageName,
                     appName = explicitPackageName,
+                )
+            isRemoteSourceAddress(fallbackSourceIp) ->
+                AppIdentity(
+                    appKey = "remote:$fallbackSourceIp",
+                    packageName = null,
+                    appName = "$HOTSPOT_DEVICE_PREFIX · $fallbackSourceIp",
                 )
             uid != null && uid > 0 ->
                 AppIdentity(
@@ -251,9 +266,18 @@ class AppIdentityResolver(context: Context) {
 
     /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
     fun resolveFallbackDisplayName(metadata: JsonObject): String {
-        return metadata.firstNonBlankValue(
+        val processName = metadata.firstNonBlankValue(
             "process", "processName", "process-name", "process_name", "appProcess",
-        ).ifBlank {
+        )
+        if (processName.isNotBlank()) return processName
+
+        val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
+        if (isRemoteSourceAddress(sourceIp)) {
+            return "$HOTSPOT_DEVICE_PREFIX · $sourceIp"
+        }
+
+        val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
+        return if (uid != null) {
             metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
                 ?.let { "UID $it" }.orEmpty()
         }.ifBlank { UNKNOWN_APP_NAME }
@@ -262,8 +286,47 @@ class AppIdentityResolver(context: Context) {
     companion object {
         const val UNKNOWN_APP_KEY = "unknown"
         const val UNKNOWN_APP_NAME = "Unknown App"
+        private const val HOTSPOT_DEVICE_PREFIX = "Hotspot Device"
     }
 }
+
+private fun isRemoteSourceAddress(raw: String): Boolean {
+    val value = raw.trim()
+    if (value.isBlank() || value.equals("unknown", ignoreCase = true)) return false
+    val address =
+        runCatching { InetAddress.getByName(value.substringBefore('%')) }.getOrNull()
+            ?: return false
+    if (address.isLoopbackAddress || address.isAnyLocalAddress || address.isLinkLocalAddress) {
+        return false
+    }
+
+    val localAddresses = localAddressSnapshot()
+    return address.hostAddress.substringBefore('%') !in localAddresses
+}
+
+private val localAddressCacheLock = Any()
+private var localAddressCache = emptySet<String>()
+private var localAddressCacheAt = 0L
+
+private fun localAddressSnapshot(): Set<String> {
+    val now = System.currentTimeMillis()
+    synchronized(localAddressCacheLock) {
+        if (now - localAddressCacheAt < LOCAL_ADDRESS_CACHE_TTL_MS) {
+            return localAddressCache
+        }
+        localAddressCache =
+            runCatching {
+                NetworkInterface.getNetworkInterfaces().toList()
+                    .flatMap { networkInterface -> networkInterface.inetAddresses.toList() }
+                    .map { it.hostAddress.substringBefore('%') }
+                    .toSet()
+            }.getOrDefault(emptySet())
+        localAddressCacheAt = now
+        return localAddressCache
+    }
+}
+
+private const val LOCAL_ADDRESS_CACHE_TTL_MS = 2_000L
 
 private fun JsonObject.firstNonBlankValue(vararg keys: String): String {
     keys.forEach { key ->
