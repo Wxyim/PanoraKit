@@ -840,7 +840,16 @@ class SessionRuntime(
     private fun startInstalledAppsPublisher() {
         val publisher =
             installedAppsPublisher
-                ?: RuntimeInstalledAppsPublisher(host.context, scope).also {
+                ?: RuntimeInstalledAppsPublisher(
+                    context = host.context,
+                    scope = scope,
+                    queryRootMappings =
+                        host.mode == com.github.nomadboxlab.monadbox.data.model.ProxyMode.RootTun,
+                ).also {
+                    // Local VPN/HTTP sessions must not initialize the root
+                    // shell just to build an optional UID map. On ordinary
+                    // devices that shell startup can dominate VPN startup;
+                    // PackageManager plus the per-UID fallback is sufficient.
                     installedAppsPublisher = it
                 }
         publisher.start()

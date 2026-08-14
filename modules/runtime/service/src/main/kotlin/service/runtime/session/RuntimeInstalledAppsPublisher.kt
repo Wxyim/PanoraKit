@@ -37,7 +37,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-internal class RuntimeInstalledAppsPublisher(context: Context, private val scope: CoroutineScope) {
+internal class RuntimeInstalledAppsPublisher(
+    context: Context,
+    private val scope: CoroutineScope,
+    private val queryRootMappings: Boolean,
+) {
     private val appContext = context.applicationContext
     private var receiver: BroadcastReceiver? = null
     private var publishJob: Job? = null
@@ -180,11 +184,15 @@ internal class RuntimeInstalledAppsPublisher(context: Context, private val scope
 
     private fun resolveMappings(): List<Pair<Int, String>> {
         val rootMappings =
-            RootPackageShell.queryPackageUidMap()
-                ?.takeIf { it.isNotEmpty() }
-                ?.let(InstalledAppUidMappings::fromRootPackageUidMap)
-                ?.takeIf { it.isNotEmpty() }
-                .orEmpty()
+            if (queryRootMappings) {
+                RootPackageShell.queryPackageUidMap()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(InstalledAppUidMappings::fromRootPackageUidMap)
+                    ?.takeIf { it.isNotEmpty() }
+                    .orEmpty()
+            } else {
+                emptyList()
+            }
         if (rootMappings.isNotEmpty()) {
             Timber.d(
                 "RuntimeInstalledAppsPublisher: root shell returned %s entries",
