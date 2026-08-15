@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import com.github.nomadboxlab.monadbox.domain.app.AppInfo
 import com.github.nomadboxlab.monadbox.presentation.component.Card
 import com.github.nomadboxlab.monadbox.presentation.component.ConfigSettingRow
@@ -111,8 +112,10 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                                     appInfo.versionName,
                                     appInfo.mihomoVersion,
                                 ),
+                            modifier = Modifier.padding(horizontal = spacing.lg),
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            textAlign = TextAlign.Center,
                         )
 
                         Spacer(modifier = Modifier.height(spacing.xxxl))
