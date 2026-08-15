@@ -92,6 +92,7 @@ function Update-KernelProperties {
     $lines = Get-Content -Path $kernelProperties -ErrorAction Stop
     $seenRepo = $false
     $seenBranch = $false
+    $seenCommit = $false
     $seenSuffix = $false
     $updated = New-Object System.Collections.Generic.List[string]
 
@@ -104,6 +105,11 @@ function Update-KernelProperties {
         if ($line -like "external.mihomo.branch=*") {
             $updated.Add("external.mihomo.branch=$releaseTag")
             $seenBranch = $true
+            continue
+        }
+        if ($line -like "external.mihomo.commit=*") {
+            $updated.Add("external.mihomo.commit=$($releaseRevision.Substring(0, 7))")
+            $seenCommit = $true
             continue
         }
         if ($line -like "external.mihomo.suffix=*") {
@@ -119,6 +125,9 @@ function Update-KernelProperties {
     }
     if (-not $seenBranch) {
         $updated.Add("external.mihomo.branch=$releaseTag")
+    }
+    if (-not $seenCommit) {
+        $updated.Add("external.mihomo.commit=$($releaseRevision.Substring(0, 7))")
     }
     if (-not $seenSuffix) {
         $updated.Add("external.mihomo.suffix=$versionSuffix")

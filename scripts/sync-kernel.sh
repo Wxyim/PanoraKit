@@ -80,11 +80,16 @@ resolve_release_revision() {
   fi
 }
 
+release_commit_short() {
+  printf '%s' "$RELEASE_REVISION" | cut -c1-7
+}
+
 update_kernel_properties() {
   tmp_file="$KERNEL_PROPERTIES.tmp.$$"
   : > "$tmp_file"
   seen_repo=0
   seen_branch=0
+  seen_commit=0
   seen_suffix=0
 
   while IFS= read -r line || [ -n "$line" ]; do
@@ -96,6 +101,10 @@ update_kernel_properties() {
       external.mihomo.branch=*)
         echo "external.mihomo.branch=$RELEASE_TAG" >> "$tmp_file"
         seen_branch=1
+        ;;
+      external.mihomo.commit=*)
+        echo "external.mihomo.commit=$(release_commit_short)" >> "$tmp_file"
+        seen_commit=1
         ;;
       external.mihomo.suffix=*)
         echo "external.mihomo.suffix=$VERSION_SUFFIX" >> "$tmp_file"
@@ -112,6 +121,9 @@ update_kernel_properties() {
   fi
   if [ "$seen_branch" -eq 0 ]; then
     echo "external.mihomo.branch=$RELEASE_TAG" >> "$tmp_file"
+  fi
+  if [ "$seen_commit" -eq 0 ]; then
+    echo "external.mihomo.commit=$(release_commit_short)" >> "$tmp_file"
   fi
   if [ "$seen_suffix" -eq 0 ]; then
     echo "external.mihomo.suffix=$VERSION_SUFFIX" >> "$tmp_file"

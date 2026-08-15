@@ -50,8 +50,15 @@ val kernelProperties =
         }
     }
 val mihomoVersion =
-    kernelProperties.getProperty("external.mihomo.branch")?.trim()?.takeIf { it.isNotEmpty() }
-        ?: "unknown"
+    buildString {
+        append(
+            kernelProperties.getProperty("external.mihomo.branch")?.trim()
+                ?.takeIf { it.isNotEmpty() } ?: "unknown"
+        )
+        kernelProperties.getProperty("external.mihomo.commit")?.trim()
+            ?.takeIf { it.isNotEmpty() && it != "unknown" }
+            ?.let { append('-').append(it) }
+    }
 
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
