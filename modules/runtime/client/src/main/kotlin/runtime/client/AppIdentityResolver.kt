@@ -299,7 +299,8 @@ private fun isRemoteSourceAddress(raw: String): Boolean {
     }
 
     val localAddresses = localAddressSnapshot()
-    return address.hostAddress.substringBefore('%') !in localAddresses
+    val hostAddress = address.hostAddress ?: return false
+    return hostAddress.substringBefore('%') !in localAddresses
 }
 
 private val localAddressCacheLock = Any()
@@ -316,7 +317,7 @@ private fun localAddressSnapshot(): Set<String> {
             runCatching {
                 NetworkInterface.getNetworkInterfaces().toList()
                     .flatMap { networkInterface -> networkInterface.inetAddresses.toList() }
-                    .map { it.hostAddress.substringBefore('%') }
+                    .mapNotNull { it.hostAddress?.substringBefore('%') }
                     .toSet()
             }.getOrDefault(emptySet())
         localAddressCacheAt = now
