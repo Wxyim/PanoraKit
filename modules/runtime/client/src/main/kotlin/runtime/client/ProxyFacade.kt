@@ -477,8 +477,8 @@ class ProxyFacade(
                 stopProxyInternal(targetMode = mode)
             }
 
-            synchronized(runtimeTransitionLock) {
-                val generation = runtimeState.nextGeneration()
+            val generation = synchronized(runtimeTransitionLock) {
+                val nextGeneration = runtimeState.nextGeneration()
 
                 val keepPreviewGroups = runtimeState.canKeepProxyGroupsFor(activeProfile)
                 runtimeState.clearRuntimePayload(resetGroups = !keepPreviewGroups)
@@ -495,9 +495,10 @@ class ProxyFacade(
                         profileUuid = activeProfile.uuid.toString(),
                         profileName = activeProfile.name,
                         startedAt = System.currentTimeMillis(),
-                        generation = generation,
+                        generation = nextGeneration,
                     )
                 )
+                nextGeneration
             }
 
             try {
