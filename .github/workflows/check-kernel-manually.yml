@@ -159,27 +159,20 @@ jobs:
       - name: Update CA certificates
         run: |
           set -euo pipefail
-          run_as_root() {
-            if [ "$(id -u)" -eq 0 ]; then
-              "$@"
-            elif sudo -n true 2>/dev/null; then
-              sudo "$@"
-            else
-              return 1
-            fi
-          }
-          if run_as_root true; then
-            run_as_root apt-get update
-            run_as_root apt-get install -y ca-certificates
-            run_as_root update-ca-certificates
-          elif [ -f /etc/ssl/certs/ca-certificates.crt ]; then
-            echo "Using existing system CA bundle."
-          else
-            echo "::error::Cannot refresh CA certificates and no system bundle present"
+          
+          CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+          
+          if [ ! -f "$CA_BUNDLE" ]; then
+            echo "::error::System CA bundle not found: $CA_BUNDLE"
             exit 1
           fi
+          
+          echo "Using system CA bundle: $CA_BUNDLE"
+          ls -lh "$CA_BUNDLE"
+          
           mkdir -p modules/core/src/foss/golang/mihomo/component/ca
-          cp -f /etc/ssl/certs/ca-certificates.crt modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+          cp -f "$CA_BUNDLE" \
+            modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
       - name: Sync kernel
         run: |
