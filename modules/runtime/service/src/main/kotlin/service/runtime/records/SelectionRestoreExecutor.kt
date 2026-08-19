@@ -29,7 +29,7 @@ import java.util.*
 import kotlinx.coroutines.delay
 
 internal object SelectionRestoreExecutor {
-    private const val queryRetryCount = 3
+    private const val queryRetryCount = 8
     private const val queryRetryDelayMs = 150L
 
     suspend fun restore(profileUuid: UUID, selections: List<Selection>, tag: String) {
@@ -43,19 +43,37 @@ internal object SelectionRestoreExecutor {
                 return@forEach
             }
 
-            val group = queryGroupWithRetry(groupName)
+            // A selector restore may run while proxy providers are still
+            // resolving. Do not treat an empty proxy list as an invalid
+            // selection and delete the user's choice in that window.
+            if (!isStillSelected(profileUuid, selection)) {
+                return@forEach
+            }
+
+            val group = queryGroupWithRetry(groupName, targetNode)
             if (group == null) {
                 Log.w("$tag restore selector query failed: profile=$profileUuid group=$groupName")
                 return@forEach
             }
 
             val currentNodes =
-                group
-                    ?.proxies
-                    ?.mapNotNull { proxy -> proxy.name.trim().takeIf { it.isNotEmpty() } }
-                    .orEmpty()
+                group.proxies.mapNotNull { proxy -> proxy.name.trim().takeIf { it.isNotEmpty() } }
+            if (currentNodes.isEmpty()) {
+                Log.w(
+                    "$tag restore selector deferred: profile=$profileUuid group=$groupName " +
+                        "node=$targetNode providers not ready"
+                )
+                return@forEach
+            }
             if (targetNode !in currentNodes) {
-                removedAny = clearInvalidSelection(profileUuid, selection, tag) || removedAny
+                // A provider may expose a partial list while it is still
+                // downloading. Keeping the durable choice is safer than
+                // deleting it; a later refresh/start can restore it once the
+                // provider exposes the node.
+                Log.w(
+                    "$tag restore selector deferred: profile=$profileUuid group=$groupName " +
+                        "node=$targetNode not present in current provider snapshot"
+                )
                 return@forEach
             }
 
@@ -66,6 +84,12 @@ internal object SelectionRestoreExecutor {
                 return@forEach
             }
 
+            // The proxy page can be used while this background restore is in
+            // flight. Re-check the durable value immediately before patching
+            // so an old restore task cannot overwrite a newer user choice.
+            if (!isStillSelected(profileUuid, selection)) {
+                return@forEach
+            }
             if (!patchSelectorWithRetry(groupName, targetNode)) {
                 Log.w(
                     "$tag restore selector patch failed: profile=$profileUuid group=$groupName node=$targetNode"
@@ -80,18 +104,29 @@ internal object SelectionRestoreExecutor {
     }
 
     private suspend fun queryGroupWithRetry(
-        group: String
+        group: String,
+        targetNode: String,
     ): com.github.nomadboxlab.monadbox.core.model.ProxyGroup? {
+        var lastResult: com.github.nomadboxlab.monadbox.core.model.ProxyGroup? = null
         repeat(queryRetryCount) { attempt ->
             val result = runCatching { Clash.queryGroup(group, ProxySort.Default) }.getOrNull()
-            if (result != null) {
+            lastResult = result
+            val targetVisible =
+                result?.proxies?.any { proxy -> proxy.name.trim() == targetNode } == true
+            if (result != null && (targetVisible || result.now.trim() == targetNode)) {
                 return result
             }
             if (attempt < queryRetryCount - 1) {
                 delay(queryRetryDelayMs)
             }
         }
-        return null
+        return lastResult
+    }
+
+    private fun isStillSelected(profileUuid: UUID, selection: Selection): Boolean {
+        return SelectionDao.querySelections(profileUuid).any {
+            it.proxy == selection.proxy && it.selected == selection.selected
+        }
     }
 
     private suspend fun patchSelectorWithRetry(group: String, node: String): Boolean {

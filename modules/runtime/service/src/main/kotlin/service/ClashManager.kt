@@ -34,6 +34,7 @@ import com.github.nomadboxlab.monadbox.service.remote.ILogObserver
 import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionPresentation
 import com.github.nomadboxlab.monadbox.service.runtime.session.CompiledConfigPipeline
 import com.github.nomadboxlab.monadbox.service.runtime.session.SessionRuntimeSpecFactory
 import com.github.nomadboxlab.monadbox.service.runtime.util.runSuspendBlocking
@@ -100,7 +101,18 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot {
         if (!StatusProvider.serviceRunning) return RuntimeDataSnapshot()
-        return Clash.queryRuntimeSnapshot()
+        val snapshot = Clash.queryRuntimeSnapshot()
+        val profileUuid = store.activeProfile ?: return snapshot
+        snapshot.proxyGroups.forEach { group ->
+            syncSelectionSnapshotSafely(group.name, group)
+        }
+        return snapshot.copy(
+            proxyGroups =
+                SelectionPresentation.apply(
+                    snapshot.proxyGroups,
+                    SelectionDao.querySelections(profileUuid),
+                )
+        )
     }
 
     override fun queryConnections(): ConnectionSnapshot {
@@ -138,14 +150,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         // Overlay persisted selections so the UI reflects manual choices even
         // when the core is not running (preview mode). The overlay is applied
         // here rather than in the client so that every call site benefits.
-        val selections = SelectionDao.querySelections(profileUuid)
-        if (selections.isEmpty()) return groups
-        val selectionsByGroup = selections.associateBy { it.proxy }
-
-        return groups.map { group ->
-            val persisted = selectionsByGroup[group.name]
-            if (persisted != null) group.copy(now = persisted.selected) else group
-        }
+        return SelectionPresentation.apply(groups, SelectionDao.querySelections(profileUuid))
     }
 
     override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
@@ -162,51 +167,24 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 }
             }
         }
-        val selections =
-            if (current != null) {
-                SelectionDao.querySelections(current).associateBy { it.proxy }
-            } else {
-                emptyMap()
-            }
         val groups = Clash.queryGroups(excludeNotSelectable, ProxySort.Default).map { group ->
-            group.also {
-                syncSelectionSnapshotSafely(group.name, it)
-            }.let { group ->
-                // Overlay persisted selections so the UI shows the correct node
-                // immediately, even before the async patch from syncSelectionSnapshotSafely
-                // takes effect. This mirrors queryProfileProxyGroups() overlay logic.
-                //
-                // When proxy-providers haven't resolved yet (proxies list is empty),
-                // trust the persisted selection anyway to avoid a flash from empty
-                // to the eventual node. Once the provider resolves, the regular
-                // validity check kicks in.
-                val persisted = selections[group.name]
-                if (persisted != null) {
-                    val nodeName = persisted.selected.trim()
-                    if (nodeName.isEmpty()) return@let group
-                    val isValid =
-                        if (group.proxies.isEmpty()) {
-                            // Provider not yet resolved — trust persisted selection
-                            true
-                        } else {
-                            group.proxies.any { it.name.trim() == nodeName }
-                        }
-                    if (isValid) group.copy(now = nodeName) else group
-                } else {
-                    group
-                }
-            }
+            group.also { syncSelectionSnapshotSafely(it.name, it) }
         }
+        val presentedGroups =
+            SelectionPresentation.apply(
+                groups,
+                current?.let { SelectionDao.querySelections(it) }.orEmpty(),
+            )
         synchronized(proxyGroupCacheLock) {
             proxyGroupCache =
                 ProxyGroupCache(
                     profile = current?.toString(),
                     excludeNotSelectable = excludeNotSelectable,
                     createdAt = android.os.SystemClock.elapsedRealtime(),
-                    groups = groups,
+                    groups = presentedGroups,
                 )
         }
-        return groups
+        return presentedGroups
     }
 
     override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
@@ -214,9 +192,16 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
-        return Clash.queryGroup(name, proxySort).also { group ->
-            syncSelectionSnapshotSafely(name, group)
+        val group = Clash.queryGroup(name, proxySort).let { raw ->
+            syncSelectionSnapshotSafely(name, raw)
+            val profileUuid = store.activeProfile ?: return@let raw
+            SelectionPresentation.apply(
+                    listOf(raw),
+                    SelectionDao.querySelections(profileUuid),
+                )
+                .first()
         }
+        return group
     }
 
     override fun queryConfiguration(): UiConfiguration {
@@ -228,21 +213,24 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun patchSelector(group: String, name: String): Boolean {
-        val ok = Clash.patchSelector(group, name)
-        invalidateProxyGroupCache()
         val current = store.activeProfile
+        if (current != null && !StatusProvider.serviceRunning) {
+            // Preview selections must be durable even though mihomo is not
+            // initialized yet. Persist before touching the native bridge so a
+            // bridge call cannot make a valid UI selection disappear.
+            SelectionDao.setSelected(Selection(current, group, name))
+            externalCandidates.remove(selectionKey(current.toString(), group))
+            invalidateProxyGroupCache()
+            runCatching { Clash.patchSelector(group, name) }
+            return true
+        }
+
+        val ok = runCatching { Clash.patchSelector(group, name) }.getOrDefault(false)
+        invalidateProxyGroupCache()
         if (current == null) return ok
 
         if (ok) {
             SelectionDao.setSelected(Selection(current, group, name))
-            externalCandidates.remove(selectionKey(current.toString(), group))
-        } else if (!StatusProvider.serviceRunning) {
-            // Core not running — persist selection so it applies when VPN starts.
-            SelectionDao.setSelected(Selection(current, group, name))
-            externalCandidates.remove(selectionKey(current.toString(), group))
-            return true
-        } else {
-            SelectionDao.remove(current, group)
             externalCandidates.remove(selectionKey(current.toString(), group))
         }
         return ok
@@ -314,6 +302,12 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         }
         if (remembered == node) {
             externalCandidates.remove(key)
+            return
+        }
+        // A provider-backed group can expose a transient/partial snapshot
+        // while it is resolving. Never interpret that snapshot as an external
+        // user selection or overwrite the durable choice with it.
+        if (proxyGroup.proxies.isEmpty()) {
             return
         }
         if (fallbackNode.isNotEmpty() && node == fallbackNode) {

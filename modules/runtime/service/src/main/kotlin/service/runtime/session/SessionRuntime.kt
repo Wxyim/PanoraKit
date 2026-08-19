@@ -28,7 +28,9 @@ import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.service.ServiceNetworkObserver
 import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
+import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionPresentation
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionRestoreExecutor
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionRestoreScope
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
@@ -61,6 +63,7 @@ class SessionRuntime(
     private var networkObserver: ServiceNetworkObserver? = null
     private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
+    private var selectionRestoreJob: Job? = null
 
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
     private val runtimeSnapshotLock = Any()
@@ -239,7 +242,7 @@ class SessionRuntime(
         return RuntimeDataSnapshot(
             configuration = snapshot.configuration,
             providers = snapshot.providers,
-            proxyGroups = snapshot.proxyGroups,
+            proxyGroups = SelectionPresentation.apply(snapshot.proxyGroups, persistedSelections()),
             trafficNow = snapshot.trafficNow,
             trafficTotal = snapshot.trafficTotal,
         )
@@ -285,12 +288,13 @@ class SessionRuntime(
                         ensureRuntimeSnapshot().proxyGroups
                     }
                 }
+        val presentedGroups = SelectionPresentation.apply(groups, persistedSelections())
         synchronized(runtimeSnapshotLock) {
-            runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = groups)
+            runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = presentedGroups)
             proxyGroupsCachedAt = SystemClock.elapsedRealtime()
         }
-        publishSnapshot(currentSnapshot.copy(groupsReady = groups.isNotEmpty()))
-        return groups
+        publishSnapshot(currentSnapshot.copy(groupsReady = presentedGroups.isNotEmpty()))
+        return presentedGroups
     }
 
     fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
@@ -303,7 +307,12 @@ class SessionRuntime(
         if (currentSnapshot.phase != RuntimePhase.Running) {
             error("runtime not running")
         }
-        val group = Clash.queryGroup(name, proxySort)
+        val group =
+            SelectionPresentation.apply(
+                    listOf(Clash.queryGroup(name, proxySort)),
+                    persistedSelections(),
+                )
+                .first()
         if (proxySort == ProxySort.Default && group.name.isNotBlank()) {
             synchronized(runtimeSnapshotLock) {
                 val groups = runtimeSnapshot.proxyGroups
@@ -333,11 +342,24 @@ class SessionRuntime(
     }
 
     fun patchSelector(group: String, name: String): Boolean {
-        return Clash.patchSelector(group, name).also { patched ->
-            if (patched && currentSnapshot.phase == RuntimePhase.Running) {
-                refreshRuntimeSnapshot()
+        val patched = Clash.patchSelector(group, name)
+        if (!patched) return false
+
+        currentSnapshot.profileUuid
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?.let { profileUuid ->
+                SelectionDao.setSelected(
+                    Selection(
+                        uuid = profileUuid,
+                        proxy = group,
+                        selected = name,
+                    )
+                )
             }
+        if (currentSnapshot.phase == RuntimePhase.Running) {
+            refreshRuntimeSnapshot()
         }
+        return true
     }
 
     fun closeConnection(id: String): Boolean {
@@ -485,6 +507,13 @@ class SessionRuntime(
         )
         host.onStarted(spec)
 
+        // Provider-backed groups can become queryable slightly after the
+        // transport is up. Reconcile persisted selectors in the background so
+        // startup remains fast while the actual core state converges. Runtime
+        // reads project the persisted value during this transition, avoiding a
+        // flash back to the config's first node.
+        scheduleSelectionRestore(spec)
+
         startObservers()
         notifyRuntimeSideEffects()
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
@@ -515,6 +544,8 @@ class SessionRuntime(
 
     private suspend fun reloadInternal(spec: RuntimeSpec) {
         check(currentSpec != null) { "runtime not started" }
+        selectionRestoreJob?.cancel()
+        selectionRestoreJob = null
         publishSnapshot(
             currentSnapshot.copy(
                 phase = RuntimePhase.Starting,
@@ -531,6 +562,7 @@ class SessionRuntime(
         notifyRuntimeSideEffects()
         awaitProxyGroupsReady(spec)
         restoreSelections(spec)
+        scheduleSelectionRestore(spec)
         currentSpec = spec
         refreshRuntimeSnapshotWithLog(spec)
         publishSnapshot(
@@ -576,6 +608,8 @@ class SessionRuntime(
             )
         )
         stopLogStream()
+        selectionRestoreJob?.cancel()
+        selectionRestoreJob = null
         stopInstalledAppsPublisher()
         stopObservers()
         runCatching { transport.stop() }
@@ -596,6 +630,8 @@ class SessionRuntime(
     }
 
     private fun rollback(spec: RuntimeSpec, failure: RuntimeFailure) {
+        selectionRestoreJob?.cancel()
+        selectionRestoreJob = null
         stopLogStream()
         stopInstalledAppsPublisher()
         stopObservers()
@@ -818,6 +854,34 @@ class SessionRuntime(
             selections = restoreResult.selections,
             tag = spec.owner.name,
         )
+    }
+
+    private fun scheduleSelectionRestore(spec: RuntimeSpec) {
+        selectionRestoreJob?.cancel()
+        selectionRestoreJob =
+            scope.launch(Dispatchers.IO) {
+                runCatching {
+                    // Provider lists can settle after the runtime itself is
+                    // ready. A short background convergence window handles
+                    // that without extending the VPN start critical path.
+                    repeat(6) { attempt ->
+                        restoreSelections(spec)
+                        if (attempt < 5) delay(500L)
+                    }
+                }
+                    .onFailure { error ->
+                        if (error is CancellationException) throw error
+                        Timber.w(error, "Startup selector restore skipped")
+                    }
+            }
+    }
+
+    private fun persistedSelections(): List<Selection> {
+        val profileUuid =
+            currentSnapshot.profileUuid
+                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                ?: return emptyList()
+        return SelectionDao.querySelections(profileUuid)
     }
 
     private fun startObservers() {
