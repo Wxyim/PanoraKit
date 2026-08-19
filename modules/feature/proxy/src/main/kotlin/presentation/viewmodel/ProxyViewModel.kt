@@ -30,6 +30,7 @@ import com.github.nomadboxlab.monadbox.data.repository.OverrideRepository
 import com.github.nomadboxlab.monadbox.data.store.ProxyDisplaySettingsStore
 import com.github.nomadboxlab.monadbox.domain.model.*
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyGroupsLoadState
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeControlCoordinator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds
@@ -118,6 +119,7 @@ class ProxyViewModel(
         )
 
     val allProxyGroups: StateFlow<List<ProxyGroupInfo>> = proxyFacade.proxyGroups
+    val proxyGroupsLoadState: StateFlow<ProxyGroupsLoadState> = proxyFacade.proxyGroupsLoadState
 
     private val hiddenGroupNames: StateFlow<Set<String>> =
         allProxyGroups
@@ -142,7 +144,6 @@ class ProxyViewModel(
 
     private var screenActive = false
     private var externalSelectionSyncJob: Job? = null
-    private var previewSyncJob: Job? = null
     private var tunnelModeSyncJob: Job? = null
 
     init {
@@ -199,32 +200,11 @@ class ProxyViewModel(
         screenActive = isActive
         if (isActive) {
             startExternalSelectionSync()
-            startPreviewSync()
             startTunnelModeSync()
         } else {
             stopExternalSelectionSync()
-            stopPreviewSync()
             stopTunnelModeSync()
         }
-    }
-
-    private fun startPreviewSync() {
-        if (previewSyncJob?.isActive == true) return
-        previewSyncJob =
-            viewModelScope.launch {
-                while (true) {
-                    if (!proxyFacade.isRunning.value) {
-                        runCatching { proxyFacade.refreshProxyGroups() }
-                            .onFailure { error -> if (error is CancellationException) throw error }
-                    }
-                    delay(PROXY_REFRESH_PREVIEW_MS.milliseconds)
-                }
-            }
-    }
-
-    private fun stopPreviewSync() {
-        previewSyncJob?.cancel()
-        previewSyncJob = null
     }
 
     fun patchMode(mode: TunnelState.Mode) {

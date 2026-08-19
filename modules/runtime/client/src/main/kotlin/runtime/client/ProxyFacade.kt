@@ -135,7 +135,7 @@ private class ProxyFacadeEventBus(
     private val actions: RuntimeEventActions,
     private val onClashStarted: () -> Unit,
     private val onClashStopped: (String?) -> Unit,
-    private val onProfileLoaded: () -> Unit,
+    private val onProfileLoaded: (String?) -> Unit,
     private val onRefreshRequested: () -> Unit,
     private val onRootRuntimeFailed: (String, String?) -> Unit,
 ) {
@@ -148,7 +148,8 @@ private class ProxyFacadeEventBus(
                     actions.clashStarted -> onClashStarted()
                     actions.clashStopped ->
                         onClashStopped(intent.getStringExtra(Intents.EXTRA_STOP_REASON))
-                    actions.profileLoaded -> onProfileLoaded()
+                    actions.profileLoaded ->
+                        onProfileLoaded(intent.getStringExtra(Intents.EXTRA_UUID))
                     actions.profileChanged,
                     actions.overrideChanged,
                     actions.serviceRecreated -> onRefreshRequested()
@@ -340,6 +341,7 @@ class ProxyFacade(
     val runtimeSnapshot: StateFlow<RuntimeSnapshot> = runtimeState.runtimeSnapshot
     val isRunning: StateFlow<Boolean> = runtimeState.isRunning
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> = runtimeState.proxyGroups
+    val proxyGroupsLoadState: StateFlow<ProxyGroupsLoadState> = runtimeState.proxyGroupsLoadState
     val currentProfile: StateFlow<Profile?> = runtimeState.currentProfile
     val trafficNow: StateFlow<Traffic> = runtimeState.trafficNow
     val trafficTotal: StateFlow<Traffic> = runtimeState.trafficTotal
@@ -360,21 +362,27 @@ class ProxyFacade(
         )
     val proxySelectionEvents: SharedFlow<String> = _proxySelectionEvents.asSharedFlow()
 
-    private val previewCache = ProxyFacadePreviewCache()
+    private val previewCache =
+        ProxyFacadePreviewCache(appContext.filesDir.resolve("proxy-groups-preview.json"))
     private val powerManager by lazy {
         appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
     }
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
+    private val refreshFlightMutex = Mutex()
+    private var refreshInFlight: Deferred<Unit>? = null
     private val operationMutex = Mutex()
+    private val runtimeTransitionLock = Any()
     private val eventBus =
         ProxyFacadeEventBus(
             appContext = appContext,
             actions = actions,
             onClashStarted = { scope.launch { handleRuntimeStarted() } },
             onClashStopped = { reason -> scope.launch { handleRuntimeStopped(reason) } },
-            onProfileLoaded = { scope.launch { handleRuntimeProfileLoaded() } },
+            onProfileLoaded = { profileUuid ->
+                scope.launch { handleRuntimeProfileLoaded(profileUuid) }
+            },
             onRefreshRequested = {
                 scope.launch {
                     if (runtimeSnapshot.value.phase == RuntimePhase.Running) {
@@ -431,7 +439,7 @@ class ProxyFacade(
         if (previewWarmupJob?.isActive == true) return
         previewWarmupJob =
             scope.launch {
-                runCatching { refreshProxyGroups() }
+                runCatching { refreshPreviewStateSafely() }
                     .onFailure { error -> Timber.d(error, "Warm up proxy groups skipped") }
             }
     }
@@ -469,22 +477,28 @@ class ProxyFacade(
                 stopProxyInternal(targetMode = mode)
             }
 
-            val generation = runtimeState.nextGeneration()
+            synchronized(runtimeTransitionLock) {
+                val generation = runtimeState.nextGeneration()
 
-            runtimeState.clearRuntimePayload(resetGroups = true)
-            runtimeState.setCurrentProfile(activeProfile)
-            publishRuntimeSnapshot(
-                RuntimeSnapshot(
-                    owner = targetOwner,
-                    phase = RuntimePhase.Starting,
-                    targetMode = mode,
-                    profileReady = true,
-                    profileUuid = activeProfile.uuid.toString(),
-                    profileName = activeProfile.name,
-                    startedAt = System.currentTimeMillis(),
-                    generation = generation,
+                val keepPreviewGroups = runtimeState.canKeepProxyGroupsFor(activeProfile)
+                runtimeState.clearRuntimePayload(resetGroups = !keepPreviewGroups)
+                if (keepPreviewGroups) {
+                    runtimeState.markProxyGroupsLoading()
+                }
+                runtimeState.setCurrentProfile(activeProfile)
+                publishRuntimeSnapshot(
+                    RuntimeSnapshot(
+                        owner = targetOwner,
+                        phase = RuntimePhase.Starting,
+                        targetMode = mode,
+                        profileReady = true,
+                        profileUuid = activeProfile.uuid.toString(),
+                        profileName = activeProfile.name,
+                        startedAt = System.currentTimeMillis(),
+                        generation = generation,
+                    )
                 )
-            )
+            }
 
             try {
                 when (targetOwner) {
@@ -517,7 +531,7 @@ class ProxyFacade(
     suspend fun stopProxy(mode: ProxyMode? = null) {
         val targetMode = mode ?: networkSettingsStorage.proxyMode.value
         operationMutex.withLock {
-            val generation = runtimeState.nextGeneration()
+            val generation = synchronized(runtimeTransitionLock) { runtimeState.nextGeneration() }
             try {
                 stopProxyInternal(targetMode)
             } catch (e: Exception) {
@@ -698,9 +712,38 @@ class ProxyFacade(
     }
 
     suspend fun refreshProxyGroups(captureObservedGroupNames: Set<String> = emptySet()) {
+        if (captureObservedGroupNames.isEmpty()) {
+            val request =
+                refreshFlightMutex.withLock {
+                    refreshInFlight?.takeIf { it.isActive }
+                        ?: scope.async(Dispatchers.Default) {
+                            refreshProxyGroupsInternal(emptySet())
+                        }.also { refreshInFlight = it }
+                }
+            try {
+                request.await()
+            } finally {
+                refreshFlightMutex.withLock {
+                    if (refreshInFlight === request && request.isCompleted) {
+                        refreshInFlight = null
+                    }
+                }
+            }
+            return
+        }
+
+        refreshProxyGroupsInternal(captureObservedGroupNames)
+    }
+
+    private suspend fun refreshProxyGroupsInternal(
+        captureObservedGroupNames: Set<String>,
+    ) {
         refreshProxyGroupsMutex.withLock {
+            runtimeState.markProxyGroupsLoading()
             val snapshot = runtimeSnapshot.value
             val latencyScopeKey = latencyScopeKey()
+            val profileAtRequest = currentProfile.value
+            var runtimeConfiguration: UiConfiguration? = null
             val groups =
                 withContext(Dispatchers.IO) {
                     try {
@@ -715,6 +758,7 @@ class ProxyFacade(
 
                         connectCurrentBackend()
                         val runtimeData = ServiceClient.clash().queryRuntimeDataSnapshot()
+                        runtimeConfiguration = runtimeData.configuration
                         val rawGroups = runtimeData.proxyGroups
                         if (captureObservedGroupNames.isNotEmpty()) {
                             latencyObservations.bind(latencyScopeKey)
@@ -725,12 +769,7 @@ class ProxyFacade(
                         }
                         val groups = normalizeProxyGroups(rawGroups)
                         latencyObservations.bind(latencyScopeKey)
-                        latencyObservations.merge(
-                            enrichProxyGroupsFromController(
-                                groups,
-                                runtimeData.configuration,
-                            )
-                        )
+                        latencyObservations.merge(groups)
                     } catch (e: ControllerError) {
                         Timber.w(e, "Failed to refresh proxy groups: ${e.message}")
                         null
@@ -743,26 +782,55 @@ class ProxyFacade(
                     }
                 }
 
-            groups?.let {
-                runtimeState.setProxyGroups(it)
-                runtimeState.updateGroupsReady(it.isNotEmpty())
-                previewCache.backfill(
-                    profile = currentProfile.value,
-                    groups = it,
-                    runtimeSnapshot = runtimeSnapshot.value,
-                    rootTunStatus = rootTunStatus.value,
-                )
+            val latestProfile = currentProfile.value
+            if (
+                runtimeSnapshot.value.generation != snapshot.generation ||
+                    latestProfile?.uuid != profileAtRequest?.uuid ||
+                    latestProfile?.updatedAt != profileAtRequest?.updatedAt
+            ) {
+                return
             }
-                ?: previewCache
-                    .fallback(
-                        snapshot = snapshot,
-                        profile = currentProfile.value,
-                        rootTunStatus = rootTunStatus.value,
-                    )
-                    ?.let { cached ->
-                        runtimeState.setProxyGroups(cached)
-                        runtimeState.updateGroupsReady(cached.isNotEmpty())
+
+            when {
+                groups != null && groups.isNotEmpty() -> {
+                    runtimeState.setProxyGroups(groups)
+                    runtimeState.updateGroupsReady(true)
+                    withContext(Dispatchers.IO) {
+                        previewCache.backfill(
+                            profile = currentProfile.value,
+                            groups = groups,
+                            runtimeSnapshot = runtimeSnapshot.value,
+                            rootTunStatus = rootTunStatus.value,
+                        )
                     }
+                    runtimeConfiguration?.let { configuration ->
+                        scheduleProxyGroupMetadataEnrichment(groups, configuration)
+                    }
+                }
+
+                groups != null &&
+                    groups.isEmpty() &&
+                    (snapshot.phase == RuntimePhase.Idle ||
+                        snapshot.phase == RuntimePhase.Failed) -> {
+                    runtimeState.setProxyGroups(emptyList())
+                    runtimeState.updateGroupsReady(false)
+                }
+
+                else -> {
+                    val cached =
+                        previewCache.fallback(
+                            snapshot = snapshot,
+                            profile = currentProfile.value,
+                            rootTunStatus = rootTunStatus.value,
+                        )
+                    if (!cached.isNullOrEmpty()) {
+                        runtimeState.setProxyGroups(cached)
+                        runtimeState.markProxyGroupsLoading()
+                    } else {
+                        runtimeState.markProxyGroupsError()
+                    }
+                }
+            }
         }
     }
 
@@ -794,6 +862,7 @@ class ProxyFacade(
 
     suspend fun refreshAll(includeTraffic: Boolean = true) {
         refreshCurrentProfile()
+        restoreCachedPreviewGroups()
         refreshProxyGroups()
         if (includeTraffic && runtimeSnapshot.value.phase == RuntimePhase.Running) {
             queryTrafficSnapshot()
@@ -870,26 +939,30 @@ class ProxyFacade(
 
     private suspend fun stopProxyInternal(targetMode: ProxyMode) {
         val owner =
-            detectActiveOwner().takeIf { it != RuntimeOwner.None } ?: runtimeSnapshot.value.owner
-        val generation = runtimeState.nextGeneration()
+            synchronized(runtimeTransitionLock) {
+                detectActiveOwner().takeIf { it != RuntimeOwner.None } ?: runtimeSnapshot.value.owner
+            }
+        val generation = synchronized(runtimeTransitionLock) { runtimeState.nextGeneration() }
 
         if (owner == RuntimeOwner.None) {
             transitionToIdle(configuredMode = targetMode, generation = generation, lastError = null)
             return
         }
 
-        publishRuntimeSnapshot(
-            runtimeSnapshot.value.copy(
-                owner = owner,
-                phase = RuntimePhase.Stopping,
-                targetMode = targetMode,
-                profileReady = false,
-                groupsReady = false,
-                trafficReady = false,
-                lastError = null,
-                generation = generation,
+        synchronized(runtimeTransitionLock) {
+            publishRuntimeSnapshot(
+                runtimeSnapshot.value.copy(
+                    owner = owner,
+                    phase = RuntimePhase.Stopping,
+                    targetMode = targetMode,
+                    profileReady = false,
+                    groupsReady = false,
+                    trafficReady = false,
+                    lastError = null,
+                    generation = generation,
+                )
             )
-        )
+        }
 
         triggerStop(owner)
 
@@ -954,12 +1027,12 @@ class ProxyFacade(
             return
         }
 
+        val initialPhase =
+            if (owner == RuntimeOwner.RootTun) rootPhase(rootStatus) else RuntimePhase.Running
         publishRuntimeSnapshot(
             RuntimeSnapshot(
                 owner = owner,
-                phase =
-                    if (owner == RuntimeOwner.RootTun) rootPhase(rootStatus)
-                    else RuntimePhase.Running,
+                phase = initialPhase,
                 targetMode =
                     ProxyFacadeOwnerPolicy.modeForOwner(
                         owner,
@@ -969,6 +1042,8 @@ class ProxyFacade(
                     owner == RuntimeOwner.RootTun && !rootStatus.profileUuid.isNullOrBlank(),
                 profileUuid = rootStatus.profileUuid.takeIf { owner == RuntimeOwner.RootTun },
                 profileName = rootStatus.profileName.takeIf { owner == RuntimeOwner.RootTun },
+                configReady = initialPhase == RuntimePhase.Running,
+                transportReady = initialPhase == RuntimePhase.Running,
                 lastError = if (owner == RuntimeOwner.RootTun) rootStatus.composedError() else null,
                 startedAt = rootStatus.startedAt.takeIf { owner == RuntimeOwner.RootTun },
             )
@@ -1009,88 +1084,150 @@ class ProxyFacade(
     }
 
     private suspend fun handleRuntimeStarted(forceOwner: RuntimeOwner? = null) {
-        val currentSnapshot = runtimeSnapshot.value
         val owner =
-            RuntimeTransitionPolicy.resolveStartedOwner(
-                forceOwner = forceOwner,
-                currentOwner = currentSnapshot.owner,
-                detectedOwner = detectActiveOwner(),
-            )
-        if (owner == RuntimeOwner.None) return
+            synchronized(runtimeTransitionLock) {
+                val currentSnapshot = runtimeSnapshot.value
+                val resolvedOwner =
+                    RuntimeTransitionPolicy.resolveStartedOwner(
+                        forceOwner = forceOwner,
+                        currentOwner = currentSnapshot.owner,
+                        detectedOwner = detectActiveOwner(),
+                    )
+                if (resolvedOwner == RuntimeOwner.None) {
+                    return@synchronized RuntimeOwner.None
+                }
 
-        val started =
-            RuntimeTransitionPolicy.startedSnapshot(
-                currentSnapshot = currentSnapshot,
-                owner = owner,
-                targetMode =
-                    ProxyFacadeOwnerPolicy.modeForOwner(
-                        owner,
-                        networkSettingsStorage.proxyMode.value,
-                    ),
-            )
-        // clashStarted only means that the process/TUN exists. The service
-        // emits profileLoaded after config loading, selector restoration, and
-        // the first runtime snapshot refresh. Keep the client in Starting so
-        // home and traffic UI cannot consume the default selector state.
-        publishRuntimeSnapshot(started.copy(phase = RuntimePhase.Starting))
+                val started =
+                    RuntimeTransitionPolicy.startedSnapshot(
+                        currentSnapshot = currentSnapshot,
+                        owner = resolvedOwner,
+                        targetMode =
+                            ProxyFacadeOwnerPolicy.modeForOwner(
+                                resolvedOwner,
+                                networkSettingsStorage.proxyMode.value,
+                            ),
+                    )
+                // clashStarted only means that the process/TUN exists. Keep the client
+                // in Starting until the service publishes its profile-loaded boundary
+                // after config loading and transport establishment.
+                publishRuntimeSnapshot(started.copy(phase = RuntimePhase.Starting))
+                resolvedOwner
+            }
+        if (owner == RuntimeOwner.None) return
         startTrafficPolling()
-        // The service emits profileLoaded after selection restoration and its
-        // runtime snapshot refresh. Waiting for that event avoids a duplicate
-        // startup-wide refresh immediately after clashStarted.
+        // Payload refresh starts independently after this boundary; it is not
+        // part of the local start receipt.
     }
 
-    private suspend fun handleRuntimeProfileLoaded() {
-        refreshAllSafely()
-        val snapshot = runtimeSnapshot.value
-        if (snapshot.phase == RuntimePhase.Starting || snapshot.phase == RuntimePhase.Running) {
-            publishRuntimeSnapshot(snapshot.copy(phase = RuntimePhase.Running))
+    private suspend fun handleRuntimeProfileLoaded(profileUuid: String?) {
+        val shouldRefresh =
+            synchronized(runtimeTransitionLock) {
+                val snapshot = runtimeSnapshot.value
+                val profileMatches =
+                    profileUuid.isNullOrBlank() ||
+                        snapshot.profileUuid.isNullOrBlank() ||
+                        snapshot.profileUuid == profileUuid
+                if (!profileMatches) {
+                    Timber.d(
+                        "Ignoring profileLoaded for stale profile=%s current=%s",
+                        profileUuid,
+                        snapshot.profileUuid,
+                    )
+                    false
+                } else if (
+                    snapshot.phase == RuntimePhase.Starting ||
+                        snapshot.phase == RuntimePhase.Running
+                ) {
+                    // A profileLoaded callback is only allowed to advance a session
+                    // that is still alive. This closes the stop/profileLoaded race
+                    // where an old callback could resurrect Idle as Running.
+                    val ownerActive = snapshot.owner != RuntimeOwner.None && isOwnerActive(snapshot.owner)
+                    if (!ownerActive) {
+                        val generation = runtimeState.nextGeneration()
+                        transitionToIdle(
+                            configuredMode = networkSettingsStorage.proxyMode.value,
+                            generation = generation,
+                            lastError = null,
+                        )
+                        false
+                    } else {
+                        publishRuntimeSnapshot(
+                            snapshot.copy(
+                                phase = RuntimePhase.Running,
+                                profileReady = true,
+                                profileUuid = profileUuid ?: snapshot.profileUuid,
+                                configReady = true,
+                                transportReady = true,
+                            )
+                        )
+                        true
+                    }
+                } else {
+                    false
+                }
+            }
+        // The service has already crossed the transport/config boundary. Do
+        // not make the start receipt wait for the first full payload query;
+        // refresh it independently and let groupsReady/trafficReady advance
+        // when each piece arrives.
+        if (shouldRefresh) {
+            scope.launch { refreshAllSafely() }
         }
     }
 
     private suspend fun handleRuntimeStopped(reason: String?) {
-        when (resolveRuntimeStopResolution(runtimeSnapshot.value.phase, reason)) {
-            RuntimeStopResolution.IgnoreAsStale -> {
-                Timber.d("handleRuntimeStopped: ignoring stale stop event (phase=Starting)")
-                return
+        synchronized(runtimeTransitionLock) {
+            when (resolveRuntimeStopResolution(runtimeSnapshot.value.phase, reason)) {
+                RuntimeStopResolution.IgnoreAsStale -> {
+                    // A stop without a reason can be an old broadcast delivered
+                    // after a new start entered Starting. Keep the existing policy,
+                    // but do not leave a genuinely dead owner stuck in Starting.
+                    val owner = runtimeSnapshot.value.owner
+                    if (owner == RuntimeOwner.None || isOwnerActive(owner)) {
+                        Timber.d("handleRuntimeStopped: ignoring stale stop event (phase=Starting)")
+                        return@synchronized
+                    }
+                    Timber.w("handleRuntimeStopped: owner is inactive; reconciling Starting to Idle")
+                }
+
+                RuntimeStopResolution.SkipAsRedundant -> {
+                    Timber.d("handleRuntimeStopped: skipping redundant idle transition")
+                    return@synchronized
+                }
+
+                RuntimeStopResolution.TransitionToIdle -> Unit
             }
 
-            RuntimeStopResolution.SkipAsRedundant -> {
-                Timber.d("handleRuntimeStopped: skipping redundant idle transition")
-                return
-            }
-
-            RuntimeStopResolution.TransitionToIdle -> Unit
-        }
-
-        if (!reason.isNullOrBlank()) {
-            _runtimeFailureEvents.tryEmit(
-                RuntimeFailureEvent(reason, networkSettingsStorage.proxyMode.value)
-            )
-        }
-
-        val configuredMode = networkSettingsStorage.proxyMode.value
-        val generation = runtimeState.nextGeneration()
-
-        if (!isRootSessionActive()) {
-            val status = rootTunStateStore.snapshot()
-            if (status.state.isActive) {
-                rootTunStateStore.markIdle(
-                    error = reason ?: status.lastError,
-                    errorCode = status.lastErrorCode,
+            if (!reason.isNullOrBlank()) {
+                _runtimeFailureEvents.tryEmit(
+                    RuntimeFailureEvent(reason, networkSettingsStorage.proxyMode.value)
                 )
             }
-            applyRootTunStatus(rootTunStateStore.snapshot())
-        }
 
-        transitionToIdle(
-            configuredMode = configuredMode,
-            generation = generation,
-            lastError = reason,
-        )
+            val configuredMode = networkSettingsStorage.proxyMode.value
+            val generation = runtimeState.nextGeneration()
+
+            if (!isRootSessionActive()) {
+                val status = rootTunStateStore.snapshot()
+                if (status.state.isActive) {
+                    rootTunStateStore.markIdle(
+                        error = reason ?: status.lastError,
+                        errorCode = status.lastErrorCode,
+                    )
+                }
+                applyRootTunStatus(rootTunStateStore.snapshot())
+            }
+
+            transitionToIdle(
+                configuredMode = configuredMode,
+                generation = generation,
+                lastError = reason,
+            )
+        }
     }
 
     private fun handleRuntimeFailure(error: String?, errorCodeRaw: String? = null) {
-        val generation = runtimeState.nextGeneration()
+        val generation = synchronized(runtimeTransitionLock) { runtimeState.nextGeneration() }
         val errorCode =
             errorCodeRaw?.let { raw ->
                 runCatching {
@@ -1116,15 +1253,17 @@ class ProxyFacade(
     }
 
     private fun transitionToIdle(configuredMode: ProxyMode, generation: Long, lastError: String?) {
-        latencyObservations.clear()
-        runtimeState.clearRuntimePayload(resetGroups = false)
-        publishRuntimeSnapshot(
-            RuntimeStateMapper.idleSnapshot(
-                configuredMode = configuredMode,
-                generation = generation,
-                lastError = lastError,
+        synchronized(runtimeTransitionLock) {
+            latencyObservations.clear()
+            runtimeState.clearRuntimePayload(resetGroups = false)
+            publishRuntimeSnapshot(
+                RuntimeStateMapper.idleSnapshot(
+                    configuredMode = configuredMode,
+                    generation = generation,
+                    lastError = lastError,
+                )
             )
-        )
+        }
         stopTrafficPolling()
         scope.launch { refreshPreviewStateSafely() }
     }
@@ -1142,9 +1281,35 @@ class ProxyFacade(
     private suspend fun refreshPreviewStateSafely() {
         runCatching {
                 refreshCurrentProfile()
+                restoreCachedPreviewGroups()
                 refreshProxyGroups()
             }
             .onFailure { error -> Timber.d(error, "Refresh preview data skipped") }
+    }
+
+    private suspend fun restoreCachedPreviewGroups() {
+        val requestSnapshot = runtimeSnapshot.value
+        val profile = currentProfile.value ?: return
+        if (proxyGroups.value.isNotEmpty()) return
+        val cached =
+            withContext(Dispatchers.IO) {
+                previewCache.restore(
+                    profile = profile,
+                    runtimeSnapshot = requestSnapshot,
+                    rootTunStatus = rootTunStatus.value,
+                )
+            } ?: return
+        if (
+            runtimeSnapshot.value.generation == requestSnapshot.generation &&
+            currentProfile.value?.uuid == profile.uuid &&
+                currentProfile.value?.updatedAt == profile.updatedAt &&
+                proxyGroups.value.isEmpty()
+        ) {
+            runtimeState.setProxyGroups(cached)
+            // The cache is a usable preview, but the runtime payload is still
+            // pending. Keep the load state stale until the live query succeeds.
+            runtimeState.markProxyGroupsLoading()
+        }
     }
 
     private fun shouldRefreshRuntimePayload(): Boolean {
@@ -1183,7 +1348,9 @@ class ProxyFacade(
     }
 
     private fun publishRuntimeSnapshot(snapshot: RuntimeSnapshot) {
-        runtimeState.publishRuntimeSnapshot(snapshot)
+        synchronized(runtimeTransitionLock) {
+            runtimeState.publishRuntimeSnapshot(snapshot)
+        }
     }
 
     private suspend fun connectCurrentBackend() {
@@ -1294,9 +1461,8 @@ class ProxyFacade(
                     "(mode=${mode.name}) and waiting for profileLoaded"
             )
             handleRuntimeStarted(forceOwner = owner)
-            // The service sends profileLoaded after configuration and selector
-            // restoration. The client intentionally remains in Starting until
-            // that event, so Running is not required for this start receipt.
+            // The service sends profileLoaded after configuration and
+            // transport establishment; payload refresh is asynchronous.
             return
         }
 
@@ -1495,6 +1661,39 @@ class ProxyFacade(
             enriched?.add(nextGroup)
         }
         return enriched ?: groups
+    }
+
+    private fun scheduleProxyGroupMetadataEnrichment(
+        baseGroups: List<ProxyGroupInfo>,
+        configuration: UiConfiguration,
+    ) {
+        val startSnapshot = runtimeSnapshot.value
+        val profileAtStart = currentProfile.value
+        scope.launch(Dispatchers.IO) {
+            val enriched = enrichProxyGroupsFromController(baseGroups, configuration)
+            val latestSnapshot = runtimeSnapshot.value
+            if (
+                latestSnapshot.generation != startSnapshot.generation ||
+                    proxyGroups.value != baseGroups ||
+                    latestSnapshot.phase == RuntimePhase.Idle ||
+                    latestSnapshot.phase == RuntimePhase.Failed ||
+                    latestSnapshot.phase == RuntimePhase.Stopping ||
+                    currentProfile.value?.uuid != profileAtStart?.uuid ||
+                    currentProfile.value?.updatedAt != profileAtStart?.updatedAt
+            ) {
+                return@launch
+            }
+
+            runtimeState.setProxyGroups(enriched)
+            withContext(Dispatchers.IO) {
+                previewCache.backfill(
+                    profile = currentProfile.value,
+                    groups = enriched,
+                    runtimeSnapshot = latestSnapshot,
+                    rootTunStatus = rootTunStatus.value,
+                )
+            }
+        }
     }
 
     private fun fetchProxyGroupMetadata(

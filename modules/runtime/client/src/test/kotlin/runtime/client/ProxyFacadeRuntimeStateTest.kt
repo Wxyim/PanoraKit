@@ -29,6 +29,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
+import java.io.File
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -69,6 +70,63 @@ class ProxyFacadeRuntimeStateTest {
         assertEquals(1, state.proxyGroups.value.size)
         assertEquals(0L, state.trafficNow.value)
         assertEquals(0L, state.trafficTotal.value)
+    }
+
+    @Test
+    fun proxyGroupsLoadStateDoesNotConfuseStaleDataWithReadyData() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+
+        assertEquals(ProxyGroupsLoadState.NotLoaded, state.proxyGroupsLoadState.value)
+
+        state.setProxyGroups(listOf(sampleGroup()))
+        assertEquals(ProxyGroupsLoadState.Ready, state.proxyGroupsLoadState.value)
+
+        state.markProxyGroupsLoading()
+        assertEquals(ProxyGroupsLoadState.Stale, state.proxyGroupsLoadState.value)
+
+        state.markProxyGroupsError()
+        assertEquals(ProxyGroupsLoadState.Stale, state.proxyGroupsLoadState.value)
+
+        state.clearRuntimePayload()
+        assertEquals(ProxyGroupsLoadState.NotLoaded, state.proxyGroupsLoadState.value)
+    }
+
+    @Test
+    fun changingProfileInvalidatesGroupsOwnedByPreviousProfile() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+        val firstProfile = sampleProfile()
+        val secondProfile = firstProfile.copy(updatedAt = firstProfile.updatedAt + 1L)
+
+        state.setCurrentProfile(firstProfile)
+        state.setProxyGroups(listOf(sampleGroup()))
+        state.clearRuntimePayload(resetGroups = false)
+        state.setCurrentProfile(secondProfile)
+
+        assertTrue(state.proxyGroups.value.isEmpty())
+        assertEquals(ProxyGroupsLoadState.NotLoaded, state.proxyGroupsLoadState.value)
+    }
+
+    @Test
+    fun assigningProfileInvalidatesGroupsThatHaveNoOwner() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+
+        state.setProxyGroups(listOf(sampleGroup()))
+        state.setCurrentProfile(sampleProfile())
+
+        assertTrue(state.proxyGroups.value.isEmpty())
+        assertEquals(ProxyGroupsLoadState.NotLoaded, state.proxyGroupsLoadState.value)
     }
 
     @Test
@@ -127,6 +185,77 @@ class ProxyFacadeRuntimeStateTest {
 
         assertEquals(groups, cached)
         assertNull(mismatched)
+    }
+
+    @Test
+    fun previewCacheRemainsAvailableWhileRuntimePayloadIsStillLoading() {
+        val cache = ProxyFacadePreviewCache()
+        val profile = sampleProfile()
+        val groups = listOf(sampleGroup(name = "startup-cache"))
+        val fingerprint = "fingerprint-starting"
+
+        cache.backfill(
+            profile = profile,
+            groups = groups,
+            runtimeSnapshot =
+                RuntimeSnapshot(
+                    phase = RuntimePhase.Running,
+                    effectiveFingerprint = fingerprint,
+                ),
+            rootTunStatus = RootTunStatus(state = RootTunState.Running),
+        )
+
+        assertEquals(
+            groups,
+            cache.fallback(
+                snapshot =
+                    RuntimeSnapshot(
+                        phase = RuntimePhase.Running,
+                        groupsReady = false,
+                        effectiveFingerprint = fingerprint,
+                    ),
+                profile = profile,
+                rootTunStatus = RootTunStatus(state = RootTunState.Running),
+            ),
+        )
+        assertNull(
+            cache.fallback(
+                snapshot =
+                    RuntimeSnapshot(
+                        phase = RuntimePhase.Running,
+                        groupsReady = true,
+                        effectiveFingerprint = fingerprint,
+                    ),
+                profile = profile,
+                rootTunStatus = RootTunStatus(state = RootTunState.Running),
+            ),
+        )
+    }
+
+    @Test
+    fun previewCacheRestoresMatchingEntryFromDisk() {
+        val file = File.createTempFile("monadbox-proxy-groups", ".json")
+        file.delete()
+        try {
+            val profile = sampleProfile()
+            val groups = listOf(sampleGroup(name = "disk-cache"))
+            val snapshot =
+                RuntimeSnapshot(
+                    phase = RuntimePhase.Running,
+                    groupsReady = false,
+                    effectiveFingerprint = "fingerprint-disk",
+                )
+            val rootTunStatus = RootTunStatus(state = RootTunState.Running)
+
+            ProxyFacadePreviewCache(file).backfill(profile, groups, snapshot, rootTunStatus)
+
+            assertEquals(
+                groups,
+                ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus),
+            )
+        } finally {
+            file.delete()
+        }
     }
 
     @Test

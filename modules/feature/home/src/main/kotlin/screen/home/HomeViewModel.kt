@@ -260,12 +260,12 @@ class HomeViewModel(
 
     val isRunning: StateFlow<Boolean> =
         runtimeSnapshot
-            .map(RuntimeStateMapper::isReady)
+            .map(RuntimeStateMapper::isActuallyRunning)
             .distinctUntilChanged()
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
-                RuntimeStateMapper.isReady(runtimeSnapshot.value),
+                RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
             )
 
     val isExternalIpLookupEnabled: StateFlow<Boolean> get() = _isExternalIpLookupEnabled
@@ -282,7 +282,11 @@ class HomeViewModel(
     private val visibleProxyGroupNames: StateFlow<Set<String>?> =
         runtimeSnapshot
             .map { snapshot ->
-                if (RuntimeStateMapper.isActuallyRunning(snapshot)) snapshot.generation else null
+                if (RuntimeStateMapper.isActuallyRunning(snapshot)) {
+                    snapshot.generation to snapshot.groupsReady
+                } else {
+                    null
+                }
             }
             .distinctUntilChanged()
             .flatMapLatest { runningGeneration ->
@@ -515,12 +519,8 @@ class HomeViewModel(
 
     private fun syncDisplayState() {
         viewModelScope.launch {
-            combine(runtimeSnapshot, homePresentationReady) { snapshot, runtimeReady ->
-                snapshot to runtimeReady
-            }.collect { (snapshot, runtimeReady) ->
-                val isStarting =
-                    snapshot.phase == RuntimePhase.Starting ||
-                        (snapshot.phase == RuntimePhase.Running && !runtimeReady)
+            runtimeSnapshot.collect { snapshot ->
+                val isStarting = snapshot.phase == RuntimePhase.Starting
                 val loadingProgress = if (isStarting) MLang.Home.Message.Preparing else null
                 chromeStateMutable.update { current ->
                     val nextUi =
@@ -548,14 +548,9 @@ class HomeViewModel(
                         RuntimePhase.Running ->
                             current.copy(
                                 ui = nextUi,
-                                runtimeVisualState =
-                                    if (runtimeReady) {
-                                        HomeRuntimeVisualState.Running
-                                    } else {
-                                        HomeRuntimeVisualState.Starting
-                                    },
-                                displayRunning = runtimeReady,
-                                isToggling = !runtimeReady,
+                                runtimeVisualState = HomeRuntimeVisualState.Running,
+                                displayRunning = true,
+                                isToggling = false,
                             )
 
                         RuntimePhase.Stopping ->

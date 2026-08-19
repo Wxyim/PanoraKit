@@ -56,13 +56,15 @@ class SessionRuntime(
     private val compiledConfigPipeline = CompiledConfigPipeline(host.context.appContextOrSelf)
     private val operationMutex = Mutex()
     private var currentSpec: RuntimeSpec? = null
-    private var currentSnapshot: RuntimeSnapshot = RuntimeSnapshot(targetMode = host.mode)
+    @Volatile private var currentSnapshot: RuntimeSnapshot = RuntimeSnapshot(targetMode = host.mode)
     private var lastCompiledFingerprint: String? = null
     private var networkObserver: ServiceNetworkObserver? = null
     private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
 
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
+    private val runtimeSnapshotLock = Any()
+    private var runtimeSnapshotCachedAt = 0L
     private var proxyGroupsCachedAt = 0L
     private val connectionCacheLock = Any()
     private var cachedConnectionsAt = 0L
@@ -197,7 +199,9 @@ class SessionRuntime(
     fun queryTrafficNow(): Long {
         return if (currentSnapshot.phase == RuntimePhase.Running) {
             Clash.queryTrafficNow().also {
-                runtimeSnapshot = runtimeSnapshot.copy(trafficNow = it)
+                synchronized(runtimeSnapshotLock) {
+                    runtimeSnapshot = runtimeSnapshot.copy(trafficNow = it)
+                }
                 publishSnapshot(currentSnapshot.copy(trafficReady = true))
             }
         } else {
@@ -208,7 +212,9 @@ class SessionRuntime(
     fun queryTrafficTotal(): Long {
         return if (currentSnapshot.phase == RuntimePhase.Running) {
             Clash.queryTrafficTotal().also {
-                runtimeSnapshot = runtimeSnapshot.copy(trafficTotal = it)
+                synchronized(runtimeSnapshotLock) {
+                    runtimeSnapshot = runtimeSnapshot.copy(trafficTotal = it)
+                }
                 publishSnapshot(currentSnapshot.copy(trafficReady = true))
             }
         } else {
@@ -219,8 +225,10 @@ class SessionRuntime(
     fun queryTrafficSnapshot(): TrafficSnapshot {
         if (currentSnapshot.phase != RuntimePhase.Running) return TrafficSnapshot(0L, 0L)
         return Clash.queryTrafficSnapshot().also { traffic ->
-            runtimeSnapshot =
-                runtimeSnapshot.copy(trafficNow = traffic.now, trafficTotal = traffic.total)
+            synchronized(runtimeSnapshotLock) {
+                runtimeSnapshot =
+                    runtimeSnapshot.copy(trafficNow = traffic.now, trafficTotal = traffic.total)
+            }
             publishSnapshot(currentSnapshot.copy(trafficReady = true))
         }
     }
@@ -257,8 +265,13 @@ class SessionRuntime(
         if (currentSnapshot.phase != RuntimePhase.Running) return emptyList()
         if (!excludeNotSelectable) {
             val now = SystemClock.elapsedRealtime()
-            val cached = runtimeSnapshot.proxyGroups
-            if (cached.isNotEmpty() && now - proxyGroupsCachedAt < PROXY_GROUP_CACHE_TTL_MS) {
+            val cached =
+                synchronized(runtimeSnapshotLock) {
+                    runtimeSnapshot.proxyGroups.takeIf {
+                        it.isNotEmpty() && now - proxyGroupsCachedAt < PROXY_GROUP_CACHE_TTL_MS
+                    }
+                }
+            if (cached != null) {
                 return cached
             }
         }
@@ -272,8 +285,10 @@ class SessionRuntime(
                         ensureRuntimeSnapshot().proxyGroups
                     }
                 }
-        runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = groups)
-        proxyGroupsCachedAt = SystemClock.elapsedRealtime()
+        synchronized(runtimeSnapshotLock) {
+            runtimeSnapshot = runtimeSnapshot.copy(proxyGroups = groups)
+            proxyGroupsCachedAt = SystemClock.elapsedRealtime()
+        }
         publishSnapshot(currentSnapshot.copy(groupsReady = groups.isNotEmpty()))
         return groups
     }
@@ -290,17 +305,19 @@ class SessionRuntime(
         }
         val group = Clash.queryGroup(name, proxySort)
         if (proxySort == ProxySort.Default && group.name.isNotBlank()) {
-            val groups = runtimeSnapshot.proxyGroups
-            runtimeSnapshot =
-                runtimeSnapshot.copy(
-                    proxyGroups =
-                        if (groups.any { it.name == name }) {
-                            groups.map { if (it.name == name) group else it }
-                        } else {
-                            groups + group
-                        }
-                )
-            proxyGroupsCachedAt = SystemClock.elapsedRealtime()
+            synchronized(runtimeSnapshotLock) {
+                val groups = runtimeSnapshot.proxyGroups
+                runtimeSnapshot =
+                    runtimeSnapshot.copy(
+                        proxyGroups =
+                            if (groups.any { it.name == name }) {
+                                groups.map { if (it.name == name) group else it }
+                            } else {
+                                groups + group
+                            }
+                    )
+                proxyGroupsCachedAt = SystemClock.elapsedRealtime()
+            }
         }
         return group
     }
@@ -467,42 +484,17 @@ class SessionRuntime(
             )
         )
         host.onStarted(spec)
-        startupLog(spec, "runtime ready: payload warm-up continue in background")
-
-        // Deferred non-blocking warm-up: proxy selections don't gate the first
-        // packet — the compiled runtime.yaml already has selection defaults
-        // injected by ensureSelectionOverrideFile.
-        //
-        // Both restoreSelections and awaitProxyGroupsReady are waiting for Go
-        // to finish hub.ApplyConfig() internally.  Running them concurrently
-        // cuts the wall-clock wait from sum → max so the node label and IP
-        // info appear sooner after the "Running" indicator.
-        coroutineScope {
-            launch {
-                measureStartupStep(spec, "runtime selection restore") {
-                    restoreSelections(spec)
-                }
-            }
-            launch {
-                measureStartupStep(spec, "runtime groups ready") {
-                    awaitProxyGroupsReady(spec)
-                }
-            }
-        }
-
-        startupLog(spec, "runtime startup: deferred checks complete")
 
         startObservers()
         notifyRuntimeSideEffects()
         measureStartupStep(spec, "runtime log stream") { startLogStream() }
-        measureStartupStep(spec, "runtime snapshot refresh") { refreshRuntimeSnapshotWithLog(spec) }
 
         publishSnapshot(
             currentSnapshot.copy(
                 phase = RuntimePhase.Running,
                 profileReady = true,
-                groupsReady = runtimeSnapshot.proxyGroups.isNotEmpty(),
-                trafficReady = true,
+                groupsReady = false,
+                trafficReady = false,
                 configReady = true,
                 transportReady = true,
                 logReady = logJob?.isActive == true,
@@ -510,10 +502,14 @@ class SessionRuntime(
                 effectiveFingerprint = spec.effectiveFingerprint,
             )
         )
+        // The compiled runtime already contains persisted selector defaults.
+        // The first packet and the UI do not need proxy-group validation to
+        // finish, so publish profile-loaded at the transport/config boundary.
         host.onProfileLoaded(spec.profileUuid)
         startupLog(
             spec,
-            "payload ready totalCost=${SystemClock.elapsedRealtime() - startedAt}ms",
+            "runtime ready totalCost=${SystemClock.elapsedRealtime() - startedAt}ms; " +
+                "payload refresh continues asynchronously",
         )
     }
 
@@ -529,6 +525,7 @@ class SessionRuntime(
                 trafficReady = false,
             )
         )
+        invalidateRuntimeSnapshotCache()
 
         compileAndLoad(spec)
         notifyRuntimeSideEffects()
@@ -540,7 +537,8 @@ class SessionRuntime(
             currentSnapshot.copy(
                 phase = RuntimePhase.Running,
                 profileReady = true,
-                groupsReady = runtimeSnapshot.proxyGroups.isNotEmpty(),
+                groupsReady =
+                    synchronized(runtimeSnapshotLock) { runtimeSnapshot.proxyGroups.isNotEmpty() },
                 trafficReady = true,
                 configReady = true,
                 transportReady = true,
@@ -583,7 +581,7 @@ class SessionRuntime(
         runCatching { transport.stop() }
         teardownCore()
         currentSpec = null
-        runtimeSnapshot = RuntimeQuerySnapshot()
+        invalidateRuntimeSnapshotCache()
         publishSnapshot(
             RuntimeSnapshot(
                 owner = RuntimeOwner.None,
@@ -604,7 +602,7 @@ class SessionRuntime(
         runCatching { transport.stop() }
         teardownCore()
         currentSpec = null
-        runtimeSnapshot = RuntimeQuerySnapshot()
+        invalidateRuntimeSnapshotCache()
         publishSnapshot(
             RuntimeSnapshot(
                 owner = spec.owner,
@@ -877,34 +875,50 @@ class SessionRuntime(
     }
 
     private fun refreshRuntimeSnapshot() {
-        if (
-            currentSnapshot.phase != RuntimePhase.Running &&
-                currentSnapshot.phase != RuntimePhase.Starting
-        ) {
-            runtimeSnapshot = RuntimeQuerySnapshot()
-            return
-        }
+        synchronized(runtimeSnapshotLock) {
+            if (
+                currentSnapshot.phase != RuntimePhase.Running &&
+                    currentSnapshot.phase != RuntimePhase.Starting
+            ) {
+                runtimeSnapshot = RuntimeQuerySnapshot()
+                runtimeSnapshotCachedAt = 0L
+                return@synchronized
+            }
 
-        val data =
-            runCatching { Clash.queryRuntimeSnapshot() }
-                .getOrDefault(RuntimeDataSnapshot())
-        runtimeSnapshot =
-            RuntimeQuerySnapshot(
-                configuration = data.configuration,
-                providers = data.providers,
-                proxyGroups = data.proxyGroups,
-                trafficNow = data.trafficNow,
-                trafficTotal = data.trafficTotal,
-            )
-        proxyGroupsCachedAt = SystemClock.elapsedRealtime()
+            val data =
+                runCatching { Clash.queryRuntimeSnapshot() }
+                    .getOrDefault(RuntimeDataSnapshot())
+            runtimeSnapshot =
+                RuntimeQuerySnapshot(
+                    configuration = data.configuration,
+                    providers = data.providers,
+                    proxyGroups = data.proxyGroups,
+                    trafficNow = data.trafficNow,
+                    trafficTotal = data.trafficTotal,
+                )
+            val now = SystemClock.elapsedRealtime()
+            runtimeSnapshotCachedAt = now
+            proxyGroupsCachedAt = now
+        }
     }
 
     private fun ensureRuntimeSnapshot(): RuntimeQuerySnapshot {
-        if (runtimeSnapshot.proxyGroups.isNotEmpty()) {
-            return runtimeSnapshot
+        return synchronized(runtimeSnapshotLock) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - runtimeSnapshotCachedAt < RUNTIME_SNAPSHOT_CACHE_TTL_MS) {
+                return@synchronized runtimeSnapshot
+            }
+            refreshRuntimeSnapshot()
+            runtimeSnapshot
         }
-        refreshRuntimeSnapshot()
-        return runtimeSnapshot
+    }
+
+    private fun invalidateRuntimeSnapshotCache() {
+        synchronized(runtimeSnapshotLock) {
+            runtimeSnapshot = RuntimeQuerySnapshot()
+            runtimeSnapshotCachedAt = 0L
+            proxyGroupsCachedAt = 0L
+        }
     }
 
     private fun startLogStream() {
@@ -1020,6 +1034,7 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
+        private const val RUNTIME_SNAPSHOT_CACHE_TTL_MS = 300L
         private const val CONNECTION_CACHE_TTL_MS = 100L
         private const val PROXY_GROUP_CACHE_TTL_MS = 500L
     }

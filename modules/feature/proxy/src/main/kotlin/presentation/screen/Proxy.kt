@@ -88,6 +88,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyGroupsLoadState
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.LayoutPanelLeft
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
@@ -170,6 +171,7 @@ fun ProxyPager(
     val context = LocalContext.current
 
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
+    val proxyGroupsLoadState by proxyViewModel.proxyGroupsLoadState.collectAsStateWithLifecycle()
     val uiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
     val isRunning by proxyViewModel.isRunning.collectAsStateWithLifecycle()
     val groupStyle by proxyViewModel.groupStyle.collectAsStateWithLifecycle()
@@ -279,10 +281,20 @@ fun ProxyPager(
                     }
             ) {
                 if (proxyGroups.isEmpty()) {
-                    CenteredText(
-                        firstLine = MLang.Proxy.Empty.NoNodes,
-                        secondLine = MLang.Proxy.Empty.Hint,
-                    )
+                    when (proxyGroupsLoadState) {
+                        ProxyGroupsLoadState.NotLoaded,
+                        ProxyGroupsLoadState.Loading ->
+                            CenteredText(
+                                firstLine = MLang.Component.Loading.Starting,
+                                secondLine = MLang.Proxy.Empty.Hint,
+                            )
+
+                        else ->
+                            CenteredText(
+                                firstLine = MLang.Proxy.Empty.NoNodes,
+                                secondLine = MLang.Proxy.Empty.Hint,
+                            )
+                    }
                 } else {
                     ProxyContent(
                         proxyGroups = proxyGroups,
