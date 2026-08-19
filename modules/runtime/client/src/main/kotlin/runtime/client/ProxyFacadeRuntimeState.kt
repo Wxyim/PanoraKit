@@ -40,6 +40,12 @@ private fun <T> MutableStateFlow<T>.setIfChanged(newValue: T): Boolean {
     return true
 }
 
+private val proxyFacadePreviewCacheJson =
+    Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
 enum class ProxyGroupsLoadState {
     NotLoaded,
     Loading,
@@ -324,8 +330,7 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
         val file = diskFile ?: return null
         val persisted =
             runCatching {
-                Json { ignoreUnknownKeys = true }
-                    .decodeFromString<PersistedEntry>(file.readText())
+                proxyFacadePreviewCacheJson.decodeFromString<PersistedEntry>(file.readText())
             }.getOrNull() ?: return null
         if (
             persisted.profileId != key.profileId.toString() ||
@@ -386,7 +391,7 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
                     overrideSignature = key.overrideSignature,
                     groups = groups,
                 )
-            val encoded = Json { encodeDefaults = true }.encodeToString(payload)
+            val encoded = proxyFacadePreviewCacheJson.encodeToString(payload)
             val temp = File(file.parentFile, "${file.name}.tmp")
             temp.writeText(encoded)
             if (!temp.renameTo(file)) {

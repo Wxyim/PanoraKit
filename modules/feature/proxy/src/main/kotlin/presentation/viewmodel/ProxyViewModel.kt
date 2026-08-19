@@ -530,7 +530,6 @@ class ProxyViewModel(
 
     override fun onCleared() {
         stopExternalSelectionSync()
-        stopPreviewSync()
         stopTunnelModeSync()
         super.onCleared()
     }
