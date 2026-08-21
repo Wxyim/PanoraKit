@@ -787,6 +787,14 @@ class SessionRuntime(
             return
         }
 
+        // The core deliberately reports an empty proxy-group list while it is
+        // in direct mode (routing bypasses all groups), so a direct-mode
+        // reload must not be treated as a config-load failure here.
+        if (runCatching { Clash.queryTunnelState().mode }.getOrNull() == TunnelState.Mode.Direct) {
+            startupLog(spec, "runtime verify: direct mode, proxy group readiness skipped")
+            return
+        }
+
         repeat(PROXY_GROUP_READY_RETRY_COUNT) { attempt ->
             val names = runCatching { Clash.queryGroupNames(false) }.getOrDefault(emptyList())
             if (names.isNotEmpty()) {
