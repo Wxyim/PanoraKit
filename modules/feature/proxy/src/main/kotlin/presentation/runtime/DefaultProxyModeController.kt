@@ -34,7 +34,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -75,7 +74,7 @@ class DefaultProxyModeController(
 
         // Refresh immediately when the runtime starts or stops.
         scope.launch {
-            proxyFacade.isRunning.distinctUntilChanged().collect {
+            proxyFacade.isRunning.collect {
                 refreshCurrentTunnelMode()
             }
         }
