@@ -134,10 +134,17 @@ class DefaultProxyModeController(
                         error(persistError.message ?: MLang.Proxy.Mode.SwitchFailed)
                     }
 
-                    val reloadError = proxyFacade.reloadCurrentProfile().exceptionOrNull()
-                    if (reloadError != null) {
-                        overrideRepository.updateProfile { previousOverride }.getOrThrow()
-                        error(reloadError.message ?: MLang.Proxy.Mode.SwitchFailed)
+                    // A reload only affects a live runtime. When the VPN is
+                    // stopped there is nothing to reload; the persisted mode
+                    // is applied on the next start. Skipping it also avoids
+                    // the full config compile preview that can take seconds
+                    // and delays the switch confirmation.
+                    if (proxyFacade.isRunning.value) {
+                        val reloadError = proxyFacade.reloadCurrentProfile().exceptionOrNull()
+                        if (reloadError != null) {
+                            overrideRepository.updateProfile { previousOverride }.getOrThrow()
+                            error(reloadError.message ?: MLang.Proxy.Mode.SwitchFailed)
+                        }
                     }
                 }
             }
@@ -145,7 +152,11 @@ class DefaultProxyModeController(
             val error = result.exceptionOrNull()
             if (error == null) {
                 refreshCurrentTunnelMode()
-                delay(500.milliseconds)
+                if (proxyFacade.isRunning.value) {
+                    // Give a running reload a moment to settle before
+                    // confirming; the stopped case is already applied.
+                    delay(500.milliseconds)
+                }
                 showMessage(MLang.Proxy.Mode.Switched.format(mode.toModeName()))
             } else {
                 proxyDisplaySettingsStore.proxyMode.set(previousMode)
