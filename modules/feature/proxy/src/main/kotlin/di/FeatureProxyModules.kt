@@ -30,7 +30,7 @@ import org.koin.dsl.module
 val featureProxyViewModelModule = module {
     single { RefreshRuntimeProvidersUseCase(get(), get(), get(), get(), get()) }
 
-    viewModel { ProxyViewModel(get(), get(), get(), get(), get()) }
+    viewModel { ProxyViewModel(get(), get(), get(), get()) }
     viewModel { ProvidersViewModel(get(), get(), get(), get()) }
 }
 

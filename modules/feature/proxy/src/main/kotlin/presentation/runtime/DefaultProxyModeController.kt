@@ -34,9 +34,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Shared tunnel-mode controller used by both the home page and the proxy page.
+ *
+ * While the runtime is running, [currentMode] tracks the actual mode reported by
+ * the core; when it is stopped, [currentMode] follows the configured mode stored
+ * in [ProxyDisplaySettingsStore]. The configured store value is reconciled back
+ * to the actual runtime mode so both pages keep showing a consistent value.
+ */
 class DefaultProxyModeController(
     private val overrideRepository: OverrideRepository,
     private val proxyFacade: ProxyFacade,
@@ -44,6 +53,11 @@ class DefaultProxyModeController(
     private val runtimeControlCoordinator: RuntimeControlCoordinator,
     private val scope: CoroutineScope,
 ) : ProxyModeController {
+    private companion object {
+        const val MODE_REFRESH_RUNNING_MS = 1500L
+        const val MODE_REFRESH_IDLE_MS = 10_000L
+    }
+
     private val _uiState = MutableStateFlow(ProxyModeControlUiState())
     override val uiState: StateFlow<ProxyModeControlUiState> = _uiState.asStateFlow()
 
@@ -56,6 +70,46 @@ class DefaultProxyModeController(
                 if (!proxyFacade.isRunning.value) {
                     _currentMode.value = mode
                 }
+            }
+        }
+
+        // Refresh immediately when the runtime starts or stops.
+        scope.launch {
+            proxyFacade.isRunning.distinctUntilChanged().collect {
+                refreshCurrentTunnelMode()
+            }
+        }
+
+        // Keep the displayed mode in sync with the actual runtime mode while
+        // running; fall back to the configured mode when the runtime is stopped.
+        scope.launch {
+            while (true) {
+                if (proxyFacade.isRunning.value) {
+                    val actual =
+                        runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
+                    if (actual != null) {
+                        if (_currentMode.value != actual) {
+                            _currentMode.value = actual
+                        }
+                        if (!_uiState.value.isLoading &&
+                            proxyDisplaySettingsStore.proxyMode.value != actual
+                        ) {
+                            proxyDisplaySettingsStore.proxyMode.set(actual)
+                        }
+                    }
+                } else {
+                    val configured = proxyDisplaySettingsStore.proxyMode.value
+                    if (_currentMode.value != configured) {
+                        _currentMode.value = configured
+                    }
+                }
+                delay(
+                    if (proxyFacade.isRunning.value) {
+                        MODE_REFRESH_RUNNING_MS.milliseconds
+                    } else {
+                        MODE_REFRESH_IDLE_MS.milliseconds
+                    }
+                )
             }
         }
     }
@@ -119,7 +173,9 @@ class DefaultProxyModeController(
                 runCatching { proxyFacade.queryTunnelState().mode }
                     .getOrElse { proxyDisplaySettingsStore.proxyMode.value }
             }
-        _currentMode.value = nextMode
+        if (_currentMode.value != nextMode) {
+            _currentMode.value = nextMode
+        }
     }
 
     private fun setLoading(loading: Boolean) {

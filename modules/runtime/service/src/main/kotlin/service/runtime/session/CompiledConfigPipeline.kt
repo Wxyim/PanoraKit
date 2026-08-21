@@ -162,10 +162,17 @@ class CompiledConfigPipeline(private val context: Context) {
         val fingerprintFile =
             configsDir.resolve("${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.fingerprint")
         configsDir.mkdirs()
+
+        // Load the existing internal runtime override so app-managed settings
+        // (tunnel mode, ports, etc.) are preserved when the proxy-groups list
+        // is injected or refreshed below.
+        val existing = readInternalOverrideFile(file)
+
         if (selections.isEmpty()) {
-            // No selections — remove any stale override file so it doesn't
-            // incorrectly reorder proxies from a previous session.
-            file.delete()
+            // No selections — only drop a stale proxy-groups injection. Other
+            // fields written by the app must survive so the selected tunnel
+            // mode is still applied at compile time.
+            writeInternalOverrideOrDelete(file, existing.withoutProxyGroups())
             fingerprintFile.delete()
             return
         }
@@ -177,6 +184,8 @@ class CompiledConfigPipeline(private val context: Context) {
         val configBytes = configFile.readBytes()
         val selectionFingerprint = selectionFingerprint(configBytes, selections)
         if (fingerprintFile.isFile && fingerprintFile.readText().trim() == selectionFingerprint) {
+            // Selection injection is already in sync; leave the file untouched
+            // so the tunnel mode and other settings are preserved.
             return
         }
 
@@ -184,7 +193,7 @@ class CompiledConfigPipeline(private val context: Context) {
         val compiled = Clash.inspectCompiledConfig(configYaml) ?: return
         val proxyGroups = compiled.proxyGroups ?: return
         if (proxyGroups.isEmpty()) {
-            file.delete()
+            writeInternalOverrideOrDelete(file, existing.withoutProxyGroups())
             fingerprintFile.writeText(selectionFingerprint)
             return
         }
@@ -219,23 +228,40 @@ class CompiledConfigPipeline(private val context: Context) {
             groupDef.toMutableMap().apply { put("proxies", reordered) }
         }
 
-        if (!hasChanges) {
-            // The selected nodes are already first, so an old override file is
-            // unnecessary and could preserve a stale ordering.
-            file.delete()
-            fingerprintFile.writeText(selectionFingerprint)
-            return
-        }
-
-        // Write only the proxy-groups field to avoid unintentionally overriding
-        // other settings (ports, dns, tun, etc.) that may be in the profile config.
-        val overrideJson = buildJsonObject {
-            put("proxy-groups", JsonArray(updatedGroups.map { JsonObject(it) }))
-        }
-        file.writeText(
-            json.encodeToString(JsonElement.serializer(), overrideJson)
-        )
+        // Only the proxy-groups key is replaced; the tunnel mode and any other
+        // app-managed settings in the internal override are preserved.
+        val merged =
+            if (hasChanges) {
+                existing.withProxyGroups(JsonArray(updatedGroups.map { JsonObject(it) }))
+            } else {
+                existing.withoutProxyGroups()
+            }
+        writeInternalOverrideOrDelete(file, merged)
         fingerprintFile.writeText(selectionFingerprint)
+    }
+
+    private fun readInternalOverrideFile(file: File): JsonObject {
+        if (!file.exists()) return JsonObject(emptyMap())
+        val raw = file.readText().takeIf(String::isNotBlank) ?: return JsonObject(emptyMap())
+        return (runCatching { json.parseToJsonElement(raw) }.getOrNull() as? JsonObject)
+            ?: JsonObject(emptyMap())
+    }
+
+    private fun JsonObject.withoutProxyGroups(): JsonObject {
+        if (!containsKey("proxy-groups")) return this
+        return JsonObject(toMutableMap().apply { remove("proxy-groups") })
+    }
+
+    private fun JsonObject.withProxyGroups(groups: JsonArray): JsonObject {
+        return JsonObject(toMutableMap().apply { put("proxy-groups", groups) })
+    }
+
+    private fun writeInternalOverrideOrDelete(file: File, content: JsonObject) {
+        if (content.isEmpty()) {
+            file.delete()
+        } else {
+            file.writeText(json.encodeToString(JsonElement.serializer(), content))
+        }
     }
 
     private fun selectionFingerprint(
