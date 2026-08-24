@@ -516,7 +516,6 @@ class SessionRuntime(
 
         startObservers()
         notifyRuntimeSideEffects()
-        measureStartupStep(spec, "runtime log stream") { startLogStream() }
 
         publishSnapshot(
             currentSnapshot.copy(
@@ -535,6 +534,11 @@ class SessionRuntime(
         // The first packet and the UI do not need proxy-group validation to
         // finish, so publish profile-loaded at the transport/config boundary.
         host.onProfileLoaded(spec.profileUuid)
+        // Log collection is ancillary to transport/config readiness. Start it
+        // only after the profile-loaded boundary so log subscription setup can
+        // never delay the VPN start receipt. logReady remains false until the
+        // log collector has actually subscribed.
+        measureStartupStep(spec, "runtime log stream dispatch") { startLogStream() }
         startupLog(
             spec,
             "runtime ready totalCost=${SystemClock.elapsedRealtime() - startedAt}ms; " +
