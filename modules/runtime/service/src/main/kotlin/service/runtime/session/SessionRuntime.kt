@@ -453,7 +453,12 @@ class SessionRuntime(
 
     private suspend fun startInternal(spec: RuntimeSpec) {
         validateStartupSpec(spec)
+        // RuntimeSnapshot.startedAt is a wall-clock timestamp consumed by
+        // state/presentation code, while startup duration must use the
+        // monotonic elapsed-realtime clock. Never subtract values from these
+        // different clock domains.
         val startedAt = System.currentTimeMillis()
+        val startupElapsedAt = SystemClock.elapsedRealtime()
         val wasIdle = currentSnapshot.phase == RuntimePhase.Idle
         currentSpec = spec
         publishSnapshot(
@@ -541,7 +546,7 @@ class SessionRuntime(
         measureStartupStep(spec, "runtime log stream dispatch") { startLogStream() }
         startupLog(
             spec,
-            "runtime ready totalCost=${SystemClock.elapsedRealtime() - startedAt}ms; " +
+            "runtime ready totalCost=${SystemClock.elapsedRealtime() - startupElapsedAt}ms; " +
                 "payload refresh continues asynchronously",
         )
     }
