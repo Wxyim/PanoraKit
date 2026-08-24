@@ -138,12 +138,29 @@ class ProxyViewModel(
     init {
         proxyFacade.warmUpProxyGroups()
         viewModelScope.launch {
+            var lastControllerMessage: String? = null
+            var lastControllerError: String? = null
             proxyModeController.uiState.collect { state ->
+                val previousControllerMessage = lastControllerMessage
+                val previousControllerError = lastControllerError
+                lastControllerMessage = state.message
+                lastControllerError = state.error
                 _uiState.update { current ->
                     current.copy(
                         isLoading = state.isLoading,
-                        message = state.message ?: current.message,
-                        error = state.error ?: current.error,
+                        // Keep locally generated proxy-page messages, but
+                        // clear a mode-controller message once another page
+                        // has consumed it from the shared controller.
+                        message =
+                            state.message
+                                ?: current.message.takeUnless {
+                                    it == previousControllerMessage
+                                },
+                        error =
+                            state.error
+                                ?: current.error.takeUnless {
+                                    it == previousControllerError
+                                },
                     )
                 }
             }

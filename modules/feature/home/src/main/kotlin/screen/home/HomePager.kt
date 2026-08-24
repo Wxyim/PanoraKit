@@ -87,7 +87,12 @@ fun HomePager(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(uiMessage) { uiMessage?.let { onConsumeMessage() } }
+    androidx.compose.runtime.LaunchedEffect(uiMessage) {
+        uiMessage?.let {
+            context.toast(it, Toast.LENGTH_LONG)
+            onConsumeMessage()
+        }
+    }
 
     val scrollBehavior = MiuixScrollBehavior()
 
