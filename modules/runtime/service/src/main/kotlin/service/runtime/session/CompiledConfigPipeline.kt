@@ -283,6 +283,24 @@ class CompiledConfigPipeline(private val context: Context) {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    /**
+     * Fingerprint of every input that contributes to runtime.yaml.
+     *
+     * Keep this in the pipeline so preview precompilation and the real start
+     * path make exactly the same cache decision. A preview must never be able
+     * to mark a stale runtime.yaml as current.
+     */
+    fun runtimeInputFingerprint(spec: RuntimeSpec): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(spec.profileUuid.toByteArray())
+        digest.update(File(spec.profileDir).resolve("config.yaml").readBytes())
+        spec.overridePaths.forEach { path ->
+            digest.update(path.toByteArray())
+            digest.update(File(path).readBytes())
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
     suspend fun applyOverrideToRuntimeFile(spec: RuntimeSpec): String =
         withContext(Dispatchers.Default) {
             val request = buildRequest(spec)
@@ -298,16 +316,45 @@ class CompiledConfigPipeline(private val context: Context) {
             result.fingerprint
         }
 
-    suspend fun previewGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> {
-        val result = previewOverride(spec)
-        if (!result.success || result.finalYaml.isBlank()) return emptyList()
-        return withContext(Dispatchers.Default) {
+    suspend fun previewGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> =
+        withContext(Dispatchers.Default) {
+            // The home/proxy preview is already on the user's normal entry
+            // path. Reuse its compilation as the startup artifact so a later
+            // VPN tap does not have to merge the same YAML again. This only
+            // writes the derived runtime.yaml; it does not load the core or
+            // start a listener/tunnel.
+            ensureSelectionOverrideFile(spec.profileUuid, spec.profileDir)
+            val preparedSpec =
+                spec.copy(overridePaths = resolveOverridePaths(spec.profileUuid))
+            val inputFingerprint = runtimeInputFingerprint(preparedSpec)
+            val runtimeFile = File(preparedSpec.runtimeConfigPath)
+            val fingerprintFile = File("${preparedSpec.runtimeConfigPath}.fingerprint")
+            val cachedYaml =
+                if (
+                    runtimeFile.isFile && fingerprintFile.isFile &&
+                        fingerprintFile.readText().trim() == inputFingerprint
+                ) {
+                    runCatching { runtimeFile.readText() }.getOrNull()
+                } else {
+                    null
+                }
+            val finalYaml =
+                cachedYaml?.takeIf(String::isNotBlank)
+                    ?: run {
+                        val result = Clash.compileToFile(buildRequest(preparedSpec))
+                        if (!result.success || result.finalYaml.isBlank()) {
+                            return@withContext emptyList()
+                        }
+                        // The native compiler writes runtime.yaml atomically;
+                        // publish the sidecar only after that succeeds.
+                        fingerprintFile.writeText(inputFingerprint)
+                        result.finalYaml
+                    }
             Clash.inspectCompiledGroups(
-                result.finalYaml,
-                File(spec.profileDir),
+                finalYaml,
+                File(preparedSpec.profileDir),
                 excludeNotSelectable,
             )
-        }
     }
 
     suspend fun previewConfig(

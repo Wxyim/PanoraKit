@@ -39,6 +39,17 @@ object Clash {
         Bridge.ensureLoaded()
     }
 
+    /**
+     * Initializes the native bridge without scheduling a full native GC.
+     *
+     * Startup code uses this as an availability check. Calling forceGc() here
+     * makes the check do unrelated, asynchronous work that can compete with
+     * config parsing and tunnel establishment on the startup critical path.
+     */
+    fun ensureLoaded() {
+        Bridge.ensureLoaded()
+    }
+
     private val RootTunConfigJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true

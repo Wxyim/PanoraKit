@@ -670,33 +670,47 @@ class SessionRuntime(
         // the defaults when mihomo starts. This eliminates the visual flash
         // where the UI briefly shows the config default before the async
         // selection restore takes effect.
-        compiledConfigPipeline.ensureSelectionOverrideFile(
-            spec.profileUuid,
-            spec.profileDir,
-        )
+        measureStartupStep(spec, "runtime selection override") {
+            compiledConfigPipeline.ensureSelectionOverrideFile(
+                spec.profileUuid,
+                spec.profileDir,
+            )
+        }
         // Re-resolve override paths to include the newly created (or updated)
         // runtime internal override file in the compilation.
         val updatedOverridePaths =
-            compiledConfigPipeline.resolveOverridePaths(spec.profileUuid)
+            measureStartupStep(spec, "runtime override resolve") {
+                compiledConfigPipeline.resolveOverridePaths(spec.profileUuid)
+            }
         val compiledSpec = spec.copy(overridePaths = updatedOverridePaths)
 
-        val recompileFingerprint = buildRecompileFingerprint(compiledSpec)
+        val recompileFingerprint =
+            measureStartupStep(spec, "runtime input fingerprint") {
+                buildRecompileFingerprint(compiledSpec)
+            }
         val runtimeFile = File(spec.runtimeConfigPath)
         val fingerprintFile = File("${spec.runtimeConfigPath}.fingerprint")
+        val cacheCheckStartedAt = SystemClock.elapsedRealtime()
+        val cacheHit =
+            runtimeFile.exists() && fingerprintFile.exists() &&
+                fingerprintFile.readText().trim() == recompileFingerprint
+        startupLog(
+            spec,
+            "runtime cache: hit=$cacheHit cost=${SystemClock.elapsedRealtime() - cacheCheckStartedAt}ms",
+        )
 
-        if (runtimeFile.exists() && fingerprintFile.exists() &&
-            fingerprintFile.readText().trim() == recompileFingerprint
-        ) {
+        if (cacheHit) {
             // runtime.yaml matches current inputs — skip YAML merge, just load into Go
             startupLog(spec, "runtime override: skipped (output up-to-date)")
             startupLog(
                 spec,
                 "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin",
             )
-            withContext(Dispatchers.IO) {
-                Clash.loadCompiledConfig(runtimeFile).await()
+            measureStartupStep(spec, "runtime load") {
+                withContext(Dispatchers.IO) {
+                    Clash.loadCompiledConfig(runtimeFile).await()
+                }
             }
-            startupLog(spec, "runtime load: loadCompiledConfig done")
             lastCompiledFingerprint = recompileFingerprint
             return
         }
@@ -710,28 +724,24 @@ class SessionRuntime(
             "runtime override: overridePaths=${compiledSpec.overridePaths.size} " +
                 compiledSpec.overridePaths.joinToString(prefix = "[", postfix = "]"),
         )
-        compiledConfigPipeline.applyOverrideToRuntimeFile(compiledSpec)
+        measureStartupStep(spec, "runtime override compile") {
+            compiledConfigPipeline.applyOverrideToRuntimeFile(compiledSpec)
+        }
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
         // Persist fingerprint sidecar so the next cold start can skip compilation
         fingerprintFile.writeText(recompileFingerprint)
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
-        withContext(Dispatchers.IO) {
-            Clash.loadCompiledConfig(runtimeFile).await()
+        measureStartupStep(spec, "runtime load") {
+            withContext(Dispatchers.IO) {
+                Clash.loadCompiledConfig(runtimeFile).await()
+            }
         }
-        startupLog(spec, "runtime load: loadCompiledConfig done")
         lastCompiledFingerprint = recompileFingerprint
     }
 
     /** Fingerprint of all inputs to the YAML compilation step. */
     private fun buildRecompileFingerprint(spec: RuntimeSpec): String {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-        digest.update(spec.profileUuid.toByteArray())
-        digest.update(File(spec.profileDir).resolve("config.yaml").readBytes())
-        spec.overridePaths.forEach { path ->
-            digest.update(path.toByteArray())
-            digest.update(File(path).readBytes())
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        return compiledConfigPipeline.runtimeInputFingerprint(spec)
     }
 
     private fun validateStartupSpec(spec: RuntimeSpec) {
@@ -775,7 +785,7 @@ class SessionRuntime(
     }
 
     private fun ensureCoreAvailable() {
-        runCatching { Clash.forceGc() }
+        runCatching { Clash.ensureLoaded() }
             .getOrElse { error ->
                 throw RuntimeGatewayException(
                     code = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
