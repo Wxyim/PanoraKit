@@ -29,6 +29,7 @@ import (
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/hub"
 	"github.com/metacubex/mihomo/log"
+	"github.com/metacubex/mihomo/tunnel"
 	"gopkg.in/yaml.v3"
 )
 
@@ -98,6 +99,21 @@ func QueryProxyGroupsFromCompiledYaml(yamlText string, profileDir string, exclud
 		}
 		seen[name] = struct{}{}
 		groupNames = append(groupNames, name)
+	}
+
+	// GLOBAL is a mihomo runtime group rather than a proxy-group declared in
+	// YAML. The live tunnel query adds it only while routing mode is global;
+	// mirror that rule for stopped-runtime previews so the proxy page presents
+	// the same selectable groups before and after VPN startup.
+	if rawCfg.Mode == tunnel.Global {
+		orderedGroups := make([]string, 0, len(groupNames)+1)
+		orderedGroups = append(orderedGroups, "GLOBAL")
+		for _, name := range groupNames {
+			if name != "GLOBAL" {
+				orderedGroups = append(orderedGroups, name)
+			}
+		}
+		groupNames = orderedGroups
 	}
 
 	subtitlePattern := rawCfg.ClashForAndroid.UiSubtitlePattern

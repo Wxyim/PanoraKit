@@ -32,6 +32,37 @@ internal object SelectionRestoreExecutor {
     private const val queryRetryCount = 8
     private const val queryRetryDelayMs = 150L
 
+    /**
+     * GLOBAL is synthesized by mihomo after the compiled config is loaded, so
+     * it cannot be reordered in the YAML selection override. Apply its
+     * durable choice immediately after load and before transport starts.
+     * Provider-backed groups still use [restore] and its retry window below.
+     */
+    suspend fun restoreGlobalBeforeTransport(
+        profileUuid: UUID,
+        selections: List<Selection>,
+        tag: String,
+    ) {
+        selections
+            .asSequence()
+            .filter { it.proxy.trim().equals("GLOBAL", ignoreCase = true) }
+            .forEach { selection ->
+                val targetNode = selection.selected.trim()
+                if (targetNode.isEmpty() || !isStillSelected(profileUuid, selection)) {
+                    return@forEach
+                }
+
+                val patched = runCatching { Clash.patchSelector("GLOBAL", targetNode) }
+                    .getOrDefault(false)
+                if (!patched) {
+                    Log.w(
+                        "$tag bootstrap GLOBAL restore deferred: " +
+                            "profile=$profileUuid node=$targetNode"
+                    )
+                }
+            }
+    }
+
     suspend fun restore(profileUuid: UUID, selections: List<Selection>, tag: String) {
         var removedAny = false
         selections.forEach { selection ->

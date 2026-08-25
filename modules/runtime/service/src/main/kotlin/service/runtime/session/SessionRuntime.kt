@@ -498,6 +498,9 @@ class SessionRuntime(
         // App→UID mappings must be populated before transport.start() so Go's
         // QueryAppByUid resolves package names from the first packet. Kept
         // sequential after compileAndLoad to avoid concurrent JNI into Go.
+        measureStartupStep(spec, "runtime GLOBAL selection bootstrap") {
+            restoreGlobalSelectionBeforeTransport(spec)
+        }
         measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
@@ -535,7 +538,8 @@ class SessionRuntime(
                 effectiveFingerprint = spec.effectiveFingerprint,
             )
         )
-        // The compiled runtime already contains persisted selector defaults.
+        // The compiled runtime contains persisted defaults for declared
+        // selector groups; GLOBAL was bootstrapped immediately after load.
         // The first packet and the UI do not need proxy-group validation to
         // finish, so publish profile-loaded at the transport/config boundary.
         host.onProfileLoaded(spec.profileUuid)
@@ -866,20 +870,36 @@ class SessionRuntime(
 
     private suspend fun restoreSelections(spec: RuntimeSpec) {
         val profileUuid = UUID.fromString(spec.profileUuid)
+        val restoreResult = querySelectionsForRestore(spec, profileUuid)
+        SelectionRestoreExecutor.restore(
+            profileUuid = profileUuid,
+            selections = restoreResult.selections,
+            tag = spec.owner.name,
+        )
+    }
+
+    private suspend fun restoreGlobalSelectionBeforeTransport(spec: RuntimeSpec) {
+        val profileUuid = UUID.fromString(spec.profileUuid)
+        val restoreResult = querySelectionsForRestore(spec, profileUuid)
+        SelectionRestoreExecutor.restoreGlobalBeforeTransport(
+            profileUuid = profileUuid,
+            selections = restoreResult.selections,
+            tag = spec.owner.name,
+        )
+    }
+
+    private fun querySelectionsForRestore(
+        spec: RuntimeSpec,
+        profileUuid: UUID,
+    ): SelectionDao.RestoreSelectionsResult {
         val scopeKey =
             when (spec.owner) {
                 RuntimeOwner.RootTun -> SelectionRestoreScope.rootScopeKey(spec.profileUuid)
                 else -> SelectionRestoreScope.localScopeKey(profileUuid)
             }
-        val restoreResult =
-            SelectionDao.querySelectionsForRestore(
-                profileUUID = profileUuid,
-                currentScopeKey = scopeKey,
-            )
-        SelectionRestoreExecutor.restore(
-            profileUuid = profileUuid,
-            selections = restoreResult.selections,
-            tag = spec.owner.name,
+        return SelectionDao.querySelectionsForRestore(
+            profileUUID = profileUuid,
+            currentScopeKey = scopeKey,
         )
     }
 

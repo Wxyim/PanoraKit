@@ -24,9 +24,12 @@ package main
 import "C"
 
 import (
+	"time"
 	"unsafe"
 
 	"cfa/native/config"
+
+	"github.com/metacubex/mihomo/log"
 )
 
 type remoteValidCallback struct {
@@ -54,13 +57,29 @@ func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int) {
 func loadCompiledConfig(completable unsafe.Pointer, path C.c_string) {
 	pathStr := C.GoString(path)
 
-	completeAsync(completable, func() error {
+	go func() {
+		defer releaseObject(completable)
+		startedAt := time.Now()
+		log.Infoln("[APP] compiled load bridge: worker begin path=%s", pathStr)
+
 		err := config.LoadCompiled(pathStr)
 		if err == nil {
 			invalidateProxyGroupCache()
 		}
-		return err
-	})
+		log.Infoln(
+			"[APP] compiled load bridge: worker done cost=%dms error=%v",
+			time.Since(startedAt).Milliseconds(),
+			err,
+		)
+
+		callbackStartedAt := time.Now()
+		completeWithError(completable, marshalError(err))
+		log.Infoln(
+			"[APP] compiled load bridge: callback returned cost=%dms total=%dms",
+			time.Since(callbackStartedAt).Milliseconds(),
+			time.Since(startedAt).Milliseconds(),
+		)
+	}()
 }
 
 //export inspectCompiledConfig
