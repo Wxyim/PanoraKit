@@ -756,7 +756,7 @@ class ProxyFacade(
             val request =
                 refreshFlightMutex.withLock {
                     refreshInFlight
-                        ?.takeIf { it.isActive && it.previewEpoch == previewEpoch }
+                        ?.takeIf { it.deferred.isActive && it.previewEpoch == previewEpoch }
                         ?: RefreshFlight(
                                 previewEpoch = previewEpoch,
                                 deferred =
