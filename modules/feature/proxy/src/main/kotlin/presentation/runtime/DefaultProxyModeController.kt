@@ -158,10 +158,14 @@ class DefaultProxyModeController(
                     delay(500.milliseconds)
                 } else {
                     // A stopped runtime does not reload its core on a mode
-                    // change. Rebuild the proxy-page preview immediately so
+                    // change. Direct and Rule share the same proxy-group
+                    // structure, so switching between them can keep the cached
+                    // preview; any switch involving Global must rebuild it so
                     // groups from the previous routing mode cannot remain
-                    // visible. This does not touch persisted node selections.
-                    proxyFacade.refreshPreviewForModeChange()
+                    // visible. This never touches persisted node selections.
+                    if (requiresPreviewRebuild(previousMode, mode)) {
+                        proxyFacade.refreshPreviewForModeChange()
+                    }
                 }
                 showMessage(MLang.Proxy.Mode.Switched.format(mode.toModeName()))
             } else {
@@ -213,4 +217,11 @@ class DefaultProxyModeController(
             TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
             else -> MLang.Proxy.Mode.Unknown
         }
+
+    private fun requiresPreviewRebuild(previous: TunnelState.Mode, next: TunnelState.Mode): Boolean {
+        val directToRule =
+            (previous == TunnelState.Mode.Direct && next == TunnelState.Mode.Rule) ||
+                (previous == TunnelState.Mode.Rule && next == TunnelState.Mode.Direct)
+        return !directToRule
+    }
 }

@@ -63,6 +63,20 @@ object MLangProxy {
         fun `Unknown`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_mode_unknown, *args)
 
+        val `DirectHint`: String
+            get() = LocaleBootstrap.getString(R.string.proxy_mode_direct_hint)
+
+        @Composable
+        fun `DirectHint`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.proxy_mode_direct_hint, *args)
+
+        val `DirectSummary`: String
+            get() = LocaleBootstrap.getString(R.string.proxy_mode_direct_summary)
+
+        @Composable
+        fun `DirectSummary`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.proxy_mode_direct_summary, *args)
+
         val `Switched`: String
             get() = LocaleBootstrap.getString(R.string.proxy_mode_switched)
 
@@ -206,6 +220,15 @@ object MLangProxy {
         @Composable
         fun `Hint`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_empty_hint, *args)
+    }
+
+    object `Loading` {
+        val `Groups`: String
+            get() = LocaleBootstrap.getString(R.string.proxy_loading_groups)
+
+        @Composable
+        fun `Groups`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.proxy_loading_groups, *args)
     }
 
     object `Testing` {

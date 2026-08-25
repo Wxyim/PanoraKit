@@ -72,6 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.core.model.Proxy
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.domain.model.ProxyDisplayMode
 import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupInfo
 import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupStyle
@@ -172,6 +173,7 @@ fun ProxyPager(
 
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
     val proxyGroupsLoadState by proxyViewModel.proxyGroupsLoadState.collectAsStateWithLifecycle()
+    val currentMode by proxyViewModel.currentMode.collectAsStateWithLifecycle()
     val uiState by proxyViewModel.uiState.collectAsStateWithLifecycle()
     val isRunning by proxyViewModel.isRunning.collectAsStateWithLifecycle()
     val groupStyle by proxyViewModel.groupStyle.collectAsStateWithLifecycle()
@@ -280,65 +282,73 @@ fun ProxyPager(
                         else mod
                     }
             ) {
-                if (proxyGroups.isEmpty()) {
-                    when (proxyGroupsLoadState) {
-                        ProxyGroupsLoadState.NotLoaded,
-                        ProxyGroupsLoadState.Loading ->
-                            CenteredText(
-                                firstLine = MLang.Component.Loading.Starting,
-                                secondLine = MLang.Proxy.Empty.Hint,
-                            )
+                when {
+                    currentMode == TunnelState.Mode.Direct ->
+                        CenteredText(
+                            firstLine = MLang.Proxy.Mode.DirectHint,
+                            secondLine = MLang.Proxy.Mode.DirectSummary,
+                        )
 
-                        else ->
-                            CenteredText(
-                                firstLine = MLang.Proxy.Empty.NoNodes,
-                                secondLine = MLang.Proxy.Empty.Hint,
-                            )
-                    }
-                } else {
-                    ProxyContent(
-                        proxyGroups = proxyGroups,
-                        displayMode = adaptiveDisplayMode,
-                        groupStyle = groupStyle,
-                        scrollBehavior = groupScrollBehavior,
-                        innerPadding = it,
-                        mainInnerPadding = mainInnerPadding,
-                        isRunning = isRunning,
-                        testingGroupNames = testingGroupNames,
-                        testingProxyNames = testingProxyNames,
-                        expandedGroupName =
-                            expandedGroupName.takeIf { groupStyle == ProxyGroupStyle.INLINE },
-                        onGroupBoundsChanged = { _, _ -> },
-                        onGroupClick = { group ->
-                            when (groupStyle) {
-                                ProxyGroupStyle.INLINE -> {
-                                    floatingGroupName = null
-                                    expandedGroupName =
-                                        if (expandedGroupName == group.name) null else group.name
-                                }
+                    proxyGroups.isEmpty() ->
+                        when (proxyGroupsLoadState) {
+                            ProxyGroupsLoadState.NotLoaded,
+                            ProxyGroupsLoadState.Loading ->
+                                CenteredText(
+                                    firstLine = MLang.Proxy.Loading.Groups,
+                                    secondLine = MLang.Proxy.Empty.Hint,
+                                )
 
-                                ProxyGroupStyle.FLOATING -> {
-                                    expandedGroupName = null
-                                    floatingGroupName =
-                                        if (floatingGroupName == group.name) null else group.name
+                            else ->
+                                CenteredText(
+                                    firstLine = MLang.Proxy.Empty.NoNodes,
+                                    secondLine = MLang.Proxy.Empty.Hint,
+                                )
+                        }
+
+                    else ->
+                        ProxyContent(
+                            proxyGroups = proxyGroups,
+                            displayMode = adaptiveDisplayMode,
+                            groupStyle = groupStyle,
+                            scrollBehavior = groupScrollBehavior,
+                            innerPadding = it,
+                            mainInnerPadding = mainInnerPadding,
+                            isRunning = isRunning,
+                            testingGroupNames = testingGroupNames,
+                            testingProxyNames = testingProxyNames,
+                            expandedGroupName =
+                                expandedGroupName.takeIf { groupStyle == ProxyGroupStyle.INLINE },
+                            onGroupBoundsChanged = { _, _ -> },
+                            onGroupClick = { group ->
+                                when (groupStyle) {
+                                    ProxyGroupStyle.INLINE -> {
+                                        floatingGroupName = null
+                                        expandedGroupName =
+                                            if (expandedGroupName == group.name) null else group.name
+                                    }
+
+                                    ProxyGroupStyle.FLOATING -> {
+                                        expandedGroupName = null
+                                        floatingGroupName =
+                                            if (floatingGroupName == group.name) null else group.name
+                                    }
                                 }
-                            }
-                        },
-                        onSelectProxy = { groupName, proxyName ->
+                            },
+                            onSelectProxy = { groupName, proxyName ->
                                 proxyViewModel.selectProxy(groupName, proxyName)
                                 if (groupStyle == ProxyGroupStyle.FLOATING) {
                                     floatingGroupName = null
                                 }
                             },
-                        onTestDelay = { groupName ->
+                            onTestDelay = { groupName ->
                                 proxyViewModel.testDelay(
                                     groupName,
                                     showStartMessage = groupStyle != ProxyGroupStyle.FLOATING,
                                 )
                             },
-                        onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
-                        singleNodeTestEnabled = singleNodeTest && isRunning,
-                    )
+                            onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
+                            singleNodeTestEnabled = singleNodeTest && isRunning,
+                        )
                 }
             }
         }

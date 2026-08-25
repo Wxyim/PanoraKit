@@ -1076,6 +1076,8 @@
     <string name="proxy_mode_global">全局</string>
     <string name="proxy_mode_rule">规则</string>
     <string name="proxy_mode_unknown">未知</string>
+    <string name="proxy_mode_direct_hint">直连模式</string>
+    <string name="proxy_mode_direct_summary">当前未使用代理节点</string>
     <string name="proxy_mode_switched">已切换到：%s 模式</string>
     <string name="proxy_mode_switch_failed">切换模式失败：%s</string>
     <string name="proxy_action_panel">面板</string>
@@ -1096,6 +1098,7 @@
     <string name="proxy_action_add_chain">添加链式代理</string>
     <string name="proxy_empty_no_nodes">暂无节点</string>
     <string name="proxy_empty_hint">请在配置页面加载配置文件</string>
+    <string name="proxy_loading_groups">代理组加载中…</string>
     <string name="proxy_testing_group">正在测试节点组：%s</string>
     <string name="proxy_testing_all">正在测试所有节点组…</string>
     <string name="proxy_testing_request_sent">测试请求已发送</string>
