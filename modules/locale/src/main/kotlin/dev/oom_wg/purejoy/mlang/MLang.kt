@@ -935,6 +935,9 @@ object `MLang` {
         val `Empty`
             get() = MLangProxy.`Empty`
 
+        val `Loading`
+            get() = MLangProxy.`Loading`
+
         val `Testing`
             get() = MLangProxy.`Testing`
 
