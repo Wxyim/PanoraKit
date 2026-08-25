@@ -130,6 +130,26 @@ class ProxyFacadeRuntimeStateTest {
     }
 
     @Test
+    fun refreshingSameProfileKeepsPreviewGroups() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+        val profile = sampleProfile()
+
+        state.setCurrentProfile(profile)
+        state.setProxyGroups(listOf(sampleGroup(name = "stable")))
+
+        // A preview compile must not invalidate an already-previewed profile:
+        // updatedAt only moves when the user's config content actually changes.
+        state.setCurrentProfile(profile)
+
+        assertEquals(1, state.proxyGroups.value.size)
+        assertEquals(ProxyGroupsLoadState.Ready, state.proxyGroupsLoadState.value)
+    }
+
+    @Test
     fun ownerPolicyMapsConfiguredModesAndDetectedStates() {
         assertEquals(RuntimeOwner.LocalTun, ProxyFacadeOwnerPolicy.ownerForMode(ProxyMode.Tun))
         assertEquals(RuntimeOwner.LocalHttp, ProxyFacadeOwnerPolicy.ownerForMode(ProxyMode.Http))
@@ -252,6 +272,58 @@ class ProxyFacadeRuntimeStateTest {
             assertEquals(
                 groups,
                 ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus),
+            )
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun clearProxyGroupsForPreviewKeepsCurrentProfileAndSelectionsSource() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+        val profile = sampleProfile()
+
+        state.setCurrentProfile(profile)
+        state.setProxyGroups(listOf(sampleGroup(name = "preview")))
+        assertEquals(ProxyGroupsLoadState.Ready, state.proxyGroupsLoadState.value)
+
+        state.clearProxyGroupsForPreview()
+
+        assertTrue(state.proxyGroups.value.isEmpty())
+        assertEquals(ProxyGroupsLoadState.NotLoaded, state.proxyGroupsLoadState.value)
+        // The profile stays bound so persisted selections remain addressable;
+        // only the rendered preview is dropped.
+        assertEquals(profile, state.currentProfile.value)
+    }
+
+    @Test
+    fun previewCacheInvalidateDropsMemoryAndDiskEntries() {
+        val file = File.createTempFile("monadbox-proxy-groups", ".json")
+        file.delete()
+        try {
+            val profile = sampleProfile()
+            val groups = listOf(sampleGroup(name = "invalidated"))
+            val snapshot =
+                RuntimeSnapshot(
+                    phase = RuntimePhase.Running,
+                    groupsReady = false,
+                    effectiveFingerprint = "fingerprint-invalidate",
+                )
+            val rootTunStatus = RootTunStatus(state = RootTunState.Running)
+            val cache = ProxyFacadePreviewCache(file)
+
+            cache.backfill(profile, groups, snapshot, rootTunStatus)
+            assertEquals(groups, cache.restore(profile, snapshot, rootTunStatus))
+
+            cache.invalidate()
+
+            assertNull(cache.restore(profile, snapshot, rootTunStatus))
+            assertNull(
+                ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus)
             )
         } finally {
             file.delete()

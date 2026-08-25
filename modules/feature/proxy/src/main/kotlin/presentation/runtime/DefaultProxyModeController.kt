@@ -156,6 +156,12 @@ class DefaultProxyModeController(
                     // Give a running reload a moment to settle before
                     // confirming; the stopped case is already applied.
                     delay(500.milliseconds)
+                } else {
+                    // A stopped runtime does not reload its core on a mode
+                    // change. Rebuild the proxy-page preview immediately so
+                    // groups from the previous routing mode cannot remain
+                    // visible. This does not touch persisted node selections.
+                    proxyFacade.refreshPreviewForModeChange()
                 }
                 showMessage(MLang.Proxy.Mode.Switched.format(mode.toModeName()))
             } else {

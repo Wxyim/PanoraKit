@@ -445,6 +445,30 @@ class ProxyFacade(
             }
     }
 
+    /**
+     * Rebuilds the stopped-runtime preview after the routing mode changes.
+     * This invalidates only rendered proxy groups; SelectionDao remains the
+     * source of truth for offline node selections.
+     */
+    fun refreshPreviewForModeChange() {
+        val snapshot = runtimeSnapshot.value
+        // A live (or starting) runtime reloads its core on a mode change and
+        // serves the preview from the runtime payload; rebuilding it here
+        // would only race the start sequence.
+        if (snapshot.phase == RuntimePhase.Running || snapshot.phase == RuntimePhase.Starting) {
+            return
+        }
+        previewWarmupJob?.cancel()
+        previewWarmupJob =
+            scope.launch {
+                refreshProxyGroupsMutex.withLock {
+                    previewCache.invalidate()
+                    runtimeState.clearProxyGroupsForPreview()
+                }
+                refreshPreviewStateSafely()
+            }
+    }
+
     suspend fun startProxy(mode: ProxyMode = networkSettingsStorage.proxyMode.value) {
         Timber.i("Start proxy: mode=$mode")
 

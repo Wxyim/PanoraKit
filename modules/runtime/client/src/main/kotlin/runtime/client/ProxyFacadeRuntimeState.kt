@@ -164,6 +164,19 @@ internal class ProxyFacadeRuntimeState(
         }
     }
 
+    /**
+     * Clears only the rendered proxy-group preview. Persisted selector
+     * selections live in SelectionDao and are intentionally not touched here.
+     */
+    fun clearProxyGroupsForPreview() {
+        synchronized(stateLock) {
+            proxyGroupsMutable.setIfChanged(emptyList())
+            proxyGroupsLoadStateMutable.setIfChanged(ProxyGroupsLoadState.NotLoaded)
+            proxyGroupsProfileId = null
+            proxyGroupsProfileUpdatedAt = null
+        }
+    }
+
     fun markProxyGroupsLoading() {
         synchronized(stateLock) {
             proxyGroupsLoadStateMutable.setIfChanged(
@@ -378,6 +391,17 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
                     )
             }
             ?.groups
+    }
+
+    @Synchronized
+    fun invalidate() {
+        entry = null
+        diskFile?.let { file ->
+            runCatching {
+                file.delete()
+                File(file.parentFile, "${file.name}.tmp").delete()
+            }
+        }
     }
 
     private fun persist(key: Key, groups: List<ProxyGroupInfo>) {

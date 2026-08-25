@@ -33,10 +33,27 @@ val Context.importedDir: File
 val Context.processingDir: File
     get() = filesDir.resolve("processing")
 
+/**
+ * Latest modification time among the profile's real configuration files.
+ *
+ * Preview compilation and runtime starts write derived artifacts
+ * (runtime.yaml and its .fingerprint sidecar) into the profile directory.
+ * Counting them would make the profile's updatedAt/fingerprint drift on every
+ * preview, invalidating the cached proxy-page preview and forcing a recompile
+ * whenever the page is revisited. They are excluded so the timestamp only
+ * changes when the user's actual config content changes.
+ */
 val File.directoryLastModified: Long?
     get() {
-        return walk().map { it.lastModified() }.maxOrNull()
+        return walk()
+            .filter { file -> file.isFile && !file.isDerivedRuntimeArtifact() }
+            .map { it.lastModified() }
+            .maxOrNull()
     }
+
+private fun File.isDerivedRuntimeArtifact(): Boolean {
+    return name == "runtime.yaml" || name.endsWith(".fingerprint")
+}
 
 fun Context.sendBroadcastSelf(intent: Intent) {
     sendBroadcast(intent.setPackage(this.packageName))
