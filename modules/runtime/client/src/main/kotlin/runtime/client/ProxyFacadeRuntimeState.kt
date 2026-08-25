@@ -90,6 +90,7 @@ internal class ProxyFacadeRuntimeState(
     val trafficTotal: StateFlow<Traffic> = trafficTotalMutable.asStateFlow()
 
     private var generationCounter = 0L
+    private var proxyGroupsPreviewEpoch = 0L
 
     fun applyRootTunStatus(status: RootTunStatus) {
         rootTunStatusMutable.setIfChanged(status)
@@ -108,6 +109,10 @@ internal class ProxyFacadeRuntimeState(
             generationCounter += 1L
             generationCounter
         }
+    }
+
+    fun currentPreviewEpoch(): Long {
+        return synchronized(stateLock) { proxyGroupsPreviewEpoch }
     }
 
     fun clearRuntimePayload(resetGroups: Boolean = true) {
@@ -174,6 +179,10 @@ internal class ProxyFacadeRuntimeState(
             proxyGroupsLoadStateMutable.setIfChanged(ProxyGroupsLoadState.NotLoaded)
             proxyGroupsProfileId = null
             proxyGroupsProfileUpdatedAt = null
+            // Invalidate any refresh that started before this clear. Rendered
+            // groups are mode-specific; a result captured under the previous
+            // mode must not resurrect the stale preview.
+            proxyGroupsPreviewEpoch += 1L
         }
     }
 

@@ -301,6 +301,22 @@ class ProxyFacadeRuntimeStateTest {
     }
 
     @Test
+    fun clearProxyGroupsForPreviewBumpsPreviewEpoch() {
+        val state =
+            ProxyFacadeRuntimeState(
+                initialMode = ProxyMode.Tun,
+                initialRootTunStatus = RootTunStatus(),
+            )
+        state.setProxyGroups(listOf(sampleGroup(name = "preview")))
+        val epochBefore = state.currentPreviewEpoch()
+
+        state.clearProxyGroupsForPreview()
+
+        assertTrue(state.proxyGroups.value.isEmpty())
+        assertTrue(state.currentPreviewEpoch() > epochBefore)
+    }
+
+    @Test
     fun previewCacheInvalidateDropsMemoryAndDiskEntries() {
         val file = File.createTempFile("monadbox-proxy-groups", ".json")
         file.delete()

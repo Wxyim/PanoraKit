@@ -370,8 +370,14 @@ class ProxyFacade(
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
+
+    private data class RefreshFlight(
+        val previewEpoch: Long,
+        val deferred: Deferred<Unit>,
+    )
+
     private val refreshFlightMutex = Mutex()
-    private var refreshInFlight: Deferred<Unit>? = null
+    private var refreshInFlight: RefreshFlight? = null
     private var localStopDrain: Deferred<Boolean>? = null
     private val operationMutex = Mutex()
     private val runtimeTransitionLock = Any()
@@ -458,15 +464,16 @@ class ProxyFacade(
         if (snapshot.phase == RuntimePhase.Running || snapshot.phase == RuntimePhase.Starting) {
             return
         }
+        // Drop the previous mode's preview synchronously. Deferring the clear
+        // behind the refresh lock keeps stale groups on screen until any
+        // in-flight preview query releases it (the config preview compile can
+        // take seconds). Clearing up front shows the loading state right away;
+        // the epoch bump also discards refresh results captured under the
+        // previous mode.
+        runtimeState.clearProxyGroupsForPreview()
+        previewCache.invalidate()
         previewWarmupJob?.cancel()
-        previewWarmupJob =
-            scope.launch {
-                refreshProxyGroupsMutex.withLock {
-                    previewCache.invalidate()
-                    runtimeState.clearProxyGroupsForPreview()
-                }
-                refreshPreviewStateSafely()
-            }
+        previewWarmupJob = scope.launch { refreshPreviewStateSafely() }
     }
 
     suspend fun startProxy(mode: ProxyMode = networkSettingsStorage.proxyMode.value) {
@@ -745,18 +752,25 @@ class ProxyFacade(
 
     suspend fun refreshProxyGroups(captureObservedGroupNames: Set<String> = emptySet()) {
         if (captureObservedGroupNames.isEmpty()) {
+            val previewEpoch = runtimeState.currentPreviewEpoch()
             val request =
                 refreshFlightMutex.withLock {
-                    refreshInFlight?.takeIf { it.isActive }
-                        ?: scope.async(Dispatchers.Default) {
-                            refreshProxyGroupsInternal(emptySet())
-                        }.also { refreshInFlight = it }
+                    refreshInFlight
+                        ?.takeIf { it.isActive && it.previewEpoch == previewEpoch }
+                        ?: RefreshFlight(
+                                previewEpoch = previewEpoch,
+                                deferred =
+                                    scope.async(Dispatchers.Default) {
+                                        refreshProxyGroupsInternal(emptySet())
+                                    },
+                            )
+                            .also { refreshInFlight = it }
                 }
             try {
-                request.await()
+                request.deferred.await()
             } finally {
                 refreshFlightMutex.withLock {
-                    if (refreshInFlight === request && request.isCompleted) {
+                    if (refreshInFlight === request && request.deferred.isCompleted) {
                         refreshInFlight = null
                     }
                 }
@@ -775,6 +789,7 @@ class ProxyFacade(
             val snapshot = runtimeSnapshot.value
             val latencyScopeKey = latencyScopeKey()
             val profileAtRequest = currentProfile.value
+            val previewEpochAtRequest = runtimeState.currentPreviewEpoch()
             var runtimeConfiguration: UiConfiguration? = null
             val groups =
                 withContext(Dispatchers.IO) {
@@ -818,7 +833,8 @@ class ProxyFacade(
             if (
                 runtimeSnapshot.value.generation != snapshot.generation ||
                     latestProfile?.uuid != profileAtRequest?.uuid ||
-                    latestProfile?.updatedAt != profileAtRequest?.updatedAt
+                    latestProfile?.updatedAt != profileAtRequest?.updatedAt ||
+                    runtimeState.currentPreviewEpoch() != previewEpochAtRequest
             ) {
                 return
             }
@@ -1355,6 +1371,7 @@ class ProxyFacade(
     private suspend fun restoreCachedPreviewGroups() {
         val requestSnapshot = runtimeSnapshot.value
         val profile = currentProfile.value ?: return
+        val previewEpochAtRequest = runtimeState.currentPreviewEpoch()
         if (proxyGroups.value.isNotEmpty()) return
         val cached =
             withContext(Dispatchers.IO) {
@@ -1368,6 +1385,7 @@ class ProxyFacade(
             runtimeSnapshot.value.generation == requestSnapshot.generation &&
             currentProfile.value?.uuid == profile.uuid &&
                 currentProfile.value?.updatedAt == profile.updatedAt &&
+                runtimeState.currentPreviewEpoch() == previewEpochAtRequest &&
                 proxyGroups.value.isEmpty()
         ) {
             runtimeState.setProxyGroups(cached)
