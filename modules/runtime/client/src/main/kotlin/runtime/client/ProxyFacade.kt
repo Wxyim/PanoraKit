@@ -372,6 +372,7 @@ class ProxyFacade(
     private val refreshProxyGroupsMutex = Mutex()
     private val refreshFlightMutex = Mutex()
     private var refreshInFlight: Deferred<Unit>? = null
+    private var localStopDrain: Deferred<Boolean>? = null
     private val operationMutex = Mutex()
     private val runtimeTransitionLock = Any()
     private val eventBus =
@@ -469,12 +470,18 @@ class ProxyFacade(
         }
 
         operationMutex.withLock {
+            // A local service may have marked the runtime stopped while its
+            // Android Service instance is still finishing onDestroy. Do not
+            // overlap a new start with that teardown.
+            awaitPendingLocalStopDrain()
+
             val targetOwner = ProxyFacadeOwnerPolicy.ownerForMode(mode)
             val currentOwner =
                 detectActiveOwner().takeIf { it != RuntimeOwner.None }
                     ?: runtimeSnapshot.value.owner
             if (currentOwner != RuntimeOwner.None) {
                 stopProxyInternal(targetMode = mode)
+                awaitPendingLocalStopDrain()
             }
 
             val generation = synchronized(runtimeTransitionLock) {
@@ -970,12 +977,14 @@ class ProxyFacade(
         when (awaitStopTerminal(owner)) {
             StopTerminalOutcome.ReceiptObserved -> {
                 finalizeStopIfSnapshotNotTerminal(owner)
+                scheduleLocalStopDrain(owner)
             }
 
             StopTerminalOutcome.ReconciledStaleMarker -> {
                 Timber.w("Stop receipt missing; reconciled stale stop marker for ${owner.name}")
                 reconcileStaleOwnerState(owner)
                 finalizeStopIfSnapshotNotTerminal(owner)
+                scheduleLocalStopDrain(owner)
             }
 
             StopTerminalOutcome.TimedOut -> {
@@ -993,6 +1002,35 @@ class ProxyFacade(
         }
     }
 
+    private fun scheduleLocalStopDrain(owner: RuntimeOwner) {
+        if (owner != RuntimeOwner.LocalTun && owner != RuntimeOwner.LocalHttp) return
+        if (isOwnerProcessStopped(owner)) {
+            localStopDrain = null
+            return
+        }
+
+        localStopDrain?.cancel()
+        localStopDrain =
+            scope.async(Dispatchers.Default) {
+                repeat(STOP_WAIT_RETRY_COUNT) {
+                    if (isOwnerProcessStopped(owner)) return@async true
+                    delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
+                }
+                isOwnerProcessStopped(owner)
+            }
+    }
+
+    private suspend fun awaitPendingLocalStopDrain() {
+        val drain = localStopDrain ?: return
+        localStopDrain = null
+        if (!drain.await()) {
+            throw RuntimeGatewayException(
+                code = RuntimeGatewayErrorCode.RUNTIME_START_FAILED,
+                message = "Previous local runtime is still stopping",
+            )
+        }
+    }
+
     private fun startTrafficPolling() {
         trafficPoller.start()
     }
@@ -1004,6 +1042,8 @@ class ProxyFacade(
     override fun close() {
         previewWarmupJob?.cancel()
         previewWarmupJob = null
+        localStopDrain?.cancel()
+        localStopDrain = null
         stopTrafficPolling()
         eventBus.stop()
         scope.cancel()
@@ -1401,14 +1441,7 @@ class ProxyFacade(
     private suspend fun awaitStopTerminal(owner: RuntimeOwner): StopTerminalOutcome {
         repeat(STOP_WAIT_RETRY_COUNT) {
             val consistency = collectStopSignalConsistency(owner)
-            if (consistency.snapshotTerminal) {
-                return StopTerminalOutcome.ReceiptObserved
-            }
-            if (
-                owner == RuntimeOwner.RootTun &&
-                    consistency.statusStoreStopped &&
-                    consistency.processStopped
-            ) {
+            if (isStopTerminal(owner, consistency)) {
                 return StopTerminalOutcome.ReceiptObserved
             }
             if (consistency.staleMarkerDetected) {
@@ -1418,13 +1451,28 @@ class ProxyFacade(
         }
 
         val consistency = collectStopSignalConsistency(owner)
-        if (consistency.snapshotTerminal) {
-            return StopTerminalOutcome.ReceiptObserved
-        }
+        if (isStopTerminal(owner, consistency)) return StopTerminalOutcome.ReceiptObserved
         if (consistency.staleMarkerDetected) {
             return StopTerminalOutcome.ReconciledStaleMarker
         }
         return StopTerminalOutcome.TimedOut
+    }
+
+    private fun isStopTerminal(owner: RuntimeOwner, consistency: StopSignalConsistency): Boolean {
+        if (consistency.snapshotTerminal) return true
+
+        return when (owner) {
+            // Local services mark StatusProvider stopped only after their
+            // SessionRuntime has completed the stop/destroy path. The Android
+            // service entry can remain visible briefly while onDestroy and
+            // foreground-service teardown finish, so waiting for the process
+            // list as well can produce a false stop timeout.
+            RuntimeOwner.LocalTun,
+            RuntimeOwner.LocalHttp -> consistency.statusStoreStopped
+            RuntimeOwner.RootTun ->
+                consistency.statusStoreStopped && consistency.processStopped
+            RuntimeOwner.None -> true
+        }
     }
 
     private suspend fun awaitLocalStartTerminal(owner: RuntimeOwner, mode: ProxyMode) {
