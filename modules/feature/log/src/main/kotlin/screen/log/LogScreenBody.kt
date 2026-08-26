@@ -21,6 +21,9 @@
 
 package com.github.nomadboxlab.monadbox.feature.log
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +59,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.ClipboardCopy
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Save
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
@@ -107,8 +111,30 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
             viewingStartup -> selectedStartupEntries
             else -> logEntries
         }
+    val copyLogs = {
+        val text = formatLogEntriesForClipboard(displayEntries)
+        if (text.isBlank()) {
+            context.toast(MLang.Util.Error.UnknownError)
+        } else {
+            val clipboard =
+                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("monadbox_log", text))
+            context.toast(MLang.Log.Action.Copied)
+        }
+    }
 
-    val listState = remember { LazyListState() }
+    // Browser and detail share an AnimatedContent container; each mode needs
+    // its own scroll state so the transition doesn't bind two LazyColumns to
+    // the same state and inherit stale scroll positions (which froze scrolling
+    // when opening a startup log while the VPN was running).
+    val browserListState = remember { LazyListState() }
+    val detailListState = remember { LazyListState() }
+    val selectedFileKey = selectedStartupFileName ?: selectedHistoryFileName
+    LaunchedEffect(selectedFileKey) {
+        if (selectedFileKey != null) {
+            detailListState.scrollToItem(0)
+        }
+    }
     val dateFormatter = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
 
     val debugBundleLauncher =
@@ -163,6 +189,12 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 },
                 actions = {
                     if (!viewingSavedFile) {
+                        IconButton(onClick = copyLogs) {
+                            Icon(
+                                imageVector = MonadIcons.ClipboardCopy,
+                                contentDescription = MLang.Log.Action.Copy,
+                            )
+                        }
                         IconButton(
                             onClick = {
                                 scope.launch {
@@ -263,7 +295,8 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = spacing.xl,
-                    lazyListState = listState,
+                    lazyListState =
+                        if (isDetailMode) detailListState else browserListState,
                 ) {
                     if (!isDetailMode) {
                         item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
@@ -301,6 +334,12 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
+                                    IconButton(onClick = copyLogs) {
+                                        Icon(
+                                            imageVector = MonadIcons.ClipboardCopy,
+                                            contentDescription = MLang.Log.Action.Copy,
+                                        )
+                                    }
                                     IconButton(
                                         onClick = {
                                             scope.launch {
@@ -480,6 +519,19 @@ private fun LogOverviewSection(
             showDivider = false,
             onClick = onExportDebugBundle,
         )
+    }
+}
+
+private fun formatLogEntriesForClipboard(entries: List<LogViewModel.LogEntry>): String {
+    if (entries.isEmpty()) return ""
+    return entries.joinToString("\n") { entry ->
+        buildString {
+            if (entry.time.isNotBlank()) {
+                append('[').append(entry.time).append("] ")
+            }
+            append('[').append(entry.level.name.uppercase(Locale.ROOT).take(1)).append("] ")
+            append(entry.message)
+        }
     }
 }
 

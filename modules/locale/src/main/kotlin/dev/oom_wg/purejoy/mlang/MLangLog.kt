@@ -70,6 +70,20 @@ object MLangLog {
         fun `CleanupDone`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.log_action_cleanup_done, *args)
 
+        val `Copy`: String
+            get() = LocaleBootstrap.getString(R.string.log_action_copy)
+
+        @Composable
+        fun `Copy`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_copy, *args)
+
+        val `Copied`: String
+            get() = LocaleBootstrap.getString(R.string.log_action_copied)
+
+        @Composable
+        fun `Copied`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_copied, *args)
+
         val `ExportDebugBundle`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export_debug_bundle)
 

@@ -50,9 +50,14 @@ fun NodeInfoDisplay(
     val serverPing = selectedServer?.delay
     val normalizedGroupName =
         remember(groupName) { groupName?.trim()?.takeIf { it.isNotEmpty() && it != "-" } }
+    val hasSelectedServer = selectedServer != null
     val displayName =
-        remember(serverName, tunnelMode) {
+        remember(serverName, tunnelMode, hasSelectedServer) {
             when {
+                // Without an imported profile there is no routing context, so the
+                // label must stay stable ("Unknown") instead of echoing the mode
+                // name, which would make it flicker as the mode is switched.
+                !hasSelectedServer -> null
                 tunnelMode == TunnelState.Mode.Direct -> MLang.Home.Profile.Direct
                 tunnelMode == TunnelState.Mode.Global && serverName.isNullOrBlank() ->
                     MLang.Home.Profile.Global
