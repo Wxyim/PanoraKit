@@ -195,8 +195,11 @@ private fun ProxyChainRow(chains: List<String>) {
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        items(chains.withIndex().toList()) { (index, chain) ->
-            val isLast = index == chains.lastIndex
+        // mihomo reports chains innermost-first ([exit node, ..., group]);
+        // display them conventionally outermost -> exit node.
+        val displayChain = chains.asReversed()
+        items(displayChain.withIndex().toList()) { (index, chain) ->
+            val isLast = index == displayChain.lastIndex
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),

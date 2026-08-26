@@ -65,9 +65,6 @@ class RefreshRuntimeProvidersUseCase(
                 "providers:update-provider:${provider.type}:${provider.name}"
             ) {
                 providersRepository.updateProvider(provider).getOrThrow()
-                if (proxyFacade.isRunning.value) {
-                    runCatching { proxyFacade.reloadCurrentProfile() }
-                }
             }
         }
     }
@@ -113,10 +110,6 @@ class RefreshRuntimeProvidersUseCase(
                 .onSuccess { refreshedCount += 1 }
                 .onFailure { failedItems += resource.name }
             onSourceRefreshed(remoteOverrideKey(resource.id))
-        }
-
-        if (refreshedCount > 0 && proxyFacade.isRunning.value) {
-            runCatching { proxyFacade.reloadCurrentProfile() }
         }
 
         return RefreshRuntimeProvidersResult(

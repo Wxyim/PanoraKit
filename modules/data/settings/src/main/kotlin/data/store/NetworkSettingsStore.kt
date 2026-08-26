@@ -45,7 +45,7 @@ class NetworkSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv =
     val enableIPv6 by boolFlow(true)
     val systemProxy by boolFlow(false)
 
-    val tunStack by enumFlow(TunStack.System)
+    val tunStack by enumFlow(TunStack.GVisor)
     val rootTunIfName by strFlow("monad")
     val rootTunMtu by intFlow(1500)
     val rootTunAutoRoute by boolFlow(true)

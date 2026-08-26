@@ -95,7 +95,7 @@ class RootTunConfigFactory(
             "ROOT_TUN factory: static transport plan done ${staticPlanResolveCost}ms"
         )
 
-        val stack = firstNonBlank(store.tunStackMode) ?: "system"
+        val stack = firstNonBlank(store.tunStackMode) ?: "gvisor"
         val allowIpv6 = staticPlan.allowIpv6
         val config =
             RootTunConfig(

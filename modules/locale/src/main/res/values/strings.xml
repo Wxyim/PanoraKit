@@ -1066,6 +1066,7 @@
     <string name="providers_message_update_failed">Update failed: %s</string>
     <string name="providers_message_update_failed_resources">Failed resources: %s</string>
     <string name="providers_message_all_updated">All updated</string>
+    <string name="providers_message_applied_on_next_start">Updated &amp; will take effect on next start</string>
     <string name="providers_message_upload_success">%s uploaded successfully</string>
     <string name="providers_message_upload_failed">Upload failed: %s</string>
     <string name="providers_message_read_file_failed">Cannot read file: %s</string>

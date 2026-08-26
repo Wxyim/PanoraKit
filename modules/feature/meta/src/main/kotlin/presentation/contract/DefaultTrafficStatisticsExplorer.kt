@@ -247,31 +247,35 @@ class DefaultTrafficStatisticsExplorer(
      * [ConnectionInfo.chains]. Uses the original chain data — independent of
      * the current proxy group state — so historical entries don't change when
      * the user switches nodes.
+     *
+     * mihomo reports chains innermost-first (`[exit node, ..., outermost group]`),
+     * so the outermost element is the proxy group that made the routing decision.
+     * Only hard built-in policies (DIRECT / REJECT) are skipped; the "GLOBAL"
+     * pseudo-group is kept since it is the actual routing group in global mode.
      */
     private fun resolveTopLevelGroupName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return null
-        // The first non-built-in chain element is typically the user-facing
-        // proxy-group name (e.g. "自动选择"). Built-in policies like "Proxy"
-        // or "Rule" are skipped as they are too generic.
-        val builtIn = setOf("PROXY", "DIRECT", "REJECT", "REJECT-DROP", "代理", "直连", "拦截")
-        return chains.firstOrNull { it !in builtIn }
+        val builtIn = setOf("DIRECT", "REJECT", "REJECT-DROP", "直连", "拦截")
+        return chains.last().takeIf { it.uppercase(Locale.ROOT) !in builtIn }
     }
 
     /**
      * Extract the final (leaf) node name from the connection's recorded
-     * [ConnectionInfo.chains]. The last chain element is the actual node that
-     * handled the connection — this is the same data shown in the detail sheet.
+     * [ConnectionInfo.chains]. mihomo reports chains innermost-first, so the
+     * first chain element is the actual exit node that handled the connection.
      */
     private fun resolveBottomNodeName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return localizeBuiltInProxyName("DIRECT")
-        return localizeBuiltInProxyName(chains.last())
+        return localizeBuiltInProxyName(chains.first())
     }
 
     private fun localizeBuiltInProxyName(name: String): String {
         val normalized = name.trim().uppercase(Locale.ROOT)
         return when (normalized) {
+            "GLOBAL",
+            "全局" -> MLang.Home.Profile.Global
             "DIRECT",
             "直连" -> MLang.Home.Profile.Direct
             "REJECT",

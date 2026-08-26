@@ -143,7 +143,8 @@ class ProvidersViewModel(
                             showMessage(MLang.Providers.Empty.NoProvidersHint)
                         }
 
-                        result.failedItems.isEmpty() -> Unit
+                        result.failedItems.isEmpty() ->
+                            showMessage(MLang.Providers.Message.AppliedOnNextStart())
 
                         result.refreshedCount > 0 -> {
                             showError(
@@ -195,7 +196,10 @@ class ProvidersViewModel(
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
             refreshRuntimeProvidersUseCase
                 .updateRemoteOverride(resource.id)
-                .onSuccess { refreshRemoteOverrides() }
+                .onSuccess {
+                    refreshRemoteOverrides()
+                    showMessage(MLang.Providers.Message.AppliedOnNextStart())
+                }
                 .onFailure { e ->
                     showError(
                         message =
@@ -216,7 +220,10 @@ class ProvidersViewModel(
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
             val result = refreshRuntimeProvidersUseCase.updateProvider(provider)
             result
-                .onSuccess { refreshProviders() }
+                .onSuccess {
+                    refreshProviders()
+                    showMessage(MLang.Providers.Message.AppliedOnNextStart())
+                }
                 .onFailure { e ->
                     showError(
                         message =
