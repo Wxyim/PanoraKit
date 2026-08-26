@@ -168,6 +168,14 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) :
         )
     }
 
+    override fun patchMode(mode: TunnelState.Mode): Boolean {
+        // Fast runtime mode switch is supported in-process. Root tun has no
+        // equivalent lightweight path yet, so signal a fallback to the full
+        // config reload.
+        if (useRootRuntime()) return false
+        return local.patchMode(mode)
+    }
+
     override fun closeConnection(id: String): Boolean {
         return queryWithRuntime(
             rootCall = { rootCallBlocking { RootTunController.closeConnection(appContext, id) } },

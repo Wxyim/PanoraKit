@@ -15,13 +15,31 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
  * Copyright (c) YumeLira 2025 - 2026
+ * Copyright (c) MonadBox Contributors 2026 - Present
+ *
  */
 package tunnel
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/metacubex/mihomo/tunnel"
 )
 
 func QueryMode() string {
 	return tunnel.Mode().String()
+}
+
+// SetMode switches the live tunnel routing mode without reloading the whole
+// config. It accepts the same wire names mihomo exposes on its /configs
+// endpoint ("rule", "global", "direct").
+func SetMode(mode string) error {
+	modeKey := strings.ToLower(mode)
+	m, ok := tunnel.ModeMapping[modeKey]
+	if !ok {
+		return fmt.Errorf("unsupported tunnel mode: %s", mode)
+	}
+	tunnel.SetMode(m)
+	return nil
 }

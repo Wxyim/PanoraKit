@@ -279,6 +279,17 @@ object Clash {
         return Bridge.nativePatchSelector(selector, name)
     }
 
+    fun setMode(mode: TunnelState.Mode): Boolean {
+        val runtimeName =
+            when (mode) {
+                TunnelState.Mode.Rule -> "rule"
+                TunnelState.Mode.Global -> "global"
+                TunnelState.Mode.Direct -> "direct"
+                TunnelState.Mode.Script -> null
+            } ?: return false
+        return Bridge.nativeSetMode(runtimeName)
+    }
+
     fun fetchAndValid(
         path: File,
         url: String,

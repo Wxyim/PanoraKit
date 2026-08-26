@@ -324,6 +324,15 @@ JNIEXPORT jboolean JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Brid
   return (jboolean)patchSelector(_selector, _name);
 }
 
+JNIEXPORT jboolean JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeSetMode(
+    JNIEnv* env, jobject thiz, jstring mode) {
+  TRACE_METHOD();
+
+  scoped_string _mode = get_string(mode);
+
+  return (jboolean)patchMode(_mode);
+}
+
 JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeLoadCompiledConfig(
     JNIEnv* env, jobject thiz, jobject completable, jstring path) {
   TRACE_METHOD();

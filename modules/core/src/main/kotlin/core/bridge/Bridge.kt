@@ -151,6 +151,8 @@ object Bridge {
 
     external fun nativePatchSelector(selector: String, name: String): Boolean
 
+    external fun nativeSetMode(mode: String): Boolean
+
     external fun nativeCloseConnection(id: String): Boolean
 
     external fun nativeCloseAllConnections()

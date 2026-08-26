@@ -52,6 +52,8 @@ interface IClashManager {
 
     fun patchSelector(group: String, name: String): Boolean
 
+    fun patchMode(mode: TunnelState.Mode): Boolean
+
     fun closeConnection(id: String): Boolean
 
     fun closeAllConnections()

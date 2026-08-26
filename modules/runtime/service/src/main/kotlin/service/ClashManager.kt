@@ -236,6 +236,18 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         return ok
     }
 
+    override fun patchMode(mode: TunnelState.Mode): Boolean {
+        // Runtime mode updates are only meaningful while the core is live.
+        // When stopped, the persisted override already carries the mode and
+        // is applied on the next start.
+        if (!StatusProvider.serviceRunning) return false
+        val ok = runCatching { Clash.setMode(mode) }.getOrDefault(false)
+        if (ok) {
+            invalidateProxyGroupCache()
+        }
+        return ok
+    }
+
     private fun invalidateProxyGroupCache() {
         synchronized(proxyGroupCacheLock) { proxyGroupCache = null }
     }

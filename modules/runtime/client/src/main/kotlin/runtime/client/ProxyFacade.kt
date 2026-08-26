@@ -627,6 +627,18 @@ class ProxyFacade(
         return ok
     }
 
+    /**
+     * Applies a routing-mode change to a live runtime via the fast path.
+     * Returns false when the runtime is not running or the underlying core
+     * rejected the update, in which case the caller should fall back to the
+     * legacy full-config reload.
+     */
+    suspend fun patchMode(mode: TunnelState.Mode): Boolean {
+        if (!isRunning.value) return false
+        connectCurrentBackend()
+        return runCatching { ServiceClient.clash().patchMode(mode) }.getOrDefault(false)
+    }
+
     suspend fun healthCheck(group: String, refreshAfter: Boolean = true) {
         connectCurrentBackend()
         Timber.d("Health check request: group=%s refreshAfter=%s", group, refreshAfter)

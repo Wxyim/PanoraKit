@@ -282,6 +282,17 @@ func patchSelector(selector, name C.c_string) C.int {
 	return 0
 }
 
+//export patchMode
+func patchMode(mode C.c_string) C.int {
+	modeStr := C.GoString(mode)
+
+	if err := tunnel.SetMode(modeStr); err != nil {
+		return 0
+	}
+	invalidateProxyGroupCache()
+	return 1
+}
+
 //export queryProviders
 func queryProviders() *C.char {
 	return marshalJson(tunnel.QueryProviders())

@@ -134,18 +134,21 @@ class DefaultProxyModeController(
                         error(persistError.message ?: MLang.Proxy.Mode.SwitchFailed)
                     }
 
-                    // A reload only affects a live runtime. When the VPN is
-                    // stopped there is nothing to reload; the persisted mode
-                    // is applied on the next start. Skipping it also avoids
-                    // the full config compile preview that can take seconds
-                    // and delays the switch confirmation.
-                    if (proxyFacade.isRunning.value) {
+                    // While the runtime is live, mihomo applies a mode update
+                    // without reloading the whole config, so the switch is
+                    // near-instant. Fall back to the legacy full-config reload
+                    // only when the fast path is unavailable (e.g. root tun).
+                    val usedFastPath =
+                        proxyFacade.isRunning.value &&
+                            runCatching { proxyFacade.patchMode(mode) }.getOrDefault(false)
+                    if (!usedFastPath && proxyFacade.isRunning.value) {
                         val reloadError = proxyFacade.reloadCurrentProfile().exceptionOrNull()
                         if (reloadError != null) {
                             overrideRepository.updateProfile { previousOverride }.getOrThrow()
                             error(reloadError.message ?: MLang.Proxy.Mode.SwitchFailed)
                         }
                     }
+                    usedFastPath
                 }
             }
 
@@ -153,9 +156,16 @@ class DefaultProxyModeController(
             if (error == null) {
                 refreshCurrentTunnelMode()
                 if (proxyFacade.isRunning.value) {
-                    // Give a running reload a moment to settle before
-                    // confirming; the stopped case is already applied.
-                    delay(500.milliseconds)
+                    if (result.getOrDefault(false)) {
+                        // Fast path: the core already switched, so refresh the
+                        // proxy groups right away instead of waiting for the
+                        // next poll to reflect the new mode.
+                        runCatching { proxyFacade.refreshProxyGroups() }
+                    } else {
+                        // Give a running reload a moment to settle before
+                        // confirming; the stopped case is already applied.
+                        delay(500.milliseconds)
+                    }
                 } else {
                     // A stopped runtime does not reload its core on a mode
                     // change. Direct and Rule share the same proxy-group
