@@ -144,7 +144,7 @@ class ProvidersViewModel(
                         }
 
                         result.failedItems.isEmpty() ->
-                            showMessage(MLang.Providers.Message.AppliedOnNextStart())
+                            showMessage(MLang.Providers.Message.AppliedOnNextStart)
 
                         result.refreshedCount > 0 -> {
                             showError(
@@ -198,7 +198,7 @@ class ProvidersViewModel(
                 .updateRemoteOverride(resource.id)
                 .onSuccess {
                     refreshRemoteOverrides()
-                    showMessage(MLang.Providers.Message.AppliedOnNextStart())
+                    showMessage(MLang.Providers.Message.AppliedOnNextStart)
                 }
                 .onFailure { e ->
                     showError(
@@ -222,7 +222,7 @@ class ProvidersViewModel(
             result
                 .onSuccess {
                     refreshProviders()
-                    showMessage(MLang.Providers.Message.AppliedOnNextStart())
+                    showMessage(MLang.Providers.Message.AppliedOnNextStart)
                 }
                 .onFailure { e ->
                     showError(
