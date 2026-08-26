@@ -351,6 +351,7 @@
     <string name="log_action_cleanup_done">Log cleanup completed</string>
     <string name="log_action_copy">Copy</string>
     <string name="log_action_copied">Log copied to clipboard</string>
+    <string name="log_action_copy_empty">No logs to copy</string>
     <string name="log_action_export_debug_bundle">Export Debug Bundle</string>
     <string name="log_action_export_debug_bundle_warning">Includes runtime state and sanitized logs. May still contain server/context details; share only with trusted recipients.</string>
     <string name="log_action_export">Export</string>

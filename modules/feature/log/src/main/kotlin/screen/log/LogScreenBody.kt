@@ -114,7 +114,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
     val copyLogs = {
         val text = formatLogEntriesForClipboard(displayEntries)
         if (text.isBlank()) {
-            context.toast(MLang.Util.Error.UnknownError)
+            context.toast(MLang.Log.Action.CopyEmpty)
         } else {
             val clipboard =
                 context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -189,7 +189,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 },
                 actions = {
                     if (!viewingSavedFile) {
-                        IconButton(onClick = copyLogs) {
+                        IconButton(onClick = copyLogs, enabled = logEntries.isNotEmpty()) {
                             Icon(
                                 imageVector = MonadIcons.ClipboardCopy,
                                 contentDescription = MLang.Log.Action.Copy,

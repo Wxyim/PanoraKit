@@ -84,6 +84,13 @@ object MLangLog {
         fun `Copied`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.log_action_copied, *args)
 
+        val `CopyEmpty`: String
+            get() = LocaleBootstrap.getString(R.string.log_action_copy_empty)
+
+        @Composable
+        fun `CopyEmpty`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.log_action_copy_empty, *args)
+
         val `ExportDebugBundle`: String
             get() = LocaleBootstrap.getString(R.string.log_action_export_debug_bundle)
 

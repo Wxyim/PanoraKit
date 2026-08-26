@@ -351,6 +351,7 @@
     <string name="log_action_cleanup_done">日志清理完成</string>
     <string name="log_action_copy">复制</string>
     <string name="log_action_copied">日志已复制到剪贴板</string>
+    <string name="log_action_copy_empty">没有可复制的日志</string>
     <string name="log_action_export_debug_bundle">导出诊断包</string>
     <string name="log_action_export_debug_bundle_warning">包含运行状态与脱敏日志，可能仍含服务器地址等上下文；仅分享给可信接收方。</string>
     <string name="log_action_export">导出</string>

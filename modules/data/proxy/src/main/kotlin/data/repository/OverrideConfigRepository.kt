@@ -193,9 +193,9 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             if (isSystemPreset(id)) return@withContext false
 
             val configFile = configsDir.resolve("$id.json")
-            val fileDeleted = !configFile.exists() || configFile.delete()
             val metadataIndex = loadMetadataIndex()
             val metadataExists = metadataIndex.getById(id) != null
+            val fileDeleted = !configFile.exists() || configFile.delete()
             val deleted = fileDeleted && metadataExists
             if (fileDeleted && metadataExists) {
                 val index = metadataIndex.remove(id).removeUserOverrideReferences(id)
