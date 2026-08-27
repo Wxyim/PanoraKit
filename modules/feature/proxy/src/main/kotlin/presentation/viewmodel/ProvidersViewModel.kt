@@ -33,6 +33,7 @@ import com.github.nomadboxlab.monadbox.domain.model.ErrorPhase
 import com.github.nomadboxlab.monadbox.domain.model.ErrorRetryability
 import com.github.nomadboxlab.monadbox.domain.model.RemoteOverrideResource
 import com.github.nomadboxlab.monadbox.domain.model.StructuredError
+import com.github.nomadboxlab.monadbox.presentation.usecase.RefreshApplyTiming
 import com.github.nomadboxlab.monadbox.presentation.usecase.RefreshRuntimeProvidersUseCase
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import dev.oom_wg.purejoy.mlang.MLang
@@ -144,7 +145,13 @@ class ProvidersViewModel(
                         }
 
                         result.failedItems.isEmpty() ->
-                            showMessage(MLang.Providers.Message.AppliedOnNextStart)
+                            showMessage(
+                                if (proxyFacade.isRunning.value) {
+                                    MLang.Providers.Message.AppliedNow
+                                } else {
+                                    MLang.Providers.Message.AppliedOnNextStart
+                                }
+                            )
 
                         result.refreshedCount > 0 -> {
                             showError(
@@ -196,9 +203,15 @@ class ProvidersViewModel(
             _uiState.update { it.copy(updatingProviders = it.updatingProviders + key) }
             refreshRuntimeProvidersUseCase
                 .updateRemoteOverride(resource.id)
-                .onSuccess {
+                .onSuccess { timing ->
                     refreshRemoteOverrides()
-                    showMessage(MLang.Providers.Message.AppliedOnNextStart)
+                    showMessage(
+                        when (timing) {
+                            RefreshApplyTiming.Now -> MLang.Providers.Message.AppliedNow
+                            RefreshApplyTiming.NextStart ->
+                                MLang.Providers.Message.AppliedOnNextStart
+                        }
+                    )
                 }
                 .onFailure { e ->
                     showError(
@@ -222,7 +235,7 @@ class ProvidersViewModel(
             result
                 .onSuccess {
                     refreshProviders()
-                    showMessage(MLang.Providers.Message.AppliedOnNextStart)
+                    showMessage(MLang.Providers.Message.AppliedNow)
                 }
                 .onFailure { e ->
                     showError(

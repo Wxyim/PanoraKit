@@ -34,6 +34,11 @@ data class RefreshRuntimeProvidersResult(
     val failedItems: List<String> = emptyList(),
 )
 
+enum class RefreshApplyTiming {
+    Now,
+    NextStart,
+}
+
 class RefreshRuntimeProvidersUseCase(
     private val proxyFacade: ProxyFacade,
     private val providersRepository: ProvidersRepository,
@@ -51,7 +56,7 @@ class RefreshRuntimeProvidersUseCase(
         }
     }
 
-    suspend fun updateRemoteOverride(id: String): Result<Unit> {
+    suspend fun updateRemoteOverride(id: String): Result<RefreshApplyTiming> {
         return runCatching {
             runtimeControlCoordinator.runSerialized("providers:update-remote-override:$id") {
                 refreshRemoteOverrideOrThrow(id)
@@ -119,7 +124,7 @@ class RefreshRuntimeProvidersUseCase(
         )
     }
 
-    private suspend fun refreshRemoteOverrideOrThrow(id: String) {
+    private suspend fun refreshRemoteOverrideOrThrow(id: String): RefreshApplyTiming {
         val previousConfig =
             overrideConfigRepository.getById(id)
                 ?: throw IllegalStateException(MLang.Override.Save.Failed)
@@ -129,6 +134,14 @@ class RefreshRuntimeProvidersUseCase(
             if (!activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(id)) {
                 overrideConfigRepository.restoreConfigState(previousConfig, previousMetadata)
                 throw IllegalStateException(MLang.Override.Save.ApplyFailed)
+            }
+            val appliesNow =
+                proxyFacade.isRunning.value &&
+                    activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
+            return if (appliesNow) {
+                RefreshApplyTiming.Now
+            } else {
+                RefreshApplyTiming.NextStart
             }
         } catch (error: Exception) {
             throw error

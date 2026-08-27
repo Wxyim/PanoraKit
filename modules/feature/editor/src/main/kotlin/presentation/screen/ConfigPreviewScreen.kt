@@ -68,10 +68,13 @@ import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private const val SAVE_PROGRESS_DIALOG_GRACE_MS = 400L
 
 @Composable
 fun ConfigPreviewScreen(
@@ -88,6 +91,19 @@ fun ConfigPreviewScreen(
     var savePhase by remember { mutableStateOf<ConfigPreviewSavePhase?>(null) }
     var saveDecision by remember { mutableStateOf(ConfigPreviewSaveDecision.Continue) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showSaveProgressDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isSaving) {
+        if (!isSaving) {
+            showSaveProgressDialog = false
+            return@LaunchedEffect
+        }
+        showSaveProgressDialog = false
+        delay(SAVE_PROGRESS_DIALOG_GRACE_MS)
+        if (isSaving) {
+            showSaveProgressDialog = true
+        }
+    }
 
     val formattedContent =
         remember(initialContent, language) {
@@ -260,7 +276,7 @@ fun ConfigPreviewScreen(
         }
 
         ConfigSaveProgressDialog(
-            show = isSaving,
+            show = showSaveProgressDialog,
             phase = savePhase,
             isRuntimeRunning = isRuntimeRunning,
             allowUndo =

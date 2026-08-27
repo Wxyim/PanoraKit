@@ -209,6 +209,13 @@ object MLangProviders {
         fun `AppliedOnNextStart`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_message_applied_on_next_start, *args)
 
+        val `AppliedNow`: String
+            get() = LocaleBootstrap.getString(R.string.providers_message_applied_now)
+
+        @Composable
+        fun `AppliedNow`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.providers_message_applied_now, *args)
+
         val `UploadSuccess`: String
             get() = LocaleBootstrap.getString(R.string.providers_message_upload_success)
 
