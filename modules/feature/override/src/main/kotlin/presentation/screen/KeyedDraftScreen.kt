@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
@@ -59,10 +58,6 @@ private val ProviderKnownKeys =
 
 private val ProviderHealthCheckKnownKeys =
     setOf("enable", "url", "interval", "timeout", "lazy", "expected-status")
-
-private object OverrideDraftMetrics {
-    val HeaderFieldHeight = 120.dp
-}
 
 private val ProviderOverrideKnownKeys =
     setOf(

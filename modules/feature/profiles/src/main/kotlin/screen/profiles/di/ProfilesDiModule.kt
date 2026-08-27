@@ -42,7 +42,6 @@ val profilesDiModule = module {
             get(),
             get(),
             get(),
-            get(),
         )
     }
 }

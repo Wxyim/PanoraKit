@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.compose.destinations.core)
-    implementation(libs.timber)
     implementation(libs.haze)
     implementation(libs.sketch4.compose)
     implementation(libs.sketch4.http)

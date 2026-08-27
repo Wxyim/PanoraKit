@@ -48,8 +48,6 @@ dependencies {
 
     implementation(libs.koin.core)
     implementation(libs.timber)
-    implementation(libs.libsu.core)
-    implementation(libs.libsu.service)
 
     testImplementation(libs.junit4)
 }

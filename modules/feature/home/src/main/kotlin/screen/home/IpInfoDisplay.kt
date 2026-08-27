@@ -48,9 +48,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val INFO_VALUE_CORNER_RADIUS = RoundedCornerShape(10.dp)
-private val IP_VALUE_MIN_HEIGHT = 48.dp
 private val IP_VALUE_HORIZONTAL_PADDING = 12.dp
-private val IP_VALUE_VERTICAL_PADDING = 8.dp
 private const val IP_VALUE_VISIBLE_MAX_LINES = 3
 internal val INFO_TEXT_HEIGHT = 24.dp
 

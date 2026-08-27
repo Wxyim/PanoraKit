@@ -64,7 +64,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
 import com.github.nomadboxlab.monadbox.common.util.IntentController
@@ -157,7 +156,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         applyExcludeFromRecents(appSettingsStorage.excludeFromRecents.value)
 
-        intentController = IntentController(this, lifecycleScope)
+        intentController = IntentController()
         handleIntent(intent)
 
         if (!appSettingsStorage.initialSetupCompleted.value) {

@@ -29,7 +29,6 @@ import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
 import com.github.nomadboxlab.monadbox.core.model.FetchStatus
 import com.github.nomadboxlab.monadbox.data.repository.ActiveProfileOverrideReloader
 import com.github.nomadboxlab.monadbox.data.repository.ProfileBindingProvider
-import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.LinkOpenMode
 import com.github.nomadboxlab.monadbox.data.store.Preference
 import com.github.nomadboxlab.monadbox.data.store.ProfileLink
@@ -72,7 +71,6 @@ class ProfilesViewModel(
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
     private val runtimeActionExecutor: RuntimeActionExecutor,
     private val vpnPermissionCoordinator: VpnPermissionCoordinator,
-    private val appSettingsStorage: AppSettingsStorage,
     private val importProfileUseCase: ImportProfileUseCase,
     private val saveProfileWithRollbackUseCase: SaveProfileWithRollbackUseCase,
 ) : AndroidViewModel(application) {

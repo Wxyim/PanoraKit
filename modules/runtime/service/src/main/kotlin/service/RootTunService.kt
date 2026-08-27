@@ -53,7 +53,6 @@ import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 
 class RootTunService : BaseService() {

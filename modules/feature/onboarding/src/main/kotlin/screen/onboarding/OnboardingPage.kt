@@ -929,20 +929,3 @@ private fun SecondaryFooterAction(
         )
     }
 }
-
-@Composable
-private fun SecondaryLinkAction(text: String, onClick: () -> Unit) {
-    Box(
-        modifier =
-            Modifier.clip(RoundedCornerShape(18.dp))
-                .appClickable(onClick = onClick)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = MiuixTheme.textStyles.footnote1.copy(fontWeight = FontWeight.Medium),
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
-    }
-}

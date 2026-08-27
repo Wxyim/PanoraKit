@@ -565,13 +565,6 @@ private fun ModifierModeCard(
     }
 }
 
-private fun buildListModeSummary(value: List<String>?): String {
-    return when {
-        value.isNullOrEmpty() -> MLang.Component.Selector.NotModify
-        else -> "${MLang.Component.ConfigInput.CountItems.format(value.size)} · ${value.first()}"
-    }
-}
-
 private fun buildMapModeSummary(value: Map<String, String>?, unsetLabel: String): String {
     return when {
         value.isNullOrEmpty() -> unsetLabel

@@ -21,22 +21,10 @@
 
 package com.github.nomadboxlab.monadbox.common.util
 
-import android.content.Context
 import android.content.Intent
-import com.github.nomadboxlab.monadbox.data.store.NetworkSettingsStorage
-import com.github.nomadboxlab.monadbox.runtime.client.ProfilesRepository
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
-import kotlinx.coroutines.CoroutineScope
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import timber.log.Timber
 
-class IntentController(private val context: Context, private val scope: CoroutineScope) :
-    KoinComponent {
-
-    private val proxyFacade: ProxyFacade by inject()
-    private val profilesRepository: ProfilesRepository by inject()
-    private val networkSettingsStorage: NetworkSettingsStorage by inject()
+class IntentController {
 
     fun handleIntent(intent: Intent?) {
         intent?.let { safeIntent ->

@@ -22,7 +22,6 @@
 package com.github.nomadboxlab.monadbox.di
 
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
-import com.github.nomadboxlab.monadbox.data.repository.ProxyChainResolver
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer

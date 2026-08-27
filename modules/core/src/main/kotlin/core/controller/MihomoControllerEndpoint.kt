@@ -136,14 +136,6 @@ object MihomoControllerEndpoint {
         else "$scheme://$normalizedHost"
     }
 
-    private fun extractControllerPort(configuration: UiConfiguration?): Int? {
-        val raw =
-            configuration?.externalController?.trim()?.takeIf { it.isNotEmpty() }
-                ?: configuration?.externalControllerTls?.trim().orEmpty()
-        if (raw.isEmpty()) return null
-        return raw.substringAfterLast(':', "").toIntOrNull()
-    }
-
     private fun normalizeSecret(secret: String?): String {
         return secret?.trim().orEmpty()
     }

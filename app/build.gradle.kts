@@ -394,7 +394,6 @@ dependencies {
     implementation(libs.miuix.icons)
     implementation(libs.haze)
     implementation(libs.liquid)
-    implementation(libs.navigationevent.compose)
 
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkv = if (injectedAbi in listOf("arm64-v8a", "x86_64")) libs.mmkv.v64 else libs.mmkv.v32

@@ -241,42 +241,6 @@ object OverrideStructuredEditorStore {
         )
     }
 
-    private fun copyRuleDraftList(value: List<OverrideRuleDraft>?): List<OverrideRuleDraft>? {
-        return copyListValue(value) { draft -> draft.copy(extras = draft.extras.toList()) }
-    }
-
-    private fun copyProxyDraftList(value: List<OverrideProxyDraft>?): List<OverrideProxyDraft>? {
-        return copyListValue(value) { draft ->
-            draft.copy(extraFields = toOrderedJsonElementMap(draft.extraFields))
-        }
-    }
-
-    private fun copyProxyGroupDraftList(
-        value: List<OverrideProxyGroupDraft>?
-    ): List<OverrideProxyGroupDraft>? {
-        return copyListValue(value) { draft ->
-            draft.copy(
-                proxies = draft.proxies.toList(),
-                use = draft.use.toList(),
-                extraFields = toOrderedJsonElementMap(draft.extraFields),
-            )
-        }
-    }
-
-    private fun copyKeyedObjectDraftList(
-        value: List<OverrideKeyedObjectDraft>?
-    ): List<OverrideKeyedObjectDraft>? {
-        return copyListValue(value) { draft ->
-            draft.copy(fields = toOrderedJsonElementMap(draft.fields))
-        }
-    }
-
-    private fun copySubRuleGroupDraftList(
-        value: List<OverrideSubRuleGroupDraft>?
-    ): List<OverrideSubRuleGroupDraft>? {
-        return copyListValue(value) { draft -> draft.copy(rules = draft.rules.toList()) }
-    }
-
     private fun copyRuleDraftValues(
         value: OverrideListModeValues<List<OverrideRuleDraft>>
     ): OverrideListModeValues<List<OverrideRuleDraft>> {

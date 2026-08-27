@@ -133,7 +133,4 @@ class ProvidersRepository(
 
     data class UpdateProvidersResult(val failedProviders: List<String>)
 
-    companion object {
-        private const val MAX_UPLOAD_SIZE_BYTES = 50L * 1024 * 1024
-    }
 }

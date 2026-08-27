@@ -53,20 +53,6 @@ object CodeFormatter {
         }
     }
 
-    private fun validateJson(content: String): Boolean {
-        return try {
-            val trimmed = content.trim()
-            when {
-                trimmed.startsWith("{") -> JSONObject(trimmed)
-                trimmed.startsWith("[") -> JSONArray(trimmed)
-                else -> return false
-            }
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-
     private fun formatYaml(content: String): String? {
         return try {
             content.lines().map { it.trimEnd() }.joinToString("\n").replace(Regex("\n{3,}"), "\n\n")

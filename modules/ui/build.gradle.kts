@@ -47,11 +47,9 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.compose.destinations.core)
-    implementation(libs.sketch4.compose)
     implementation(libs.haze)
     implementation(libs.liquid)
     implementation(libs.kyant.shapes)
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
-    implementation(libs.timber)
 }

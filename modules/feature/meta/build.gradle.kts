@@ -57,7 +57,6 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.compose.destinations.core)
-    implementation(libs.timber)
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
     implementation(libs.serialization.json)

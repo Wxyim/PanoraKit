@@ -67,10 +67,6 @@ internal fun isTileTransitioning(phase: RuntimePhase): Boolean {
 @SuppressLint("NewApi", "StartActivityAndCollapseDeprecated")
 class ProxyTileService : TileService() {
 
-    companion object {
-        private const val TAG = "ProxyTileService"
-    }
-
     private val profileManagerHolder =
         lazy(LazyThreadSafetyMode.NONE) { ProfileManager(applicationContext) }
     private val clashManagerHolder =

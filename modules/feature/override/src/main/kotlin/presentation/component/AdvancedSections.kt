@@ -455,14 +455,6 @@ private fun StructuredEditorEntry(title: String, summary: String, onClick: () ->
     ConfigSettingRow(title = title, summary = summary, showDivider = false, onClick = onClick)
 }
 
-private fun buildStructuredSummary(count: Int, emptyHint: String): String {
-    return if (count > 0) {
-        MLang.Override.Form.ItemsConfigured.format(count)
-    } else {
-        emptyHint
-    }
-}
-
 private fun buildModifierSummary(
     replaceCount: Int,
     startCount: Int,

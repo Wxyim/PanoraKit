@@ -64,7 +64,6 @@ dependencies {
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
     implementation(libs.compose.destinations.core)
-    implementation(libs.timber)
 
     testImplementation(libs.junit4)
     testImplementation(libs.coroutines.test)

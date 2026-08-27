@@ -39,7 +39,6 @@ class LogRepository(
 ) : LogProvider {
     companion object {
         private const val STOP_WAIT_MS = 300L
-        private const val DEFAULT_MAX_ENTRIES = 2000
         private const val CLEANUP_ARCHIVE_PREFIX = "cleanup_"
         private const val MAX_CLEANUP_ARCHIVES = 8
         private const val MAX_STARTUP_ARCHIVE_LINES_PER_FILE = 400
@@ -207,27 +206,6 @@ class LogRepository(
             }
             logRecordGateway.snapshotLiveLogLines(maxEntries).mapNotNull(::parseLogLine)
         }
-
-    private fun readLogFileEntries(file: File, maxEntries: Int): List<LogEntry> {
-        return try {
-            if (maxEntries <= 0) return emptyList()
-            file.useLines { lines ->
-                val ring = ArrayDeque<LogEntry>(maxEntries)
-                lines.forEach { line ->
-                    val entry = parseLogLine(line) ?: return@forEach
-                    if (ring.size == maxEntries) {
-                        ring.removeFirst()
-                    }
-                    ring.addLast(entry)
-                }
-                ring.toList()
-            }
-        } catch (_: IOException) {
-            emptyList()
-        } catch (_: SecurityException) {
-            emptyList()
-        }
-    }
 
     override suspend fun deleteLogFile(fileName: String): Boolean =
         withContext(Dispatchers.IO) {

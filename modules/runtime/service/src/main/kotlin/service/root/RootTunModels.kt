@@ -21,9 +21,6 @@
 
 package com.github.nomadboxlab.monadbox.service.root
 
-import com.github.nomadboxlab.monadbox.core.model.Provider
-import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
-import com.github.nomadboxlab.monadbox.core.model.UiConfiguration
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeLogChunk
@@ -103,21 +100,6 @@ data class RootTunStatus(
         }
     }
 }
-
-@Serializable
-data class RootTunRuntimeSnapshot(
-    val status: RootTunStatus = RootTunStatus(),
-    val profileUuid: String? = null,
-    val profileName: String? = null,
-    val proxyGroups: List<ProxyGroup> = emptyList(),
-    val configuration: UiConfiguration = UiConfiguration(),
-    val providers: List<Provider> = emptyList(),
-    val trafficNow: Long = 0L,
-    val trafficTotal: Long = 0L,
-    val transportFingerprint: String = "",
-    val overrideFingerprint: String = "",
-    val profileFingerprint: String = "",
-)
 
 @Serializable
 data class RootTunLogChunk(val nextSeq: Long = 0L, val items: List<String> = emptyList()) {

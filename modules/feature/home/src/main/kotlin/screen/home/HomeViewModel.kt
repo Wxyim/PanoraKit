@@ -50,7 +50,6 @@ import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
 import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
-import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -130,12 +129,6 @@ data class HomeScreenState(
     val isExternalIpLookupEnabled: Boolean = false,
     val isExternalIpQuerying: Boolean = false,
     val trafficNow: Long = 0L,
-)
-
-private data class HomeTrafficSample(
-    val phase: RuntimePhase,
-    val trafficReady: Boolean,
-    val latestTraffic: Long,
 )
 
 private object HomeProxySelectionResolver {
