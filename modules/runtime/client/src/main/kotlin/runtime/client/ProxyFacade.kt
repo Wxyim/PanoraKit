@@ -208,7 +208,7 @@ private class ProxyFacadeEventBus(
     }
 }
 
-private class AppForegroundObserver(context: Context) {
+private class AppForegroundObserver(private val context: Context) {
     private val startedActivityCount = java.util.concurrent.atomic.AtomicInteger(0)
     private val callback =
         object : Application.ActivityLifecycleCallbacks {
