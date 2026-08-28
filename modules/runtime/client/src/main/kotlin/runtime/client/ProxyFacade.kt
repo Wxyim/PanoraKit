@@ -22,14 +22,18 @@
 package com.github.nomadboxlab.monadbox.runtime.client
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.ActivityManager
+import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.VpnService
 import android.os.Build
+import android.os.Bundle
 import android.os.PowerManager
+import android.os.SystemClock
 import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.controller.ControllerError
 import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
@@ -72,9 +76,11 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -199,6 +205,41 @@ private class ProxyFacadeEventBus(
         if (!registered) return
         runCatching { appContext.unregisterReceiver(receiver) }
         registered = false
+    }
+}
+
+private class AppForegroundObserver(context: Context) {
+    private val startedActivityCount = java.util.concurrent.atomic.AtomicInteger(0)
+    private val callback =
+        object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityStarted(activity: Activity) {
+                startedActivityCount.incrementAndGet()
+            }
+
+            override fun onActivityStopped(activity: Activity) {
+                startedActivityCount.decrementAndGet()
+            }
+
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+            override fun onActivityResumed(activity: Activity) = Unit
+
+            override fun onActivityPaused(activity: Activity) = Unit
+
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+            override fun onActivityDestroyed(activity: Activity) = Unit
+        }
+
+    val isForeground: Boolean
+        get() = startedActivityCount.get() > 0
+
+    fun start() {
+        (context.applicationContext as? Application)?.registerActivityLifecycleCallbacks(callback)
+    }
+
+    fun stop() {
+        (context.applicationContext as? Application)?.unregisterActivityLifecycleCallbacks(callback)
     }
 }
 
@@ -362,11 +403,20 @@ class ProxyFacade(
         )
     val proxySelectionEvents: SharedFlow<String> = _proxySelectionEvents.asSharedFlow()
 
+    private val _proxyPageVisible = MutableStateFlow(false)
+    val proxyPageVisible: StateFlow<Boolean> = _proxyPageVisible.asStateFlow()
+
+    fun setProxyPageVisible(visible: Boolean) {
+        _proxyPageVisible.value = visible
+    }
+
     private val previewCache =
         ProxyFacadePreviewCache(appContext.filesDir.resolve("proxy-groups-preview.json"))
     private val powerManager by lazy {
         appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
     }
+    private val appForegroundObserver = AppForegroundObserver(appContext)
+    @Volatile private var lastPayloadRefreshAt = 0L
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
@@ -405,16 +455,13 @@ class ProxyFacade(
             },
         )
     private val trafficPoller =
-        ProxyFacadeTrafficPoller(scope = scope) { tick ->
+        ProxyFacadeTrafficPoller(scope = scope) { _ ->
             val snapshot = runtimeSnapshot.value
-            if (!snapshot.running) {
-                delay(BACKGROUND_POLL_MS.milliseconds)
-                return@ProxyFacadeTrafficPoller
-            }
-
-            // The service owns the foreground notification refresh. The client only
-            // needs high-frequency state while the app is interactive.
-            if (!powerManager.isInteractive) {
+            val active =
+                snapshot.running &&
+                    powerManager.isInteractive &&
+                    appForegroundObserver.isForeground
+            if (!active) {
                 delay(BACKGROUND_POLL_MS.milliseconds)
                 return@ProxyFacadeTrafficPoller
             }
@@ -428,7 +475,14 @@ class ProxyFacade(
                 Timber.d(e, "Traffic polling skipped")
             }
 
-            if (tick % 2 == 0 && shouldRefreshRuntimePayload()) {
+            val now = SystemClock.elapsedRealtime()
+            val payloadRefreshInterval =
+                if (proxyPageVisible.value) PROXY_PAGE_PAYLOAD_REFRESH_INTERVAL_MS
+                else PAYLOAD_REFRESH_INTERVAL_MS
+            if (now - lastPayloadRefreshAt >= payloadRefreshInterval &&
+                shouldRefreshRuntimePayload()
+            ) {
+                lastPayloadRefreshAt = now
                 // Traffic was already queried above in this tick. Keep the
                 // metadata refresh from issuing the same JNI/Binder calls again.
                 refreshAllSafely(includeTraffic = false)
@@ -438,6 +492,7 @@ class ProxyFacade(
         }
 
     init {
+        appForegroundObserver.start()
         eventBus.start()
         initializeRuntimeSnapshot()
     }
@@ -1097,6 +1152,7 @@ class ProxyFacade(
         localStopDrain?.cancel()
         localStopDrain = null
         stopTrafficPolling()
+        appForegroundObserver.stop()
         eventBus.stop()
         scope.cancel()
     }
@@ -1818,6 +1874,8 @@ class ProxyFacade(
     private companion object {
         private const val ACTIVE_POLL_MS = 2_000L
         private const val BACKGROUND_POLL_MS = 15_000L
+        private const val PAYLOAD_REFRESH_INTERVAL_MS = 4_000L
+        private const val PROXY_PAGE_PAYLOAD_REFRESH_INTERVAL_MS = 2_000L
         private const val START_WAIT_RETRY_COUNT = 80
         private const val START_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_WAIT_RETRY_COUNT = 80

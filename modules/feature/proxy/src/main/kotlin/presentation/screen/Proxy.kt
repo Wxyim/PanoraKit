@@ -51,6 +51,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -226,6 +227,11 @@ fun ProxyPager(
     }
 
     LaunchedEffect(isActive) { proxyViewModel.ensureCoreLoaded(isActive) }
+
+    DisposableEffect(isActive) {
+        proxyViewModel.setProxyPageVisible(isActive)
+        onDispose { proxyViewModel.setProxyPageVisible(false) }
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->

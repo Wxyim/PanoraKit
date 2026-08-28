@@ -438,6 +438,10 @@ class ProxyViewModel(
         _uiState.update { it.copy(error = null) }
     }
 
+    fun setProxyPageVisible(visible: Boolean) {
+        proxyFacade.setProxyPageVisible(visible)
+    }
+
     private fun startExternalSelectionSync() {
         if (externalSelectionSyncJob?.isActive == true) return
         externalSelectionSyncJob =
