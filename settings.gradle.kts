@@ -123,7 +123,6 @@ project(":feature:onboarding").projectDir = file("modules/feature/onboarding")
 
 project(":feature:log").projectDir = file("modules/feature/log")
 
-
 project(":feature:traffic").projectDir = file("modules/feature/traffic")
 
 project(":feature:home:api").projectDir = file("modules/feature/home-api")

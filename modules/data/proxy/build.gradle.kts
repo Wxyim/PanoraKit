@@ -48,6 +48,5 @@ dependencies {
     val mmkv = if (injectedAbi in listOf("arm64-v8a", "x86_64")) libs.mmkv.v64 else libs.mmkv.v32
     implementation(mmkv)
 
-
     testImplementation(libs.junit4)
 }

@@ -367,7 +367,7 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
             throw IllegalStateException(
                 "The 'debug' build tag is forbidden in release builds: it would expose " +
                     "an unauthenticated pprof server on 0.0.0.0:8888. Remove 'debug' from " +
-                    "golang.buildTags in config/kernel.properties before building.",
+                    "golang.buildTags in config/kernel.properties before building."
             )
         }
 
@@ -382,11 +382,7 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
     }
 
     private fun buildForAbi(abi: String) {
-        val arch =
-            abiToGoArch[abi]
-                ?: run {
-                    error("[Go] Unsupported ABI: $abi")
-                }
+        val arch = abiToGoArch[abi] ?: run { error("[Go] Unsupported ABI: $abi") }
 
         println("[building] Building for $abi (arch: $arch)...")
 
@@ -429,7 +425,9 @@ class GoBuilder(private val config: ProjectConfig, private val ndkTools: NdkTool
             error("[Go][$abi] Failed to build: $reason")
         }
 
-        check(outputFile.isFile) { "[Go][$abi] Output library not found: ${outputFile.absolutePath}" }
+        check(outputFile.isFile) {
+            "[Go][$abi] Output library not found: ${outputFile.absolutePath}"
+        }
         check(File(appJniRoot, "$abi/libclash.so").isFile) {
             "[Go][$abi] JNI library was not copied: ${File(appJniRoot, "$abi/libclash.so").absolutePath}"
         }
@@ -565,32 +563,34 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
 
         val configureCommand =
             listOf(
-                cmakePath,
-                "-S",
-                sourceDir.absolutePath,
-                "-B",
-                buildDir.absolutePath,
-                "-G",
-                "Ninja",
-                "-DCMAKE_SYSTEM_NAME=Android",
-                "-DCMAKE_SYSTEM_VERSION=$apiLevel",
-                "-DANDROID_PLATFORM=android-$apiLevel",
-                "-DANDROID_ABI=$abi",
-                "-DCMAKE_ANDROID_ARCH_ABI=$abi",
-                "-DANDROID_NDK=${ndkTools.ndkDir.absolutePath}",
-                "-DCMAKE_ANDROID_NDK=${ndkTools.ndkDir.absolutePath}",
-                "-DCMAKE_TOOLCHAIN_FILE=${File(ndkTools.ndkDir, "build/cmake/android.toolchain.cmake").absolutePath}",
-                "-DCMAKE_MAKE_PROGRAM=$ninjaPath",
-                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${objDir.absolutePath}",
-                "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${objDir.absolutePath}",
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DGO_SOURCE:STRING=${goSourceDir.absolutePath}",
-                "-DGO_OUTPUT:STRING=${goOutputDir.absolutePath}",
-                "-DMONADBOX_LINKER_FLAGS:STRING=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
-                "-DGIT_INFO_FILE:STRING=${gitInfoFile.absolutePath}",
-            ).toMutableList().apply {
-                ndkTools.getCmakePolicyVersionMinimumArgument(cmakePath)?.let { add(1, it) }
-            }
+                    cmakePath,
+                    "-S",
+                    sourceDir.absolutePath,
+                    "-B",
+                    buildDir.absolutePath,
+                    "-G",
+                    "Ninja",
+                    "-DCMAKE_SYSTEM_NAME=Android",
+                    "-DCMAKE_SYSTEM_VERSION=$apiLevel",
+                    "-DANDROID_PLATFORM=android-$apiLevel",
+                    "-DANDROID_ABI=$abi",
+                    "-DCMAKE_ANDROID_ARCH_ABI=$abi",
+                    "-DANDROID_NDK=${ndkTools.ndkDir.absolutePath}",
+                    "-DCMAKE_ANDROID_NDK=${ndkTools.ndkDir.absolutePath}",
+                    "-DCMAKE_TOOLCHAIN_FILE=${File(ndkTools.ndkDir, "build/cmake/android.toolchain.cmake").absolutePath}",
+                    "-DCMAKE_MAKE_PROGRAM=$ninjaPath",
+                    "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${objDir.absolutePath}",
+                    "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${objDir.absolutePath}",
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DGO_SOURCE:STRING=${goSourceDir.absolutePath}",
+                    "-DGO_OUTPUT:STRING=${goOutputDir.absolutePath}",
+                    "-DMONADBOX_LINKER_FLAGS:STRING=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
+                    "-DGIT_INFO_FILE:STRING=${gitInfoFile.absolutePath}",
+                )
+                .toMutableList()
+                .apply {
+                    ndkTools.getCmakePolicyVersionMinimumArgument(cmakePath)?.let { add(1, it) }
+                }
         val configureResult =
             executeCommand(
                 command = configureCommand,
@@ -652,11 +652,13 @@ private fun verifyNativeOutputs(config: ProjectConfig) {
     val missing = buildList {
         abis.forEach { abi ->
             listOf(
-                File("build/native/go/$abi/libclash.so"),
-                File("build/native/cpp/obj/$abi/libbridge.so"),
-                File("build/jniLibs/$abi/libclash.so"),
-                File("build/jniLibs/$abi/libbridge.so"),
-            ).filterNot(File::isFile).forEach { add(it) }
+                    File("build/native/go/$abi/libclash.so"),
+                    File("build/native/cpp/obj/$abi/libbridge.so"),
+                    File("build/jniLibs/$abi/libclash.so"),
+                    File("build/jniLibs/$abi/libbridge.so"),
+                )
+                .filterNot(File::isFile)
+                .forEach { add(it) }
         }
     }
     check(missing.isEmpty()) {

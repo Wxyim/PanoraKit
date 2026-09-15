@@ -49,16 +49,17 @@ val kernelProperties =
             kernelPropertiesFile.inputStream().use(::load)
         }
     }
-val mihomoVersion =
-    buildString {
-        append(
-            kernelProperties.getProperty("external.mihomo.branch")?.trim()
-                ?.takeIf { it.isNotEmpty() } ?: "unknown"
-        )
-        kernelProperties.getProperty("external.mihomo.commit")?.trim()
-            ?.takeIf { it.isNotEmpty() && it != "unknown" }
-            ?.let { append('-').append(it) }
-    }
+val mihomoVersion = buildString {
+    append(
+        kernelProperties.getProperty("external.mihomo.branch")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "unknown"
+    )
+    kernelProperties
+        .getProperty("external.mihomo.commit")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && it != "unknown" }
+        ?.let { append('-').append(it) }
+}
 
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
@@ -317,7 +318,9 @@ val syncBuiltNativeJniLibs =
             if (hasNativeRootOutputs()) {
                 true
             } else if (hasPackagedOutputs()) {
-                logger.lifecycle("Native JNI libraries already unpacked under ${packagedRoot.absolutePath}")
+                logger.lifecycle(
+                    "Native JNI libraries already unpacked under ${packagedRoot.absolutePath}"
+                )
                 false
             } else {
                 true
