@@ -144,20 +144,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6.3.0
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4.0.1
-        with:
-          # The legacy `tools` package no longer exists in Google's SDK
-          # repository (sdkmanager fails with "Failed to find package 'tools'").
-          # Only platform-tools is needed here; NDK/build-tools are installed
-          # in the "Install NDK & build-tools" step below.
-          packages: platform-tools
-
       - name: Install NDK & build-tools
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager \
+          # The hosted runner already preinstalls cmdline-tools (12.0),
+          # platform-tools, build-tools 36.0.0, CMake 4.1.2, and NDK
+          # 27.3.13750724. android-actions/setup-android would download a
+          # second cmdline-tools (20.0) and re-trigger sdkmanager license
+          # prompts on every run, so it has been removed.
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" \
             "ndk;27.3.13750724" \
             "platform-tools" \
             "build-tools;36.0.0" \
