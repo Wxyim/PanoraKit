@@ -127,7 +127,12 @@ jobs:
             "https://github.com/JetBrains/kotlin/releases/download/v${kotlin_version}/kotlin-compiler-${kotlin_version}.zip"
           unzip -q /tmp/kotlin-compiler.zip -d /opt/
           echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
-          kotlin -version 2>&1
+
+          export PATH="/opt/kotlinc/bin:$PATH"
+
+          which kotlin
+          readlink -f "$(which kotlin)"
+          kotlin -version
 
       - name: Setup Go
         uses: actions/setup-go@v6
