@@ -61,7 +61,7 @@ internal class ProxyLatencyObservationStore {
                 updatedGroups = ArrayList(groups.size)
                 var head = 0
                 while (head < index) {
-                    updatedGroups?.add(groups[head])
+                    updatedGroups.add(groups[head])
                     head += 1
                 }
             }
@@ -89,7 +89,7 @@ internal class ProxyLatencyObservationStore {
                 updatedProxies = ArrayList(proxies.size)
                 var head = 0
                 while (head < index) {
-                    updatedProxies?.add(proxies[head])
+                    updatedProxies.add(proxies[head])
                     head += 1
                 }
             }

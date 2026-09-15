@@ -325,7 +325,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         if (fallbackNode.isNotEmpty() && node == fallbackNode) {
 
             val proxyNames =
-                proxyGroup.proxies.mapNotNull { it.name?.trim()?.takeIf { it.isNotEmpty() } }
+                proxyGroup.proxies.mapNotNull { it.name.trim().takeIf { it.isNotEmpty() } }
             if (remembered in proxyNames) {
                 managerScope.launch { Clash.patchSelector(group, remembered) }
             }

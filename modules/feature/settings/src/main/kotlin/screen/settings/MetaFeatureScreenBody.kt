@@ -112,7 +112,7 @@ fun MetaFeatureScreenBody(
 
                     val previewTitle =
                         activeProfile.name
-                            ?.takeIf { it.isNotBlank() }
+                            .takeIf { it.isNotBlank() }
                             ?.let {
                                 MLang.MetaFeature.RuntimeConfig.PreviewTitleWithProfile.format(it)
                             } ?: MLang.MetaFeature.RuntimeConfig.PreviewTitle
@@ -445,7 +445,7 @@ private fun downloadGeoXFiles(
                 try {
                     client.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
-                            response.body?.byteStream()?.use { input ->
+                            response.body.byteStream().use { input ->
                                 targetFile.outputStream().use { output -> input.copyTo(output) }
                             }
                             successCount++

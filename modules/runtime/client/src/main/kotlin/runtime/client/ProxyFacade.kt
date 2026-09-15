@@ -305,7 +305,7 @@ internal class MihomoControllerClient(private val json: Json) {
 
         return try {
             httpClient.newCall(requestBuilder.build()).execute().use { response ->
-                val body = response.body?.string().orEmpty()
+                val body = response.body.string().orEmpty()
                 if (!response.isSuccessful) {
                     when (response.code) {
                         401 -> throw ControllerError.Unauthorized()
@@ -808,7 +808,7 @@ class ProxyFacade(
                 normalized = ArrayList(groups.size)
                 var head = 0
                 while (head < index) {
-                    normalized?.add(groups[head])
+                    normalized.add(groups[head])
                     head += 1
                 }
             }
@@ -1489,7 +1489,7 @@ class ProxyFacade(
         }
         if (!StatusProvider.serviceRunning) {
             runCatching {
-                MMKV.mmkvWithID(StoreIds.RUNTIME_SNAPSHOT, MMKV.MULTI_PROCESS_MODE)?.clearAll()
+                MMKV.mmkvWithID(StoreIds.RUNTIME_SNAPSHOT, MMKV.MULTI_PROCESS_MODE).clearAll()
             }
         }
     }
@@ -1768,7 +1768,7 @@ class ProxyFacade(
                 normalized = ArrayList(proxies.size)
                 var head = 0
                 while (head < index) {
-                    normalized?.add(proxies[head])
+                    normalized.add(proxies[head])
                     head += 1
                 }
             }
@@ -1813,7 +1813,7 @@ class ProxyFacade(
                 enriched = ArrayList(groups.size)
                 var head = 0
                 while (head < index) {
-                    enriched?.add(groups[head])
+                    enriched.add(groups[head])
                     head += 1
                 }
             }

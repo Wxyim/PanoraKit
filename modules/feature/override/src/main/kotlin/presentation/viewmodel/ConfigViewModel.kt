@@ -711,7 +711,7 @@ class OverrideConfigViewModel(
         _editSession.value = session.copy(remoteSourceUrl = normalizedUrl)
 
         viewModelScope.launch {
-            val persistedId = session.persistedId ?: return@launch
+            val persistedId = session.persistedId
             val now = System.currentTimeMillis()
             configRepo.updateMetadata(persistedId) { metadata ->
                 metadata.copy(remoteSourceUrl = normalizedUrl, updatedAt = now)
@@ -731,7 +731,7 @@ class OverrideConfigViewModel(
         _editSession.value = session.copy(remoteUpdateIntervalSeconds = parsedInterval)
 
         viewModelScope.launch {
-            val persistedId = session.persistedId ?: return@launch
+            val persistedId = session.persistedId
             val now = System.currentTimeMillis()
             configRepo.updateMetadata(persistedId) { metadata ->
                 metadata.copy(remoteUpdateIntervalSeconds = parsedInterval, updatedAt = now)

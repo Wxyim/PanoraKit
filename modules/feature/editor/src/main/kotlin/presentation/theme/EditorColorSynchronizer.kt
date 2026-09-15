@@ -96,7 +96,7 @@ object EditorColorSynchronizer {
     }
 
     fun updateColors(editor: CodeEditor, isDark: Boolean) {
-        val scheme = editor.colorScheme ?: return
+        val scheme = editor.colorScheme
 
         scheme.setColor(EditorColorScheme.SELECTION_INSERT, ACCENT_COLOR.toArgb())
         scheme.setColor(EditorColorScheme.SELECTION_HANDLE, ACCENT_COLOR.toArgb())

@@ -67,7 +67,7 @@ object ProfileProcessor {
 
     private fun resolveUserAgent(): String {
         val settings = MMKV.mmkvWithID(StoreIds.SETTINGS, MMKV.MULTI_PROCESS_MODE)
-        val custom = settings?.decodeString("customUserAgent")?.trim().orEmpty()
+        val custom = settings.decodeString("customUserAgent")?.trim().orEmpty()
         return custom.ifBlank { DEFAULT_USER_AGENT }
     }
 
@@ -106,7 +106,7 @@ object ProfileProcessor {
                             response.headers,
                         )
 
-                    val body = response.body ?: return@withContext Pair(false, null)
+                    val body = response.body
                     val contentLength = body.contentLength()
                     val inputStream = body.byteStream()
 
@@ -444,7 +444,7 @@ object ProfileProcessor {
                                 snapshot.type,
                                 snapshot.source,
                                 if (snapshot.type == Profile.Type.Url && subInfo != null) {
-                                    (subInfo.interval ?: 24).toLong() * 60 * 60 * 1000
+                                    subInfo.interval.toLong() * 60 * 60 * 1000
                                 } else snapshot.interval,
                                 subInfo?.upload ?: snapshot.upload,
                                 subInfo?.download ?: snapshot.download,

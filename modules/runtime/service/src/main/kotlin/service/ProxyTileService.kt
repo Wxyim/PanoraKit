@@ -76,7 +76,7 @@ class ProxyTileService : TileService() {
     }
     private val rootTunStateStore by lazy { RootTunStateStore(applicationContext) }
     private val tileLabelText: String by lazy {
-        applicationInfo.loadLabel(packageManager)?.toString().orEmpty().ifBlank { "MonadBox" }
+        applicationInfo.loadLabel(packageManager).toString().orEmpty().ifBlank { "MonadBox" }
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())

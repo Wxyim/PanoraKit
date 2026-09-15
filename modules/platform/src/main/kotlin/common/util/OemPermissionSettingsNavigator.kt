@@ -173,14 +173,14 @@ object OemPermissionSettingsNavigator {
             if (launched) {
                 incrementCounter(stats, "${STATS_PREFIX}.success.total")
                 incrementCounter(stats, "${STATS_PREFIX}.success.$manufacturer")
-                stats?.encode("${STATS_PREFIX}.last.success", "$manufacturer:${candidate.tag}")
+                stats.encode("${STATS_PREFIX}.last.success", "$manufacturer:${candidate.tag}")
                 return true
             }
         }
 
         incrementCounter(stats, "${STATS_PREFIX}.failure.total")
         incrementCounter(stats, "${STATS_PREFIX}.failure.$manufacturer")
-        stats?.encode(
+        stats.encode(
             "${STATS_PREFIX}.last.failure",
             "$manufacturer:${candidates.joinToString("|") { it.tag }}",
         )
@@ -234,7 +234,7 @@ object OemPermissionSettingsNavigator {
 
     fun dumpStats(): Map<String, Int> {
         val mmkv =
-            MMKV.mmkvWithID(StoreIds.SERVICE_CACHE, MMKV.MULTI_PROCESS_MODE) ?: return emptyMap()
+            MMKV.mmkvWithID(StoreIds.SERVICE_CACHE, MMKV.MULTI_PROCESS_MODE)
         val keys = mmkv.allKeys()?.filter { it.startsWith("$STATS_PREFIX.") } ?: return emptyMap()
         return keys.associateWith { mmkv.decodeInt(it, 0) }
     }
