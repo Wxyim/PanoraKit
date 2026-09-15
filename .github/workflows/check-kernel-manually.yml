@@ -125,7 +125,7 @@ jobs:
           curl -fsSL \
             -o /tmp/kotlin-compiler.zip \
             "https://github.com/JetBrains/kotlin/releases/download/v${kotlin_version}/kotlin-compiler-${kotlin_version}.zip"
-          unzip -q /tmp/kotlin-compiler.zip -d /opt/
+          unzip -oq /tmp/kotlin-compiler.zip -d /opt/
           echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
 
           export PATH="/opt/kotlinc/bin:$PATH"
@@ -133,6 +133,7 @@ jobs:
           which kotlin
           readlink -f "$(which kotlin)"
           kotlin -version
+          test "$(readlink -f "$(which kotlin)")" = "/opt/kotlinc/bin/kotlin"
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -147,6 +148,12 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4.0.1
+        with:
+          # The legacy `tools` package no longer exists in Google's SDK
+          # repository (sdkmanager fails with "Failed to find package 'tools'").
+          # Only platform-tools is needed here; NDK/build-tools are installed
+          # in the "Install NDK & build-tools" step below.
+          packages: platform-tools
 
       - name: Install NDK & build-tools
         run: |
