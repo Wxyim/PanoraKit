@@ -104,12 +104,10 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.should_build == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -138,7 +136,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26"
+          go-version: "1.27"
           cache: true
           cache-dependency-path: |
             **/go.sum
@@ -162,11 +160,18 @@ jobs:
           sdkmanager \
             "ndk;27.3.13750724" \
             "platform-tools" \
-            "build-tools;35.0.0"
+            "build-tools;36.0.0" \
+            "cmake;4.1.2"
 
       - name: Configure local.properties
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+
+      - name: Sync kernel
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh alpha
 
       - name: Update CA certificates
         run: |
@@ -182,15 +187,9 @@ jobs:
           echo "Using system CA bundle: $CA_BUNDLE"
           ls -lh "$CA_BUNDLE"
           
-          mkdir -p modules/core/src/foss/golang/mihomo/component/ca
+          mkdir -p lib/mihomo/mihomo/component/ca
           cp -f "$CA_BUNDLE" \
-            modules/core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
-
-      - name: Sync kernel
-        run: |
-          set -euo pipefail
-          chmod +x scripts/sync-kernel.sh
-          ./scripts/sync-kernel.sh alpha
+            lib/mihomo/mihomo/component/ca/ca-certificates.crt
 
       - name: Build native libraries (arm64)
         env:
@@ -277,7 +276,7 @@ jobs:
             exit 1
           fi
       
-          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner"
       
           if [ ! -x "$APKSIGNER" ]; then
             echo "::error::apksigner not found"
@@ -352,8 +351,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Write new state
         run: |

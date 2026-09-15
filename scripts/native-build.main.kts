@@ -281,7 +281,7 @@ class NdkTools(private val config: ProjectConfig) {
         }
 
         val preferred =
-            listOf("3.22.1").map { File(cmakeRoot, "$it/bin/cmake$ext") }.firstOrNull { it.isFile }
+            listOf("4.1.2").map { File(cmakeRoot, "$it/bin/cmake$ext") }.firstOrNull { it.isFile }
         if (preferred != null) {
             return preferred.absolutePath
         }
@@ -304,7 +304,7 @@ class NdkTools(private val config: ProjectConfig) {
         }
 
         val preferred =
-            listOf("3.22.1").map { File(cmakeRoot, "$it/bin/ninja$ext") }.firstOrNull { it.isFile }
+            listOf("4.1.2").map { File(cmakeRoot, "$it/bin/ninja$ext") }.firstOrNull { it.isFile }
         if (preferred != null) {
             return preferred.absolutePath
         }
