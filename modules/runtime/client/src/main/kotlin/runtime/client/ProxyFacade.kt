@@ -609,8 +609,13 @@ class ProxyFacade(
                 }
             } catch (e: Exception) {
                 val failureReason = e.message
-                transitionToIdle(
-                    configuredMode = mode,
+                // A failure here may come from stopProxyInternal while tearing
+                // down a previously running runtime. Only finalize to Idle when
+                // the runtime genuinely went inactive; otherwise keep the honest
+                // Running state so the UI never claims the VPN is off while it
+                // is still running.
+                reconcileStopFailure(
+                    targetMode = mode,
                     generation = generation,
                     lastError = failureReason,
                 )
@@ -629,8 +634,13 @@ class ProxyFacade(
             try {
                 stopProxyInternal(targetMode)
             } catch (e: Exception) {
-                transitionToIdle(
-                    configuredMode = targetMode,
+                // A stop failure must not be presented as a successful teardown:
+                // stopProxyInternal keeps the snapshot honest (restores Running
+                // when the service is still alive). Only finalize to Idle when
+                // the runtime genuinely went away, so the home toggle reflects
+                // reality.
+                reconcileStopFailure(
+                    targetMode = targetMode,
                     generation = generation,
                     lastError = e.message,
                 )
@@ -1060,13 +1070,27 @@ class ProxyFacade(
         val generation = synchronized(runtimeTransitionLock) { runtimeState.nextGeneration() }
 
         if (owner == RuntimeOwner.None) {
+            // The in-memory status may be stale while a local service process is
+            // still alive (e.g. the service was recreated without marking itself
+            // started). Ask the leftover service to stop before declaring Idle;
+            // otherwise the toggle turns off while the VPN keeps running.
+            if (!drainStaleLocalServiceIfPresent()) {
+                throw RuntimeGatewayException(
+                    code = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                    message =
+                        "Timed out stopping a leftover local runtime " +
+                            "(tunRunning=${isServiceRunning(TunService::class.java)}, " +
+                            "httpRunning=${isServiceRunning(ClashService::class.java)})",
+                )
+            }
             transitionToIdle(configuredMode = targetMode, generation = generation, lastError = null)
             return
         }
 
+        val preStopSnapshot = runtimeSnapshot.value
         synchronized(runtimeTransitionLock) {
             publishRuntimeSnapshot(
-                runtimeSnapshot.value.copy(
+                preStopSnapshot.copy(
                     owner = owner,
                     phase = RuntimePhase.Stopping,
                     targetMode = targetMode,
@@ -1096,15 +1120,17 @@ class ProxyFacade(
 
             StopTerminalOutcome.TimedOut -> {
                 val consistency = collectStopSignalConsistency(owner)
-                throw RuntimeGatewayException(
-                    code = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-                    message =
-                        "Timed out waiting for stop receipt " +
-                            "(owner=${owner.name}, " +
-                            "snapshotTerminal=${consistency.snapshotTerminal}, " +
-                            "statusStoreStopped=${consistency.statusStoreStopped}, " +
-                            "processStopped=${consistency.processStopped})",
-                )
+                if (!handleStopTimeout(owner, preStopSnapshot)) {
+                    throw RuntimeGatewayException(
+                        code = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                        message =
+                            "Timed out waiting for stop receipt " +
+                                "(owner=${owner.name}, " +
+                                "snapshotTerminal=${consistency.snapshotTerminal}, " +
+                                "statusStoreStopped=${consistency.statusStoreStopped}, " +
+                                "processStopped=${consistency.processStopped})",
+                    )
+                }
             }
         }
     }
@@ -1568,6 +1594,104 @@ class ProxyFacade(
         return StopTerminalOutcome.TimedOut
     }
 
+    /**
+     * Re-requests the stop and waits a short grace window. A missed stop receipt
+     * is often caused by a slow service-side teardown (Doze, a busy main looper,
+     * a wedged native call) rather than the runtime actually stopping. If the
+     * owner is still alive afterwards, restore the last Running snapshot so the
+     * UI never claims the VPN is off while it is still running.
+     *
+     * Returns true when the runtime reached a terminal state during the grace
+     * window; false when the owner is still alive and the caller must surface a
+     * stop failure.
+     */
+    private suspend fun handleStopTimeout(
+        owner: RuntimeOwner,
+        preStopSnapshot: RuntimeSnapshot,
+    ): Boolean {
+        runCatching { triggerStop(owner) }
+        repeat(STOP_TIMEOUT_GRACE_RETRY_COUNT) {
+            val consistency = collectStopSignalConsistency(owner)
+            if (isStopTerminal(owner, consistency)) {
+                finalizeStopIfSnapshotNotTerminal(owner)
+                scheduleLocalStopDrain(owner)
+                return true
+            }
+            delay(STOP_TIMEOUT_GRACE_RETRY_DELAY_MS.milliseconds)
+        }
+
+        if (isOwnerActive(owner)) {
+            synchronized(runtimeTransitionLock) {
+                val snapshot = runtimeSnapshot.value
+                if (snapshot.phase == RuntimePhase.Stopping) {
+                    publishRuntimeSnapshot(
+                        preStopSnapshot.copy(
+                            owner = owner,
+                            phase = RuntimePhase.Running,
+                            generation = runtimeState.nextGeneration(),
+                            lastError = null,
+                        )
+                    )
+                }
+            }
+            Timber.w("Stop timeout: ${owner.name} is still active; keeping runtime state honest")
+            return false
+        } else {
+            finalizeStopIfSnapshotNotTerminal(owner)
+            scheduleLocalStopDrain(owner)
+            return true
+        }
+    }
+
+    /**
+     * When the in-memory status says no owner but a local service process is
+     * still alive, the client and service are desynced (e.g. the service was
+     * recreated without marking itself started). Asking the leftover service to
+     * stop prevents a silent no-op that would leave the VPN running behind an
+     * "off" toggle. Returns true when no local service remains alive.
+     */
+    private suspend fun drainStaleLocalServiceIfPresent(): Boolean {
+        val tunAlive = isServiceRunning(TunService::class.java)
+        val httpAlive = isServiceRunning(ClashService::class.java)
+        if (!tunAlive && !httpAlive) return true
+
+        val staleOwner = if (tunAlive) RuntimeOwner.LocalTun else RuntimeOwner.LocalHttp
+        runCatching { triggerStop(staleOwner) }
+        repeat(STOP_WAIT_RETRY_COUNT) {
+            if (isOwnerProcessStopped(staleOwner)) return true
+            delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
+        }
+        return isOwnerProcessStopped(staleOwner)
+    }
+
+    /**
+     * Finalizes a failed stop to Idle only when the runtime genuinely went
+     * inactive. When the owner or a leftover local service process is still
+     * alive the snapshot is kept honest (Running/Stopping) so the UI does not
+     * claim the VPN is off while it is still running.
+     */
+    private fun reconcileStopFailure(targetMode: ProxyMode, generation: Long, lastError: String?) {
+        val owner = runtimeSnapshot.value.owner
+        val stillActive =
+            (owner != RuntimeOwner.None && isOwnerActive(owner)) ||
+                isServiceRunning(TunService::class.java) ||
+                isServiceRunning(ClashService::class.java)
+        synchronized(runtimeTransitionLock) {
+            val snapshot = runtimeSnapshot.value
+            if (snapshot.phase == RuntimePhase.Idle || snapshot.phase == RuntimePhase.Failed) {
+                return
+            }
+            if (stillActive) {
+                return
+            }
+            transitionToIdle(
+                configuredMode = targetMode,
+                generation = generation,
+                lastError = lastError,
+            )
+        }
+    }
+
     private fun isStopTerminal(owner: RuntimeOwner, consistency: StopSignalConsistency): Boolean {
         if (consistency.snapshotTerminal) return true
 
@@ -1880,5 +2004,7 @@ class ProxyFacade(
         private const val START_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_WAIT_RETRY_COUNT = 80
         private const val STOP_WAIT_RETRY_DELAY_MS = 125L
+        private const val STOP_TIMEOUT_GRACE_RETRY_COUNT = 20
+        private const val STOP_TIMEOUT_GRACE_RETRY_DELAY_MS = 125L
     }
 }
