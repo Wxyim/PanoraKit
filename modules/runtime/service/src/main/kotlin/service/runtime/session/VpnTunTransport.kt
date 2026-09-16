@@ -50,16 +50,14 @@ class VpnTunTransport(
     @Volatile private var uidWarmupUntilElapsedMs = 0L
 
     /**
-     * Phase 1: build VPN parameters and call [VpnService.establish].
-     * This involves Android IPC to the system VPN service (~0.5-1s) and is
-     * independent of the Go runtime.  It runs in parallel with config
-     * compilation to overlap I/O.
+     * Phase 1: build VPN parameters and call [VpnService.establish]. This involves Android IPC to
+     * the system VPN service (~0.5-1s) and is independent of the Go runtime. It runs in parallel
+     * with config compilation to overlap I/O.
      */
     override fun prepare(spec: RuntimeSpec) {
         uidCache.clear()
         packageNameCache.clear()
-        uidWarmupUntilElapsedMs =
-            android.os.SystemClock.elapsedRealtime() + UID_WARMUP_WINDOW_MS
+        uidWarmupUntilElapsedMs = android.os.SystemClock.elapsedRealtime() + UID_WARMUP_WINDOW_MS
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
         pendingDevice =
             with(vpnService.Builder()) {
@@ -165,8 +163,8 @@ class VpnTunTransport(
     }
 
     /**
-     * Phase 2: hand the established VPN fd to the Go TUN stack.
-     * Requires [prepare] to have completed (Go runtime must also be ready).
+     * Phase 2: hand the established VPN fd to the Go TUN stack. Requires [prepare] to have
+     * completed (Go runtime must also be ready).
      */
     override fun start(spec: RuntimeSpec) {
         val device =
@@ -223,7 +221,11 @@ class VpnTunTransport(
                 source = endpointKey(source),
                 target = endpointKey(target),
             )
-        uidCache[key]?.takeIf { it.expiresAt > now }?.let { return it.uid }
+        uidCache[key]
+            ?.takeIf { it.expiresAt > now }
+            ?.let {
+                return it.uid
+            }
 
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
         var uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
@@ -267,16 +269,18 @@ class VpnTunTransport(
         source: java.net.InetSocketAddress,
         target: java.net.InetSocketAddress,
     ): Int {
-        return runCatching {
-            connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1
-        }.getOrDefault(-1)
+        return runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
+            .getOrDefault(-1)
     }
 
     private fun queryPackageName(uid: Int): String {
         if (uid <= 0) return ""
-        packageNameCache[uid]?.let { return it }
+        packageNameCache[uid]?.let {
+            return it
+        }
         return runCatching {
-                vpnService.packageManager.getPackagesForUid(uid)
+                vpnService.packageManager
+                    .getPackagesForUid(uid)
                     ?.asSequence()
                     ?.firstOrNull { it.isNotBlank() }
                     .orEmpty()
@@ -303,16 +307,9 @@ class VpnTunTransport(
         }
     }
 
-    private data class UidQueryKey(
-        val protocol: Int,
-        val source: String,
-        val target: String,
-    )
+    private data class UidQueryKey(val protocol: Int, val source: String, val target: String)
 
-    private data class UidCacheEntry(
-        val uid: Int,
-        val expiresAt: Long,
-    )
+    private data class UidCacheEntry(val uid: Int, val expiresAt: Long)
 
     private data class TunDevice(
         val fd: Int,

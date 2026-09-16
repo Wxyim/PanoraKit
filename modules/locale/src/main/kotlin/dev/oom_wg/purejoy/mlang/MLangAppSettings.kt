@@ -462,9 +462,10 @@ object MLangAppSettings {
             )
 
         val `ExternalIpLookupUrlTitle`: String
-            get() = LocaleBootstrap.getString(
-                R.string.app_settings_network_external_ip_lookup_url_title
-            )
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.app_settings_network_external_ip_lookup_url_title
+                )
 
         @Composable
         fun `ExternalIpLookupUrlTitle`(vararg args: Any): String =
@@ -474,9 +475,10 @@ object MLangAppSettings {
             )
 
         val `ExternalIpLookupUrlSummaryDefault`: String
-            get() = LocaleBootstrap.getString(
-                R.string.app_settings_network_external_ip_lookup_url_summary_default
-            )
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.app_settings_network_external_ip_lookup_url_summary_default
+                )
 
         @Composable
         fun `ExternalIpLookupUrlSummaryDefault`(vararg args: Any): String =

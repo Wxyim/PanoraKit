@@ -49,10 +49,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 @Composable
-fun HomeRoute(
-    mainInnerPadding: PaddingValues,
-    isActive: Boolean,
-) {
+fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current

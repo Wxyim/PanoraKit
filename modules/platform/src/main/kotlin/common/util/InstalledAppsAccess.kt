@@ -43,13 +43,12 @@ object InstalledAppsAccess {
     const val MiuiPermission = "com.android.permission.GET_INSTALLED_APPS"
 
     /**
-     * Cached successful result of the runtime query-all-packages verification.
-     * A failed check is intentionally not cached: on a fresh install some ROMs
-     * briefly return a filtered PackageManager result while package visibility
-     * is still settling. Caching that transient failure breaks first VPN start.
+     * Cached successful result of the runtime query-all-packages verification. A failed check is
+     * intentionally not cached: on a fresh install some ROMs briefly return a filtered
+     * PackageManager result while package visibility is still settling. Caching that transient
+     * failure breaks first VPN start.
      */
-    @Volatile
-    private var verifiedFullAccess: Boolean? = null
+    @Volatile private var verifiedFullAccess: Boolean? = null
 
     fun resolve(context: Context): InstalledAppsAccessState {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
@@ -114,15 +113,16 @@ object InstalledAppsAccess {
     /**
      * Verify that QUERY_ALL_PACKAGES actually allows full app enumeration.
      *
-     * On Android 11+, a filtered list typically returns 20–60 packages while a
-     * genuinely unfiltered list returns 150+. We use 80 as a conservative
-     * threshold that safely distinguishes the two.
+     * On Android 11+, a filtered list typically returns 20–60 packages while a genuinely unfiltered
+     * list returns 150+. We use 80 as a conservative threshold that safely distinguishes the two.
      *
-     * The result is cached for the process lifetime — permissions cannot change
-     * at runtime without killing the process.
+     * The result is cached for the process lifetime — permissions cannot change at runtime without
+     * killing the process.
      */
     private fun isQueryAllPackagesEffective(context: Context): Boolean {
-        verifiedFullAccess?.let { return it }
+        verifiedFullAccess?.let {
+            return it
+        }
         val result =
             runCatching {
                     val apps = context.packageManager.getInstalledApplications(0)

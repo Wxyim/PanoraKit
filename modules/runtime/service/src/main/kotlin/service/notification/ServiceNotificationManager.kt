@@ -59,7 +59,9 @@ class ServiceNotificationManager(private val service: Service, private val confi
         MMKV.mmkvWithID(StoreIds.SETTINGS, MMKV.MULTI_PROCESS_MODE)
     }
     private val notificationManager by lazy { NotificationManagerCompat.from(service) }
-    private val powerManager by lazy { service.getSystemService(Service.POWER_SERVICE) as PowerManager }
+    private val powerManager by lazy {
+        service.getSystemService(Service.POWER_SERVICE) as PowerManager
+    }
 
     // ── Update lifecycle ──────────────────────────────────────────
 
@@ -67,18 +69,18 @@ class ServiceNotificationManager(private val service: Service, private val confi
     private var hostScope: CoroutineScope? = null
 
     /**
-     * Receives screen-on/off broadcasts so we can suspend traffic-speed
-     * polling while the screen is off and resume it when the user turns
-     * the screen back on.
+     * Receives screen-on/off broadcasts so we can suspend traffic-speed polling while the screen is
+     * off and resume it when the user turns the screen back on.
      */
-    private val screenReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                Intent.ACTION_SCREEN_OFF -> cancelUpdateJob()
-                Intent.ACTION_SCREEN_ON -> hostScope?.let { startTrafficUpdate(it) }
+    private val screenReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> cancelUpdateJob()
+                    Intent.ACTION_SCREEN_ON -> hostScope?.let { startTrafficUpdate(it) }
+                }
             }
         }
-    }
 
     @Volatile private var receiverRegistered = false
 
@@ -104,13 +106,11 @@ class ServiceNotificationManager(private val service: Service, private val confi
     /**
      * Starts a screen-aware traffic-speed update loop.
      *
-     * Updates are posted every [ACTIVE_POLL_MS] while the screen is on
-     * *and* the user has enabled the traffic-speed notification.
-     * When the screen is off, or the traffic display is disabled, the
-     * loop cancels itself — no background polling, no CPU wakeups.
+     * Updates are posted every [ACTIVE_POLL_MS] while the screen is on *and* the user has enabled
+     * the traffic-speed notification. When the screen is off, or the traffic display is disabled,
+     * the loop cancels itself — no background polling, no CPU wakeups.
      *
-     * The loop is automatically restarted when the screen turns on
-     * (via [screenReceiver]).
+     * The loop is automatically restarted when the screen turns on (via [screenReceiver]).
      */
     @SuppressLint("MissingPermission")
     fun startTrafficUpdate(scope: CoroutineScope): Job {
@@ -118,28 +118,29 @@ class ServiceNotificationManager(private val service: Service, private val confi
         registerScreenReceiver()
         cancelUpdateJob()
 
-        if (!powerManager.isInteractive) return Job()  // screen off → no work
-        if (!shouldShowTrafficNotification()) return Job()  // traffic display disabled → no work
+        if (!powerManager.isInteractive) return Job() // screen off → no work
+        if (!shouldShowTrafficNotification()) return Job() // traffic display disabled → no work
 
-        val job = scope.launch(Dispatchers.Default) {
-            while (isActive) {
-                if (canPostNotifications()) {
-                    runCatching {
-                        notificationManager.notify(
-                            config.notificationId,
-                            buildRunningNotification(),
-                        )
+        val job =
+            scope.launch(Dispatchers.Default) {
+                while (isActive) {
+                    if (canPostNotifications()) {
+                        runCatching {
+                            notificationManager.notify(
+                                config.notificationId,
+                                buildRunningNotification(),
+                            )
+                        }
                     }
+                    // Re-check conditions each cycle so we stop promptly when
+                    // traffic display is toggled off while the screen stays on.
+                    if (!shouldShowTrafficNotification()) {
+                        cancelUpdateJob()
+                        return@launch
+                    }
+                    delay(ACTIVE_POLL_MS)
                 }
-                // Re-check conditions each cycle so we stop promptly when
-                // traffic display is toggled off while the screen stays on.
-                if (!shouldShowTrafficNotification()) {
-                    cancelUpdateJob()
-                    return@launch
-                }
-                delay(ACTIVE_POLL_MS)
             }
-        }
         updateJob = job
         return job
     }
@@ -151,8 +152,8 @@ class ServiceNotificationManager(private val service: Service, private val confi
     }
 
     /**
-     * Call from the hosting service's [Service.onDestroy] to tear down
-     * the screen receiver and release the scope reference.
+     * Call from the hosting service's [Service.onDestroy] to tear down the screen receiver and
+     * release the scope reference.
      */
     fun stopTrafficUpdate() {
         cancelUpdateJob()
@@ -164,10 +165,11 @@ class ServiceNotificationManager(private val service: Service, private val confi
 
     private fun registerScreenReceiver() {
         if (receiverRegistered) return
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)
-        }
+        val filter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_SCREEN_OFF)
+            }
         service.registerReceiver(screenReceiver, filter)
         receiverRegistered = true
     }
@@ -195,7 +197,8 @@ class ServiceNotificationManager(private val service: Service, private val confi
             return buildNotification(profileName, MLang.Service.Notification.Running)
         }
 
-        val traffic = runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
+        val traffic =
+            runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
         val now = traffic.now
         val total = traffic.total
 

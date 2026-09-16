@@ -29,10 +29,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Fallback UID resolver that reads [procfs] when [ConnectivityManager.getConnectionOwnerUid]
  * returns -1.
  *
- * Resolution is two-tier: port cache → on-demand procfs read.  The port cache avoids
- * redundant file reads for short-lived sockets that appear in rapid succession.
- * No background threads — procfs is only read when a JNI callback calls
- * [resolveByProtocol] and the port is not already cached.
+ * Resolution is two-tier: port cache → on-demand procfs read. The port cache avoids redundant file
+ * reads for short-lived sockets that appear in rapid succession. No background threads — procfs is
+ * only read when a JNI callback calls [resolveByProtocol] and the port is not already cached.
  */
 internal object ProcFsUidResolver {
     // ── UDP indices ────────────────────────────────────────────────
@@ -48,9 +47,8 @@ internal object ProcFsUidResolver {
     private var tcp6UidIndex = -1
 
     /**
-     * Port-level UID cache for short-lived sockets that disappear from
-     * procfs before an on-demand read can find them.
-     * Key: source port, Value: Pair(resolutionTimestamp, uid)
+     * Port-level UID cache for short-lived sockets that disappear from procfs before an on-demand
+     * read can find them. Key: source port, Value: Pair(resolutionTimestamp, uid)
      */
     private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
 
@@ -101,13 +99,17 @@ internal object ProcFsUidResolver {
         return when (address) {
             is Inet6Address -> {
                 ensureUdp6Indices()
-                queryProcFs("/proc/net/udp6", address.address, port,
-                    udp6LocalAddrIndex, udp6UidIndex)
+                queryProcFs(
+                    "/proc/net/udp6",
+                    address.address,
+                    port,
+                    udp6LocalAddrIndex,
+                    udp6UidIndex,
+                )
             }
             is Inet4Address -> {
                 ensureUdpIndices()
-                queryProcFs("/proc/net/udp", address.address, port,
-                    udpLocalAddrIndex, udpUidIndex)
+                queryProcFs("/proc/net/udp", address.address, port, udpLocalAddrIndex, udpUidIndex)
             }
             else -> -1
         }
@@ -144,13 +146,17 @@ internal object ProcFsUidResolver {
         return when (address) {
             is Inet6Address -> {
                 ensureTcp6Indices()
-                queryProcFs("/proc/net/tcp6", address.address, port,
-                    tcp6LocalAddrIndex, tcp6UidIndex)
+                queryProcFs(
+                    "/proc/net/tcp6",
+                    address.address,
+                    port,
+                    tcp6LocalAddrIndex,
+                    tcp6UidIndex,
+                )
             }
             is Inet4Address -> {
                 ensureTcpIndices()
-                queryProcFs("/proc/net/tcp", address.address, port,
-                    tcpLocalAddrIndex, tcpUidIndex)
+                queryProcFs("/proc/net/tcp", address.address, port, tcpLocalAddrIndex, tcpUidIndex)
             }
             else -> -1
         }
@@ -170,22 +176,26 @@ internal object ProcFsUidResolver {
         if (localAddrIdx < 0 || uidIdx < 0) return -1
         val localHex = formatLocalAddress(ip, port)
         return runCatching {
-            File(path).bufferedReader().use { reader ->
-                reader.readLine() ?: return@use -1
-                reader.lineSequence().forEach { line ->
-                    val fields = line.trim().split("\\s+".toRegex())
-                    if (fields.size > maxOf(localAddrIdx, uidIdx) &&
-                        fields[localAddrIdx].equals(localHex, ignoreCase = true)
-                    ) {
-                        return@use fields[uidIdx].toIntOrNull() ?: -1
+                File(path).bufferedReader().use { reader ->
+                    reader.readLine() ?: return@use -1
+                    reader.lineSequence().forEach { line ->
+                        val fields = line.trim().split("\\s+".toRegex())
+                        if (
+                            fields.size > maxOf(localAddrIdx, uidIdx) &&
+                                fields[localAddrIdx].equals(localHex, ignoreCase = true)
+                        ) {
+                            return@use fields[uidIdx].toIntOrNull() ?: -1
+                        }
                     }
+                    -1
                 }
-                -1
             }
-        }.getOrDefault(-1)
+            .getOrDefault(-1)
     }
 
-    /** Format IP + port as the `local_address` column: IP little-endian hex, port big-endian hex. */
+    /**
+     * Format IP + port as the `local_address` column: IP little-endian hex, port big-endian hex.
+     */
     private fun formatLocalAddress(ip: ByteArray, port: Int): String {
         val sb = StringBuilder(ip.size * 2 + 5)
         var i = 0
@@ -241,14 +251,15 @@ internal object ProcFsUidResolver {
 
     private fun parseIndices(path: String): Pair<Int, Int> {
         return runCatching {
-            File(path).bufferedReader().use { reader ->
-                val header = reader.readLine() ?: return@use Pair(-1, -1)
-                val columns = header.trim().split("\\s+".toRegex())
-                val localIdx = columns.indexOfFirst { it == "local_address" }
-                val uidIdx = columns.indexOfFirst { it == "uid" }
-                Pair(localIdx, uidIdx)
+                File(path).bufferedReader().use { reader ->
+                    val header = reader.readLine() ?: return@use Pair(-1, -1)
+                    val columns = header.trim().split("\\s+".toRegex())
+                    val localIdx = columns.indexOfFirst { it == "local_address" }
+                    val uidIdx = columns.indexOfFirst { it == "uid" }
+                    Pair(localIdx, uidIdx)
+                }
             }
-        }.getOrDefault(Pair(-1, -1))
+            .getOrDefault(Pair(-1, -1))
     }
 
     private fun prunePortCache() {

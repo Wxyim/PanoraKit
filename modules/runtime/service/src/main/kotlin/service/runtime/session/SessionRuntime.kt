@@ -252,9 +252,11 @@ class SessionRuntime(
         if (currentSnapshot.phase != RuntimePhase.Running) return ConnectionSnapshot()
         val now = SystemClock.elapsedRealtime()
         synchronized(connectionCacheLock) {
-            cachedConnections?.takeIf { now - cachedConnectionsAt < CONNECTION_CACHE_TTL_MS }?.let {
-                return it
-            }
+            cachedConnections
+                ?.takeIf { now - cachedConnectionsAt < CONNECTION_CACHE_TTL_MS }
+                ?.let {
+                    return it
+                }
         }
         val snapshot = Clash.queryConnections()
         synchronized(connectionCacheLock) {
@@ -349,11 +351,7 @@ class SessionRuntime(
             ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             ?.let { profileUuid ->
                 SelectionDao.setSelected(
-                    Selection(
-                        uuid = profileUuid,
-                        proxy = group,
-                        selected = name,
-                    )
+                    Selection(uuid = profileUuid, proxy = group, selected = name)
                 )
             }
         if (currentSnapshot.phase == RuntimePhase.Running) {
@@ -484,14 +482,12 @@ class SessionRuntime(
         // VPN establish (Android IPC) and config compilation (Go JNI) are
         // independent — overlap them to reduce total wall-clock time.
         coroutineScope {
-            val prepareJob =
-                async {
-                    measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
-                }
-            val compileJob =
-                async {
-                    measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
-                }
+            val prepareJob = async {
+                measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
+            }
+            val compileJob = async {
+                measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
+            }
             prepareJob.await()
             compileJob.await()
         }
@@ -675,10 +671,7 @@ class SessionRuntime(
         // where the UI briefly shows the config default before the async
         // selection restore takes effect.
         measureStartupStep(spec, "runtime selection override") {
-            compiledConfigPipeline.ensureSelectionOverrideFile(
-                spec.profileUuid,
-                spec.profileDir,
-            )
+            compiledConfigPipeline.ensureSelectionOverrideFile(spec.profileUuid, spec.profileDir)
         }
         // Re-resolve override paths to include the newly created (or updated)
         // runtime internal override file in the compilation.
@@ -696,7 +689,8 @@ class SessionRuntime(
         val fingerprintFile = File("${spec.runtimeConfigPath}.fingerprint")
         val cacheCheckStartedAt = SystemClock.elapsedRealtime()
         val cacheHit =
-            runtimeFile.exists() && fingerprintFile.exists() &&
+            runtimeFile.exists() &&
+                fingerprintFile.exists() &&
                 fingerprintFile.readText().trim() == recompileFingerprint
         startupLog(
             spec,
@@ -706,14 +700,9 @@ class SessionRuntime(
         if (cacheHit) {
             // runtime.yaml matches current inputs — skip YAML merge, just load into Go
             startupLog(spec, "runtime override: skipped (output up-to-date)")
-            startupLog(
-                spec,
-                "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin",
-            )
+            startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
             measureStartupStep(spec, "runtime load") {
-                withContext(Dispatchers.IO) {
-                    Clash.loadCompiledConfig(runtimeFile).await()
-                }
+                withContext(Dispatchers.IO) { Clash.loadCompiledConfig(runtimeFile).await() }
             }
             lastCompiledFingerprint = recompileFingerprint
             return
@@ -736,9 +725,7 @@ class SessionRuntime(
         fingerprintFile.writeText(recompileFingerprint)
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
         measureStartupStep(spec, "runtime load") {
-            withContext(Dispatchers.IO) {
-                Clash.loadCompiledConfig(runtimeFile).await()
-            }
+            withContext(Dispatchers.IO) { Clash.loadCompiledConfig(runtimeFile).await() }
         }
         lastCompiledFingerprint = recompileFingerprint
     }
@@ -908,14 +895,14 @@ class SessionRuntime(
         selectionRestoreJob =
             scope.launch(Dispatchers.IO) {
                 runCatching {
-                    // Provider lists can settle after the runtime itself is
-                    // ready. A short background convergence window handles
-                    // that without extending the VPN start critical path.
-                    repeat(6) { attempt ->
-                        restoreSelections(spec)
-                        if (attempt < 5) delay(500L)
+                        // Provider lists can settle after the runtime itself is
+                        // ready. A short background convergence window handles
+                        // that without extending the VPN start critical path.
+                        repeat(6) { attempt ->
+                            restoreSelections(spec)
+                            if (attempt < 5) delay(500L)
+                        }
                     }
-                }
                     .onFailure { error ->
                         if (error is CancellationException) throw error
                         Timber.w(error, "Startup selector restore skipped")
@@ -925,8 +912,7 @@ class SessionRuntime(
 
     private fun persistedSelections(): List<Selection> {
         val profileUuid =
-            currentSnapshot.profileUuid
-                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            currentSnapshot.profileUuid?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 ?: return emptyList()
         return SelectionDao.querySelections(profileUuid)
     }
@@ -950,17 +936,19 @@ class SessionRuntime(
         val publisher =
             installedAppsPublisher
                 ?: RuntimeInstalledAppsPublisher(
-                    context = host.context,
-                    scope = scope,
-                    queryRootMappings =
-                        host.mode == com.github.nomadboxlab.monadbox.data.model.ProxyMode.RootTun,
-                ).also {
-                    // Local VPN/HTTP sessions must not initialize the root
-                    // shell just to build an optional UID map. On ordinary
-                    // devices that shell startup can dominate VPN startup;
-                    // PackageManager plus the per-UID fallback is sufficient.
-                    installedAppsPublisher = it
-                }
+                        context = host.context,
+                        scope = scope,
+                        queryRootMappings =
+                            host.mode ==
+                                com.github.nomadboxlab.monadbox.data.model.ProxyMode.RootTun,
+                    )
+                    .also {
+                        // Local VPN/HTTP sessions must not initialize the root
+                        // shell just to build an optional UID map. On ordinary
+                        // devices that shell startup can dominate VPN startup;
+                        // PackageManager plus the per-UID fallback is sufficient.
+                        installedAppsPublisher = it
+                    }
         publisher.start()
     }
 
@@ -997,8 +985,7 @@ class SessionRuntime(
             }
 
             val data =
-                runCatching { Clash.queryRuntimeSnapshot() }
-                    .getOrDefault(RuntimeDataSnapshot())
+                runCatching { Clash.queryRuntimeSnapshot() }.getOrDefault(RuntimeDataSnapshot())
             runtimeSnapshot =
                 RuntimeQuerySnapshot(
                     configuration = data.configuration,

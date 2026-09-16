@@ -34,18 +34,17 @@ class ResolveAccessControlAppsUseCase(private val application: Application) {
      * Resolve the Android-level access state for enumerating installed apps.
      *
      * Root access is deliberately NOT factored in here: on Android 11+,
-     * [PackageManager.getInstalledApplications] silently returns filtered
-     * results when QUERY_ALL_PACKAGES is absent, even when root is available—
-     * the call runs in the app process, not via a root shell. Root is instead
-     * used as a fallback at load-time in [AccessControlAppLoader].
+     * [PackageManager.getInstalledApplications] silently returns filtered results when
+     * QUERY_ALL_PACKAGES is absent, even when root is available— the call runs in the app process,
+     * not via a root shell. Root is instead used as a fallback at load-time in
+     * [AccessControlAppLoader].
      */
     fun resolveAccessState(): InstalledAppsAccessState {
         return InstalledAppsAccess.resolve(application)
     }
 
     fun hasFullPackageAccess(): Boolean {
-        return resolveAccessState().canEnumerateInstalledApps ||
-            RootPackageShell.hasRootAccess()
+        return resolveAccessState().canEnumerateInstalledApps || RootPackageShell.hasRootAccess()
     }
 
     suspend fun loadInstalledApps(selectedPackages: Set<String>): List<AccessControlAppInfo> =

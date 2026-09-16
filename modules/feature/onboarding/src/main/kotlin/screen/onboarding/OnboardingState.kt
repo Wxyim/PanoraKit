@@ -63,9 +63,7 @@ internal fun rememberPermissionState(
     val miuiDynamicSupported = remember { isMiuiGetInstalledAppsDynamicSupported(context) }
 
     var notificationGranted by remember { mutableStateOf(isNotificationGranted(context)) }
-    var appListGranted by remember {
-        mutableStateOf(isAppListPermissionGranted(context))
-    }
+    var appListGranted by remember { mutableStateOf(isAppListPermissionGranted(context)) }
 
     val requestNotificationPermission =
         rememberLauncherForActivityResult(

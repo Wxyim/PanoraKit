@@ -140,17 +140,15 @@ class CompiledConfigPipeline(private val context: Context) {
     }
 
     /**
-     * Ensures that persisted proxy group selections are injected into the runtime
-     * internal override file before config compilation. This eliminates the visual
-     * flash where the home page briefly shows the config default node before
-     * SelectionRestoreExecutor's async patch takes effect.
+     * Ensures that persisted proxy group selections are injected into the runtime internal override
+     * file before config compilation. This eliminates the visual flash where the home page briefly
+     * shows the config default node before SelectionRestoreExecutor's async patch takes effect.
      *
-     * For each proxy group with a persisted selection, the proxies list in the
-     * override is reordered so the selected node appears first, making it the
-     * default when mihomo starts.
+     * For each proxy group with a persisted selection, the proxies list in the override is
+     * reordered so the selected node appears first, making it the default when mihomo starts.
      *
-     * This method is idempotent: if no selections exist or no changes are needed,
-     * the override file is left untouched.
+     * This method is idempotent: if no selections exist or no changes are needed, the override file
+     * is left untouched.
      */
     @OptIn(ExperimentalSerializationApi::class)
     fun ensureSelectionOverrideFile(profileUuid: String, profileDir: String) {
@@ -201,32 +199,32 @@ class CompiledConfigPipeline(private val context: Context) {
         val selectionsByGroup = selections.associateBy { it.proxy }
 
         var hasChanges = false
-        val updatedGroups = proxyGroups.map { groupDef ->
-            val groupName =
-                groupDef["name"]?.jsonPrimitive?.content ?: return@map groupDef
-            val selection = selectionsByGroup[groupName] ?: return@map groupDef
+        val updatedGroups =
+            proxyGroups.map { groupDef ->
+                val groupName = groupDef["name"]?.jsonPrimitive?.content ?: return@map groupDef
+                val selection = selectionsByGroup[groupName] ?: return@map groupDef
 
-            val targetNode = selection.selected.trim()
-            if (targetNode.isEmpty()) return@map groupDef
+                val targetNode = selection.selected.trim()
+                if (targetNode.isEmpty()) return@map groupDef
 
-            val proxies = groupDef["proxies"]?.jsonArray ?: return@map groupDef
-            if (proxies.size < 2) return@map groupDef
+                val proxies = groupDef["proxies"]?.jsonArray ?: return@map groupDef
+                if (proxies.size < 2) return@map groupDef
 
-            // Already correct — selected node is first proxy (the default)
-            val firstProxy = proxies.firstOrNull()?.jsonPrimitive?.content
-            if (firstProxy == targetNode) return@map groupDef
+                // Already correct — selected node is first proxy (the default)
+                val firstProxy = proxies.firstOrNull()?.jsonPrimitive?.content
+                if (firstProxy == targetNode) return@map groupDef
 
-            // Reorder: selected node first, rest maintain their relative order
-            val selected = proxies.filter { e -> e.jsonPrimitive.content == targetNode }
-            val rest = proxies.filter { e -> e.jsonPrimitive.content != targetNode }
-            val reordered = buildJsonArray {
-                addAll(selected)
-                addAll(rest)
+                // Reorder: selected node first, rest maintain their relative order
+                val selected = proxies.filter { e -> e.jsonPrimitive.content == targetNode }
+                val rest = proxies.filter { e -> e.jsonPrimitive.content != targetNode }
+                val reordered = buildJsonArray {
+                    addAll(selected)
+                    addAll(rest)
+                }
+
+                hasChanges = true
+                groupDef.toMutableMap().apply { put("proxies", reordered) }
             }
-
-            hasChanges = true
-            groupDef.toMutableMap().apply { put("proxies", reordered) }
-        }
 
         // Only the proxy-groups key is replaced; the tunnel mode and any other
         // app-managed settings in the internal override are preserved.
@@ -264,10 +262,7 @@ class CompiledConfigPipeline(private val context: Context) {
         }
     }
 
-    private fun selectionFingerprint(
-        configBytes: ByteArray,
-        selections: List<Selection>,
-    ): String {
+    private fun selectionFingerprint(configBytes: ByteArray, selections: List<Selection>): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val separator = byteArrayOf(0)
         digest.update(configBytes)
@@ -286,9 +281,8 @@ class CompiledConfigPipeline(private val context: Context) {
     /**
      * Fingerprint of every input that contributes to runtime.yaml.
      *
-     * Keep this in the pipeline so preview precompilation and the real start
-     * path make exactly the same cache decision. A preview must never be able
-     * to mark a stale runtime.yaml as current.
+     * Keep this in the pipeline so preview precompilation and the real start path make exactly the
+     * same cache decision. A preview must never be able to mark a stale runtime.yaml as current.
      */
     fun runtimeInputFingerprint(spec: RuntimeSpec): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -324,14 +318,14 @@ class CompiledConfigPipeline(private val context: Context) {
             // writes the derived runtime.yaml; it does not load the core or
             // start a listener/tunnel.
             ensureSelectionOverrideFile(spec.profileUuid, spec.profileDir)
-            val preparedSpec =
-                spec.copy(overridePaths = resolveOverridePaths(spec.profileUuid))
+            val preparedSpec = spec.copy(overridePaths = resolveOverridePaths(spec.profileUuid))
             val inputFingerprint = runtimeInputFingerprint(preparedSpec)
             val runtimeFile = File(preparedSpec.runtimeConfigPath)
             val fingerprintFile = File("${preparedSpec.runtimeConfigPath}.fingerprint")
             val cachedYaml =
                 if (
-                    runtimeFile.isFile && fingerprintFile.isFile &&
+                    runtimeFile.isFile &&
+                        fingerprintFile.isFile &&
                         fingerprintFile.readText().trim() == inputFingerprint
                 ) {
                     runCatching { runtimeFile.readText() }.getOrNull()
@@ -355,7 +349,7 @@ class CompiledConfigPipeline(private val context: Context) {
                 File(preparedSpec.profileDir),
                 excludeNotSelectable,
             )
-    }
+        }
 
     suspend fun previewConfig(
         profileUuid: String,

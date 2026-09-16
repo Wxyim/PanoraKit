@@ -128,8 +128,7 @@ fun TrafficDisplay(
             verticalArrangement = Arrangement.spacedBy(metrics.capsuleSectionSpacing),
         ) {
             val compact =
-                !availableAdaptiveInfo.isExpandedWidth &&
-                    !availableAdaptiveInfo.isMediumWidth
+                !availableAdaptiveInfo.isExpandedWidth && !availableAdaptiveInfo.isMediumWidth
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
@@ -137,17 +136,18 @@ fun TrafficDisplay(
             ) {
                 Column(
                     modifier =
-                        Modifier.weight(1f).then(
-                            if (compact) {
-                                Modifier.heightIn(
-                                    min =
-                                        metrics.controlTouchTargetHeight * 2 +
-                                            metrics.controlStackSpacing
-                                )
-                            } else {
-                                Modifier
-                            }
-                        ),
+                        Modifier.weight(1f)
+                            .then(
+                                if (compact) {
+                                    Modifier.heightIn(
+                                        min =
+                                            metrics.controlTouchTargetHeight * 2 +
+                                                metrics.controlStackSpacing
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
                     verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
                 ) {
                     DownloadSection(
@@ -223,11 +223,7 @@ private fun DownloadSection(
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
 
-        SpeedValue(
-            speed = downloadSpeed,
-            metrics = metrics,
-            compact = compact,
-        )
+        SpeedValue(speed = downloadSpeed, metrics = metrics, compact = compact)
     }
 }
 
@@ -327,11 +323,7 @@ private fun ProfileModeBadge(
 }
 
 @Composable
-private fun SpeedValue(
-    speed: Long,
-    metrics: HomeTrafficMetrics,
-    compact: Boolean = false,
-) {
+private fun SpeedValue(speed: Long, metrics: HomeTrafficMetrics, compact: Boolean = false) {
     val (value, unit) = formatBytesForDisplay(speed)
     val primary = MiuixTheme.colorScheme.primary
 
@@ -409,8 +401,21 @@ private fun ReservedMetricText(
             Modifier
         }
     Box(modifier = modifier.then(heightModifier), contentAlignment = Alignment.BottomStart) {
-        Text(text = placeholder, style = style, color = color.copy(alpha = 0f), maxLines = 1, softWrap = false)
-        Text(text = text, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false)
+        Text(
+            text = placeholder,
+            style = style,
+            color = color.copy(alpha = 0f),
+            maxLines = 1,
+            softWrap = false,
+        )
+        Text(
+            text = text,
+            style = style,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+        )
     }
 }
 

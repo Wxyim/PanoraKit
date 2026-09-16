@@ -328,7 +328,7 @@ class AccessControlViewModel(
         networkSettingsStorage.accessControlPackages.set(_uiState.value.selectedPackages)
 
         applyPackagesJob?.cancel()
-            applyPackagesJob =
+        applyPackagesJob =
             viewModelScope.launch {
                 // Batch rapid checkbox changes into one runtime restart.
                 delay(APPLY_DEBOUNCE_MS)

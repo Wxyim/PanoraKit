@@ -15,10 +15,9 @@ import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 /**
  * Applies the app's persisted selector state to a runtime snapshot.
  *
- * mihomo can briefly report the config default while providers are still
- * resolving or while a startup selector restore is being applied. The
- * persisted value is the authoritative value for the app during that
- * transition, so every runtime read path must use the same projection.
+ * mihomo can briefly report the config default while providers are still resolving or while a
+ * startup selector restore is being applied. The persisted value is the authoritative value for the
+ * app during that transition, so every runtime read path must use the same projection.
  */
 internal object SelectionPresentation {
     fun apply(groups: List<ProxyGroup>, selections: List<Selection>): List<ProxyGroup> {

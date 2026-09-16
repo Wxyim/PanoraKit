@@ -42,9 +42,9 @@ object Clash {
     /**
      * Initializes the native bridge without scheduling a full native GC.
      *
-     * Startup code uses this as an availability check. Calling forceGc() here
-     * makes the check do unrelated, asynchronous work that can compete with
-     * config parsing and tunnel establishment on the startup critical path.
+     * Startup code uses this as an availability check. Calling forceGc() here makes the check do
+     * unrelated, asynchronous work that can compete with config parsing and tunnel establishment on
+     * the startup critical path.
      */
     fun ensureLoaded() {
         Bridge.ensureLoaded()
@@ -144,7 +144,8 @@ object Clash {
         portal: String,
         dns: String,
         markSocket: (Int) -> Boolean,
-        querySocketUid: (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int,
+        querySocketUid:
+            (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int,
         queryPackageName: (uid: Int) -> String,
     ) {
         Bridge.nativeStartTun(
@@ -355,10 +356,7 @@ object Clash {
                         override fun received(jsonPayload: String) {
                             val log =
                                 runCatching {
-                                        Json.decodeFromString(
-                                            LogMessage.serializer(),
-                                            jsonPayload,
-                                        )
+                                        Json.decodeFromString(LogMessage.serializer(), jsonPayload)
                                     }
                                     .getOrNull() ?: return
                             val channels: List<Channel<LogMessage>>

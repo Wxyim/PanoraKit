@@ -52,12 +52,12 @@ import com.github.nomadboxlab.monadbox.presentation.component.Card
 import com.github.nomadboxlab.monadbox.presentation.component.ConfigSettingRow
 import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
 import com.github.nomadboxlab.monadbox.presentation.component.InfoSettingRow
-import com.github.nomadboxlab.monadbox.presentation.component.appClickable
 import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.appClickable
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.ClipboardCopy
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
@@ -116,8 +116,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
         if (text.isBlank()) {
             context.toast(MLang.Log.Action.CopyEmpty)
         } else {
-            val clipboard =
-                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("monadbox_log", text))
             context.toast(MLang.Log.Action.Copied)
         }
@@ -251,8 +250,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 liveCount = logEntries.size,
                 isRecording = isRecording,
                 onToggleRecording = {
-                    if (isRecording) viewModel.stopRecording()
-                    else viewModel.startRecording()
+                    if (isRecording) viewModel.stopRecording() else viewModel.startRecording()
                 },
             )
             return@Scaffold
@@ -295,8 +293,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = spacing.xl,
-                    lazyListState =
-                        if (isDetailMode) detailListState else browserListState,
+                    lazyListState = if (isDetailMode) detailListState else browserListState,
                 ) {
                     if (!isDetailMode) {
                         item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }

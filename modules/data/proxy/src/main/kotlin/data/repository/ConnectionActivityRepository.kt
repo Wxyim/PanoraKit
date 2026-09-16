@@ -44,8 +44,10 @@ class ConnectionActivityRepository(
     private val scope: CoroutineScope,
 ) : ConnectionActivityProvider {
     companion object {
-        /** Snapshot connections every second so short-lived DNS / TCP handshake
-         *  sockets are captured before they disappear from the Go core. */
+        /**
+         * Snapshot connections every second so short-lived DNS / TCP handshake sockets are captured
+         * before they disappear from the Go core.
+         */
         private const val POLL_INTERVAL_MS = 1000L
     }
 
@@ -61,16 +63,20 @@ class ConnectionActivityRepository(
     private var monitorJob: Job? = null
     private var lastClosedRevision = ConnectionHistoryManager.closedConnectionsRevision()
 
-    /** Guard that ensures [ConnectionHistoryManager] is only cleared once per
-     *  VPN session, not when the runtime is already running and polling restarts. */
+    /**
+     * Guard that ensures [ConnectionHistoryManager] is only cleared once per VPN session, not when
+     * the runtime is already running and polling restarts.
+     */
     private var needsSessionClear = true
 
     init {
         start()
     }
 
-    /** Start watching runtime state and poll connections while the VPN is running.
-     *  Idempotent — safe to call when already active. */
+    /**
+     * Start watching runtime state and poll connections while the VPN is running. Idempotent — safe
+     * to call when already active.
+     */
     fun start() {
         if (monitorJob?.isActive == true) return
         monitorJob =

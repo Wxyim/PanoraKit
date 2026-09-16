@@ -33,7 +33,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,8 +45,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
@@ -365,8 +364,7 @@ private fun DetailsCard(
                     color = MiuixTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text =
-                        MLang.TrafficStatistics.RecentRequests.Count.format(recentRequests.size),
+                    text = MLang.TrafficStatistics.RecentRequests.Count.format(recentRequests.size),
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.primary,
                 )
@@ -381,9 +379,7 @@ private fun DetailsCard(
             } else {
                 Column(
                     verticalArrangement =
-                        Arrangement.spacedBy(
-                            TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing
-                        )
+                        Arrangement.spacedBy(TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing)
                 ) {
                     recentRequests.forEach { request ->
                         RecentRequestItem(
@@ -552,25 +548,30 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                         overflow = TextOverflow.Ellipsis,
                     )
                     val appName = record.sourceAppName
-                    val pkgName = record.sourcePackageName
-                        ?.takeIf { it.isNotBlank() && it != appName }
+                    val pkgName =
+                        record.sourcePackageName?.takeIf { it.isNotBlank() && it != appName }
                     Text(
-                        text = buildAnnotatedString {
-                            withStyle(SpanStyle(
-                                fontWeight = FontWeight.Medium,
-                                color = MiuixTheme.colorScheme.onSurface,
-                            )) {
-                                append(appName.ifBlank { pkgName ?: "" })
-                            }
-                            if (pkgName != null && appName.isNotBlank()) {
-                                withStyle(SpanStyle(
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                )) {
-                                    append(" · ")
-                                    append(pkgName)
+                        text =
+                            buildAnnotatedString {
+                                withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Medium,
+                                        color = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                ) {
+                                    append(appName.ifBlank { pkgName ?: "" })
                                 }
-                            }
-                        },
+                                if (pkgName != null && appName.isNotBlank()) {
+                                    withStyle(
+                                        SpanStyle(
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                        )
+                                    ) {
+                                        append(" · ")
+                                        append(pkgName)
+                                    }
+                                }
+                            },
                         style = MiuixTheme.textStyles.footnote1,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

@@ -25,7 +25,6 @@ import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.data.model.DailyTrafficSummary
 import com.github.nomadboxlab.monadbox.data.model.TimeSlot
 import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityRepository
-
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
@@ -34,15 +33,14 @@ import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficChartPoint
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
-
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 
 private data class StatisticsClockSnapshot(
@@ -229,7 +227,10 @@ class DefaultTrafficStatisticsExplorer(
         return cal.timeInMillis
     }
 
-    /** Extract the package name from mihomo metadata (with UID fallback) and resolve its display label. */
+    /**
+     * Extract the package name from mihomo metadata (with UID fallback) and resolve its display
+     * label.
+     */
     private fun resolveAppIdentity(connection: ConnectionInfo): Pair<String, String?> {
         val pkg = appIdentityResolver.resolvePackageFromMetadata(connection.metadata)
         if (pkg != null) return appIdentityResolver.resolveAppLabel(pkg) to pkg
@@ -244,14 +245,13 @@ class DefaultTrafficStatisticsExplorer(
 
     /**
      * Extract the top-level proxy group name from the connection's recorded
-     * [ConnectionInfo.chains]. Uses the original chain data — independent of
-     * the current proxy group state — so historical entries don't change when
-     * the user switches nodes.
+     * [ConnectionInfo.chains]. Uses the original chain data — independent of the current proxy
+     * group state — so historical entries don't change when the user switches nodes.
      *
-     * mihomo reports chains innermost-first (`[exit node, ..., outermost group]`),
-     * so the outermost element is the proxy group that made the routing decision.
-     * Only hard built-in policies (DIRECT / REJECT) are skipped; the "GLOBAL"
-     * pseudo-group is kept since it is the actual routing group in global mode.
+     * mihomo reports chains innermost-first (`[exit node, ..., outermost group]`), so the outermost
+     * element is the proxy group that made the routing decision. Only hard built-in policies
+     * (DIRECT / REJECT) are skipped; the "GLOBAL" pseudo-group is kept since it is the actual
+     * routing group in global mode.
      */
     private fun resolveTopLevelGroupName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
@@ -261,9 +261,9 @@ class DefaultTrafficStatisticsExplorer(
     }
 
     /**
-     * Extract the final (leaf) node name from the connection's recorded
-     * [ConnectionInfo.chains]. mihomo reports chains innermost-first, so the
-     * first chain element is the actual exit node that handled the connection.
+     * Extract the final (leaf) node name from the connection's recorded [ConnectionInfo.chains].
+     * mihomo reports chains innermost-first, so the first chain element is the actual exit node
+     * that handled the connection.
      */
     private fun resolveBottomNodeName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
@@ -297,8 +297,8 @@ class DefaultTrafficStatisticsExplorer(
          * Sample interval for the recent-requests pipeline.
          *
          * Raw connection snapshots arrive every [POLL_INTERVAL_MS] (1 s) from
-         * [ConnectionActivityRepository]; [sample] throttles downstream
-         * recompositions to a pace that keeps the list smooth without jank.
+         * [ConnectionActivityRepository]; [sample] throttles downstream recompositions to a pace
+         * that keeps the list smooth without jank.
          */
         private const val SAMPLE_INTERVAL_MS = 1000L
     }

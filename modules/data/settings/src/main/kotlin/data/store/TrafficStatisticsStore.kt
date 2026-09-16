@@ -99,7 +99,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         }
     }
 
-
     fun recordTraffic(
         uploadDelta: Long,
         downloadDelta: Long,

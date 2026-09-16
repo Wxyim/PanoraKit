@@ -147,11 +147,7 @@ class AppIdentityResolver(context: Context) {
                     appName = processName,
                 )
             fallbackHost.isNotBlank() ->
-                AppIdentity(
-                    appKey = UNKNOWN_APP_KEY,
-                    packageName = null,
-                    appName = fallbackHost,
-                )
+                AppIdentity(appKey = UNKNOWN_APP_KEY, packageName = null, appName = fallbackHost)
             else ->
                 AppIdentity(
                     appKey = UNKNOWN_APP_KEY,
@@ -163,7 +159,9 @@ class AppIdentityResolver(context: Context) {
 
     private fun resolveByUid(uid: Int?): String? {
         if (uid == null || uid <= 0) return null
-        uidCache[uid]?.let { return it }
+        uidCache[uid]?.let {
+            return it
+        }
 
         val packageName =
             packageManager.getPackagesForUid(uid)?.firstNotNullOfOrNull(::findInstalledPackage)
@@ -224,41 +222,57 @@ class AppIdentityResolver(context: Context) {
         return label
     }
 
-    /** Resolve a display label for the given package name, with caching.
-     *  Returns the application label (e.g. "微信") or falls back to [packageName] itself. */
+    /**
+     * Resolve a display label for the given package name, with caching. Returns the application
+     * label (e.g. "微信") or falls back to [packageName] itself.
+     */
     fun resolveAppLabel(packageName: String): String {
         if (packageName.isBlank()) return UNKNOWN_APP_NAME
         return resolveLabel(packageName).ifBlank { packageName }
     }
 
     /**
-     * Extract the package name from mihomo metadata, with UID fallback.
-     * Uses mihomo's `packageName` field first; if absent, resolves UID via
-     * [android.content.pm.PackageManager.getPackagesForUid].
-     * Returns null when neither source yields a result.
+     * Extract the package name from mihomo metadata, with UID fallback. Uses mihomo's `packageName`
+     * field first; if absent, resolves UID via
+     * [android.content.pm.PackageManager.getPackagesForUid]. Returns null when neither source
+     * yields a result.
      */
     fun resolvePackageFromMetadata(metadata: JsonObject): String? {
         // 1. Mihomo-provided package name.
         //    Mihomo's Metadata struct has NO dedicated "packageName" field; when
         //    FindPackageName succeeds it writes the Android package name into the
         //    "process" field. Check "process" first, then legacy aliases.
-        val pkg = metadata.firstNonBlankValue(
-            "process", "packageName", "package", "package-name", "package_name",
-        )
+        val pkg =
+            metadata.firstNonBlankValue(
+                "process",
+                "packageName",
+                "package",
+                "package-name",
+                "package_name",
+            )
         if (pkg.isNotBlank() && findInstalledPackage(pkg) != null) return pkg
 
         // 2. UID fallback for non-root / procfs-unavailable cases.
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         if (uid != null && uid > 0) {
-            resolveByUid(uid)?.let { return it }
+            resolveByUid(uid)?.let {
+                return it
+            }
         }
 
         // 3. Process name fallback — split and match each segment against installed packages.
-        val process = metadata.firstNonBlankValue(
-            "process", "processName", "process-name", "process_name", "appProcess",
-        )
+        val process =
+            metadata.firstNonBlankValue(
+                "process",
+                "processName",
+                "process-name",
+                "process_name",
+                "appProcess",
+            )
         if (process.isNotBlank()) {
-            resolveByProcess(process)?.let { return it }
+            resolveByProcess(process)?.let {
+                return it
+            }
         }
 
         return null
@@ -266,9 +280,14 @@ class AppIdentityResolver(context: Context) {
 
     /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
     fun resolveFallbackDisplayName(metadata: JsonObject): String {
-        val processName = metadata.firstNonBlankValue(
-            "process", "processName", "process-name", "process_name", "appProcess",
-        )
+        val processName =
+            metadata.firstNonBlankValue(
+                "process",
+                "processName",
+                "process-name",
+                "process_name",
+                "appProcess",
+            )
         if (processName.isNotBlank()) return processName
 
         val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
@@ -315,11 +334,13 @@ private fun localAddressSnapshot(): Set<String> {
         }
         localAddressCache =
             runCatching {
-                NetworkInterface.getNetworkInterfaces().toList()
-                    .flatMap { networkInterface -> networkInterface.inetAddresses.toList() }
-                    .mapNotNull { it.hostAddress?.substringBefore('%') }
-                    .toSet()
-            }.getOrDefault(emptySet())
+                    NetworkInterface.getNetworkInterfaces()
+                        .toList()
+                        .flatMap { networkInterface -> networkInterface.inetAddresses.toList() }
+                        .mapNotNull { it.hostAddress?.substringBefore('%') }
+                        .toSet()
+                }
+                .getOrDefault(emptySet())
         localAddressCacheAt = now
         return localAddressCache
     }

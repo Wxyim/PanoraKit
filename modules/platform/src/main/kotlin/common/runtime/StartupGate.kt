@@ -49,7 +49,8 @@ object StartupGate {
         // maintainer's signing key is not available; the user has explicitly
         // opted out of the anti-tamper defense by setting the build property.
         if (!BuildConfig.STARTUP_GATE_ENABLED) {
-            Timber.tag("StartupGate").i("disabled by build configuration (startup.gate.enabled=false)")
+            Timber.tag("StartupGate")
+                .i("disabled by build configuration (startup.gate.enabled=false)")
             return
         }
         val isDebuggable =

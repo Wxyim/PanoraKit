@@ -72,7 +72,8 @@ internal fun ConnectionDetailSheet(
         }
     val durationText by
         produceState(
-            initialValue = connectionInfo?.start?.let { calculateDuration(it, closeTimeMs) } ?: "00:00:00",
+            initialValue =
+                connectionInfo?.start?.let { calculateDuration(it, closeTimeMs) } ?: "00:00:00",
             key1 = show,
             key2 = connectionInfo?.start,
             key3 = closeTimeMs,
@@ -299,8 +300,8 @@ private fun calculateDuration(start: String, closeTimeMs: Long? = null): String 
     if (start.isEmpty()) return "00:00:00"
     return try {
         val startTime = java.time.OffsetDateTime.parse(start).toInstant()
-        val endTime = closeTimeMs?.let { java.time.Instant.ofEpochMilli(it) }
-            ?: java.time.Instant.now()
+        val endTime =
+            closeTimeMs?.let { java.time.Instant.ofEpochMilli(it) } ?: java.time.Instant.now()
         val duration = java.time.Duration.between(startTime, endTime)
         val hours = duration.toHours()
         val minutes = duration.toMinutes() % 60

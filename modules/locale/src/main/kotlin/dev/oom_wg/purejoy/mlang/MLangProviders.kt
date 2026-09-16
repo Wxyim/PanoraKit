@@ -202,8 +202,7 @@ object MLangProviders {
             LocaleBootstrap.getString(R.string.providers_message_all_updated, *args)
 
         val `AppliedOnNextStart`: String
-            get() =
-                LocaleBootstrap.getString(R.string.providers_message_applied_on_next_start)
+            get() = LocaleBootstrap.getString(R.string.providers_message_applied_on_next_start)
 
         @Composable
         fun `AppliedOnNextStart`(vararg args: Any): String =

@@ -90,7 +90,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.StatusBadge
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
-import com.github.nomadboxlab.monadbox.runtime.client.ProxyGroupsLoadState
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.LayoutPanelLeft
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
@@ -112,6 +111,7 @@ import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindo
 import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
 import com.github.nomadboxlab.monadbox.presentation.util.resolveAdaptiveProxyDisplayMode
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
+import com.github.nomadboxlab.monadbox.runtime.client.ProxyGroupsLoadState
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
@@ -330,13 +330,15 @@ fun ProxyPager(
                                     ProxyGroupStyle.INLINE -> {
                                         floatingGroupName = null
                                         expandedGroupName =
-                                            if (expandedGroupName == group.name) null else group.name
+                                            if (expandedGroupName == group.name) null
+                                            else group.name
                                     }
 
                                     ProxyGroupStyle.FLOATING -> {
                                         expandedGroupName = null
                                         floatingGroupName =
-                                            if (floatingGroupName == group.name) null else group.name
+                                            if (floatingGroupName == group.name) null
+                                            else group.name
                                     }
                                 }
                             },
@@ -352,7 +354,9 @@ fun ProxyPager(
                                     showStartMessage = groupStyle != ProxyGroupStyle.FLOATING,
                                 )
                             },
-                            onTestProxyDelay = { proxyName -> proxyViewModel.testProxyDelay(proxyName) },
+                            onTestProxyDelay = { proxyName ->
+                                proxyViewModel.testProxyDelay(proxyName)
+                            },
                             singleNodeTestEnabled = singleNodeTest && isRunning,
                         )
                 }
@@ -385,19 +389,19 @@ fun ProxyPager(
                     }
                 },
                 onTestDelay = {
-                        retainedFloatingGroup?.let {
-                            proxyViewModel.testDelay(it.name, showStartMessage = false)
-                        }
-                    },
+                    retainedFloatingGroup?.let {
+                        proxyViewModel.testDelay(it.name, showStartMessage = false)
+                    }
+                },
                 onSelectProxy = { proxyName ->
-                        val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
-                        if (group.type == Proxy.Type.Selector) {
-                            proxyViewModel.selectProxy(group.name, proxyName)
-                            floatingGroupName = null
-                        } else {
-                            proxyViewModel.testProxyDelay(proxyName)
-                        }
-                    },
+                    val group = retainedFloatingGroup ?: return@FloatingGroupOverlay
+                    if (group.type == Proxy.Type.Selector) {
+                        proxyViewModel.selectProxy(group.name, proxyName)
+                        floatingGroupName = null
+                    } else {
+                        proxyViewModel.testProxyDelay(proxyName)
+                    }
+                },
                 onTestProxyDelay = proxyViewModel::testProxyDelay,
             )
         }

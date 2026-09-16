@@ -27,10 +27,7 @@ import kotlinx.serialization.json.JsonPrimitive
 
 internal object MergeHelper {
 
-    fun <T> mergeList(
-        base: List<T>?,
-        replace: List<T>?,
-    ): List<T>? {
+    fun <T> mergeList(base: List<T>?, replace: List<T>?): List<T>? {
         val merged =
             when {
                 base == null -> replace

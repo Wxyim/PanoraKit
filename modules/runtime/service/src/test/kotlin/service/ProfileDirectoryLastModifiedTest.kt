@@ -21,6 +21,7 @@ package com.github.nomadboxlab.monadbox.service
 
 import com.github.nomadboxlab.monadbox.service.runtime.util.directoryLastModified
 import java.io.File
+import kotlin.io.path.createTempDirectory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,7 +29,7 @@ import org.junit.Test
 class ProfileDirectoryLastModifiedTest {
     @Test
     fun derivedRuntimeArtifactsDoNotAdvanceProfileTimestamp() {
-        val dir = createTempDir()
+        val dir = createTempDirectory().toFile()
         try {
             val config = File(dir, "config.yaml")
             config.writeText("proxies: []")
@@ -50,14 +51,14 @@ class ProfileDirectoryLastModifiedTest {
 
     @Test
     fun realConfigFilesStillAdvanceProfileTimestamp() {
-        val dir = createTempDir()
+        val dir = createTempDirectory().toFile()
         try {
             val config = File(dir, "config.yaml")
             config.writeText("proxies: []")
             assertTrue(config.setLastModified(1000L))
 
             val provider = File(dir, "providers/provider.yaml")
-            provider.parentFile.mkdirs()
+            requireNotNull(provider.parentFile).mkdirs()
             provider.writeText("proxies: []")
             assertTrue(provider.setLastModified(4000L))
 

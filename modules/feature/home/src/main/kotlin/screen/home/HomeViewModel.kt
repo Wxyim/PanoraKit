@@ -73,8 +73,8 @@ import timber.log.Timber
 
 data class HomeSelectedServerState(val groupName: String?, val name: String?, val delay: Int?)
 
-	@Stable
-	data class HomeUiState(
+@Stable
+data class HomeUiState(
     val isLoading: Boolean = false,
     val isStartingProxy: Boolean = false,
     val loadingProgress: String? = null,
@@ -261,7 +261,9 @@ class HomeViewModel(
                 RuntimeStateMapper.isActuallyRunning(runtimeSnapshot.value),
             )
 
-    val isExternalIpLookupEnabled: StateFlow<Boolean> get() = _isExternalIpLookupEnabled
+    val isExternalIpLookupEnabled: StateFlow<Boolean>
+        get() = _isExternalIpLookupEnabled
+
     private val _isExternalIpLookupEnabled = MutableStateFlow(false)
 
     private val currentTunnelMode: StateFlow<TunnelState.Mode> =
@@ -307,7 +309,9 @@ class HomeViewModel(
             .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val selectedServer: StateFlow<HomeSelectedServerState?> get() = _selectedServer
+    val selectedServer: StateFlow<HomeSelectedServerState?>
+        get() = _selectedServer
+
     private val _selectedServer = MutableStateFlow<HomeSelectedServerState?>(null)
 
     private val homePresentationReady: StateFlow<Boolean> =
@@ -327,18 +331,14 @@ class HomeViewModel(
                     flowOf(IpMonitoringState.Loading)
                 }
             }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.Eagerly,
-                IpMonitoringState.Loading,
-            )
+            .stateIn(viewModelScope, SharingStarted.Eagerly, IpMonitoringState.Loading)
 
     /**
      * Trigger a one-shot external IP lookup against the user-configured URL.
      *
      * Privacy: this is the **only** code path that ever calls
-     * `NetworkInfoService.queryExternalIp()`. There is no auto-poll, no 10 s
-     * tick, and the call only happens when the user taps the "查询" button.
+     * `NetworkInfoService.queryExternalIp()`. There is no auto-poll, no 10 s tick, and the call
+     * only happens when the user taps the "查询" button.
      */
     fun queryExternalIp() {
         viewModelScope.launch {
@@ -393,9 +393,10 @@ class HomeViewModel(
         combine(
                 combine(chromeState, profilesState) { chrome, profiles -> chrome to profiles },
                 combine(confirmedCurrentProfile, selectedServer, homePresentationReady) {
-                        currentProfile, selectedServer, runtimeReady ->
-                    currentProfile to
-                        selectedServer.takeIf { runtimeReady }
+                    currentProfile,
+                    selectedServer,
+                    runtimeReady ->
+                    currentProfile to selectedServer.takeIf { runtimeReady }
                 },
                 combine(
                     ipMonitoringState,
@@ -488,8 +489,8 @@ class HomeViewModel(
     }
 
     /**
-     * Clear the cached external IP when a proxy node is switched while the VPN
-     * is running — the exit IP is likely to change and the cached value is stale.
+     * Clear the cached external IP when a proxy node is switched while the VPN is running — the
+     * exit IP is likely to change and the cached value is stale.
      */
     private fun clearExternalIpCacheOnSelection() {
         viewModelScope.launch {
@@ -868,13 +869,12 @@ class HomeViewModel(
     }
 
     /**
-     * Feed [selectedServer] from the canonical combine, but with a sticky-hold
-     * strategy: when the runtime payload gate transiently drops during startup
-     * (e.g. mihomo reloading imported config), keep the last non-null value
-     * instead of flipping back to `null` ("Unknown").
+     * Feed [selectedServer] from the canonical combine, but with a sticky-hold strategy: when the
+     * runtime payload gate transiently drops during startup (e.g. mihomo reloading imported
+     * config), keep the last non-null value instead of flipping back to `null` ("Unknown").
      *
-     * Clear the previous generation as soon as a new startup begins, and
-     * clear it again when the runtime is definitively stopped (Idle / Failed).
+     * Clear the previous generation as soon as a new startup begins, and clear it again when the
+     * runtime is definitively stopped (Idle / Failed).
      */
     private fun collectSelectedServer() {
         viewModelScope.launch {
@@ -883,9 +883,10 @@ class HomeViewModel(
                     groups,
                     tunnelMode,
                     visibleGroupNames ->
-                    if (!RuntimeStateMapper.isReady(snapshot) ||
-                        visibleGroupNames == null ||
-                        groups.isEmpty()
+                    if (
+                        !RuntimeStateMapper.isReady(snapshot) ||
+                            visibleGroupNames == null ||
+                            groups.isEmpty()
                     ) {
                         return@combine null
                     }
@@ -938,7 +939,7 @@ class HomeViewModel(
                         snapshot.phase == RuntimePhase.Starting -> _selectedServer.value = null
                         snapshot.phase == RuntimePhase.Stopping -> _selectedServer.value = null
                         runtimeStopped -> _selectedServer.value = null
-                        // Transient drop: hold last value, suppress flash.
+                    // Transient drop: hold last value, suppress flash.
                     }
                 }
         }
@@ -947,13 +948,14 @@ class HomeViewModel(
     /**
      * Feed [isExternalIpLookupEnabled] from the runtime-snapshot combine.
      *
-     * Uses the same canonical readiness gate as the node display and the
-     * home start/stop control, so the query action cannot race VPN startup.
+     * Uses the same canonical readiness gate as the node display and the home start/stop control,
+     * so the query action cannot race VPN startup.
      */
     private fun collectExternalIpEnabled() {
         viewModelScope.launch {
             combine(appSettings.externalIpLookupUrl.state, homePresentationReady) {
-                    url, presentationReady ->
+                    url,
+                    presentationReady ->
                     url.isNotBlank() && presentationReady
                 }
                 .collect { enabled -> _isExternalIpLookupEnabled.value = enabled }

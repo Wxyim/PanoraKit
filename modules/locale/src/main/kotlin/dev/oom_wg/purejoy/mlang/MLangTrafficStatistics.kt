@@ -42,7 +42,6 @@ object MLangTrafficStatistics {
     fun `OverviewTitle`(vararg args: Any): String =
         LocaleBootstrap.getString(R.string.traffic_statistics_overview_title, *args)
 
-
     object `RecentRequests` {
         val `Title`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_title)
@@ -194,5 +193,4 @@ object MLangTrafficStatistics {
         fun `WeekStats`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.traffic_statistics_compare_week_stats, *args)
     }
-
 }

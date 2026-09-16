@@ -40,10 +40,10 @@ import kotlinx.coroutines.launch
 /**
  * Shared tunnel-mode controller used by both the home page and the proxy page.
  *
- * While the runtime is running, [currentMode] tracks the actual mode reported by
- * the core; when it is stopped, [currentMode] follows the configured mode stored
- * in [ProxyDisplaySettingsStore]. The configured store value is reconciled back
- * to the actual runtime mode so both pages keep showing a consistent value.
+ * While the runtime is running, [currentMode] tracks the actual mode reported by the core; when it
+ * is stopped, [currentMode] follows the configured mode stored in [ProxyDisplaySettingsStore]. The
+ * configured store value is reconciled back to the actual runtime mode so both pages keep showing a
+ * consistent value.
  */
 class DefaultProxyModeController(
     private val overrideRepository: OverrideRepository,
@@ -73,25 +73,21 @@ class DefaultProxyModeController(
         }
 
         // Refresh immediately when the runtime starts or stops.
-        scope.launch {
-            proxyFacade.isRunning.collect {
-                refreshCurrentTunnelMode()
-            }
-        }
+        scope.launch { proxyFacade.isRunning.collect { refreshCurrentTunnelMode() } }
 
         // Keep the displayed mode in sync with the actual runtime mode while
         // running; fall back to the configured mode when the runtime is stopped.
         scope.launch {
             while (true) {
                 if (proxyFacade.isRunning.value) {
-                    val actual =
-                        runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
+                    val actual = runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
                     if (actual != null) {
                         if (_currentMode.value != actual) {
                             _currentMode.value = actual
                         }
-                        if (!_uiState.value.isLoading &&
-                            proxyDisplaySettingsStore.proxyMode.value != actual
+                        if (
+                            !_uiState.value.isLoading &&
+                                proxyDisplaySettingsStore.proxyMode.value != actual
                         ) {
                             proxyDisplaySettingsStore.proxyMode.set(actual)
                         }
@@ -228,7 +224,10 @@ class DefaultProxyModeController(
             else -> MLang.Proxy.Mode.Unknown
         }
 
-    private fun requiresPreviewRebuild(previous: TunnelState.Mode, next: TunnelState.Mode): Boolean {
+    private fun requiresPreviewRebuild(
+        previous: TunnelState.Mode,
+        next: TunnelState.Mode,
+    ): Boolean {
         val directToRule =
             (previous == TunnelState.Mode.Direct && next == TunnelState.Mode.Rule) ||
                 (previous == TunnelState.Mode.Rule && next == TunnelState.Mode.Direct)

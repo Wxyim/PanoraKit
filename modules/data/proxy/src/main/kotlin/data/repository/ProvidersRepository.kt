@@ -132,5 +132,4 @@ class ProvidersRepository(
     }
 
     data class UpdateProvidersResult(val failedProviders: List<String>)
-
 }

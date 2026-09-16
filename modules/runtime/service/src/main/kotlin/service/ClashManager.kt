@@ -103,9 +103,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         if (!StatusProvider.serviceRunning) return RuntimeDataSnapshot()
         val snapshot = Clash.queryRuntimeSnapshot()
         val profileUuid = store.activeProfile ?: return snapshot
-        snapshot.proxyGroups.forEach { group ->
-            syncSelectionSnapshotSafely(group.name, group)
-        }
+        snapshot.proxyGroups.forEach { group -> syncSelectionSnapshotSafely(group.name, group) }
         return snapshot.copy(
             proxyGroups =
                 SelectionPresentation.apply(
@@ -118,9 +116,11 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     override fun queryConnections(): ConnectionSnapshot {
         val now = android.os.SystemClock.elapsedRealtime()
         synchronized(connectionCacheLock) {
-            connectionCache?.takeIf { now - connectionCacheAt < CONNECTION_CACHE_TTL_MS }?.let {
-                return it
-            }
+            connectionCache
+                ?.takeIf { now - connectionCacheAt < CONNECTION_CACHE_TTL_MS }
+                ?.let {
+                    return it
+                }
         }
         val snapshot = Clash.queryConnections()
         synchronized(connectionCacheLock) {
@@ -142,10 +142,9 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
                 ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
             }
-        val groups =
-            runSuspendBlocking {
-                compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
-            }
+        val groups = runSuspendBlocking {
+            compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
+        }
 
         // Overlay persisted selections so the UI reflects manual choices even
         // when the core is not running (preview mode). The overlay is applied
@@ -167,9 +166,10 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 }
             }
         }
-        val groups = Clash.queryGroups(excludeNotSelectable, ProxySort.Default).map { group ->
-            group.also { syncSelectionSnapshotSafely(it.name, it) }
-        }
+        val groups =
+            Clash.queryGroups(excludeNotSelectable, ProxySort.Default).map { group ->
+                group.also { syncSelectionSnapshotSafely(it.name, it) }
+            }
         val presentedGroups =
             SelectionPresentation.apply(
                 groups,
@@ -192,15 +192,13 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
-        val group = Clash.queryGroup(name, proxySort).let { raw ->
-            syncSelectionSnapshotSafely(name, raw)
-            val profileUuid = store.activeProfile ?: return@let raw
-            SelectionPresentation.apply(
-                    listOf(raw),
-                    SelectionDao.querySelections(profileUuid),
-                )
-                .first()
-        }
+        val group =
+            Clash.queryGroup(name, proxySort).let { raw ->
+                syncSelectionSnapshotSafely(name, raw)
+                val profileUuid = store.activeProfile ?: return@let raw
+                SelectionPresentation.apply(listOf(raw), SelectionDao.querySelections(profileUuid))
+                    .first()
+            }
         return group
     }
 

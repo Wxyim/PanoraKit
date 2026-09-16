@@ -31,10 +31,7 @@ class InstalledAppUidMappingsTest {
                 listOf(10001 to "com.example.first", 10002 to "com.example.second"),
             )
 
-        assertEquals(
-            listOf(10001 to "com.example.first", 10002 to "com.example.second"),
-            mappings,
-        )
+        assertEquals(listOf(10001 to "com.example.first", 10002 to "com.example.second"), mappings)
     }
 
     @Test
@@ -45,10 +42,7 @@ class InstalledAppUidMappingsTest {
                 listOf(10001 to "com.example.old", 10002 to "com.example.other"),
             )
 
-        assertEquals(
-            listOf(10001 to "com.example.updated", 10002 to "com.example.other"),
-            mappings,
-        )
+        assertEquals(listOf(10001 to "com.example.updated", 10002 to "com.example.other"), mappings)
     }
 
     @Test

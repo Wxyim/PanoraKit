@@ -156,10 +156,7 @@ private fun IpInfoRow(
                     color = valueColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 16.dp)
-                        .height(INFO_TEXT_HEIGHT),
+                    modifier = Modifier.weight(1f).padding(end = 16.dp).height(INFO_TEXT_HEIGHT),
                 )
             }
 
@@ -183,8 +180,9 @@ private fun IpInfoRow(
                         Icon(
                             imageVector = MonadIcons.`Redo-dot`,
                             contentDescription = null,
-                            tint = if (isRefreshing) MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            else MiuixTheme.colorScheme.primary,
+                            tint =
+                                if (isRefreshing) MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                else MiuixTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp),
                         )
                     }

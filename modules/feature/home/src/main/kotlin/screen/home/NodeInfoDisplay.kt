@@ -143,22 +143,21 @@ fun NodeInfoDisplay(
 
 @Composable
 private fun PingValue(ping: Int?) {
-    val (text, color) = when {
-        ping == null || ping == 0 -> "--" to MiuixTheme.colorScheme.onSurfaceVariantSummary
-        ping < 0 -> "TIMEOUT" to MiuixTheme.colorScheme.onSurfaceVariantSummary
-        else -> {
-            val c = when {
-                ping <= 300 -> Color(0xFF007906)
-                ping <= 1000 -> Color(0xFFFFB300)
-                else -> Color(0xFFE53935)
+    val (text, color) =
+        when {
+            ping == null || ping == 0 -> "--" to MiuixTheme.colorScheme.onSurfaceVariantSummary
+            ping < 0 -> "TIMEOUT" to MiuixTheme.colorScheme.onSurfaceVariantSummary
+            else -> {
+                val c =
+                    when {
+                        ping <= 300 -> Color(0xFF007906)
+                        ping <= 1000 -> Color(0xFFFFB300)
+                        else -> Color(0xFFE53935)
+                    }
+                "${ping}ms" to c
             }
-            "${ping}ms" to c
         }
-    }
-    Box(
-        modifier = Modifier.height(INFO_TEXT_HEIGHT),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.height(INFO_TEXT_HEIGHT), contentAlignment = Alignment.Center) {
         Text(
             text = text,
             style = MiuixTheme.textStyles.body1.copy(lineHeight = 20.sp),

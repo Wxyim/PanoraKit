@@ -39,8 +39,7 @@ internal object RuntimeTransitionPolicy {
         owner: RuntimeOwner,
         targetMode: ProxyMode,
     ): RuntimeSnapshot {
-        val localTransportReady =
-            owner == RuntimeOwner.LocalTun || owner == RuntimeOwner.LocalHttp
+        val localTransportReady = owner == RuntimeOwner.LocalTun || owner == RuntimeOwner.LocalHttp
         return currentSnapshot.copy(
             owner = owner,
             phase = RuntimePhase.Running,

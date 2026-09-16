@@ -194,12 +194,12 @@ fun HomePager(
                                             )
                                             IpInfoDisplay(
                                                 state = ipMonitoringState,
-                                                isExternalIpLookupEnabled = isExternalIpLookupEnabled,
+                                                isExternalIpLookupEnabled =
+                                                    isExternalIpLookupEnabled,
                                                 isExternalIpQuerying = isExternalIpQuerying,
                                                 onQueryExternalIp = onQueryExternalIp,
                                             )
                                         }
-
                                     }
                                 }
                             }
@@ -237,7 +237,6 @@ fun HomePager(
                                             onQueryExternalIp = onQueryExternalIp,
                                         )
                                     }
-
                                 }
                             }
                         }

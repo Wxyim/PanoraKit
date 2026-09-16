@@ -51,9 +51,7 @@ sealed class IpMonitoringState {
     object Loading : IpMonitoringState()
 }
 
-class NetworkInfoService(
-    private val appSettings: AppSettingsStorage,
-) : Closeable {
+class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeable {
     private val json = Json { ignoreUnknownKeys = true }
 
     // This service is application-scoped. Keep the manually queried value here
@@ -100,10 +98,9 @@ class NetworkInfoService(
     /**
      * Look up the external IP from a user-configured URL.
      *
-     * Privacy: this is **never** called automatically. The home screen has a
-     * "查询" button that calls this only on user tap. The URL is whatever the
-     * user has set in `Settings -> Network -> 外部 IP 查询 URL`. An empty URL
-     * means the feature is disabled.
+     * Privacy: this is **never** called automatically. The home screen has a "查询" button that calls
+     * this only on user tap. The URL is whatever the user has set in `Settings -> Network -> 外部 IP
+     * 查询 URL`. An empty URL means the feature is disabled.
      *
      * Returns `null` if the URL is empty/invalid or the request fails.
      */
@@ -134,24 +131,26 @@ class NetworkInfoService(
     /**
      * Stream the local IP and (optionally) a previously-queried external IP.
      *
-     * Privacy: this flow **never** calls any third-party endpoint. The external
-     * IP is only ever populated by a manual `queryExternalIp()` invocation
-     * from the home screen, gated on a non-empty user-configured URL.
+     * Privacy: this flow **never** calls any third-party endpoint. The external IP is only ever
+     * populated by a manual `queryExternalIp()` invocation from the home screen, gated on a
+     * non-empty user-configured URL.
      */
     fun startIpMonitoring(
         isProxyActiveFlow: Flow<Boolean>,
         externalIpFlow: Flow<IpInfo?> = flowOf(null),
-    ): Flow<IpMonitoringState> = combine(
-        externalIpFlow,
-        isProxyActiveFlow,
-    ) { externalIp, isProxyActive ->
-        try {
-            val localIp = getLocalIp()
-            IpMonitoringState.Success(localIp = localIp, externalIp = externalIp, isProxyActive = isProxyActive)
-        } catch (e: Exception) {
-            IpMonitoringState.Error(e.message ?: "Unknown error")
+    ): Flow<IpMonitoringState> =
+        combine(externalIpFlow, isProxyActiveFlow) { externalIp, isProxyActive ->
+            try {
+                val localIp = getLocalIp()
+                IpMonitoringState.Success(
+                    localIp = localIp,
+                    externalIp = externalIp,
+                    isProxyActive = isProxyActive,
+                )
+            } catch (e: Exception) {
+                IpMonitoringState.Error(e.message ?: "Unknown error")
+            }
         }
-    }
 }
 
 internal object ExternalIpResponseParser {
@@ -165,13 +164,16 @@ internal object ExternalIpResponseParser {
             // Fall through to plain-text and key=value response parsing.
         }
 
-        parseKeyValueTrace(normalizedBody)?.let { return it }
+        parseKeyValueTrace(normalizedBody)?.let {
+            return it
+        }
         return normalizedBody.takeIf(::isLikelyIpLiteral)?.let { IpInfo(ip = it) }
     }
 
     private fun parseKeyValueTrace(body: String): IpInfo? {
         val values =
-            body.lineSequence()
+            body
+                .lineSequence()
                 .mapNotNull { line ->
                     val separatorIndex = line.indexOf('=')
                     if (separatorIndex <= 0) return@mapNotNull null
@@ -180,7 +182,8 @@ internal object ExternalIpResponseParser {
                     val value = line.substring(separatorIndex + 1).trim()
                     if (key.isEmpty() || value.isEmpty()) return@mapNotNull null
                     key to value
-                }.toMap()
+                }
+                .toMap()
 
         val ip = values["ip"]?.takeIf(::isLikelyIpLiteral) ?: return null
         val countryCode = values["country_code"] ?: values["loc"]
@@ -206,6 +209,8 @@ internal object ExternalIpResponseParser {
 
     private fun isLikelyIpv6(value: String): Boolean {
         if (!value.contains(':')) return false
-        return value.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.' }
+        return value.all {
+            it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.'
+        }
     }
 }

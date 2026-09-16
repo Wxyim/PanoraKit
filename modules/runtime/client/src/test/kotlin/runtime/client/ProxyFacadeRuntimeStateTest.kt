@@ -218,10 +218,7 @@ class ProxyFacadeRuntimeStateTest {
             profile = profile,
             groups = groups,
             runtimeSnapshot =
-                RuntimeSnapshot(
-                    phase = RuntimePhase.Running,
-                    effectiveFingerprint = fingerprint,
-                ),
+                RuntimeSnapshot(phase = RuntimePhase.Running, effectiveFingerprint = fingerprint),
             rootTunStatus = RootTunStatus(state = RootTunState.Running),
         )
 
@@ -248,7 +245,7 @@ class ProxyFacadeRuntimeStateTest {
                     ),
                 profile = profile,
                 rootTunStatus = RootTunStatus(state = RootTunState.Running),
-            ),
+            )
         )
     }
 
@@ -338,9 +335,7 @@ class ProxyFacadeRuntimeStateTest {
             cache.invalidate()
 
             assertNull(cache.restore(profile, snapshot, rootTunStatus))
-            assertNull(
-                ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus)
-            )
+            assertNull(ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus))
         } finally {
             file.delete()
         }

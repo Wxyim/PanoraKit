@@ -76,7 +76,8 @@ class ProxyViewModel(
 
     private val _groupOriginalOrder = MutableStateFlow<Map<String, List<String>>>(emptyMap())
 
-    val currentMode: StateFlow<TunnelState.Mode> get() = proxyModeController.currentMode
+    val currentMode: StateFlow<TunnelState.Mode>
+        get() = proxyModeController.currentMode
 
     val isRunning: StateFlow<Boolean> = proxyFacade.isRunning
 
@@ -153,14 +154,10 @@ class ProxyViewModel(
                         // has consumed it from the shared controller.
                         message =
                             state.message
-                                ?: current.message.takeUnless {
-                                    it == previousControllerMessage
-                                },
+                                ?: current.message.takeUnless { it == previousControllerMessage },
                         error =
                             state.error
-                                ?: current.error.takeUnless {
-                                    it == previousControllerError
-                                },
+                                ?: current.error.takeUnless { it == previousControllerError },
                     )
                 }
             }

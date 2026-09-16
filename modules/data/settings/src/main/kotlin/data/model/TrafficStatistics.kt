@@ -69,4 +69,3 @@ data class ProfileTrafficUsage(
     val totalBytes: Long
         get() = totalUpload + totalDownload
 }
-

@@ -83,8 +83,8 @@ internal object AccessControlAppLoader {
         val packages =
             if (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                !accessState.canEnumerateInstalledApps &&
-                RootPackageShell.hasRootAccess()
+                    !accessState.canEnumerateInstalledApps &&
+                    RootPackageShell.hasRootAccess()
             ) {
                 loadInstalledAppsFromRoot(pm, selfPackageName)
             } else {
@@ -101,8 +101,7 @@ internal object AccessControlAppLoader {
         return packages
             .filter { it.packageName != selfPackageName }
             .map { appInfo ->
-                val pkgInfo =
-                    runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
+                val pkgInfo = runCatching { pm.getPackageInfo(appInfo.packageName, 0) }.getOrNull()
                 AccessControlAppInfo(
                     packageName = appInfo.packageName,
                     label = appInfo.loadLabel(pm).toString(),
@@ -164,12 +163,10 @@ internal object AccessControlFilter {
                 AccessControlSortMode.INSTALL_TIME -> compareBy { it.installTime }
                 AccessControlSortMode.UPDATE_TIME -> compareBy { it.updateTime }
             }
-        val orderedComparator =
-            if (descending) comparator.reversed() else comparator
+        val orderedComparator = if (descending) comparator.reversed() else comparator
         val finalComparator =
             if (selectedFirst) {
-                compareByDescending<AccessControlAppInfo> { it.isSelected }
-                    .then(orderedComparator)
+                compareByDescending<AccessControlAppInfo> { it.isSelected }.then(orderedComparator)
             } else {
                 orderedComparator
             }
@@ -181,7 +178,8 @@ internal object AccessControlFilter {
         query: String,
         showSystemApps: Boolean,
     ): Set<String> {
-        return apps.asSequence()
+        return apps
+            .asSequence()
             .filter { app -> matches(app, query, showSystemApps) }
             .mapTo(linkedSetOf()) { it.packageName }
     }

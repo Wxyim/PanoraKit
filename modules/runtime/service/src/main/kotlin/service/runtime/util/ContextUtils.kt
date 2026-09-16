@@ -36,12 +36,11 @@ val Context.processingDir: File
 /**
  * Latest modification time among the profile's real configuration files.
  *
- * Preview compilation and runtime starts write derived artifacts
- * (runtime.yaml and its .fingerprint sidecar) into the profile directory.
- * Counting them would make the profile's updatedAt/fingerprint drift on every
- * preview, invalidating the cached proxy-page preview and forcing a recompile
- * whenever the page is revisited. They are excluded so the timestamp only
- * changes when the user's actual config content changes.
+ * Preview compilation and runtime starts write derived artifacts (runtime.yaml and its .fingerprint
+ * sidecar) into the profile directory. Counting them would make the profile's updatedAt/fingerprint
+ * drift on every preview, invalidating the cached proxy-page preview and forcing a recompile
+ * whenever the page is revisited. They are excluded so the timestamp only changes when the user's
+ * actual config content changes.
  */
 val File.directoryLastModified: Long?
     get() {

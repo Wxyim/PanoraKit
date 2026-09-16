@@ -40,11 +40,10 @@ private fun <T> MutableStateFlow<T>.setIfChanged(newValue: T): Boolean {
     return true
 }
 
-private val proxyFacadePreviewCacheJson =
-    Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
+private val proxyFacadePreviewCacheJson = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+}
 
 enum class ProxyGroupsLoadState {
     NotLoaded,
@@ -73,8 +72,7 @@ internal class ProxyFacadeRuntimeState(
     private val proxyGroupsMutable = MutableStateFlow<List<ProxyGroupInfo>>(emptyList())
     val proxyGroups: StateFlow<List<ProxyGroupInfo>> = proxyGroupsMutable.asStateFlow()
 
-    private val proxyGroupsLoadStateMutable =
-        MutableStateFlow(ProxyGroupsLoadState.NotLoaded)
+    private val proxyGroupsLoadStateMutable = MutableStateFlow(ProxyGroupsLoadState.NotLoaded)
     val proxyGroupsLoadState: StateFlow<ProxyGroupsLoadState> =
         proxyGroupsLoadStateMutable.asStateFlow()
 
@@ -163,15 +161,14 @@ internal class ProxyFacadeRuntimeState(
                 proxyGroupsProfileUpdatedAt = profile.updatedAt
             }
             proxyGroupsLoadStateMutable.setIfChanged(
-                if (groups.isEmpty()) ProxyGroupsLoadState.Empty
-                else ProxyGroupsLoadState.Ready
+                if (groups.isEmpty()) ProxyGroupsLoadState.Empty else ProxyGroupsLoadState.Ready
             )
         }
     }
 
     /**
-     * Clears only the rendered proxy-group preview. Persisted selector
-     * selections live in SelectionDao and are intentionally not touched here.
+     * Clears only the rendered proxy-group preview. Persisted selector selections live in
+     * SelectionDao and are intentionally not touched here.
      */
     fun clearProxyGroupsForPreview() {
         synchronized(stateLock) {
@@ -347,13 +344,16 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
                         key.profileUpdatedAt,
                     )
             }
-            ?.let { return it.groups }
+            ?.let {
+                return it.groups
+            }
 
         val file = diskFile ?: return null
         val persisted =
             runCatching {
-                proxyFacadePreviewCacheJson.decodeFromString<PersistedEntry>(file.readText())
-            }.getOrNull() ?: return null
+                    proxyFacadePreviewCacheJson.decodeFromString<PersistedEntry>(file.readText())
+                }
+                .getOrNull() ?: return null
         if (
             persisted.profileId != key.profileId.toString() ||
                 persisted.profileUpdatedAt != key.profileUpdatedAt ||

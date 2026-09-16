@@ -54,21 +54,10 @@ class SelectionPresentationTest {
         now: String,
         proxies: List<Proxy> = listOf(proxy("node-a"), proxy("node-b")),
     ): ProxyGroup {
-        return ProxyGroup(
-            name = "AUTO",
-            type = Proxy.Type.Selector,
-            proxies = proxies,
-            now = now,
-        )
+        return ProxyGroup(name = "AUTO", type = Proxy.Type.Selector, proxies = proxies, now = now)
     }
 
     private fun proxy(name: String): Proxy {
-        return Proxy(
-            name = name,
-            title = name,
-            subtitle = "",
-            type = Proxy.Type.Socks5,
-            delay = 0,
-        )
+        return Proxy(name = name, title = name, subtitle = "", type = Proxy.Type.Socks5, delay = 0)
     }
 }

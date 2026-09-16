@@ -26,18 +26,15 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Tracks connection lifecycle by diffing successive [ConnectionInfo] snapshots
- * from the Go core.
+ * Tracks connection lifecycle by diffing successive [ConnectionInfo] snapshots from the Go core.
  *
- * Each call to [updateConnections] compares the current set of active
- * connection IDs against the previous snapshot.  Any connection that was
- * present before but is now absent is treated as *closed* and appended to
- * a rolling buffer that holds at least [MIN_RETAIN_SIZE] entries and at most
- * [MAX_BUFFER_SIZE] entries.
+ * Each call to [updateConnections] compares the current set of active connection IDs against the
+ * previous snapshot. Any connection that was present before but is now absent is treated as
+ * *closed* and appended to a rolling buffer that holds at least [MIN_RETAIN_SIZE] entries and at
+ * most [MAX_BUFFER_SIZE] entries.
  *
- * The buffer is large enough that a user opening the traffic statistics
- * screen will always see recent requests, even when many connections are
- * concurrently active.
+ * The buffer is large enough that a user opening the traffic statistics screen will always see
+ * recent requests, even when many connections are concurrently active.
  */
 object ConnectionHistoryManager {
 
@@ -45,9 +42,8 @@ object ConnectionHistoryManager {
     private const val MAX_BUFFER_SIZE = 300
 
     /**
-     * Minimum number of closed connections guaranteed to survive,
-     * regardless of age.  Once the buffer exceeds [MAX_BUFFER_SIZE],
-     * only the most recent [MIN_RETAIN_SIZE] entries are kept.
+     * Minimum number of closed connections guaranteed to survive, regardless of age. Once the
+     * buffer exceeds [MAX_BUFFER_SIZE], only the most recent [MIN_RETAIN_SIZE] entries are kept.
      */
     private const val MIN_RETAIN_SIZE = 50
 
@@ -59,9 +55,8 @@ object ConnectionHistoryManager {
     /**
      * Feed a fresh connection snapshot from the Go core.
      *
-     * Connections present in the previous snapshot but missing from
-     * [currentConnections] are recorded as closed with the current
-     * wall-clock time.
+     * Connections present in the previous snapshot but missing from [currentConnections] are
+     * recorded as closed with the current wall-clock time.
      */
     fun updateConnections(currentConnections: List<ConnectionInfo>) {
         synchronized(lock) {
@@ -75,13 +70,15 @@ object ConnectionHistoryManager {
             // accurate connection duration (closeTime → start instead of now → start).
             previousConnections.keys.minus(currentIds).forEach { closedId ->
                 previousConnections[closedId]?.let { conn ->
-                    val enriched = conn.copy(
-                        metadata = JsonObject(
-                            conn.metadata.toMutableMap().apply {
-                                put("_closeTimeMs", JsonPrimitive(now))
-                            }
+                    val enriched =
+                        conn.copy(
+                            metadata =
+                                JsonObject(
+                                    conn.metadata.toMutableMap().apply {
+                                        put("_closeTimeMs", JsonPrimitive(now))
+                                    }
+                                )
                         )
-                    )
                     _closedConnections.add(0, now to enriched)
                     closedRevision++
                 }
@@ -101,8 +98,8 @@ object ConnectionHistoryManager {
     /**
      * Return all recorded closed connections, newest first.
      *
-     * The returned list is a snapshot copy; the caller is free to sort,
-     * filter, or truncate without affecting the live buffer.
+     * The returned list is a snapshot copy; the caller is free to sort, filter, or truncate without
+     * affecting the live buffer.
      */
     fun getClosedConnections(): List<ConnectionInfo> {
         synchronized(lock) {

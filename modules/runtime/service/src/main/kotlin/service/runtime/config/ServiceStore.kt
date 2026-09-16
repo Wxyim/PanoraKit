@@ -172,14 +172,16 @@ class ServiceStore {
         }
 
     var systemProxy: Boolean
-        get() = readBoolean(newKey = "systemProxy", legacyKey = "system_proxy", defaultValue = false)
+        get() =
+            readBoolean(newKey = "systemProxy", legacyKey = "system_proxy", defaultValue = false)
         set(value) {
             networkSettings.encode("systemProxy", value)
             store.provider.setBoolean("system_proxy", value)
         }
 
     var allowBypass: Boolean
-        get() = readBoolean(newKey = "allowBypass", legacyKey = "allow_bypass", defaultValue = false)
+        get() =
+            readBoolean(newKey = "allowBypass", legacyKey = "allow_bypass", defaultValue = false)
         set(value) {
             networkSettings.encode("allowBypass", value)
             store.provider.setBoolean("allow_bypass", value)

@@ -38,8 +38,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.github.nomadboxlab.monadbox.common.util.formatBytes
 import com.github.nomadboxlab.monadbox.common.util.formatSpeed
-import com.github.nomadboxlab.monadbox.core.util.decodeTrafficValue
 import com.github.nomadboxlab.monadbox.core.model.TrafficSnapshot
+import com.github.nomadboxlab.monadbox.core.util.decodeTrafficValue
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.runtime.service.R

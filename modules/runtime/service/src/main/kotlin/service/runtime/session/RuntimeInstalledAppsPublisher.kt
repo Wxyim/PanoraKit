@@ -50,10 +50,8 @@ internal class RuntimeInstalledAppsPublisher(
     // returns empty (e.g. PackageManager transiently unavailable after
     // force-stop).  Never let Go's installedAppsUid be replaced with an
     // empty map — that blinds UID resolution for every connection.
-    @Volatile
-    private var lastKnownMappings: List<Pair<Int, String>> = emptyList()
-    @Volatile
-    private var lastPublishedMappings: List<Pair<Int, String>> = emptyList()
+    @Volatile private var lastKnownMappings: List<Pair<Int, String>> = emptyList()
+    @Volatile private var lastPublishedMappings: List<Pair<Int, String>> = emptyList()
 
     fun start() {
         if (receiver != null) {
@@ -112,9 +110,8 @@ internal class RuntimeInstalledAppsPublisher(
     }
 
     /**
-     * Schedule a debounced re-publish. Multiple calls within
-     * [PUBLISH_DEBOUNCE_MS] collapse into a single JNI push. The most recent
-     * call wins; earlier ones are cancelled.
+     * Schedule a debounced re-publish. Multiple calls within [PUBLISH_DEBOUNCE_MS] collapse into a
+     * single JNI push. The most recent call wins; earlier ones are cancelled.
      */
     private fun schedulePublish() {
         publishJob?.cancel()
@@ -126,10 +123,9 @@ internal class RuntimeInstalledAppsPublisher(
     }
 
     /**
-     * Publish immediately, bypassing the debounce window. Reserved for the
-     * initial sync on session start, where latency matters and the calling
-     * thread is already a background coroutine — we publish synchronously so
-     * that the UID→package map is populated before the VPN TUN starts
+     * Publish immediately, bypassing the debounce window. Reserved for the initial sync on session
+     * start, where latency matters and the calling thread is already a background coroutine — we
+     * publish synchronously so that the UID→package map is populated before the VPN TUN starts
      * accepting connections.
      */
     private fun publishNow() {
@@ -164,7 +160,9 @@ internal class RuntimeInstalledAppsPublisher(
                 )
                 lastKnownMappings
             } else {
-                Timber.w("RuntimeInstalledAppsPublisher resolved 0 mappings; no fallback — skipping")
+                Timber.w(
+                    "RuntimeInstalledAppsPublisher resolved 0 mappings; no fallback — skipping"
+                )
                 return
             }
         if (mappings == lastPublishedMappings) {
@@ -176,10 +174,7 @@ internal class RuntimeInstalledAppsPublisher(
         }
         lastPublishedMappings = mappings
         Clash.notifyInstalledAppsChanged(mappings)
-        Timber.d(
-            "RuntimeInstalledAppsPublisher published %s app uid mappings",
-            mappings.size,
-        )
+        Timber.d("RuntimeInstalledAppsPublisher published %s app uid mappings", mappings.size)
     }
 
     private fun resolveMappings(): List<Pair<Int, String>> {
@@ -209,22 +204,23 @@ internal class RuntimeInstalledAppsPublisher(
             return rootMappings
         }
 
-        val packageManagerMappings = runCatching {
-                installedPackages()
-                    .mapNotNull { info ->
-                        val uid = info.applicationInfo?.uid ?: return@mapNotNull null
-                        InstalledAppUidEntry(
-                            packageName = info.packageName,
-                            uid = uid,
-                            sharedUserId = info.sharedUserId,
-                        )
-                    }
-                    .let(InstalledAppUidMappings::fromEntries)
-            }
-            .onFailure { error ->
-                Timber.w(error, "Failed to enumerate installed apps for runtime attribution")
-            }
-            .getOrDefault(emptyList())
+        val packageManagerMappings =
+            runCatching {
+                    installedPackages()
+                        .mapNotNull { info ->
+                            val uid = info.applicationInfo?.uid ?: return@mapNotNull null
+                            InstalledAppUidEntry(
+                                packageName = info.packageName,
+                                uid = uid,
+                                sharedUserId = info.sharedUserId,
+                            )
+                        }
+                        .let(InstalledAppUidMappings::fromEntries)
+                }
+                .onFailure { error ->
+                    Timber.w(error, "Failed to enumerate installed apps for runtime attribution")
+                }
+                .getOrDefault(emptyList())
 
         // A root package query can be transiently partial during the first VPN
         // start. Merge both sources by UID so a non-empty partial root result
