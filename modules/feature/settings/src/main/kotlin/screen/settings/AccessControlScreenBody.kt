@@ -40,7 +40,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -54,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,6 +90,8 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private val AccessControlSettingsButtonRowHeight = 56.dp
 
 @Composable
 fun AccessControlScreenBody(navigator: DestinationsNavigator) {
@@ -393,203 +398,252 @@ fun AccessControlScreenBody(navigator: DestinationsNavigator) {
                     val clipboardManager =
                         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-                    Column(verticalArrangement = Arrangement.spacedBy(spacing.xxl)) {
-                        top.yukonga.miuix.kmp.basic.Card {
-                            SuperSwitch(
-                                title = MLang.AccessControl.Settings.ShowSystemApps,
-                                checked = uiState.showSystemApps,
-                                onCheckedChange = { viewModel.onShowSystemAppsChange(it) },
-                            )
-                            SuperSwitch(
-                                title = MLang.AccessControl.Settings.SelectedFirst,
-                                checked = uiState.selectedFirst,
-                                onCheckedChange = { viewModel.onSelectedFirstChange(it) },
-                            )
-                            EnumSelector(
-                                title = MLang.AccessControl.Settings.SortMode,
-                                currentValue = uiState.sortMode,
-                                items = AccessControlSortMode.entries.map { it.displayName },
-                                values = AccessControlSortMode.entries.toList(),
-                                onValueChange = viewModel::onSortModeChange,
-                            )
-                            ConfigActionMenuRow(
-                                title = MLang.AccessControl.Settings.BatchOperation,
-                                summary =
-                                    if (uiState.canBrowseApps) {
-                                        MLang.AccessControl.Settings.BatchOperationSummaryBrowse
-                                    } else {
-                                        MLang.AccessControl.Settings.BatchOperationSummaryManual
-                                    },
-                                options =
-                                    if (uiState.canBrowseApps) {
-                                        listOf(
-                                            ConfigEntryActionOption(
-                                                title = MLang.AccessControl.Settings.SelectAll,
-                                                icon = MonadIcons.`Settings-2`,
-                                                onClick = { viewModel.selectAll() },
-                                            ),
-                                            ConfigEntryActionOption(
-                                                title = MLang.AccessControl.Settings.DeselectAll,
-                                                icon = MonadIcons.`Settings-2`,
-                                                onClick = { viewModel.deselectAll() },
-                                            ),
-                                            ConfigEntryActionOption(
-                                                title = MLang.AccessControl.Settings.Invert,
-                                                icon = MonadIcons.`Settings-2`,
-                                                onClick = { viewModel.invertSelection() },
-                                            ),
-                                        )
-                                    } else {
-                                        listOf(
-                                            ConfigEntryActionOption(
-                                                title = MLang.AccessControl.Settings.CopySelected,
-                                                icon = MonadIcons.`Settings-2`,
-                                                onClick = {
-                                                    val exportText = viewModel.exportPackages()
-                                                    val clip =
-                                                        ClipData.newPlainText(
-                                                            "packages",
-                                                            exportText,
-                                                        )
-                                                    clipboardManager.setPrimaryClip(clip)
-                                                    context.toast(
-                                                        MLang.AccessControl.Settings.ExportSuccess
-                                                            .format(uiState.selectedPackages.size)
-                                                    )
-                                                },
-                                            ),
-                                            ConfigEntryActionOption(
-                                                title = MLang.AccessControl.Settings.ClearSelected,
-                                                icon = MonadIcons.`Settings-2`,
-                                                onClick = {
-                                                    val cleared = viewModel.clearSelectedPackages()
-                                                    context.toast(
-                                                        MLang.AccessControl.Settings
-                                                            .ClearSelectedResult
-                                                            .format(cleared)
-                                                    )
-                                                },
-                                            ),
-                                        )
-                                    },
-                            )
-                            ConfigActionMenuRow(
-                                title = MLang.AccessControl.Settings.RegionQuickSelect,
-                                summary =
-                                    if (uiState.canBrowseApps) {
-                                        MLang.AccessControl.Settings.RegionQuickSelectSummaryBrowse
-                                    } else {
-                                        MLang.AccessControl.Settings.RegionQuickSelectSummaryManual
-                                    },
-                                options =
-                                    listOf(
-                                        ConfigEntryActionOption(
-                                            title = MLang.AccessControl.Settings.ChinaApps,
-                                            icon = MonadIcons.`Settings-2`,
-                                            onClick = {
-                                                val selectedCount =
-                                                    viewModel.selectChinaAppsInCurrentList()
-                                                context.toast(
-                                                    MLang.AccessControl.Settings.RegionSelectResult
-                                                        .format(
-                                                            MLang.AccessControl.Settings.ChinaApps,
-                                                            selectedCount,
-                                                        )
-                                                )
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val maxCardHeight =
+                            (maxHeight - AccessControlSettingsButtonRowHeight - spacing.xxl)
+                                .coerceAtLeast(spacing.xxxl)
+
+                        Column(verticalArrangement = Arrangement.spacedBy(spacing.xxl)) {
+                            Column(
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                                        .heightIn(max = maxCardHeight)
+                                        .verticalScroll(rememberScrollState())
+                            ) {
+                                top.yukonga.miuix.kmp.basic.Card {
+                                    SuperSwitch(
+                                        title = MLang.AccessControl.Settings.ShowSystemApps,
+                                        checked = uiState.showSystemApps,
+                                        onCheckedChange = { viewModel.onShowSystemAppsChange(it) },
+                                    )
+                                    SuperSwitch(
+                                        title = MLang.AccessControl.Settings.SelectedFirst,
+                                        checked = uiState.selectedFirst,
+                                        onCheckedChange = { viewModel.onSelectedFirstChange(it) },
+                                    )
+                                    EnumSelector(
+                                        title = MLang.AccessControl.Settings.SortMode,
+                                        currentValue = uiState.sortMode,
+                                        items =
+                                            AccessControlSortMode.entries.map { it.displayName },
+                                        values = AccessControlSortMode.entries.toList(),
+                                        onValueChange = viewModel::onSortModeChange,
+                                    )
+                                    ConfigActionMenuRow(
+                                        title = MLang.AccessControl.Settings.BatchOperation,
+                                        summary =
+                                            if (uiState.canBrowseApps) {
+                                                MLang.AccessControl.Settings
+                                                    .BatchOperationSummaryBrowse
+                                            } else {
+                                                MLang.AccessControl.Settings
+                                                    .BatchOperationSummaryManual
                                             },
-                                        ),
-                                        ConfigEntryActionOption(
-                                            title = MLang.AccessControl.Settings.OverseasApps,
-                                            icon = MonadIcons.`Settings-2`,
-                                            onClick = {
-                                                val selectedCount =
-                                                    viewModel.selectNonChinaAppsInCurrentList()
-                                                context.toast(
-                                                    MLang.AccessControl.Settings.RegionSelectResult
-                                                        .format(
+                                        options =
+                                            if (uiState.canBrowseApps) {
+                                                listOf(
+                                                    ConfigEntryActionOption(
+                                                        title =
+                                                            MLang.AccessControl.Settings.SelectAll,
+                                                        icon = MonadIcons.`Settings-2`,
+                                                        onClick = { viewModel.selectAll() },
+                                                    ),
+                                                    ConfigEntryActionOption(
+                                                        title =
                                                             MLang.AccessControl.Settings
-                                                                .OverseasApps,
-                                                            selectedCount,
-                                                        )
+                                                                .DeselectAll,
+                                                        icon = MonadIcons.`Settings-2`,
+                                                        onClick = { viewModel.deselectAll() },
+                                                    ),
+                                                    ConfigEntryActionOption(
+                                                        title = MLang.AccessControl.Settings.Invert,
+                                                        icon = MonadIcons.`Settings-2`,
+                                                        onClick = { viewModel.invertSelection() },
+                                                    ),
                                                 )
-                                            },
-                                        ),
-                                    ),
-                            )
-                            ConfigActionMenuRow(
-                                title = MLang.AccessControl.Settings.ImportExport,
-                                summary =
-                                    if (uiState.canBrowseApps) {
-                                        MLang.AccessControl.Settings.ImportExportSummaryBrowse
-                                    } else {
-                                        MLang.AccessControl.Settings.ImportExportSummaryManual
-                                    },
-                                options =
-                                    listOf(
-                                        ConfigEntryActionOption(
-                                            title = MLang.AccessControl.Settings.Import,
-                                            icon = MonadIcons.`Settings-2`,
-                                            onClick = {
-                                                val clipData = clipboardManager.primaryClip
-                                                val text =
-                                                    if (
-                                                        clipData != null && clipData.itemCount > 0
-                                                    ) {
-                                                        clipData.getItemAt(0)?.text?.toString()
-                                                            ?: ""
-                                                    } else {
-                                                        ""
-                                                    }
-                                                if (text.isNotEmpty()) {
-                                                    val result = viewModel.importPackages(text)
-                                                    val message =
-                                                        if (result.ignoredCount > 0) {
+                                            } else {
+                                                listOf(
+                                                    ConfigEntryActionOption(
+                                                        title =
                                                             MLang.AccessControl.Settings
-                                                                .ImportPartial
-                                                                .format(
-                                                                    result.totalCount,
-                                                                    result.addedCount,
-                                                                    result.ignoredCount,
+                                                                .CopySelected,
+                                                        icon = MonadIcons.`Settings-2`,
+                                                        onClick = {
+                                                            val exportText =
+                                                                viewModel.exportPackages()
+                                                            val clip =
+                                                                ClipData.newPlainText(
+                                                                    "packages",
+                                                                    exportText,
                                                                 )
-                                                        } else {
+                                                            clipboardManager.setPrimaryClip(clip)
+                                                            context.toast(
+                                                                MLang.AccessControl.Settings
+                                                                    .ExportSuccess
+                                                                    .format(
+                                                                        uiState.selectedPackages
+                                                                            .size
+                                                                    )
+                                                            )
+                                                        },
+                                                    ),
+                                                    ConfigEntryActionOption(
+                                                        title =
                                                             MLang.AccessControl.Settings
-                                                                .ImportSuccess
-                                                                .format(result.addedCount)
-                                                        }
-                                                    context.toast(message)
-                                                } else {
-                                                    context.toast(
-                                                        MLang.AccessControl.Settings.ImportFailed
-                                                    )
-                                                }
-                                            },
-                                        ),
-                                        ConfigEntryActionOption(
-                                            title = MLang.AccessControl.Settings.Export,
-                                            icon = MonadIcons.`Settings-2`,
-                                            onClick = {
-                                                val exportText = viewModel.exportPackages()
-                                                val clip =
-                                                    ClipData.newPlainText("packages", exportText)
-                                                clipboardManager.setPrimaryClip(clip)
-                                                context.toast(
-                                                    MLang.AccessControl.Settings.ExportSuccess
-                                                        .format(uiState.selectedPackages.size)
+                                                                .ClearSelected,
+                                                        icon = MonadIcons.`Settings-2`,
+                                                        onClick = {
+                                                            val cleared =
+                                                                viewModel.clearSelectedPackages()
+                                                            context.toast(
+                                                                MLang.AccessControl.Settings
+                                                                    .ClearSelectedResult
+                                                                    .format(cleared)
+                                                            )
+                                                        },
+                                                    ),
                                                 )
                                             },
-                                        ),
-                                    ),
-                                showDivider = false,
+                                    )
+                                    ConfigActionMenuRow(
+                                        title = MLang.AccessControl.Settings.RegionQuickSelect,
+                                        summary =
+                                            if (uiState.canBrowseApps) {
+                                                MLang.AccessControl.Settings
+                                                    .RegionQuickSelectSummaryBrowse
+                                            } else {
+                                                MLang.AccessControl.Settings
+                                                    .RegionQuickSelectSummaryManual
+                                            },
+                                        options =
+                                            listOf(
+                                                ConfigEntryActionOption(
+                                                    title = MLang.AccessControl.Settings.ChinaApps,
+                                                    icon = MonadIcons.`Settings-2`,
+                                                    onClick = {
+                                                        val selectedCount =
+                                                            viewModel.selectChinaAppsInCurrentList()
+                                                        context.toast(
+                                                            MLang.AccessControl.Settings
+                                                                .RegionSelectResult
+                                                                .format(
+                                                                    MLang.AccessControl.Settings
+                                                                        .ChinaApps,
+                                                                    selectedCount,
+                                                                )
+                                                        )
+                                                    },
+                                                ),
+                                                ConfigEntryActionOption(
+                                                    title =
+                                                        MLang.AccessControl.Settings.OverseasApps,
+                                                    icon = MonadIcons.`Settings-2`,
+                                                    onClick = {
+                                                        val selectedCount =
+                                                            viewModel
+                                                                .selectNonChinaAppsInCurrentList()
+                                                        context.toast(
+                                                            MLang.AccessControl.Settings
+                                                                .RegionSelectResult
+                                                                .format(
+                                                                    MLang.AccessControl.Settings
+                                                                        .OverseasApps,
+                                                                    selectedCount,
+                                                                )
+                                                        )
+                                                    },
+                                                ),
+                                            ),
+                                    )
+                                    ConfigActionMenuRow(
+                                        title = MLang.AccessControl.Settings.ImportExport,
+                                        summary =
+                                            if (uiState.canBrowseApps) {
+                                                MLang.AccessControl.Settings
+                                                    .ImportExportSummaryBrowse
+                                            } else {
+                                                MLang.AccessControl.Settings
+                                                    .ImportExportSummaryManual
+                                            },
+                                        options =
+                                            listOf(
+                                                ConfigEntryActionOption(
+                                                    title = MLang.AccessControl.Settings.Import,
+                                                    icon = MonadIcons.`Settings-2`,
+                                                    onClick = {
+                                                        val clipData = clipboardManager.primaryClip
+                                                        val text =
+                                                            if (
+                                                                clipData != null &&
+                                                                    clipData.itemCount > 0
+                                                            ) {
+                                                                clipData
+                                                                    .getItemAt(0)
+                                                                    ?.text
+                                                                    ?.toString() ?: ""
+                                                            } else {
+                                                                ""
+                                                            }
+                                                        if (text.isNotEmpty()) {
+                                                            val result =
+                                                                viewModel.importPackages(text)
+                                                            val message =
+                                                                if (result.ignoredCount > 0) {
+                                                                    MLang.AccessControl.Settings
+                                                                        .ImportPartial
+                                                                        .format(
+                                                                            result.totalCount,
+                                                                            result.addedCount,
+                                                                            result.ignoredCount,
+                                                                        )
+                                                                } else {
+                                                                    MLang.AccessControl.Settings
+                                                                        .ImportSuccess
+                                                                        .format(result.addedCount)
+                                                                }
+                                                            context.toast(message)
+                                                        } else {
+                                                            context.toast(
+                                                                MLang.AccessControl.Settings
+                                                                    .ImportFailed
+                                                            )
+                                                        }
+                                                    },
+                                                ),
+                                                ConfigEntryActionOption(
+                                                    title = MLang.AccessControl.Settings.Export,
+                                                    icon = MonadIcons.`Settings-2`,
+                                                    onClick = {
+                                                        val exportText = viewModel.exportPackages()
+                                                        val clip =
+                                                            ClipData.newPlainText(
+                                                                "packages",
+                                                                exportText,
+                                                            )
+                                                        clipboardManager.setPrimaryClip(clip)
+                                                        context.toast(
+                                                            MLang.AccessControl.Settings
+                                                                .ExportSuccess
+                                                                .format(
+                                                                    uiState.selectedPackages.size
+                                                                )
+                                                        )
+                                                    },
+                                                ),
+                                            ),
+                                        showDivider = false,
+                                    )
+                                }
+                            }
+
+                            DialogButtonRow(
+                                onCancel = { showSettingsSheet.value = false },
+                                onConfirm = { showSettingsSheet.value = false },
+                                cancelText = MLang.AccessControl.Button.Cancel,
+                                confirmText = MLang.AccessControl.Button.Confirm,
                             )
                         }
                     }
-
-                    DialogButtonRow(
-                        onCancel = { showSettingsSheet.value = false },
-                        onConfirm = { showSettingsSheet.value = false },
-                        cancelText = MLang.AccessControl.Button.Cancel,
-                        confirmText = MLang.AccessControl.Button.Confirm,
-                    )
                 },
             )
 
