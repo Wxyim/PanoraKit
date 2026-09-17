@@ -1205,6 +1205,8 @@
     <string name="traffic_statistics_recent_requests_empty">No recent requests</string>
     <string name="traffic_statistics_recent_requests_unknown_request">Unknown Request</string>
     <string name="traffic_statistics_recent_requests_count">%d</string>
+    <string name="traffic_statistics_recent_requests_search_hint">Search by IP, domain, app, node…</string>
+    <string name="traffic_statistics_recent_requests_no_results">No matching requests</string>
     <string name="traffic_statistics_status_active">Active</string>
     <string name="traffic_statistics_status_closed">Closed</string>
     <string name="traffic_statistics_relative_time_just_now">Just now</string>

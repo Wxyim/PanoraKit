@@ -37,6 +37,9 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -49,6 +52,9 @@ private data class StatisticsClockSnapshot(
     val minute: Int,
     val timeZoneId: String,
 )
+
+private val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
+    get() = this as? JsonPrimitive
 
 @OptIn(FlowPreview::class)
 class DefaultTrafficStatisticsExplorer(
@@ -63,6 +69,9 @@ class DefaultTrafficStatisticsExplorer(
 
     private val _selectedBarIndex = MutableStateFlow(-1)
     override val selectedBarIndex: StateFlow<Int> = _selectedBarIndex.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    override val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val statisticsClock: Flow<StatisticsClockSnapshot> =
         PollingTimers.ticks(PollingTimerSpecs.dynamic("traffic_statistics_clock", 60_000L, 0L))
@@ -91,35 +100,21 @@ class DefaultTrafficStatisticsExplorer(
         combine(
                 connectionActivityRepository.activeConnections,
                 connectionActivityRepository.closedConnections,
-            ) { activeConnections, closedConnections ->
+                _searchQuery,
+            ) { activeConnections, closedConnections, searchQuery ->
                 val activeIds = activeConnections.asSequence().map(ConnectionInfo::id).toSet()
+                val needle = searchQuery.trim()
                 val closedRequests =
                     closedConnections
                         .asSequence()
                         .filterNot { it.id in activeIds }
-                        .map { connection ->
-                            val (appName, packageName) = resolveAppIdentity(connection)
-                            RecentRequestRecord(
-                                connection = connection,
-                                isActive = false,
-                                topLevelGroupName = resolveTopLevelGroupName(connection),
-                                bottomNodeName = resolveBottomNodeName(connection),
-                                sourceAppName = appName,
-                                sourcePackageName = packageName,
-                            )
-                        }
+                        .map { connection -> buildRecord(connection, isActive = false) }
+                        .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
                 val activeRequests =
                     activeConnections.asSequence().map { connection ->
-                        val (appName, packageName) = resolveAppIdentity(connection)
-                        RecentRequestRecord(
-                            connection = connection,
-                            isActive = true,
-                            topLevelGroupName = resolveTopLevelGroupName(connection),
-                            bottomNodeName = resolveBottomNodeName(connection),
-                            sourceAppName = appName,
-                            sourcePackageName = packageName,
-                        )
+                        buildRecord(connection, isActive = true)
                     }
+                    .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
 
                 (activeRequests + closedRequests)
                     .sortedByDescending { parseConnectionStartMillis(it.connection.start) }
@@ -178,6 +173,12 @@ class DefaultTrafficStatisticsExplorer(
 
     override fun setSelectedBarIndex(index: Int) {
         _selectedBarIndex.value = index
+    }
+
+    override fun setSearchQuery(query: String) {
+        if (_searchQuery.value != query) {
+            _searchQuery.value = query
+        }
     }
 
     private fun getTodayHourlyChartItems(): List<TrafficChartPoint> {
@@ -289,9 +290,47 @@ class DefaultTrafficStatisticsExplorer(
         }
     }
 
+    private fun buildRecord(connection: ConnectionInfo, isActive: Boolean): RecentRequestRecord {
+        val (appName, packageName) = resolveAppIdentity(connection)
+        return RecentRequestRecord(
+            connection = connection,
+            isActive = isActive,
+            topLevelGroupName = resolveTopLevelGroupName(connection),
+            bottomNodeName = resolveBottomNodeName(connection),
+            sourceAppName = appName,
+            sourcePackageName = packageName,
+        )
+    }
+
+    /**
+     * Case-insensitive substring match against every searchable field of a recent request:
+     * connection metadata (source/destination IP, host/domain, ports, network, process, package,
+     * uid), matched rule, matched chains (routing group + exit node), and the resolved source app.
+     */
+    private fun RecentRequestRecord.matchesQuery(query: String): Boolean {
+        val needle = query.trim()
+        if (needle.isEmpty()) return true
+        val haystack =
+            buildString {
+                connection.metadata.forEach { (_, value) ->
+                    append(value.jsonPrimitiveOrNull?.contentOrNull.orEmpty()).append(' ')
+                }
+                append(connection.id).append(' ')
+                append(connection.rule).append(' ')
+                append(connection.rulePayload).append(' ')
+                append(connection.chains.joinToString(" ")).append(' ')
+                append(connection.providerChains.joinToString(" ")).append(' ')
+                append(sourceAppName).append(' ')
+                sourcePackageName?.let { append(it).append(' ') }
+                topLevelGroupName?.let { append(it).append(' ') }
+                bottomNodeName?.let { append(it).append(' ') }
+            }
+        return haystack.contains(needle, ignoreCase = true)
+    }
+
     companion object {
         /** Maximum number of recent requests to surface in the UI. */
-        private const val MAX_RECENT_REQUESTS = 50
+        private const val MAX_RECENT_REQUESTS = 100
 
         /**
          * Sample interval for the recent-requests pipeline.

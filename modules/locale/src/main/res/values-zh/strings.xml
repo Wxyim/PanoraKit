@@ -1205,6 +1205,8 @@
     <string name="traffic_statistics_recent_requests_empty">暂无最近请求记录</string>
     <string name="traffic_statistics_recent_requests_unknown_request">未知请求</string>
     <string name="traffic_statistics_recent_requests_count">%d 条</string>
+    <string name="traffic_statistics_recent_requests_search_hint">按 IP、域名、应用、节点等搜索</string>
+    <string name="traffic_statistics_recent_requests_no_results">没有匹配的请求</string>
     <string name="traffic_statistics_status_active">进行中</string>
     <string name="traffic_statistics_status_closed">已结束</string>
     <string name="traffic_statistics_relative_time_just_now">刚刚</string>

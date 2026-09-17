@@ -33,6 +33,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -100,6 +102,11 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
     val recentRequests by trafficStatisticsExplorer.recentRequests.collectAsStateWithLifecycle()
     var showConnectionDetail by rememberSaveable { mutableStateOf(false) }
     var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(searchQuery) {
+        trafficStatisticsExplorer.setSearchQuery(searchQuery)
+    }
 
     Scaffold(
         topBar = {
@@ -171,6 +178,8 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                                 )
                                 DetailsCard(
                                     recentRequests = recentRequests,
+                                    searchQuery = searchQuery,
+                                    onSearchQueryChange = { searchQuery = it },
                                     onRecentRequestClick = { request ->
                                         selectedConnection = request.connection
                                         showConnectionDetail = true
@@ -213,6 +222,8 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                                 )
                                 DetailsCard(
                                     recentRequests = recentRequests,
+                                    searchQuery = searchQuery,
+                                    onSearchQueryChange = { searchQuery = it },
                                     onRecentRequestClick = { request ->
                                         selectedConnection = request.connection
                                         showConnectionDetail = true
@@ -343,6 +354,8 @@ private fun OverviewCard(
 @Composable
 private fun DetailsCard(
     recentRequests: List<RecentRequestRecord>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onRecentRequestClick: (RecentRequestRecord) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -370,9 +383,21 @@ private fun DetailsCard(
                 )
             }
 
+            TextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                label = MLang.TrafficStatistics.RecentRequests.SearchHint,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             if (recentRequests.isEmpty()) {
                 Text(
-                    text = MLang.TrafficStatistics.RecentRequests.Empty,
+                    text =
+                        if (searchQuery.isBlank()) {
+                            MLang.TrafficStatistics.RecentRequests.Empty
+                        } else {
+                            MLang.TrafficStatistics.RecentRequests.NoResults
+                        },
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )

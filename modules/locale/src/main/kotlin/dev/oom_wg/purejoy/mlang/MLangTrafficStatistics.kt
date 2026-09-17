@@ -83,6 +83,32 @@ object MLangTrafficStatistics {
         @Composable
         fun `Count`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_count, *args)
+
+        val `SearchHint`: String
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.traffic_statistics_recent_requests_search_hint
+                )
+
+        @Composable
+        fun `SearchHint`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.traffic_statistics_recent_requests_search_hint,
+                *args,
+            )
+
+        val `NoResults`: String
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.traffic_statistics_recent_requests_no_results
+                )
+
+        @Composable
+        fun `NoResults`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.traffic_statistics_recent_requests_no_results,
+                *args,
+            )
     }
 
     object `Status` {

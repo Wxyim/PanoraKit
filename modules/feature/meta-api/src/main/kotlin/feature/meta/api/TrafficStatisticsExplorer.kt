@@ -43,6 +43,7 @@ interface TrafficStatisticsExplorer {
     val selectedBarIndex: StateFlow<Int>
     val todayTimeContext: StateFlow<String>
     val recentRequests: StateFlow<List<RecentRequestRecord>>
+    val searchQuery: StateFlow<String>
     val todayTotalBytes: StateFlow<Long>
     val weekTotalBytes: StateFlow<Long>
     val trafficDifferenceBytes: StateFlow<Long>
@@ -51,4 +52,6 @@ interface TrafficStatisticsExplorer {
     fun setTimeRange(range: TrafficStatisticsRange)
 
     fun setSelectedBarIndex(index: Int)
+
+    fun setSearchQuery(query: String)
 }
