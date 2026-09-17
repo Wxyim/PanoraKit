@@ -410,6 +410,21 @@ Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeInspectCompiledGro
   return new_nullable_string(env, response);
 }
 
+JNIEXPORT jstring JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeInspectSourceGroups(
+    JNIEnv* env, jobject thiz, jstring yaml_text, jstring profile_dir,
+    jboolean exclude_not_selectable, jboolean include_global) {
+  TRACE_METHOD();
+
+  scoped_string _yaml_text = get_string(yaml_text);
+  scoped_string _profile_dir = get_string(profile_dir);
+  scoped_string response =
+      inspectSourceGroups(_yaml_text, _profile_dir, (int)exclude_not_selectable,
+                          (int)include_global);
+
+  return new_nullable_string(env, response);
+}
+
 JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeSubscribeLogcat(
     JNIEnv* env, jobject thiz, jobject callback) {
   TRACE_METHOD();

@@ -248,6 +248,32 @@ object Clash {
         }
     }
 
+    fun inspectSourceGroups(
+        yamlText: String,
+        profileDir: File,
+        excludeNotSelectable: Boolean,
+        includeGlobal: Boolean,
+    ): List<ProxyGroup> {
+        val groupsJson =
+            Bridge.nativeInspectSourceGroups(
+                yamlText,
+                profileDir.absolutePath,
+                excludeNotSelectable,
+                includeGlobal,
+            ) ?: return emptyList()
+        val groups =
+            runCatching { Json.decodeFromString(JsonArray.serializer(), groupsJson) }
+                .getOrElse {
+                    return emptyList()
+                }
+        return List(groups.size) {
+            runCatching { Json.decodeFromJsonElement(ProxyGroup.serializer(), groups[it]) }
+                .getOrDefault(
+                    ProxyGroup(type = Proxy.Type.Unknown, proxies = emptyList(), now = "")
+                )
+        }
+    }
+
     fun queryGroup(name: String, sort: ProxySort): ProxyGroup {
         return Bridge.nativeQueryGroup(name, sort.name)?.let {
             Json.decodeFromString(ProxyGroup.serializer(), it)

@@ -28,6 +28,7 @@ import com.github.nomadboxlab.monadbox.core.model.CompileResult
 import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverride
 import com.github.nomadboxlab.monadbox.core.model.ConfigurationOverrideRuleSanitizer
 import com.github.nomadboxlab.monadbox.core.model.ProxyGroup
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
@@ -374,6 +375,44 @@ class CompiledConfigPipeline(private val context: Context) {
             }
             Clash.inspectCompiledConfig(result.finalYaml) ?: ConfigurationOverride()
         }
+
+    /**
+     * Fast stopped-runtime preview: renders the groups declared in the source
+     * config.yaml with a generic YAML parse instead of a full mihomo compile +
+     * typed parse. Used while the VPN is off so routing-mode switches reflect
+     * instantly. GLOBAL is prepended when the persisted routing mode is Global.
+     */
+    suspend fun sourceGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> =
+        withContext(Dispatchers.Default) {
+            val profileDir = File(spec.profileDir)
+            val configFile = profileDir.resolve("config.yaml")
+            if (!configFile.isFile) {
+                return@withContext emptyList()
+            }
+            val includeGlobal = configuredRoutingMode(spec.profileUuid) == TunnelState.Mode.Global
+            Clash.inspectSourceGroups(
+                configFile.readText(),
+                profileDir,
+                excludeNotSelectable,
+                includeGlobal,
+            )
+        }
+
+    private fun configuredRoutingMode(profileUuid: String): TunnelState.Mode {
+        val overridesDir = context.filesDir.resolve("overrides")
+        val file =
+            overridesDir.resolve(
+                "configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
+            )
+        val raw =
+            runCatching { readInternalOverrideFile(file)["mode"]?.jsonPrimitive?.content }
+                .getOrNull()
+        return when (raw) {
+            "global" -> TunnelState.Mode.Global
+            "rule" -> TunnelState.Mode.Rule
+            else -> TunnelState.Mode.Rule
+        }
+    }
 
     suspend fun previewOverride(spec: RuntimeSpec): CompileResult =
         withContext(Dispatchers.Default) {

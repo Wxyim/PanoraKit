@@ -62,6 +62,13 @@ object Bridge {
         excludeNotSelectable: Boolean,
     ): String?
 
+    external fun nativeInspectSourceGroups(
+        yamlText: String,
+        profileDir: String,
+        excludeNotSelectable: Boolean,
+        includeGlobal: Boolean,
+    ): String?
+
     external fun nativeLoadCompiledConfig(
         path: kotlinx.coroutines.CompletableDeferred<Unit>,
         configPath: String,

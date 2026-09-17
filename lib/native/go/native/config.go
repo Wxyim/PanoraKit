@@ -115,3 +115,22 @@ func compileToFile(requestJson C.c_string) *C.char {
 	result := config.CompileOverride(C.GoString(requestJson), true)
 	return C.CString(result)
 }
+
+//export inspectSourceGroups
+func inspectSourceGroups(
+	yamlText C.c_string,
+	profileDir C.c_string,
+	excludeNotSelectable C.int,
+	includeGlobal C.int,
+) *C.char {
+	groups, err := config.QueryProxyGroupsFromSourceYaml(
+		C.GoString(yamlText),
+		C.GoString(profileDir),
+		excludeNotSelectable != 0,
+		includeGlobal != 0,
+	)
+	if err != nil {
+		return nil
+	}
+	return marshalJson(groups)
+}

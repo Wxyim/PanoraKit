@@ -142,9 +142,21 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
                 ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
             }
-        val groups = runSuspendBlocking {
-            compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
-        }
+        val groups =
+            if (StatusProvider.serviceRunning) {
+                // The core is live; derive the profile preview from the compiled
+                // runtime YAML so overrides are reflected.
+                runSuspendBlocking {
+                    compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
+                }
+            } else {
+                // VPN is off: render the groups declared in the source config.yaml
+                // directly (generic YAML parse, no full mihomo compile), so mode
+                // switches and page entries are fast.
+                runSuspendBlocking {
+                    compiledConfigPipeline.sourceGroups(spec, excludeNotSelectable)
+                }
+            }
 
         // Overlay persisted selections so the UI reflects manual choices even
         // when the core is not running (preview mode). The overlay is applied
