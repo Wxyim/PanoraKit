@@ -19,9 +19,13 @@
 package tunnel
 
 import (
+	"time"
+
 	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/tunnel/statistic"
 )
+
+const closeAllTimeout = 2 * time.Second
 
 func QueryConnections() *statistic.Snapshot {
 	return statistic.DefaultManager.Snapshot()
@@ -37,10 +41,18 @@ func CloseConnection(id string) bool {
 }
 
 func CloseAllConnections() {
-	statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
-		_ = c.Close()
-		return true
-	})
+	done := make(chan struct{})
+	go func() {
+		statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
+			_ = c.Close()
+			return true
+		})
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(closeAllTimeout):
+	}
 }
 
 func closeMatch(filter func(conn C.Connection) bool) {

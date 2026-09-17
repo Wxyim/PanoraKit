@@ -34,6 +34,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.SystemClock
+import com.github.nomadboxlab.monadbox.core.Clash
 import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.controller.ControllerError
 import com.github.nomadboxlab.monadbox.core.controller.MihomoControllerEndpoint
@@ -1613,6 +1614,24 @@ class ProxyFacade(
             delay(STOP_TIMEOUT_GRACE_RETRY_DELAY_MS.milliseconds)
         }
 
+        // The service-side teardown is wedged (stuck reload/start, busy main
+        // looper, or a native call that never returned). Force-close the native
+        // tunnel directly from this process and destroy the service, then give
+        // it a short window to reach a terminal state. Closing the TUN fd makes
+        // Android tear the VPN down even if SessionRuntime is stuck.
+        if (isOwnerActive(owner)) {
+            forceCloseLocalRuntime(owner)
+            repeat(STOP_FORCE_CLOSE_RETRY_COUNT) {
+                val consistency = collectStopSignalConsistency(owner)
+                if (isStopTerminal(owner, consistency)) {
+                    finalizeStopIfSnapshotNotTerminal(owner)
+                    scheduleLocalStopDrain(owner)
+                    return true
+                }
+                delay(STOP_TIMEOUT_GRACE_RETRY_DELAY_MS.milliseconds)
+            }
+        }
+
         if (isOwnerActive(owner)) {
             synchronized(runtimeTransitionLock) {
                 val snapshot = runtimeSnapshot.value
@@ -1627,12 +1646,50 @@ class ProxyFacade(
                     )
                 }
             }
-            Timber.w("Stop timeout: ${owner.name} is still active; keeping runtime state honest")
+            Timber.w("Stop timeout: ${owner.name} is still active after forced close")
             return false
         } else {
             finalizeStopIfSnapshotNotTerminal(owner)
             scheduleLocalStopDrain(owner)
             return true
+        }
+    }
+
+    /**
+     * Last-resort forced close: closes the native tunnel/listener from this process (the local
+     * runtime shares the process, so [Clash] calls here are effective and bounded) and then
+     * destroys the runtime service. Used only after the normal stop request and a grace window both
+     * failed to tear the VPN down.
+     */
+    private suspend fun forceCloseLocalRuntime(owner: RuntimeOwner) {
+        withContext(Dispatchers.IO) {
+            when (owner) {
+                RuntimeOwner.LocalTun -> {
+                    runCatching { Clash.stopTun() }
+                    runCatching { Clash.stopLocalProxyHttpListener() }
+                    runCatching { Clash.reset() }
+                    runCatching {
+                        appContext.stopService(Intent(appContext, TunService::class.java))
+                    }
+                }
+
+                RuntimeOwner.LocalHttp -> {
+                    runCatching { Clash.stopLocalProxyHttpListener() }
+                    runCatching { Clash.stopTun() }
+                    runCatching { Clash.reset() }
+                    runCatching {
+                        appContext.stopService(Intent(appContext, ClashService::class.java))
+                    }
+                }
+
+                RuntimeOwner.RootTun -> {
+                    // The root runtime lives in its own process; re-requesting
+                    // the stop through the binder is the only local lever.
+                    runCatching { triggerStop(RuntimeOwner.RootTun) }
+                }
+
+                RuntimeOwner.None -> Unit
+            }
         }
     }
 
@@ -1996,5 +2053,6 @@ class ProxyFacade(
         private const val STOP_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_TIMEOUT_GRACE_RETRY_COUNT = 20
         private const val STOP_TIMEOUT_GRACE_RETRY_DELAY_MS = 125L
+        private const val STOP_FORCE_CLOSE_RETRY_COUNT = 20
     }
 }

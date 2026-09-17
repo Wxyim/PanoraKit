@@ -164,32 +164,48 @@ class SessionRuntime(
 
     fun stop(reason: String? = null): RuntimeOperationResult {
         return runSuspendBlocking {
-            operationMutex.withLock {
-                runCatching {
-                        stopInternal(reason = reason, notifyHost = true)
-                        RuntimeOperationResult.ok()
-                    }
-                    .getOrElse { error ->
-                        RuntimeOperationResult.fail(
-                            error.toRuntimeFailure(
-                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-                                fallbackMessage = "stop runtime failed",
-                            )
-                        )
-                    }
+            if (teardownRuntime(reason = reason, notifyHost = true)) {
+                RuntimeOperationResult.ok()
+            } else {
+                RuntimeOperationResult.fail(
+                    RuntimeFailure(
+                        code = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                        message = "stop runtime failed",
+                    )
+                )
             }
         }
     }
 
     fun destroy() {
         runCatching {
-            runSuspendBlocking {
-                operationMutex.withLock {
-                    stopInternal(reason = "runtime destroyed", notifyHost = false)
-                }
-            }
+            runSuspendBlocking { teardownRuntime(reason = "runtime destroyed", notifyHost = false) }
         }
         scope.cancel()
+    }
+
+    /**
+     * Tears the runtime down without ever blocking behind a wedged [operationMutex] (a stuck
+     * start/reload can hold it indefinitely). When the mutex cannot be acquired, [stopInternal] is
+     * still run so the transport (TUN fd / HTTP listener) is closed directly and the VPN actually
+     * goes down even if the concurrent operation never finishes.
+     */
+    private suspend fun teardownRuntime(reason: String?, notifyHost: Boolean): Boolean {
+        if (!operationMutex.tryLock()) {
+            Timber.w("SessionRuntime teardown: operation mutex busy; force-closing transport")
+            stopInternal(reason = reason, notifyHost = notifyHost)
+            return true
+        }
+        return try {
+            stopInternal(reason = reason, notifyHost = notifyHost)
+            true
+        } catch (error: Throwable) {
+            Timber.w(error, "SessionRuntime stop failed; force-closing transport")
+            runCatching { stopInternal(reason = reason, notifyHost = notifyHost) }
+            false
+        } finally {
+            operationMutex.unlock()
+        }
     }
 
     fun snapshot(): RuntimeSnapshot = currentSnapshot

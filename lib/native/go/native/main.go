@@ -59,9 +59,6 @@ func reset() {
 	invalidateProxyGroupCache()
 	tunnel.ResetStatistic()
 	tunnel.CloseAllConnections()
-
-	runtime.GC()
-	debug.FreeOSMemory()
 }
 
 //export forceGc
