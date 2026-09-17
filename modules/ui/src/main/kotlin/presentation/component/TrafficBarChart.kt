@@ -59,7 +59,7 @@ fun TrafficBarChart(
     chartHeight: Dp = 140.dp,
     barWidth: Dp = 20.dp,
 ) {
-    val computedMaxValue = maxDisplayValue ?: items.maxOfOrNull { it.value } ?: 1L
+    val computedMaxValue = maxDisplayValue ?: items.maxOfOrNull { it.value } ?: 0L
     val safeMaxValue = if (computedMaxValue <= 0L) 1L else computedMaxValue
 
     val animatedMaxValue by
@@ -84,7 +84,7 @@ fun TrafficBarChart(
             contentAlignment = Alignment.CenterEnd,
         ) {
             Text(
-                text = formatBytes(animatedMaxValue.toLong()),
+                text = formatBytes(if (computedMaxValue > 0L) animatedMaxValue.toLong() else 0L),
                 style = MiuixTheme.textStyles.footnote1.copy(fontSize = 10.sp),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 maxLines = 1,
