@@ -54,6 +54,7 @@ import okhttp3.Request
 object ProfileProcessor {
     private const val DEFAULT_USER_AGENT = NetworkConstants.DEFAULT_USER_AGENT
     private const val MAX_SUBSCRIPTION_BYTES = 50L * 1024 * 1024 // 50 MiB
+    private const val INTERNAL_RUNTIME_OVERRIDE_PREFIX = "__runtime__-profile-"
 
     private val profileLock = Mutex()
     private val processLock = Mutex()
@@ -467,12 +468,29 @@ object ProfileProcessor {
                 ImportedDao.remove(uuid)
                 SelectionDao.clear(uuid)
                 SelectionDao.removeSelectionScopeKey(uuid)
+                clearRuntimeOverride(context, uuid)
 
                 val imported = context.importedDir.resolve(uuid.toString())
                 imported.deleteRecursively()
 
                 context.sendProfileChanged(uuid)
             }
+        }
+    }
+
+    /**
+     * Removes the per-profile internal runtime override written by
+     * OverrideRepository (tunnel mode, ports, injected selections). The
+     * profile UUID is regenerated on re-import, so a leftover override would
+     * otherwise silently reset the new profile to the default routing mode.
+     * The stale metadata.json entry is filtered out and rewritten on the next
+     * override load / config compile.
+     */
+    private fun clearRuntimeOverride(context: Context, uuid: UUID) {
+        val configsDir = context.filesDir.resolve("overrides/configs")
+        val prefix = "$INTERNAL_RUNTIME_OVERRIDE_PREFIX$uuid"
+        listOf("$prefix.json", "$prefix.fingerprint").forEach { name ->
+            runCatching { configsDir.resolve(name).delete() }
         }
     }
 

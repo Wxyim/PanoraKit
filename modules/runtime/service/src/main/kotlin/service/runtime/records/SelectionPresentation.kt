@@ -18,10 +18,13 @@ import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
  * mihomo can briefly report the config default while providers are still resolving or while a
  * startup selector restore is being applied. The persisted value is the authoritative value for the
  * app during that transition, so every runtime read path must use the same projection.
+ *
+ * Groups without a persisted selection fall back to the first proxy so a stopped-runtime preview
+ * (where mihomo has not chosen a node yet) shows a sensible default instead of a blank value.
  */
 internal object SelectionPresentation {
     fun apply(groups: List<ProxyGroup>, selections: List<Selection>): List<ProxyGroup> {
-        if (groups.isEmpty() || selections.isEmpty()) return groups
+        if (groups.isEmpty()) return groups
 
         val selectedByGroup =
             selections
@@ -30,10 +33,15 @@ internal object SelectionPresentation {
                 .filter { (group, selected) -> group.isNotEmpty() && selected.isNotEmpty() }
                 .toMap()
 
-        if (selectedByGroup.isEmpty()) return groups
-
         return groups.map { group ->
-            val selected = selectedByGroup[group.name.trim()] ?: return@map group
+            val selected =
+                selectedByGroup[group.name.trim()]
+                    ?: if (group.now.isBlank()) {
+                        group.proxies.firstOrNull()?.name?.trim().orEmpty()
+                    } else {
+                        ""
+                    }
+            if (selected.isEmpty()) return@map group
             val isValid =
                 group.proxies.isEmpty() ||
                     group.proxies.any { proxy -> proxy.name.trim() == selected }

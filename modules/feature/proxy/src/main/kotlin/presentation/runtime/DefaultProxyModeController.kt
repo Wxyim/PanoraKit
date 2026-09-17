@@ -34,6 +34,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -70,6 +72,38 @@ class DefaultProxyModeController(
                     _currentMode.value = mode
                 }
             }
+        }
+
+        // Deleting and re-importing a profile creates a fresh UUID whose
+        // internal override has no mode, so the stopped-runtime preview (and
+        // the next start) would silently fall back to Rule. Seed the newly
+        // active profile's override with the mode shown on the home page when
+        // it does not carry one yet, then rebuild the preview so GLOBAL (or
+        // its absence) reflects the seeded mode immediately.
+        scope.launch {
+            proxyFacade.currentProfile
+                .combine(proxyFacade.isRunning) { profile, running ->
+                    profile?.uuid?.toString() to running
+                }
+                .distinctUntilChanged()
+                .collect { (profileUuid, running) ->
+                    if (profileUuid != null && !running) {
+                        var seeded = false
+                        runCatching {
+                            overrideRepository.updateProfile { current ->
+                                if (current.mode == null) {
+                                    seeded = true
+                                    current.copy(mode = proxyDisplaySettingsStore.proxyMode.value)
+                                } else {
+                                    current
+                                }
+                            }
+                        }
+                        if (seeded) {
+                            proxyFacade.refreshPreviewForModeChange()
+                        }
+                    }
+                }
         }
 
         // Refresh immediately when the runtime starts or stops.

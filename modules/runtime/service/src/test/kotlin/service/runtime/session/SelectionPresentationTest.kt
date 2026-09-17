@@ -50,6 +50,39 @@ class SelectionPresentationTest {
         assertEquals("node-a", result.single().now)
     }
 
+    @Test
+    fun blankNowDefaultsToFirstProxyWithoutPersistedSelection() {
+        val group = group(now = "")
+
+        val result = SelectionPresentation.apply(groups = listOf(group), selections = emptyList())
+
+        assertEquals("node-a", result.single().now)
+    }
+
+    @Test
+    fun runtimeNowIsPreservedWithoutPersistedSelection() {
+        val group = group(now = "node-b")
+
+        val result = SelectionPresentation.apply(groups = listOf(group), selections = emptyList())
+
+        assertEquals("node-b", result.single().now)
+    }
+
+    @Test
+    fun globalBlankNowDefaultsToDirect() {
+        val global =
+            ProxyGroup(
+                name = "GLOBAL",
+                type = Proxy.Type.Selector,
+                proxies = listOf(proxy("DIRECT"), proxy("REJECT"), proxy("node-a")),
+                now = "",
+            )
+
+        val result = SelectionPresentation.apply(groups = listOf(global), selections = emptyList())
+
+        assertEquals("DIRECT", result.single().now)
+    }
+
     private fun group(
         now: String,
         proxies: List<Proxy> = listOf(proxy("node-a"), proxy("node-b")),
@@ -60,4 +93,5 @@ class SelectionPresentationTest {
     private fun proxy(name: String): Proxy {
         return Proxy(name = name, title = name, subtitle = "", type = Proxy.Type.Socks5, delay = 0)
     }
+
 }

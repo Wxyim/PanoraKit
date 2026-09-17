@@ -84,11 +84,16 @@ func QueryProxyGroupsFromSourceYaml(
 
 	groups := make([]*ProxyGroup, 0, len(groupTypes)+1)
 	if includeGlobal {
+		// Mirror the runtime GLOBAL group: builtin DIRECT/REJECT are always the
+		// first two entries, followed by the config's top-level proxies/groups.
+		globalProxies := make([]*Proxy, 0, len(directTypes)+len(groupTypes)+2)
+		globalProxies = append(globalProxies, sourceProxy("DIRECT", ""), sourceProxy("REJECT", ""))
+		globalProxies = append(globalProxies, sourceTopLevelProxies(root, directTypes, groupTypes)...)
 		groups = append(groups, &ProxyGroup{
 			Name:    "GLOBAL",
 			Type:    "Selector",
 			Now:     "",
-			Proxies: sourceTopLevelProxies(root, directTypes, groupTypes),
+			Proxies: globalProxies,
 		})
 	}
 
@@ -127,15 +132,23 @@ func parseSourceProviderNodes(provider map[string]any, profileDir string) []sour
 	var rawNodes []any
 	if payload, ok := provider["payload"].([]any); ok {
 		rawNodes = payload
-	} else if path := strings.TrimSpace(asString(provider["path"])); path != "" {
-		resolved := path
-		if !filepath.IsAbs(resolved) {
-			resolved = filepath.Join(profileDir, resolved)
+	} else {
+		// Resolve the cache location the same way the compiled runtime config
+		// does (override.go): path providers land at
+		// <profileDir>/providers/<path>, url providers at
+		// <profileDir>/providers/proxies/<md5(url)>.
+		var resolved string
+		if path := strings.TrimSpace(asString(provider["path"])); path != "" {
+			resolved = filepath.Join(profileDir, "providers", resolveAsRoot(path))
+		} else if url := strings.TrimSpace(asString(provider["url"])); url != "" {
+			resolved = filepath.Join(profileDir, "providers", "proxies", md5Hex(url))
 		}
-		if content, err := os.ReadFile(resolved); err == nil {
-			var doc map[string]any
-			if err := yaml.Unmarshal(content, &doc); err == nil {
-				rawNodes = asStringSlice(doc["proxies"])
+		if resolved != "" {
+			if content, err := os.ReadFile(resolved); err == nil {
+				var doc map[string]any
+				if err := yaml.Unmarshal(content, &doc); err == nil {
+					rawNodes = asStringSlice(doc["proxies"])
+				}
 			}
 		}
 	}

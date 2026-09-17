@@ -18,7 +18,12 @@
  */
 package config
 
-import "testing"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestQueryProxyGroupsFromSourceYamlLiteralGroups(t *testing.T) {
 	groups, err := QueryProxyGroupsFromSourceYaml(`
@@ -89,8 +94,14 @@ proxy-groups:
 	if groups[0].Name != "GLOBAL" {
 		t.Fatalf("first group = %q, want GLOBAL", groups[0].Name)
 	}
-	if len(groups[0].Proxies) != 2 {
-		t.Fatalf("GLOBAL proxies = %d, want 2", len(groups[0].Proxies))
+	if len(groups[0].Proxies) != 4 {
+		t.Fatalf("GLOBAL proxies = %d, want 4", len(groups[0].Proxies))
+	}
+	if groups[0].Proxies[0].Name != "DIRECT" || groups[0].Proxies[0].Type != "Direct" {
+		t.Fatalf("GLOBAL[0] = %q/%q, want DIRECT/Direct", groups[0].Proxies[0].Name, groups[0].Proxies[0].Type)
+	}
+	if groups[0].Proxies[1].Name != "REJECT" || groups[0].Proxies[1].Type != "Reject" {
+		t.Fatalf("GLOBAL[1] = %q/%q, want REJECT/Reject", groups[0].Proxies[1].Name, groups[0].Proxies[1].Type)
 	}
 }
 
@@ -146,5 +157,48 @@ proxy-groups:
 	}
 	if groups[0].Name != "MANUAL" {
 		t.Fatalf("group = %q, want MANUAL", groups[0].Name)
+	}
+}
+
+func TestQueryProxyGroupsFromSourceYamlRemoteProviderCacheExpansion(t *testing.T) {
+	profileDir := t.TempDir()
+	url := "https://example.com/sub.yaml"
+	cacheDir := filepath.Join(profileDir, "providers", "proxies")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		t.Fatalf("mkdir cache dir: %v", err)
+	}
+	cacheFile := filepath.Join(cacheDir, md5Hex(url))
+	if err := os.WriteFile(cacheFile, []byte("proxies:\n  - name: US-01\n    type: ss\n"), 0o600); err != nil {
+		t.Fatalf("write provider cache: %v", err)
+	}
+
+	groups, err := QueryProxyGroupsFromSourceYaml(
+		fmt.Sprintf(`
+proxy-providers:
+  sub:
+    type: http
+    url: %s
+proxy-groups:
+  - name: MANUAL
+    type: select
+    proxies:
+      - sub
+`, url),
+		profileDir,
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("query source groups: %v", err)
+	}
+	if len(groups) != 1 {
+		t.Fatalf("group count = %d, want 1", len(groups))
+	}
+	proxies := groups[0].Proxies
+	if len(proxies) != 1 {
+		t.Fatalf("group proxies = %d, want 1 (cached provider expanded)", len(proxies))
+	}
+	if proxies[0].Name != "US-01" || proxies[0].Type != "Shadowsocks" {
+		t.Fatalf("proxies[0] = %q/%q, want US-01/Shadowsocks", proxies[0].Name, proxies[0].Type)
 	}
 }
