@@ -104,9 +104,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
     var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
-    LaunchedEffect(searchQuery) {
-        trafficStatisticsExplorer.setSearchQuery(searchQuery)
-    }
+    LaunchedEffect(searchQuery) { trafficStatisticsExplorer.setSearchQuery(searchQuery) }
 
     Scaffold(
         topBar = {
@@ -123,7 +121,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
         }
     ) { innerPadding ->
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().imePadding(),
             contentAlignment = Alignment.TopCenter,
         ) {
             val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)

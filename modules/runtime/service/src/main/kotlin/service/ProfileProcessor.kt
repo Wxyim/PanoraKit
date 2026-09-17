@@ -479,12 +479,11 @@ object ProfileProcessor {
     }
 
     /**
-     * Removes the per-profile internal runtime override written by
-     * OverrideRepository (tunnel mode, ports, injected selections). The
-     * profile UUID is regenerated on re-import, so a leftover override would
-     * otherwise silently reset the new profile to the default routing mode.
-     * The stale metadata.json entry is filtered out and rewritten on the next
-     * override load / config compile.
+     * Removes the per-profile internal runtime override written by OverrideRepository (tunnel mode,
+     * ports, injected selections). The profile UUID is regenerated on re-import, so a leftover
+     * override would otherwise silently reset the new profile to the default routing mode. The
+     * stale metadata.json entry is filtered out and rewritten on the next override load / config
+     * compile.
      */
     private fun clearRuntimeOverride(context: Context, uuid: UUID) {
         val configsDir = context.filesDir.resolve("overrides/configs")

@@ -505,20 +505,17 @@ class HomeViewModel(
     }
 
     /**
-     * Clear the cached external IP when the routing mode is switched while the
-     * VPN is running — the new mode routes traffic through different exit
-     * nodes, so the previously queried IP no longer describes the current
-     * egress. The first emission on collection is the current value and is
+     * Clear the cached external IP when the routing mode is switched while the VPN is running — the
+     * new mode routes traffic through different exit nodes, so the previously queried IP no longer
+     * describes the current egress. The first emission on collection is the current value and is
      * skipped so simply reopening the home screen does not clear the result.
      */
     private fun clearExternalIpCacheOnModeChange() {
         viewModelScope.launch {
-            proxyModeController.currentMode
-                .drop(1)
-                .collect {
-                    externalIpSelectionEpoch.update { it + 1L }
-                    networkInfoService.clearExternalIp()
-                }
+            proxyModeController.currentMode.drop(1).collect {
+                externalIpSelectionEpoch.update { it + 1L }
+                networkInfoService.clearExternalIp()
+            }
         }
     }
 

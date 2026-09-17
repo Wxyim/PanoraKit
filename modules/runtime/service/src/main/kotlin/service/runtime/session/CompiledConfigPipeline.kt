@@ -377,10 +377,10 @@ class CompiledConfigPipeline(private val context: Context) {
         }
 
     /**
-     * Fast stopped-runtime preview: renders the groups declared in the source
-     * config.yaml with a generic YAML parse instead of a full mihomo compile +
-     * typed parse. Used while the VPN is off so routing-mode switches reflect
-     * instantly. GLOBAL is prepended when the persisted routing mode is Global.
+     * Fast stopped-runtime preview: renders the groups declared in the source config.yaml with a
+     * generic YAML parse instead of a full mihomo compile + typed parse. Used while the VPN is off
+     * so routing-mode switches reflect instantly. GLOBAL is prepended when the persisted routing
+     * mode is Global.
      */
     suspend fun sourceGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> =
         withContext(Dispatchers.Default) {
@@ -401,9 +401,7 @@ class CompiledConfigPipeline(private val context: Context) {
     private fun configuredRoutingMode(profileUuid: String): TunnelState.Mode {
         val overridesDir = context.filesDir.resolve("overrides")
         val file =
-            overridesDir.resolve(
-                "configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json"
-            )
+            overridesDir.resolve("configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json")
         val raw =
             runCatching { readInternalOverrideFile(file)["mode"]?.jsonPrimitive?.content }
                 .getOrNull()

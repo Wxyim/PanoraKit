@@ -37,14 +37,14 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 private data class StatisticsClockSnapshot(
     val dayKey: Long,
@@ -111,10 +111,10 @@ class DefaultTrafficStatisticsExplorer(
                         .map { connection -> buildRecord(connection, isActive = false) }
                         .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
                 val activeRequests =
-                    activeConnections.asSequence().map { connection ->
-                        buildRecord(connection, isActive = true)
-                    }
-                    .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
+                    activeConnections
+                        .asSequence()
+                        .map { connection -> buildRecord(connection, isActive = true) }
+                        .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
 
                 (activeRequests + closedRequests)
                     .sortedByDescending { parseConnectionStartMillis(it.connection.start) }
@@ -310,21 +310,20 @@ class DefaultTrafficStatisticsExplorer(
     private fun RecentRequestRecord.matchesQuery(query: String): Boolean {
         val needle = query.trim()
         if (needle.isEmpty()) return true
-        val haystack =
-            buildString {
-                connection.metadata.forEach { (_, value) ->
-                    append(value.jsonPrimitiveOrNull?.contentOrNull.orEmpty()).append(' ')
-                }
-                append(connection.id).append(' ')
-                append(connection.rule).append(' ')
-                append(connection.rulePayload).append(' ')
-                append(connection.chains.joinToString(" ")).append(' ')
-                append(connection.providerChains.joinToString(" ")).append(' ')
-                append(sourceAppName).append(' ')
-                sourcePackageName?.let { append(it).append(' ') }
-                topLevelGroupName?.let { append(it).append(' ') }
-                bottomNodeName?.let { append(it).append(' ') }
+        val haystack = buildString {
+            connection.metadata.forEach { (_, value) ->
+                append(value.jsonPrimitiveOrNull?.contentOrNull.orEmpty()).append(' ')
             }
+            append(connection.id).append(' ')
+            append(connection.rule).append(' ')
+            append(connection.rulePayload).append(' ')
+            append(connection.chains.joinToString(" ")).append(' ')
+            append(connection.providerChains.joinToString(" ")).append(' ')
+            append(sourceAppName).append(' ')
+            sourcePackageName?.let { append(it).append(' ') }
+            topLevelGroupName?.let { append(it).append(' ') }
+            bottomNodeName?.let { append(it).append(' ') }
+        }
         return haystack.contains(needle, ignoreCase = true)
     }
 

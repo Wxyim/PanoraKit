@@ -86,9 +86,7 @@ object MLangTrafficStatistics {
 
         val `SearchHint`: String
             get() =
-                LocaleBootstrap.getString(
-                    R.string.traffic_statistics_recent_requests_search_hint
-                )
+                LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_search_hint)
 
         @Composable
         fun `SearchHint`(vararg args: Any): String =
@@ -99,16 +97,11 @@ object MLangTrafficStatistics {
 
         val `NoResults`: String
             get() =
-                LocaleBootstrap.getString(
-                    R.string.traffic_statistics_recent_requests_no_results
-                )
+                LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_no_results)
 
         @Composable
         fun `NoResults`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.traffic_statistics_recent_requests_no_results,
-                *args,
-            )
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_no_results, *args)
     }
 
     object `Status` {

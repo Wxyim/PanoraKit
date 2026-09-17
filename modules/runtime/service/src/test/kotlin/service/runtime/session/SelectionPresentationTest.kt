@@ -93,5 +93,4 @@ class SelectionPresentationTest {
     private fun proxy(name: String): Proxy {
         return Proxy(name = name, title = name, subtitle = "", type = Proxy.Type.Socks5, delay = 0)
     }
-
 }
