@@ -320,10 +320,22 @@ func normalizeProxyType(raw string) string {
 		return "Sudoku"
 	case "masque":
 		return "Masque"
-	case "trust-tunnel":
+	case "trust-tunnel", "trusttunnel":
 		return "TrustTunnel"
-	case "shadow-quic":
+	case "shadow-quic", "shadowquic":
 		return "ShadowQuic"
+	case "openvpn":
+		return "OpenVPN"
+	case "tailscale":
+		return "Tailscale"
+	case "zerotier":
+		return "ZeroTier"
+	case "easytier":
+		return "EasyTier"
+	case "gost-relay":
+		return "GostRelay"
+	case "rematch":
+		return "Rematch"
 	case "select":
 		return "Selector"
 	case "url-test":

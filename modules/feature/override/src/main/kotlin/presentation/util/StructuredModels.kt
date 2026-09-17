@@ -272,6 +272,12 @@ val OverrideProxyTypePresets =
         "masque",
         "trusttunnel",
         "shadowquic",
+        "openvpn",
+        "tailscale",
+        "zerotier",
+        "easytier",
+        "gost-relay",
+        "rematch",
     )
 
 val OverrideProxyGroupTypePresets =
