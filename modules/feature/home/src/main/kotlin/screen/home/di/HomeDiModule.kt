@@ -49,6 +49,7 @@ val homeDiModule = module {
             get(),
             get(),
             get(),
+            get(),
         )
     }
 }

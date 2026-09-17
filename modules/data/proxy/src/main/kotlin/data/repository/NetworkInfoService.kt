@@ -59,7 +59,7 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
     private val externalIpCache = MutableStateFlow<IpInfo?>(null)
     val externalIp: StateFlow<IpInfo?> = externalIpCache.asStateFlow()
 
-    private val httpClient = HttpClient {
+    private fun newLookupClient(): HttpClient = HttpClient {
         install(HttpTimeout) {
             requestTimeoutMillis = 5000
             connectTimeoutMillis = 5000
@@ -75,9 +75,9 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
             onBufferOverflow = BufferOverflow.DROP_OLDEST,
         )
 
-    override fun close() {
-        httpClient.close()
-    }
+    // Lookup clients are created per request and closed after each query, so
+    // there is no shared connection pool to tear down here.
+    override fun close() = Unit
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
@@ -108,12 +108,20 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
         val url = appSettings.externalIpLookupUrl.value.trim()
         if (url.isEmpty()) return null
         if (!isAllowedExternalIpUrl(url)) return null
+        // A fresh client per lookup forces a brand-new TCP/TLS connection. The
+        // Android HttpURLConnection engine keeps a keep-alive pool, so reusing
+        // the shared client would replay the connection that was established
+        // under the previous routing mode: after switching Direct -> Global (or
+        // back) the lookup would keep reporting the old exit IP.
+        val client = newLookupClient()
         return try {
-            val response = httpClient.get(url)
+            val response = client.get(url)
             val body = response.bodyAsText().trim()
             ExternalIpResponseParser.parse(body = body, json = json)
         } catch (e: Exception) {
             null
+        } finally {
+            client.close()
         }
     }
 

@@ -40,6 +40,7 @@ import com.github.nomadboxlab.monadbox.feature.home.usecase.RefreshHomeEntryData
 import com.github.nomadboxlab.monadbox.feature.home.usecase.ReloadHomeProfileUseCase
 import com.github.nomadboxlab.monadbox.feature.home.usecase.StartHomeProxyUseCase
 import com.github.nomadboxlab.monadbox.feature.home.usecase.StopHomeProxyUseCase
+import com.github.nomadboxlab.monadbox.feature.proxy.api.ProxyModeController
 import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
 import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
@@ -212,6 +213,7 @@ private object HomeProfileResolver {
 
 class HomeViewModel(
     private val proxyFacade: ProxyFacade,
+    private val proxyModeController: ProxyModeController,
     private val networkInfoService: NetworkInfoService,
     private val proxyChainResolver: ProxyChainResolver,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore,
@@ -447,6 +449,7 @@ class HomeViewModel(
         observeProfileChanges()
         clearExternalIpCacheOnStop()
         clearExternalIpCacheOnSelection()
+        clearExternalIpCacheOnModeChange()
         collectSelectedServer()
         collectExternalIpEnabled()
     }
@@ -498,6 +501,24 @@ class HomeViewModel(
                 externalIpSelectionEpoch.update { it + 1L }
                 networkInfoService.clearExternalIp()
             }
+        }
+    }
+
+    /**
+     * Clear the cached external IP when the routing mode is switched while the
+     * VPN is running — the new mode routes traffic through different exit
+     * nodes, so the previously queried IP no longer describes the current
+     * egress. The first emission on collection is the current value and is
+     * skipped so simply reopening the home screen does not clear the result.
+     */
+    private fun clearExternalIpCacheOnModeChange() {
+        viewModelScope.launch {
+            proxyModeController.currentMode
+                .drop(1)
+                .collect {
+                    externalIpSelectionEpoch.update { it + 1L }
+                    networkInfoService.clearExternalIp()
+                }
         }
     }
 
