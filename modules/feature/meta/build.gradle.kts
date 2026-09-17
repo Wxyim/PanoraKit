@@ -61,4 +61,6 @@ dependencies {
     implementation(libs.miuix.icons)
     implementation(libs.serialization.json)
     implementation(libs.snakeyaml)
+
+    testImplementation(libs.junit4)
 }

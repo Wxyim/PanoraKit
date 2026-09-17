@@ -56,6 +56,46 @@ private data class StatisticsClockSnapshot(
 private val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
     get() = this as? JsonPrimitive
 
+/**
+ * Metadata keys whose values are rendered in the recent-request list row or the connection detail
+ * sheet. Fields that are never shown (connection id, provider chains, uid, byte counters,
+ * timestamps, ...) are intentionally excluded so that search hits stay visible.
+ */
+private val searchableMetadataKeys =
+    listOf(
+        "network",
+        "host",
+        "sourceIP",
+        "sourcePort",
+        "destinationIP",
+        "destinationPort",
+        "process",
+    )
+
+/**
+ * Case-insensitive substring match against the fields shown in the recent-request list row and the
+ * connection detail sheet (addresses, ports, protocol, process, rule, routing chain, and the
+ * resolved source app), so every matched record visibly contains the query.
+ */
+internal fun RecentRequestRecord.matchesQuery(query: String): Boolean {
+    val needle = query.trim()
+    if (needle.isEmpty()) return true
+    val haystack = buildString {
+        val metadata = connection.metadata
+        searchableMetadataKeys.forEach { key ->
+            metadata[key]?.jsonPrimitiveOrNull?.contentOrNull?.let { append(it).append(' ') }
+        }
+        append(connection.rule).append(' ')
+        append(connection.rulePayload).append(' ')
+        append(connection.chains.joinToString(" ")).append(' ')
+        append(sourceAppName).append(' ')
+        sourcePackageName?.let { append(it).append(' ') }
+        topLevelGroupName?.let { append(it).append(' ') }
+        bottomNodeName?.let { append(it).append(' ') }
+    }
+    return haystack.contains(needle, ignoreCase = true)
+}
+
 @OptIn(FlowPreview::class)
 class DefaultTrafficStatisticsExplorer(
     private val trafficStatisticsStore: TrafficStatisticsStore,
@@ -300,31 +340,6 @@ class DefaultTrafficStatisticsExplorer(
             sourceAppName = appName,
             sourcePackageName = packageName,
         )
-    }
-
-    /**
-     * Case-insensitive substring match against every searchable field of a recent request:
-     * connection metadata (source/destination IP, host/domain, ports, network, process, package,
-     * uid), matched rule, matched chains (routing group + exit node), and the resolved source app.
-     */
-    private fun RecentRequestRecord.matchesQuery(query: String): Boolean {
-        val needle = query.trim()
-        if (needle.isEmpty()) return true
-        val haystack = buildString {
-            connection.metadata.forEach { (_, value) ->
-                append(value.jsonPrimitiveOrNull?.contentOrNull.orEmpty()).append(' ')
-            }
-            append(connection.id).append(' ')
-            append(connection.rule).append(' ')
-            append(connection.rulePayload).append(' ')
-            append(connection.chains.joinToString(" ")).append(' ')
-            append(connection.providerChains.joinToString(" ")).append(' ')
-            append(sourceAppName).append(' ')
-            sourcePackageName?.let { append(it).append(' ') }
-            topLevelGroupName?.let { append(it).append(' ') }
-            bottomNodeName?.let { append(it).append(' ') }
-        }
-        return haystack.contains(needle, ignoreCase = true)
     }
 
     companion object {
