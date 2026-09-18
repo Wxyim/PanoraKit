@@ -241,9 +241,10 @@ fun LocalProfileConfigEditScreen(
                     ConfigPreviewSaveOutcome.Saved
                 }
 
-            if (saveError != null) {
+            val saveFailure = saveError
+            if (saveFailure != null) {
                 editState.onSaveFailed(savedConfig ?: ConfigurationOverride())
-                context.toast(saveError!!.message ?: MLang.Component.Editor.Error.SaveFailed)
+                context.toast(saveFailure.message ?: MLang.Component.Editor.Error.SaveFailed)
                 return@launch
             }
 
@@ -388,10 +389,6 @@ fun LocalProfileConfigEditScreen(
                                         selectedOverrideIds = editState.bindingSelectedOverrideIds,
                                         contentMaxWidth = contentMaxWidth,
                                         onSystemPresetToggle = { enabled ->
-                                            editState.updateBindingState(
-                                                enabled,
-                                                editState.bindingSelectedOverrideIds,
-                                            )
                                             applyBindingChange(
                                                 editState.bindingSelectedOverrideIds,
                                                 enabled,
@@ -403,10 +400,6 @@ fun LocalProfileConfigEditScreen(
                                                     editState.bindingSelectedOverrideIds.filterNot {
                                                         it == id
                                                     }
-                                            editState.updateBindingState(
-                                                editState.bindingSystemPresetEnabled,
-                                                newIds,
-                                            )
                                             applyBindingChange(
                                                 newIds,
                                                 editState.bindingSystemPresetEnabled,
@@ -414,10 +407,6 @@ fun LocalProfileConfigEditScreen(
                                         },
                                         onOverrideRemoved = { id ->
                                             val newIds = editState.bindingSelectedOverrideIds - id
-                                            editState.updateBindingState(
-                                                editState.bindingSystemPresetEnabled,
-                                                newIds,
-                                            )
                                             applyBindingChange(
                                                 newIds,
                                                 editState.bindingSystemPresetEnabled,
@@ -428,10 +417,6 @@ fun LocalProfileConfigEditScreen(
                                                 editState.bindingSelectedOverrideIds
                                                     .toMutableList()
                                                     .apply { add(toIndex, removeAt(fromIndex)) }
-                                            editState.updateBindingState(
-                                                editState.bindingSystemPresetEnabled,
-                                                newIds,
-                                            )
                                             applyBindingChange(
                                                 newIds,
                                                 editState.bindingSystemPresetEnabled,
