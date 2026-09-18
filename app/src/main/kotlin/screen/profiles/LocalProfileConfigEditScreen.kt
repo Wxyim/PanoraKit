@@ -44,7 +44,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,8 +68,6 @@ import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOptio
 import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOptionsProvider
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfileConfigEditState
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesViewModel
-import com.github.nomadboxlab.monadbox.presentation.component.AppCommandButton
-import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
 import com.github.nomadboxlab.monadbox.presentation.component.JsonTextEditorDialog
 import com.github.nomadboxlab.monadbox.presentation.component.LocalOverrideCardHorizontalPadding
 import com.github.nomadboxlab.monadbox.presentation.component.LocalProfileConfigEditContent
@@ -80,7 +77,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.OpenStringListModi
 import com.github.nomadboxlab.monadbox.presentation.component.OpenStructuredObjectListEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenSubRulesEditor
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
-import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.StringMapEditorDialog
 import com.github.nomadboxlab.monadbox.presentation.component.StringMapValidationMode
@@ -90,7 +86,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.resolveStringMapVa
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowLeft
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
-import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
@@ -135,7 +130,6 @@ fun LocalProfileConfigEditScreen(
     val systemPreset by profileOverrideOptionsProvider.systemPreset.collectAsStateWithLifecycle()
     val userConfigs by profileOverrideOptionsProvider.userOptions.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
     val editorListState = rememberLazyListState()
     val profileId = remember(profileUuid) { UUID.fromString(profileUuid) }
@@ -187,54 +181,38 @@ fun LocalProfileConfigEditScreen(
     }
 
     fun applyBindingChange(newSelectedIds: List<String>, newSystemPresetEnabled: Boolean) {
-        scope.launch {
-            val normalizedIds = newSelectedIds.distinct()
-            val currentBinding = profilesViewModel.loadProfileBinding(profileUuid)
-            val updatedBinding =
-                currentBinding?.copy(overrideIds = normalizedIds, enabled = newSystemPresetEnabled)
-                    ?: ProfileBinding(
-                        profileId = profileUuid,
-                        overrideIds = normalizedIds,
-                        enabled = newSystemPresetEnabled,
-                    )
-            profilesViewModel.saveProfileBinding(updatedBinding)
-            editState.updateBindingState(newSystemPresetEnabled, normalizedIds)
-            profilesViewModel.reapplyOverrideIfActiveProfile(profileUuid)
-        }
-    }
-
-    fun requestExit() {
-        when {
-            showStringMapEditor.value -> showStringMapEditor.value = false
-            showJsonEditor.value -> showJsonEditor.value = false
-            editState.isLoading || editState.isSaving -> Unit
-            else -> navigator.navigateUp()
-        }
+        // Deferred: only kept in-memory here and persisted when the editor is
+        // exited, so a single apply+reload runs on exit instead of per change.
+        editState.updateBindingState(newSystemPresetEnabled, newSelectedIds.distinct())
     }
 
     fun applyConfigChange(updated: ConfigurationOverride) {
-        val savedConfig = editState.originalConfig
+        // Deferred: keep edits in-memory; persistence + runtime reload happen
+        // once when the editor is exited.
         editState.updateConfig(updated)
-        if (editState.isSaving) return
-        if (savedConfig == null) {
-            return
-        }
-        if (!profilesViewModel.hasProfileGuiConfigChanges(savedConfig, updated)) {
-            return
-        }
+    }
+
+    fun deferredSaveAndExit() {
+        val savedConfig = editState.originalConfig
+        val currentConfig = editState.currentConfig
+        val configChanged =
+            savedConfig != null &&
+                currentConfig != null &&
+                profilesViewModel.hasProfileGuiConfigChanges(savedConfig, currentConfig)
 
         editState.beginSave()
         profilesViewModel.viewModelScope.launch {
             var lastPhase: ConfigPreviewSavePhase? = ConfigPreviewSavePhase.LocalSaving
             var stoppedRunningProfile = false
+            var saveError: Throwable? = null
             val isActiveRunningProfile =
                 isRuntimeRunning && homeRuntimeController.isCurrentProfile(profileId)
 
             suspend fun saveWithDecision(fixedDecision: ConfigPreviewSaveDecision? = null) =
                 profilesViewModel.saveProfileConfigGuiContent(
                     uuid = profileId,
-                    originalConfig = savedConfig,
-                    updatedConfig = updated,
+                    originalConfig = savedConfig ?: ConfigurationOverride(),
+                    updatedConfig = currentConfig ?: ConfigurationOverride(),
                     onPhaseChanged = { phase ->
                         lastPhase = phase
                         editState.onSavePhaseChanged(phase)
@@ -248,35 +226,71 @@ fun LocalProfileConfigEditScreen(
                     },
                 )
 
-            runCatching { saveWithDecision() }
-                .recoverCatching { error ->
-                    if (lastPhase != ConfigPreviewSavePhase.FetchingRemoteResources) {
-                        throw error
-                    }
-                    saveWithDecision(ConfigPreviewSaveDecision.SaveLocally)
-                }
-                .onSuccess { outcome ->
-                    when (outcome) {
-                        ConfigPreviewSaveOutcome.Saved -> {
-                            editState.onSaveSucceeded(updated)
-                        }
-
-                        ConfigPreviewSaveOutcome.SavedLocally -> {
-                            editState.onSaveSucceeded(updated)
-                            if (stoppedRunningProfile) {
-                                editState.showRuntimeStoppedDialog = true
-                            } else {
-                                context.toast(MLang.Component.Editor.Action.SaveLocally)
+            val outcome: ConfigPreviewSaveOutcome? =
+                if (configChanged) {
+                    runCatching { saveWithDecision() }
+                        .recoverCatching { error ->
+                            if (lastPhase != ConfigPreviewSavePhase.FetchingRemoteResources) {
+                                throw error
                             }
+                            saveWithDecision(ConfigPreviewSaveDecision.SaveLocally)
                         }
+                        .onFailure { error -> saveError = error }
+                        .getOrNull()
+                } else {
+                    ConfigPreviewSaveOutcome.Saved
+                }
 
-                        ConfigPreviewSaveOutcome.ResumeEditing -> editState.endSave()
+            if (saveError != null) {
+                editState.onSaveFailed(savedConfig ?: ConfigurationOverride())
+                context.toast(saveError!!.message ?: MLang.Component.Editor.Error.SaveFailed)
+                return@launch
+            }
+
+            if (outcome == ConfigPreviewSaveOutcome.ResumeEditing) {
+                editState.endSave()
+                return@launch
+            }
+
+            if (editState.bindingChanged) {
+                val normalizedIds = editState.bindingSelectedOverrideIds.distinct()
+                val currentBinding = profilesViewModel.loadProfileBinding(profileUuid)
+                val updatedBinding =
+                    currentBinding?.copy(
+                        overrideIds = normalizedIds,
+                        enabled = editState.bindingSystemPresetEnabled,
+                    )
+                        ?: ProfileBinding(
+                            profileId = profileUuid,
+                            overrideIds = normalizedIds,
+                            enabled = editState.bindingSystemPresetEnabled,
+                        )
+                profilesViewModel.saveProfileBinding(updatedBinding)
+                editState.markBindingSaved()
+                profilesViewModel.reapplyOverrideIfActiveProfile(profileUuid)
+            }
+
+            editState.onSaveSucceeded(currentConfig ?: ConfigurationOverride())
+            when (outcome) {
+                ConfigPreviewSaveOutcome.SavedLocally ->
+                    if (stoppedRunningProfile) {
+                        context.toast(MLang.Component.Editor.Dialog.DirectSaveStoppedRuntimeSummary)
+                    } else {
+                        context.toast(MLang.Component.Editor.Action.SaveLocally)
                     }
-                }
-                .onFailure { error ->
-                    editState.onSaveFailed(savedConfig)
-                    context.toast(error.message ?: MLang.Component.Editor.Error.SaveFailed)
-                }
+                else -> Unit
+            }
+            navigator.navigateUp()
+        }
+    }
+
+    fun requestExit() {
+        when {
+            showStringMapEditor.value -> showStringMapEditor.value = false
+            showJsonEditor.value -> showJsonEditor.value = false
+            editState.isLoading || editState.isSaving -> Unit
+            editState.isModified || editState.bindingChanged -> deferredSaveAndExit()
+            else -> navigator.navigateUp()
         }
     }
 
@@ -490,21 +504,6 @@ fun LocalProfileConfigEditScreen(
                 onUndo = { editState.saveDecision = ConfigPreviewSaveDecision.ContinueEditing },
                 onDirectSave = { editState.saveDecision = ConfigPreviewSaveDecision.SaveLocally },
             )
-
-            AppDialog(
-                show = editState.showRuntimeStoppedDialog,
-                title = MLang.Component.Message.Hint,
-                summary = MLang.Component.Editor.Dialog.DirectSaveStoppedRuntimeSummary,
-                onDismissRequest = { editState.showRuntimeStoppedDialog = false },
-            ) {
-                AppCommandButton(
-                    title = MLang.Component.Button.Confirm,
-                    imageVector = MonadIcons.Check,
-                    onClick = { editState.showRuntimeStoppedDialog = false },
-                    tone = SemanticTone.Brand,
-                    highEmphasis = true,
-                )
-            }
 
             StringMapEditorDialog(
                 show = showStringMapEditor,

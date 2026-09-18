@@ -114,6 +114,13 @@ fun Profile.isConfigSaved(workDir: File): Boolean {
     return File(workDir, "${uuid}/config.yaml").exists()
 }
 
+fun Profile.hasLocalUnvalidatedMarker(workDir: File): Boolean {
+    return listOf(
+        File(workDir, "${uuid}/.local-unvalidated-profile"),
+        File(workDir.parentFile ?: workDir, "clash/profiles/${uuid}/.local-unvalidated-profile"),
+    ).any { it.isFile }
+}
+
 fun formatProfileTimestamp(timestamp: Long): String {
     return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         .format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))

@@ -160,6 +160,7 @@
     <string name="component_profile_card_local_file">本地文件</string>
     <string name="component_profile_card_local_config">本地配置文件</string>
     <string name="component_profile_card_click_to_update">点击更新获取订阅信息</string>
+    <string name="component_profile_card_local_unvalidated">本地修改待校验</string>
     <string name="component_profile_card_traffic" formatted="false">流量：%s / %s (%d%%)</string>
     <string name="component_profile_card_used_traffic">已用：%s</string>
     <string name="component_profile_card_expire_at" formatted="false">到期：%s (剩余%d 天)</string>

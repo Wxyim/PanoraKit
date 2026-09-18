@@ -85,6 +85,13 @@ object MLangComponent {
         fun `ClickToUpdate`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_profile_card_click_to_update, *args)
 
+        val `LocalUnvalidated`: String
+            get() = LocaleBootstrap.getString(R.string.component_profile_card_local_unvalidated)
+
+        @Composable
+        fun `LocalUnvalidated`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.component_profile_card_local_unvalidated, *args)
+
         val `Traffic`: String
             get() = LocaleBootstrap.getString(R.string.component_profile_card_traffic)
 

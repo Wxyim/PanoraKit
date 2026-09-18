@@ -160,6 +160,7 @@
     <string name="component_profile_card_local_file">Local File</string>
     <string name="component_profile_card_local_config">Local Configuration</string>
     <string name="component_profile_card_click_to_update">Click update to get subscription info</string>
+    <string name="component_profile_card_local_unvalidated">Local edit pending validation</string>
     <string name="component_profile_card_traffic" formatted="false">Traffic: %s / %s (%d%%)</string>
     <string name="component_profile_card_used_traffic">Used: %s</string>
     <string name="component_profile_card_expire_at" formatted="false">Expires: %s (%d days left)</string>

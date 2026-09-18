@@ -269,8 +269,17 @@ class SaveProfileWithRollbackUseCase(
 
     private suspend fun commitLocalConfigContent(configFile: File, content: String) {
         withContext(Dispatchers.IO) {
-            configFile.parentFile?.mkdirs()
-            configFile.writeText(content)
+            val parent = configFile.parentFile ?: error("Profile config parent directory missing")
+            parent.mkdirs()
+            // Write to a sibling temp file and rename so a crash mid-write can
+            // never leave a truncated config.yaml behind (rename is atomic on
+            // the same filesystem).
+            val tempFile = File(parent, ".${configFile.name}.tmp")
+            tempFile.writeText(content)
+            if (!tempFile.renameTo(configFile)) {
+                tempFile.delete()
+                configFile.writeText(content)
+            }
         }
     }
 
@@ -288,12 +297,7 @@ class SaveProfileWithRollbackUseCase(
     }
 
     private suspend fun commitStagedProfileDirectory(stagingDir: File, liveProfileDir: File) {
-        withContext(Dispatchers.IO) {
-            if (liveProfileDir.exists()) {
-                liveProfileDir.deleteRecursively()
-            }
-            stagingDir.copyRecursively(liveProfileDir, overwrite = true)
-        }
+        atomicReplaceDirectoryContents(stagingDir, liveProfileDir)
     }
 
     private suspend fun snapshotProfileDirectory(sourceDir: File, snapshotDir: File) {
@@ -309,11 +313,45 @@ class SaveProfileWithRollbackUseCase(
     }
 
     private suspend fun restoreProfileDirectory(snapshotDir: File, liveProfileDir: File) {
+        atomicReplaceDirectoryContents(snapshotDir, liveProfileDir)
+    }
+
+    /**
+     * Replaces [targetDir]'s contents with [sourceDir]'s using a same-directory
+     * rename swap. The old directory is moved aside first, so a crash or a failed
+     * rename never leaves the profile directory missing.
+     */
+    private suspend fun atomicReplaceDirectoryContents(sourceDir: File, targetDir: File) {
         withContext(Dispatchers.IO) {
-            if (liveProfileDir.exists()) {
-                liveProfileDir.deleteRecursively()
+            val parent = targetDir.parentFile ?: error("Profile directory parent missing")
+            parent.mkdirs()
+            val swapDir = File(parent, ".swap-${targetDir.name}-${System.currentTimeMillis()}")
+            val backupDir = File(parent, ".backup-${targetDir.name}-${System.currentTimeMillis()}")
+            try {
+                sourceDir.copyRecursively(swapDir, overwrite = true)
+                val movedOld =
+                    if (targetDir.exists()) {
+                        if (!targetDir.renameTo(backupDir)) {
+                            error("Failed to move existing profile directory to backup")
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                if (!swapDir.renameTo(targetDir)) {
+                    if (movedOld) {
+                        backupDir.renameTo(targetDir)
+                    }
+                    error("Failed to swap profile directory into place")
+                }
+                if (backupDir.exists()) {
+                    backupDir.deleteRecursively()
+                }
+            } finally {
+                if (swapDir.exists()) {
+                    swapDir.deleteRecursively()
+                }
             }
-            snapshotDir.copyRecursively(liveProfileDir, overwrite = true)
         }
     }
 

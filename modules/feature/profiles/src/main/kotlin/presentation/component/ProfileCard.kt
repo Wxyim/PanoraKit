@@ -123,6 +123,9 @@ fun ProfileCard(
     val colorScheme = MiuixTheme.colorScheme
     val activeStyle = SemanticActionDefaults.style(SemanticTone.Success, highEmphasis = true)
     val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
+    // Read without remember so a fresh marker (written by a local save that does
+    // not bump updatedAt) is picked up when the profile list refreshes.
+    val isLocalUnvalidated = profile.hasLocalUnvalidatedMarker(workDir)
     val profileObject =
         remember(profile, isConfigSaved) { profile.toProductProfileObject(isConfigSaved) }
     val infoText = remember(profile) { profile.getInfoText() }
@@ -258,6 +261,15 @@ fun ProfileCard(
                                 StatusBadge(
                                     text = MLang.Proxy.Selection.Current,
                                     tone = SemanticTone.Success,
+                                    leadingDot = true,
+                                    compact = true,
+                                )
+                            }
+
+                            if (isLocalUnvalidated) {
+                                StatusBadge(
+                                    text = MLang.Component.ProfileCard.LocalUnvalidated,
+                                    tone = SemanticTone.Warning,
                                     leadingDot = true,
                                     compact = true,
                                 )

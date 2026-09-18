@@ -55,13 +55,23 @@ class ProfileConfigEditState(val profileUuid: String) {
 
     var saveDecision by mutableStateOf(ConfigPreviewSaveDecision.Continue)
 
-    var showRuntimeStoppedDialog by mutableStateOf(false)
-
     var bindingSystemPresetEnabled by mutableStateOf(false)
         internal set
 
     var bindingSelectedOverrideIds by mutableStateOf(emptyList<String>())
         internal set
+
+    var bindingBaselineSystemPresetEnabled by mutableStateOf(false)
+        internal set
+
+    var bindingBaselineOverrideIds by mutableStateOf(emptyList<String>())
+        internal set
+
+    /** True when the binding selection differs from what was loaded. */
+    val bindingChanged: Boolean
+        get() =
+            bindingBaselineSystemPresetEnabled != bindingSystemPresetEnabled ||
+                bindingBaselineOverrideIds != bindingSelectedOverrideIds
 
     val changeState: ProductChangeState
         get() =
@@ -101,6 +111,8 @@ class ProfileConfigEditState(val profileUuid: String) {
     fun onBindingLoaded(enabled: Boolean, overrideIds: List<String>) {
         bindingSystemPresetEnabled = enabled
         bindingSelectedOverrideIds = overrideIds
+        bindingBaselineSystemPresetEnabled = enabled
+        bindingBaselineOverrideIds = overrideIds
     }
 
     fun beginSave() {
@@ -137,5 +149,10 @@ class ProfileConfigEditState(val profileUuid: String) {
     fun updateBindingState(enabled: Boolean, overrideIds: List<String>) {
         bindingSystemPresetEnabled = enabled
         bindingSelectedOverrideIds = overrideIds
+    }
+
+    fun markBindingSaved() {
+        bindingBaselineSystemPresetEnabled = bindingSystemPresetEnabled
+        bindingBaselineOverrideIds = bindingSelectedOverrideIds
     }
 }
