@@ -143,6 +143,10 @@ object MLangProviders {
     }
 
     object `Summary` {
+        val `ItemCount`: String
+            get() = LocaleBootstrap.getString(R.string.providers_summary_item_count)
+
+        @Composable
         fun `ItemCount`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_summary_item_count, *args)
     }
