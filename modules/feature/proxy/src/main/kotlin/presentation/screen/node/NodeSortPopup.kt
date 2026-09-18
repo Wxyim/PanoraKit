@@ -27,7 +27,7 @@ import com.github.nomadboxlab.monadbox.domain.model.ProxySortMode
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
-import top.yukonga.miuix.kmp.extra.SuperListPopup
+import top.yukonga.miuix.kmp.extra.WindowListPopup
 
 internal val NodeSortModes =
     listOf(ProxySortMode.DEFAULT, ProxySortMode.BY_NAME, ProxySortMode.BY_LATENCY)
@@ -41,7 +41,7 @@ internal fun NodeSortPopup(
     onSortSelected: (ProxySortMode) -> Unit,
 ) {
     val selectedSortIndex = NodeSortModes.indexOf(sortMode).coerceAtLeast(0)
-    SuperListPopup(show = show.value, alignment = alignment, onDismissRequest = onDismiss) {
+    WindowListPopup(show = show.value, alignment = alignment, onDismissRequest = onDismiss) {
         ListPopupColumn {
             NodeSortModes.forEachIndexed { index, mode ->
                 DropdownImpl(
