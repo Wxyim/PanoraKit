@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.core.model.GeoFileType
 import com.github.nomadboxlab.monadbox.core.model.GeoXItem
+import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.core.model.geoXItems
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
 import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
@@ -110,6 +111,16 @@ fun MetaFeatureScreenBody(
                         return@launch
                     }
 
+                    // The compiled runtime.yaml is written when the profile is
+                    // (re)loaded. A fast-path mode switch patches the live core
+                    // without rewriting the file, so sync the snapshot's
+                    // top-level mode with the actual runtime mode before
+                    // showing it.
+                    val liveMode =
+                        runCatching { ServiceClient.clash().queryTunnelState().mode }.getOrNull()
+                    val effectiveYaml =
+                        if (liveMode == null) runtimeYaml else runtimeYaml.withRuntimeMode(liveMode)
+
                     val previewTitle =
                         activeProfile.name
                             .takeIf { it.isNotBlank() }
@@ -119,7 +130,7 @@ fun MetaFeatureScreenBody(
 
                     ConfigPreviewStore.setup(
                         title = previewTitle,
-                        content = decodeEscapedUnicode(runtimeYaml),
+                        content = decodeEscapedUnicode(effectiveYaml),
                         language = LanguageScope.Yaml,
                         onSave = null,
                     )
@@ -256,6 +267,19 @@ private fun decodeEscapedUnicode(text: String): String {
         i += 1
     }
     return out.toString()
+}
+
+private fun String.withRuntimeMode(mode: TunnelState.Mode): String {
+    val runtimeName =
+        when (mode) {
+            TunnelState.Mode.Rule -> "rule"
+            TunnelState.Mode.Global -> "global"
+            TunnelState.Mode.Direct -> "direct"
+            TunnelState.Mode.Script -> "script"
+        }
+    return replace(Regex("^(mode\\s*:\\s*)\\S+", RegexOption.MULTILINE)) { match ->
+        "${match.groupValues[1]}$runtimeName"
+    }
 }
 
 private data class MetaCapabilityEntry(
