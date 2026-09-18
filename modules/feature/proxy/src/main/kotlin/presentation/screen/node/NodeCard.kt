@@ -37,10 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -56,9 +53,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
 import com.github.nomadboxlab.monadbox.presentation.theme.ProxyNodeCardLayoutDefaults
 import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
 import com.github.nomadboxlab.monadbox.presentation.util.extractNodeTags
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
-import com.github.panpf.sketch.request.ImageRequest
-import com.github.panpf.sketch.state.IntColorDrawableStateImage
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -216,10 +210,6 @@ internal fun NodeCard(
         val tags = remember(proxy.name) { extractNodeTags(proxy.name) }
         val latencyVisual = proxyLatencyVisual(delay = proxy.delay, isTesting = isThisProxyTesting)
         val primary = MiuixTheme.colorScheme.primary
-        val iconUri =
-            remember(proxy.icon) {
-                proxy.icon?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeNodeIconUri)
-            }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -230,7 +220,6 @@ internal fun NodeCard(
                 countryCode = flagged.countryCode.takeIf { showCountryFlag },
                 proxyName = proxy.name,
                 typeName = proxy.type.name,
-                iconUri = iconUri,
                 isSelected = isSelected,
             )
 
@@ -318,7 +307,6 @@ internal fun NodeLargeIcon(
     countryCode: String?,
     proxyName: String,
     typeName: String,
-    iconUri: String?,
     isSelected: Boolean,
 ) {
     val neutral = MiuixTheme.colorScheme.onSurface
@@ -337,12 +325,7 @@ internal fun NodeLargeIcon(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        if (iconUri != null) {
-            RemoteNodeIcon(
-                iconUri = iconUri,
-                modifier = Modifier.size(NodeCardDefaults.LargeFlagSize),
-            )
-        } else if (countryCode != null) {
+        if (countryCode != null) {
             CountryFlagFilledIcon(
                 countryCode = countryCode,
                 size = NodeCardDefaults.LargeFlagSize,
@@ -363,33 +346,6 @@ internal fun NodeLargeIcon(
             )
         }
     }
-}
-
-private fun normalizeNodeIconUri(raw: String): String {
-    if (raw.startsWith("//")) return "https:$raw"
-    if (raw.startsWith("www.", ignoreCase = true)) return "https://$raw"
-    return raw
-}
-
-@Composable
-private fun RemoteNodeIcon(iconUri: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val placeholderColorInt = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f).toArgb()
-    val request =
-        remember(context, iconUri, placeholderColorInt) {
-            ImageRequest(context, iconUri) {
-                placeholder(IntColorDrawableStateImage(placeholderColorInt))
-                error(IntColorDrawableStateImage(placeholderColorInt))
-                crossfade(true)
-            }
-        }
-
-    SketchAsyncImage(
-        request = request,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = modifier,
-    )
 }
 
 private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): BuiltInNodeVisual? {
