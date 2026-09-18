@@ -27,7 +27,7 @@ import com.github.nomadboxlab.monadbox.domain.model.ProxyGroupStyle
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
-import top.yukonga.miuix.kmp.extra.SuperListPopup
+import top.yukonga.miuix.kmp.extra.WindowListPopup
 
 internal val NodeGroupStyles = listOf(ProxyGroupStyle.INLINE, ProxyGroupStyle.FLOATING)
 
@@ -40,7 +40,7 @@ internal fun NodeGroupStylePopup(
     onStyleSelected: (ProxyGroupStyle) -> Unit,
 ) {
     val selectedIndex = NodeGroupStyles.indexOf(groupStyle).coerceAtLeast(0)
-    SuperListPopup(show = show.value, alignment = alignment, onDismissRequest = onDismiss) {
+    WindowListPopup(show = show.value, alignment = alignment, onDismissRequest = onDismiss) {
         ListPopupColumn {
             NodeGroupStyles.forEachIndexed { index, style ->
                 DropdownImpl(

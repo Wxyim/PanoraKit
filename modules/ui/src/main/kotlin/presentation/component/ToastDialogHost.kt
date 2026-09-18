@@ -38,7 +38,6 @@ import com.github.nomadboxlab.monadbox.common.util.ToastDialogEvent
 import com.github.nomadboxlab.monadbox.common.util.ToastMode
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
-import com.github.nomadboxlab.monadbox.presentation.icon.monad.Copy
 import dev.oom_wg.purejoy.mlang.MLang
 
 @Composable
