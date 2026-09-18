@@ -227,8 +227,6 @@ object `MLang` {
         val `Download`
             get() = MLangMetaFeature.`Download`
 
-        val `Dashboard`
-            get() = MLangMetaFeature.`Dashboard`
     }
 
     object `NetworkSettings` {
@@ -347,9 +345,6 @@ object `MLang` {
             val `ReadError`
                 get() = MLangOverride.`Import`.`ReadError`
 
-            val `Success`
-                get() = MLangOverride.`Import`.`Success`
-
             val `SuccessDefault`
                 get() = MLangOverride.`Import`.`SuccessDefault`
 
@@ -359,17 +354,8 @@ object `MLang` {
             val `FileError`
                 get() = MLangOverride.`Import`.`FileError`
 
-            val `SurgeSuccess`
-                get() = MLangOverride.`Import`.`SurgeSuccess`
-
             val `SurgeSuccessDefault`
                 get() = MLangOverride.`Import`.`SurgeSuccessDefault`
-
-            val `SurgeNoRules`
-                get() = MLangOverride.`Import`.`SurgeNoRules`
-
-            val `SurgeImportDescription`
-                get() = MLangOverride.`Import`.`SurgeImportDescription`
 
             val `PluginNoRules`
                 get() = MLangOverride.`Import`.`PluginNoRules`
@@ -552,9 +538,6 @@ object `MLang` {
             val `DragToSort`
                 get() = MLangOverride.`Editor`.`DragToSort`
 
-            val `CancelDelete`
-                get() = MLangOverride.`Editor`.`CancelDelete`
-
             val `DeleteSelected`
                 get() = MLangOverride.`Editor`.`DeleteSelected`
 
@@ -699,14 +682,8 @@ object `MLang` {
             val `SelectSubRuleTarget`
                 get() = MLangOverride.`Editor`.`SelectSubRuleTarget`
 
-            val `SelectProxyGroupTarget`
-                get() = MLangOverride.`Editor`.`SelectProxyGroupTarget`
-
             val `CustomSubRuleTarget`
                 get() = MLangOverride.`Editor`.`CustomSubRuleTarget`
-
-            val `CustomProxyGroupTarget`
-                get() = MLangOverride.`Editor`.`CustomProxyGroupTarget`
 
             val `SelectRuleProvider`
                 get() = MLangOverride.`Editor`.`SelectRuleProvider`
@@ -728,9 +705,6 @@ object `MLang` {
 
             val `NetworkAndRoute`
                 get() = MLangOverride.`Editor`.`NetworkAndRoute`
-
-            val `PortEmptyHint`
-                get() = MLangOverride.`Editor`.`PortEmptyHint`
 
             val `TypeEmpty`
                 get() = MLangOverride.`Editor`.`TypeEmpty`
@@ -957,9 +931,6 @@ object `MLang` {
 
         val `Tile`
             get() = MLangService.`Tile`
-
-        val `AutoRestart`
-            get() = MLangService.`AutoRestart`
 
         val `LogRecord`
             get() = MLangService.`LogRecord`

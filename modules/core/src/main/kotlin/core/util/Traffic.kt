@@ -60,14 +60,6 @@ fun decodeTrafficValue(value: Long): Long {
 
 private fun scaleTraffic(value: Long): Long = decodeTrafficValue(value)
 
-fun Traffic.trafficUpload(): String {
-    return trafficString(scaleTraffic(this ushr 32))
-}
-
-fun Traffic.trafficDownload(): String {
-    return trafficString(scaleTraffic(this and 0xFFFFFFFFL))
-}
-
 fun Traffic.trafficTotal(): String {
     val upload = scaleTraffic(this ushr 32)
     val download = scaleTraffic(this and 0xFFFFFFFFL)

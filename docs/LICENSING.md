@@ -35,7 +35,6 @@ Distribution rules:
 
 - Policy document: [LICENSING.md](../docs/LICENSING.md)
 - Gradle guard: [build.gradle.kts](../build.gradle.kts)
-- Release workflow guard: [.github/workflows/release-build.yml](../.github/workflows/release-build.yml)
 
 ## 6. Third-Party Inventory
 

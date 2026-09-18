@@ -159,7 +159,7 @@ android {
 
     packaging {
         jniLibs {
-            excludes += listOf("lib/**/libjavet*.so", "lib/**/libyume.so")
+            excludes += listOf("lib/**/libyume.so")
             // Align with gradle.properties
             // (android.packagingOptions.jniLibs.useLegacyPackaging=false).
             // Since minSdk=26, non-legacy packaging (uncompressed + mmap) is strictly better

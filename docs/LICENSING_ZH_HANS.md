@@ -35,7 +35,6 @@ MonadBox 自有代码和 fork 衍生代码采用 AGPL-3.0-only 许可。
 
 - 策略文档：[LICENSING_ZH_HANS.md](../docs/LICENSING_ZH_HANS.md)
 - Gradle 校验：[build.gradle.kts](../build.gradle.kts)
-- Release workflow 校验：[.github/workflows/release-build.yml](../.github/workflows/release-build.yml)
 
 ## 6. 第三方依赖清单
 

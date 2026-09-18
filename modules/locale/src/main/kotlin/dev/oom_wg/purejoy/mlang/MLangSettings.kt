@@ -117,19 +117,6 @@ object MLangSettings {
     }
 
     object `More` {
-        val `Lab`: String
-            get() = LocaleBootstrap.getString(R.string.settings_more_lab)
-
-        @Composable
-        fun `Lab`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.settings_more_lab, *args)
-
-        val `LabSummary`: String
-            get() = LocaleBootstrap.getString(R.string.settings_more_lab_summary)
-
-        @Composable
-        fun `LabSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.settings_more_lab_summary, *args)
 
         val `TrafficStatistics`: String
             get() = LocaleBootstrap.getString(R.string.settings_more_traffic_statistics)

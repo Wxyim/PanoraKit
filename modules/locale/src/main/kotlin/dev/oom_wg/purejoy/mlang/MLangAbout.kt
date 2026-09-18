@@ -42,20 +42,6 @@ object MLangAbout {
         fun `Description`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.about_app_description, *args)
 
-        val `VersionLoading`: String
-            get() = LocaleBootstrap.getString(R.string.about_app_version_loading)
-
-        @Composable
-        fun `VersionLoading`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_app_version_loading, *args)
-
-        val `VersionFailed`: String
-            get() = LocaleBootstrap.getString(R.string.about_app_version_failed)
-
-        @Composable
-        fun `VersionFailed`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_app_version_failed, *args)
-
         val `VersionWithMihomo`: String
             get() = LocaleBootstrap.getString(R.string.about_app_version_with_mihomo)
 
@@ -130,35 +116,9 @@ object MLangAbout {
         fun `Upstream`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.about_link_upstream, *args)
 
-        val `TelegramGroup`: String
-            get() = LocaleBootstrap.getString(R.string.about_link_telegram_group)
-
-        @Composable
-        fun `TelegramGroup`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_link_telegram_group, *args)
-
-        val `TelegramChannel`: String
-            get() = LocaleBootstrap.getString(R.string.about_link_telegram_channel)
-
-        @Composable
-        fun `TelegramChannel`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_link_telegram_channel, *args)
     }
 
     object `License` {
-        val `CheckUpdate`: String
-            get() = LocaleBootstrap.getString(R.string.about_license_check_update)
-
-        @Composable
-        fun `CheckUpdate`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_license_check_update, *args)
-
-        val `CheckUpdateSummary`: String
-            get() = LocaleBootstrap.getString(R.string.about_license_check_update_summary)
-
-        @Composable
-        fun `CheckUpdateSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_license_check_update_summary, *args)
 
         val `Libraries`: String
             get() = LocaleBootstrap.getString(R.string.about_license_libraries)

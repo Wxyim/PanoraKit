@@ -35,19 +35,6 @@ object MLangLog {
     fun `Title`(vararg args: Any): String = LocaleBootstrap.getString(R.string.log_title, *args)
 
     object `Action` {
-        val `StopRecording`: String
-            get() = LocaleBootstrap.getString(R.string.log_action_stop_recording)
-
-        @Composable
-        fun `StopRecording`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_action_stop_recording, *args)
-
-        val `StartRecording`: String
-            get() = LocaleBootstrap.getString(R.string.log_action_start_recording)
-
-        @Composable
-        fun `StartRecording`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_action_start_recording, *args)
 
         val `Save`: String
             get() = LocaleBootstrap.getString(R.string.log_action_save)
@@ -135,13 +122,6 @@ object MLangLog {
         fun `NoLogs`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.log_empty_no_logs, *args)
 
-        val `StartRecordingHint`: String
-            get() = LocaleBootstrap.getString(R.string.log_empty_start_recording_hint)
-
-        @Composable
-        fun `StartRecordingHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_empty_start_recording_hint, *args)
-
         val `AutoRecordHint`: String
             get() = LocaleBootstrap.getString(R.string.log_empty_auto_record_hint)
 
@@ -151,12 +131,6 @@ object MLangLog {
     }
 
     object `Detail` {
-        val `WaitingLog`: String
-            get() = LocaleBootstrap.getString(R.string.log_detail_waiting_log)
-
-        @Composable
-        fun `WaitingLog`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_detail_waiting_log, *args)
 
         val `WillShowWhenGenerated`: String
             get() = LocaleBootstrap.getString(R.string.log_detail_will_show_when_generated)

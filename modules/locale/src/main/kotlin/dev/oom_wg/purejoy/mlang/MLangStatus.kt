@@ -27,12 +27,6 @@ import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.core.locale.R
 
 object MLangStatus {
-    val `NoActiveIssues`: String
-        get() = LocaleBootstrap.getString(R.string.status_no_active_issues)
-
-    val `AttentionItems`: String
-        get() = LocaleBootstrap.getString(R.string.status_attention_items)
-
     val `SourceReadyItems`: String
         get() = LocaleBootstrap.getString(R.string.status_source_ready_items)
 
@@ -128,12 +122,6 @@ object MLangStatus {
     object `Log` {
         val `LiveLogs`: String
             get() = LocaleBootstrap.getString(R.string.status_log_live_logs)
-
-        val `Archives`: String
-            get() = LocaleBootstrap.getString(R.string.status_log_archives)
-
-        val `StartupArchives`: String
-            get() = LocaleBootstrap.getString(R.string.status_log_startup_archives)
 
         val `Recording`: String
             get() = LocaleBootstrap.getString(R.string.status_log_recording)

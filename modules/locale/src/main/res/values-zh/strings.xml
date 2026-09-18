@@ -3,8 +3,6 @@
 <resources>
     <string name="about_title">关于</string>
     <string name="about_app_description">一个基于 mihomo 的定制化 Android 客户端</string>
-    <string name="about_app_version_loading">加载中…</string>
-    <string name="about_app_version_failed">加载失败</string>
     <string name="about_app_version_with_mihomo" formatted="false">%s · mihomo %s</string>
     <string name="about_app_name">MonadBox</string>
     <string name="about_section_project_links">项目链接</string>
@@ -15,10 +13,6 @@
     <string name="about_link_releases">MonadBox Releases（更新源）</string>
     <string name="about_link_mihomo">mihomo</string>
     <string name="about_link_upstream">YumeBox（上游）</string>
-    <string name="about_link_telegram_group">Telegram 群组</string>
-    <string name="about_link_telegram_channel">Telegram 频道</string>
-    <string name="about_license_check_update">检查更新</string>
-    <string name="about_license_check_update_summary">打开 GitHub Releases 页面查看新版本</string>
     <string name="about_license_libraries">引用库</string>
     <string name="about_license_libraries_summary">查看本应用使用的第三方库</string>
     <string name="about_license_agpl_name">GNU Affero General Public License v3.0</string>
@@ -41,10 +35,8 @@
     <string name="access_control_app_list_no_selected_packages">当前还没有已选包名</string>
     <string name="access_control_settings_title">访问控制设置</string>
     <string name="access_control_settings_show_system_apps">显示系统应用</string>
-    <string name="access_control_settings_descending_order">倒序排列</string>
     <string name="access_control_settings_selected_first">已选应用优先</string>
     <string name="access_control_settings_sort_mode">排序方式</string>
-    <string name="access_control_settings_sort_mode_current">当前：%s</string>
     <string name="access_control_settings_batch_operation">批量操作</string>
     <string name="access_control_settings_batch_operation_summary_browse">对当前筛选结果中的应用批量操作</string>
     <string name="access_control_settings_batch_operation_summary_manual">对当前已选包名列表执行批量操作</string>
@@ -85,8 +77,6 @@
     <string name="app_settings_behavior_auto_start_summary">应用启动和开机时自动启动代理服务</string>
     <string name="app_settings_behavior_auto_update_on_start_title">启动更新配置</string>
     <string name="app_settings_behavior_auto_update_on_start_summary">启动时自动更新当前订阅配置</string>
-    <string name="app_settings_behavior_one_china_title">坚持一个中国原则</string>
-    <string name="app_settings_behavior_one_china_summary">自动将台湾地区旗帜及区域码显示为中国</string>
     <string name="app_settings_interface_language_title">界面语言</string>
     <string name="app_settings_interface_language_summary">选择应用界面的显示语言</string>
     <string name="app_settings_interface_language_system">跟随系统</string>
@@ -98,7 +88,6 @@
     <string name="app_settings_interface_theme_mode_light">浅色</string>
     <string name="app_settings_interface_theme_mode_dark">深色</string>
     <string name="app_settings_interface_color_theme_title">主题配色</string>
-    <string name="app_settings_interface_color_theme_summary">点击选择主题色，并自动推导黑白主题配色</string>
     <string name="app_settings_interface_color_theme_picker_title">选择主题色</string>
     <string name="app_settings_interface_color_theme_code_label">主题色代码（#RRGGBB）</string>
     <string name="app_settings_interface_color_theme_custom_summary">当前主题色：%s</string>
@@ -125,7 +114,6 @@
     <string name="app_settings_network_custom_user_agent_summary_default">未设置，使用默认值</string>
     <string name="app_settings_network_external_ip_lookup_url_title">外部 IP 查询 URL</string>
     <string name="app_settings_network_external_ip_lookup_url_summary_default">未设置 — 主页不显示查询按钮</string>
-    <string name="app_settings_network_external_ip_lookup_url_summary_set">手动查询: %s</string>
     <string name="app_settings_cleanup_auto_enabled_title">定时自动清理</string>
     <string name="app_settings_cleanup_auto_enabled_summary">周期检查存储占用，超过阈值时自动清理</string>
     <string name="app_settings_cleanup_policy_title">清理策略</string>
@@ -169,7 +157,6 @@
     <string name="component_profile_card_just_now">刚刚</string>
     <string name="component_profile_card_minutes_ago">%d 分钟前</string>
     <string name="component_profile_card_hours_ago">%d 小时前</string>
-    <string name="component_profile_card_days_ago">%d 天前</string>
     <string name="component_selector_not_modify">不修改</string>
     <string name="component_selector_use_default">使用默认</string>
     <string name="component_selector_enable">启用</string>
@@ -194,21 +181,12 @@
     <string name="component_button_start">开始</string>
     <string name="component_loading_starting">启动中…</string>
     <string name="component_update_title_available">发现新版本</string>
-    <string name="component_update_title_force_cancel">强制更新提示</string>
     <string name="component_update_title_install">安装更新</string>
     <string name="component_update_message_available">检测到可用更新</string>
-    <string name="component_update_message_cover_desc">更新封面</string>
-    <string name="component_update_message_current_version">当前版本</string>
-    <string name="component_update_message_remote_version">推送版本</string>
     <string name="component_update_message_updating">正在更新</string>
     <string name="component_update_message_preparing">正在准备下载…</string>
-    <string name="component_update_message_downloading_with_progress">正在下载更新包 %d%%</string>
     <string name="component_update_message_verifying">正在校验安装包…</string>
-    <string name="component_update_message_finished">下载完成，等待安装确认</string>
     <string name="component_update_message_downloading">正在下载更新包…</string>
-    <string name="component_update_message_download_ready">下载完成，准备安装</string>
-    <string name="component_update_message_verify_failed">安装包校验失败，请重试</string>
-    <string name="component_update_message_download_error_with_code" formatted="false">下载失败 (%d): %s</string>
     <string name="component_update_message_error">下载失败，请稍后重试</string>
     <string name="component_update_message_close">知道了</string>
     <string name="component_update_message_waiting">等待下载开始…</string>
@@ -217,7 +195,6 @@
     <string name="component_config_input_replace_helper">保存后会用这里编辑的完整字典替换当前字段；这里未填写的旧键不会保留。</string>
     <string name="component_config_input_merge_helper">保存后只会把这里编辑的键合并到当前字典。</string>
     <string name="component_config_input_merge_notice">合并模式下，同名键会被覆盖；这里未填写的键保持当前值。</string>
-    <string name="component_accessibility_country_flag">%s 旗帜</string>
     <string name="component_bottom_bar_home">首页</string>
     <string name="component_bottom_bar_proxy">代理</string>
     <string name="component_bottom_bar_config">配置</string>
@@ -230,7 +207,6 @@
     <string name="component_editor_action_redo">重做</string>
     <string name="component_editor_action_format">格式化</string>
     <string name="component_editor_action_save">保存</string>
-    <string name="component_editor_action_save_and_exit">保存并退出</string>
     <string name="component_editor_action_save_locally">直接保存</string>
     <string name="component_editor_action_save_and_stop">直接保存并停止</string>
     <string name="component_editor_action_continue_editing">继续编辑</string>
@@ -274,7 +250,6 @@
     <string name="component_editor_rule_target_reject">REJECT</string>
     <string name="component_editor_rule_target_direct">DIRECT</string>
     <string name="component_editor_rule_target_match">MATCH</string>
-    <string name="component_editor_rule_error_target_required">请选择目标</string>
     <string name="component_editor_rule_error_content_required">规则内容不能为空</string>
     <string name="connection_detail_info">连接信息</string>
     <string name="connection_detail_protocol">协议</string>
@@ -307,7 +282,6 @@
     <string name="home_message_stop_failed">停止失败：%s</string>
     <string name="home_message_external_ip_lookup_not_running">仅可在 VPN 运行时查询出口 IP</string>
     <string name="home_message_external_ip_lookup_not_configured">未配置外部 IP 查询 URL</string>
-    <string name="home_message_external_ip_lookup_transport_timeout">等待代理隧道就绪超时，未发出出口 IP 查询请求</string>
     <string name="home_message_external_ip_lookup_failed">出口 IP 查询失败，请检查查询 URL 和当前网络链路</string>
     <string name="home_control_hint_add_profile">请先添加配置文件</string>
     <string name="home_control_hint_enable_profile">请先在「配置」页面启用一个配置</string>
@@ -326,8 +300,6 @@
     <string name="home_status_stopping">停止中</string>
     <string name="home_status_tap_to_start">轻触启动</string>
     <string name="log_title">日志</string>
-    <string name="log_action_stop_recording">停止记录</string>
-    <string name="log_action_start_recording">开始记录</string>
     <string name="log_action_save">保存</string>
     <string name="log_action_cleanup">清理日志</string>
     <string name="log_action_cleanup_done">日志清理完成</string>
@@ -340,9 +312,7 @@
     <string name="log_action_cancel">取消</string>
     <string name="log_action_export_done">导出成功</string>
     <string name="log_empty_no_logs">暂无日志记录</string>
-    <string name="log_empty_start_recording_hint">点击右下角按钮开始记录日志</string>
     <string name="log_empty_auto_record_hint">从主页启动内核后将自动开始记录</string>
-    <string name="log_detail_waiting_log">等待日志…</string>
     <string name="log_detail_will_show_when_generated">日志将在产生时显示</string>
     <string name="log_history_title">运行日志归档</string>
     <string name="log_history_live_section">实时运行日志（当前会话）</string>
@@ -369,19 +339,6 @@
     <string name="meta_feature_download_dialog_title">更新 GeoX</string>
     <string name="meta_feature_download_select_files">请选择要更新的文件</string>
     <string name="meta_feature_download_download_complete" formatted="false">下载完成：%d/%d</string>
-    <string name="meta_feature_dashboard_title">网页控制面板</string>
-    <string name="meta_feature_dashboard_port">控制面板端口</string>
-    <string name="meta_feature_dashboard_port_summary">配置网页控制面板的端口</string>
-    <string name="meta_feature_dashboard_secret">API 密钥</string>
-    <string name="meta_feature_dashboard_secret_summary">用于验证控制面板用户的密钥</string>
-    <string name="meta_feature_dashboard_show_secret">显示密钥</string>
-    <string name="meta_feature_dashboard_download">下载 MetaCubeXD</string>
-    <string name="meta_feature_dashboard_download_summary">下载 Web UI 资源并解压到数据目录</string>
-    <string name="meta_feature_dashboard_download_ok">控制面板 UI 下载完成</string>
-    <string name="meta_feature_dashboard_download_failed">下载失败：%s</string>
-    <string name="meta_feature_dashboard_launch">启动控制面板</string>
-    <string name="meta_feature_dashboard_launch_summary">全屏打开 Web UI</string>
-    <string name="meta_feature_dashboard_launch_disabled">请先下载面板</string>
     <string name="network_settings_title">网络设置</string>
     <string name="network_settings_section_vpn_service">代理模式</string>
     <string name="network_settings_section_vpn_options">服务配置</string>
@@ -411,8 +368,6 @@
     <string name="network_settings_proxy_options_tun_stack_gvisor">GVisor</string>
     <string name="network_settings_proxy_options_tun_stack_mixed">混合</string>
     <string name="network_settings_proxy_options_access_control_mode_title">访问控制模式</string>
-    <string name="network_settings_proxy_options_allow_non_localhost_http_remote_title">允许远程资源使用 HTTP</string>
-    <string name="network_settings_proxy_options_allow_non_localhost_http_remote_summary">默认仅允许 localhost 使用 HTTP；开启后可允许非 localhost 的 HTTP 远程链接（存在中间人风险）</string>
     <string name="network_settings_proxy_options_allow_all">允许所有</string>
     <string name="network_settings_proxy_options_allow_selected">允许选择</string>
     <string name="network_settings_proxy_options_reject_selected">拒绝选择</string>
@@ -423,10 +378,8 @@
     <string name="network_settings_root_tun_mtu_title">MTU</string>
     <string name="network_settings_root_tun_mtu_summary">RootTun 链路的最大传输单元</string>
     <string name="network_settings_root_tun_android_users_title">Android 用户</string>
-    <string name="network_settings_root_tun_android_users_summary">允许使用 RootTun 的 Android 用户 ID</string>
     <string name="network_settings_root_tun_android_users_placeholder">0, 10</string>
     <string name="network_settings_root_tun_route_excludes_title">排除路由</string>
-    <string name="network_settings_root_tun_route_excludes_summary">不纳入 RootTun 路由的地址</string>
     <string name="network_settings_root_tun_route_excludes_placeholder">未设置排除地址</string>
     <string name="network_settings_root_tun_auto_route_title">自动路由</string>
     <string name="network_settings_root_tun_auto_route_summary">自动添加转发所需路由</string>
@@ -480,9 +433,6 @@
     <string name="override_action_import">导入配置/规则</string>
     <string name="override_action_import_file">导入配置/规则文件</string>
     <string name="override_action_import_from_url">从 URL 导入配置/规则</string>
-    <string name="override_action_import_surge">导入 Surge/Loon 插件规则</string>
-    <string name="override_action_import_json_url">从 URL 导入配置</string>
-    <string name="override_action_import_surge_url">从 URL 导入 Surge 插件规则</string>
     <string name="override_empty_title">暂无覆写配置</string>
     <string name="override_empty_hint">点击下方按钮创建新配置，\n或导入规则（JSON / Surge / Loon）</string>
     <string name="override_status_in_use">使用中</string>
@@ -495,14 +445,10 @@
     <string name="override_card_delete_button">删除</string>
     <string name="override_card_no_description">未填写描述</string>
     <string name="override_import_read_error">无法读取导入文件</string>
-    <string name="override_import_success">已从 %2$s 导入 %1$d 个配置</string>
     <string name="override_import_success_default">已导入 %d 个配置</string>
     <string name="override_import_failed">导入失败: %s</string>
     <string name="override_import_file_error">读取文件失败: %s</string>
-    <string name="override_import_surge_success">已从 %2$s 导入 %1$d 条插件规则</string>
     <string name="override_import_surge_success_default">已导入 %d 条插件规则</string>
-    <string name="override_import_surge_no_rules">未在 [Rule] 节中找到可用规则</string>
-    <string name="override_import_surge_import_description">从 Surge 插件导入的规则</string>
     <string name="override_import_plugin_no_rules">未在 [Rule] 节中找到可用规则</string>
     <string name="override_import_plugin_import_description">从 Surge/Loon 插件导入的规则</string>
     <string name="override_import_auto_detect_failed">未识别到可导入内容，请检查是否为 JSON 或含 [Rule] 节的插件</string>
@@ -515,8 +461,6 @@
     <string name="override_import_url_redirect_invalid">重定向地址无效，无法继续下载</string>
     <string name="override_import_url_too_many_redirects">重定向次数过多，已停止下载</string>
     <string name="override_import_url_sheet_title">从 URL 自动导入配置/规则</string>
-    <string name="override_import_url_sheet_json_title">从 URL 导入配置</string>
-    <string name="override_import_url_sheet_surge_title">从 URL 导入 Surge 插件规则</string>
     <string name="override_export_failed">导出失败：%s</string>
     <string name="override_export_success">已导出配置：%s</string>
     <string name="override_dialog_create_title">添加配置</string>
@@ -524,9 +468,6 @@
     <string name="override_dialog_create_description">配置描述</string>
     <string name="override_dialog_create_import_hint">自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则</string>
     <string name="override_dialog_create_import_from_url_hint">输入远程 URL；可自动识别 JSON 配置，或从 Surge/Loon 插件中提取 [Rule] 规则</string>
-    <string name="override_dialog_create_import_surge_hint">选择 .sgmodule 文件提取 [Rule] 规则</string>
-    <string name="override_dialog_create_import_json_url_hint">输入 JSON 配置的远程 URL</string>
-    <string name="override_dialog_create_import_surge_url_hint">输入 .sgmodule 的远程 URL</string>
     <string name="override_dialog_delete_title">删除配置</string>
     <string name="override_dialog_delete_in_use_message">配置 %s 正在被订阅使用，删除后将解除绑定关系。确定要删除吗？此操作不可恢复。</string>
     <string name="override_dialog_delete_message">确定要删除配置 %s 吗？此操作不可恢复。</string>
@@ -607,7 +548,6 @@
     <string name="override_editor_unnamed_rule">未命名规则</string>
     <string name="override_editor_edit">编辑</string>
     <string name="override_editor_drag_to_sort">拖拽排序</string>
-    <string name="override_editor_cancel_delete">取消删除</string>
     <string name="override_editor_delete_selected">删除已选条目</string>
     <string name="override_editor_delete_selected_named_item">删除已选%s</string>
     <string name="override_editor_delete_selected_rules">删除已选规则</string>
@@ -656,9 +596,7 @@
     <string name="override_editor_select_match_result">选择匹配结果</string>
     <string name="override_editor_custom_match_result">自定义匹配结果</string>
     <string name="override_editor_select_sub_rule_target">选择子规则目标</string>
-    <string name="override_editor_select_proxy_group_target">选择策略组目标</string>
     <string name="override_editor_custom_sub_rule_target">自定义子规则目标</string>
-    <string name="override_editor_custom_proxy_group_target">自定义策略组目标</string>
     <string name="override_editor_select_rule_provider">选择规则提供者</string>
     <string name="override_editor_rule_body">规则主体</string>
     <string name="override_editor_rule_type">类型</string>
@@ -666,7 +604,6 @@
     <string name="override_editor_additional_params">附加参数</string>
     <string name="override_editor_basic_connection">基础连接</string>
     <string name="override_editor_network_and_route">网络与路由</string>
-    <string name="override_editor_port_empty_hint">留空表示不覆写端口</string>
     <string name="override_editor_type_empty">类型不能为空</string>
     <string name="override_editor_member_source">成员来源</string>
     <string name="override_editor_health_check_and_filter">健康检查与过滤</string>
@@ -828,17 +765,9 @@
     <string name="override_form_gso_max_size">GSO 最大长度</string>
     <string name="override_form_dns_basic_switch">基础开关</string>
     <string name="override_form_dns_basic_params">DNS 基础参数</string>
-    <string name="override_form_dns_fake_ip_range">FakeIP 地址段</string>
     <string name="override_form_fake_ip_mode">Fake-IP 模式</string>
     <string name="override_form_fake_ip_params">Fake-IP 参数</string>
     <string name="override_form_dns_upstream">上游服务器</string>
-    <string name="override_form_dns_policy_mode">策略模式</string>
-    <string name="override_form_sniffer_switch">开关</string>
-    <string name="override_form_sniffer_ports">端口</string>
-    <string name="override_form_sniffer_override">覆写目标</string>
-    <string name="override_form_sniffer_skip_domain">跳过域名</string>
-    <string name="override_form_sniffer_force_domain">强制域名</string>
-    <string name="override_form_sniffer_parse_pure_ip">解析纯 IP</string>
     <string name="override_form_tun_route_and_apps">路由与应用</string>
     <string name="override_form_dns_hijack">DNS 劫持</string>
     <string name="override_form_route_address">路由网段</string>
@@ -846,7 +775,6 @@
     <string name="override_form_include_package">包含应用</string>
     <string name="override_form_exclude_package">排除应用</string>
     <string name="override_form_cache_limit">缓存上限</string>
-    <string name="override_form_dns_upstream_servers">上游服务器</string>
     <string name="override_form_nameserver_policy_section">策略映射</string>
     <string name="override_form_filter_list">过滤列表</string>
     <string name="override_form_fallback_switch">Fallback 开关</string>
@@ -867,7 +795,6 @@
     <string name="override_save_import_empty">导入内容不能为空</string>
     <string name="override_save_import_default_name">导入的覆写配置</string>
     <string name="override_dns_policy">DNS 策略</string>
-    <string name="override_dns_policy_not_modify">不修改</string>
     <string name="override_dns_policy_force_enable">强制启用</string>
     <string name="override_dns_policy_use_builtin">使用内置</string>
     <string name="override_dns_prefer_h3">优先 HTTP/3</string>
@@ -877,7 +804,6 @@
     <string name="override_dns_use_hosts">使用 hosts</string>
     <string name="override_dns_append_system">追加系统 DNS</string>
     <string name="override_dns_enhanced_mode">增强模式</string>
-    <string name="override_dns_enhanced_not_modify">不修改</string>
     <string name="override_dns_enhanced_disable">禁用</string>
     <string name="override_dns_enhanced_fakeip">FakeIP</string>
     <string name="override_dns_enhanced_mapping">Mapping</string>
@@ -1007,7 +933,6 @@
     <string name="profiles_page_settings_dialog_local_source">配置来源</string>
     <string name="profiles_page_settings_dialog_local_source_blank">内置基础模板</string>
     <string name="profiles_page_settings_dialog_local_source_imported">已导入本地文件</string>
-    <string name="profiles_page_settings_dialog_edit_profile">编辑配置</string>
     <string name="profiles_page_settings_dialog_open_config">编辑文本</string>
     <string name="profiles_page_settings_dialog_edit_settings">配置选项</string>
     <string name="profiles_page_settings_dialog_save_failed">保存配置失败</string>
@@ -1032,7 +957,6 @@
     <string name="providers_action_update_all">更新全部</string>
     <string name="providers_action_update">更新</string>
     <string name="providers_action_upload">上传</string>
-    <string name="providers_action_operation">操作</string>
     <string name="providers_empty_not_running">代理未启动</string>
     <string name="providers_empty_not_running_hint">请先启动代理服务以查看外部资源</string>
     <string name="providers_empty_no_providers">暂无外部资源</string>
@@ -1044,13 +968,11 @@
     <string name="providers_transport_file">本地文件</string>
     <string name="providers_transport_inline">内联</string>
     <string name="providers_transport_compatible">兼容</string>
-    <string name="providers_summary_override_interval_and_count" formatted="false">更新间隔 %d 秒 · 规则 %d 条</string>
     <string name="providers_summary_item_count">%d 项</string>
     <string name="providers_message_fetch_failed">获取外部资源失败: %s</string>
     <string name="providers_message_update_success">%s 更新成功</string>
     <string name="providers_message_update_failed">更新失败: %s</string>
     <string name="providers_message_update_failed_resources">以下资源更新失败: %s</string>
-    <string name="providers_message_all_updated">全部更新完成</string>
     <string name="providers_message_applied_on_next_start">已更新，将在下次启动时生效</string>
     <string name="providers_message_applied_now">已更新，已实时生效</string>
     <string name="providers_message_upload_success">%s 上传成功</string>
@@ -1067,10 +989,8 @@
     <string name="proxy_mode_direct_summary">当前未使用代理节点</string>
     <string name="proxy_mode_switched">已切换到：%s 模式</string>
     <string name="proxy_mode_switch_failed">切换模式失败：%s</string>
-    <string name="proxy_action_panel">面板</string>
     <string name="proxy_action_test">测试</string>
     <string name="proxy_action_resources">资源管理</string>
-    <string name="proxy_action_control_panel">控制面板</string>
     <string name="proxy_action_more">更多</string>
     <string name="proxy_action_group_style">展开风格</string>
     <string name="proxy_action_show_hidden_groups">显示隐藏策略组</string>
@@ -1081,14 +1001,11 @@
     <string name="proxy_action_sort_mode_summary">调整组内条目顺序</string>
     <string name="proxy_action_add_profile">添加订阅</string>
     <string name="proxy_action_add_provider">添加资源</string>
-    <string name="proxy_action_add_override">添加覆写</string>
-    <string name="proxy_action_add_chain">添加链式代理</string>
     <string name="proxy_empty_no_nodes">暂无节点</string>
     <string name="proxy_empty_hint">请在配置页面加载配置文件</string>
     <string name="proxy_loading_groups">代理组加载中…</string>
     <string name="proxy_testing_group">正在测试节点组：%s</string>
     <string name="proxy_testing_all">正在测试所有节点组…</string>
-    <string name="proxy_testing_request_sent">测试请求已发送</string>
     <string name="proxy_testing_failed">测试失败：%s</string>
     <string name="proxy_testing_in_progress">检测中</string>
     <string name="proxy_selection_switched">已切换到：%s</string>
@@ -1117,9 +1034,6 @@
     <string name="service_tile_click_to_stop_proxy">停止代理</string>
     <string name="service_tile_connecting">正在连接…</string>
     <string name="service_tile_disconnecting">正在断开…</string>
-    <string name="service_auto_restart_channel_name">自动重启服务</string>
-    <string name="service_auto_restart_channel_description">用于自动重启代理服务</string>
-    <string name="service_auto_restart_checking">正在检查自动启动…</string>
     <string name="service_log_record_channel_name">日志录制</string>
     <string name="service_log_record_channel_description">日志录制服务通知</string>
     <string name="service_log_record_notification_title">正在录制日志</string>
@@ -1137,16 +1051,12 @@
     <string name="settings_ui_settings_override_summary">规则覆写</string>
     <string name="settings_ui_settings_meta_features">Meta 功能</string>
     <string name="settings_ui_settings_meta_features_summary">Meta 扩展</string>
-    <string name="settings_more_lab">实验室</string>
-    <string name="settings_more_lab_summary">SubStore · 实验功能</string>
     <string name="settings_more_traffic_statistics">流量统计</string>
     <string name="settings_more_traffic_statistics_summary">流量概览与最近请求</string>
     <string name="settings_more_logs">日志与诊断</string>
     <string name="settings_more_logs_summary">运行日志、启动诊断与故障排查</string>
     <string name="settings_more_about">关于</string>
     <string name="settings_more_about_summary">版本与许可</string>
-    <string name="status_no_active_issues">暂无活动问题</string>
-    <string name="status_attention_items">%d 项需要关注</string>
     <string name="status_source_ready_items">%d 个资源可用</string>
     <string name="status_source_stale_items">%d 个资源需要刷新</string>
     <string name="status_source_pending_items">%d 个资源等待首次同步</string>
@@ -1176,8 +1086,6 @@
     <string name="status_impact_service_down">服务不可用</string>
     <string name="status_impact_data_loss">存在数据丢失风险</string>
     <string name="status_log_live_logs">实时日志</string>
-    <string name="status_log_archives">归档</string>
-    <string name="status_log_startup_archives">启动归档</string>
     <string name="status_log_recording">记录中</string>
     <string name="status_log_not_recording">未记录</string>
     <string name="status_meta_section_title">工具与入口</string>

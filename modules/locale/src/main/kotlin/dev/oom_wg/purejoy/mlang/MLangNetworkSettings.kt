@@ -329,32 +329,6 @@ object MLangNetworkSettings {
                 *args,
             )
 
-        val `AllowNonLocalhostHttpRemoteTitle`: String
-            get() =
-                LocaleBootstrap.getString(
-                    R.string.network_settings_proxy_options_allow_non_localhost_http_remote_title
-                )
-
-        @Composable
-        fun `AllowNonLocalhostHttpRemoteTitle`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.network_settings_proxy_options_allow_non_localhost_http_remote_title,
-                *args,
-            )
-
-        val `AllowNonLocalhostHttpRemoteSummary`: String
-            get() =
-                LocaleBootstrap.getString(
-                    R.string.network_settings_proxy_options_allow_non_localhost_http_remote_summary
-                )
-
-        @Composable
-        fun `AllowNonLocalhostHttpRemoteSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.network_settings_proxy_options_allow_non_localhost_http_remote_summary,
-                *args,
-            )
-
         val `AllowAll`: String
             get() = LocaleBootstrap.getString(R.string.network_settings_proxy_options_allow_all)
 
@@ -445,17 +419,6 @@ object MLangNetworkSettings {
         fun `AndroidUsersTitle`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.network_settings_root_tun_android_users_title, *args)
 
-        val `AndroidUsersSummary`: String
-            get() =
-                LocaleBootstrap.getString(R.string.network_settings_root_tun_android_users_summary)
-
-        @Composable
-        fun `AndroidUsersSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.network_settings_root_tun_android_users_summary,
-                *args,
-            )
-
         val `AndroidUsersPlaceholder`: String
             get() =
                 LocaleBootstrap.getString(
@@ -477,17 +440,6 @@ object MLangNetworkSettings {
         fun `RouteExcludesTitle`(vararg args: Any): String =
             LocaleBootstrap.getString(
                 R.string.network_settings_root_tun_route_excludes_title,
-                *args,
-            )
-
-        val `RouteExcludesSummary`: String
-            get() =
-                LocaleBootstrap.getString(R.string.network_settings_root_tun_route_excludes_summary)
-
-        @Composable
-        fun `RouteExcludesSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.network_settings_root_tun_route_excludes_summary,
                 *args,
             )
 

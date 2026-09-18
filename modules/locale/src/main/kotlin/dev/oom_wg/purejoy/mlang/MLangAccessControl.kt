@@ -182,13 +182,6 @@ object MLangAccessControl {
         fun `ShowSystemApps`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.access_control_settings_show_system_apps, *args)
 
-        val `DescendingOrder`: String
-            get() = LocaleBootstrap.getString(R.string.access_control_settings_descending_order)
-
-        @Composable
-        fun `DescendingOrder`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.access_control_settings_descending_order, *args)
-
         val `SelectedFirst`: String
             get() = LocaleBootstrap.getString(R.string.access_control_settings_selected_first)
 
@@ -202,13 +195,6 @@ object MLangAccessControl {
         @Composable
         fun `SortMode`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.access_control_settings_sort_mode, *args)
-
-        val `SortModeCurrent`: String
-            get() = LocaleBootstrap.getString(R.string.access_control_settings_sort_mode_current)
-
-        @Composable
-        fun `SortModeCurrent`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.access_control_settings_sort_mode_current, *args)
 
         val `BatchOperation`: String
             get() = LocaleBootstrap.getString(R.string.access_control_settings_batch_operation)

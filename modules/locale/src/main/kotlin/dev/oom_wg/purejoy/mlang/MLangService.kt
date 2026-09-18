@@ -88,29 +88,6 @@ object MLangService {
             LocaleBootstrap.getString(R.string.service_tile_disconnecting, *args)
     }
 
-    object `AutoRestart` {
-        val `ChannelName`: String
-            get() = LocaleBootstrap.getString(R.string.service_auto_restart_channel_name)
-
-        @Composable
-        fun `ChannelName`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.service_auto_restart_channel_name, *args)
-
-        val `ChannelDescription`: String
-            get() = LocaleBootstrap.getString(R.string.service_auto_restart_channel_description)
-
-        @Composable
-        fun `ChannelDescription`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.service_auto_restart_channel_description, *args)
-
-        val `Checking`: String
-            get() = LocaleBootstrap.getString(R.string.service_auto_restart_checking)
-
-        @Composable
-        fun `Checking`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.service_auto_restart_checking, *args)
-    }
-
     object `LogRecord` {
         val `ChannelName`: String
             get() = LocaleBootstrap.getString(R.string.service_log_record_channel_name)

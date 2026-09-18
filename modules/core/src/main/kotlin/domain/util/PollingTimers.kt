@@ -30,7 +30,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
@@ -89,7 +88,4 @@ object PollingTimers {
         }
     }
 
-    suspend fun awaitTick(spec: PollingTimerSpec) {
-        ticks(spec).first()
-    }
 }

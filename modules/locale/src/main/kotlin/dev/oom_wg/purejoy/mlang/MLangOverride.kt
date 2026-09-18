@@ -71,26 +71,6 @@ object MLangOverride {
         fun `ImportFromUrl`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_action_import_from_url, *args)
 
-        val `ImportSurge`: String
-            get() = LocaleBootstrap.getString(R.string.override_action_import_surge)
-
-        @Composable
-        fun `ImportSurge`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_action_import_surge, *args)
-
-        val `ImportJsonUrl`: String
-            get() = LocaleBootstrap.getString(R.string.override_action_import_json_url)
-
-        @Composable
-        fun `ImportJsonUrl`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_action_import_json_url, *args)
-
-        val `ImportSurgeUrl`: String
-            get() = LocaleBootstrap.getString(R.string.override_action_import_surge_url)
-
-        @Composable
-        fun `ImportSurgeUrl`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_action_import_surge_url, *args)
     }
 
     object `Empty` {
@@ -184,13 +164,6 @@ object MLangOverride {
         fun `ReadError`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_import_read_error, *args)
 
-        val `Success`: String
-            get() = LocaleBootstrap.getString(R.string.override_import_success)
-
-        @Composable
-        fun `Success`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_import_success, *args)
-
         val `SuccessDefault`: String
             get() = LocaleBootstrap.getString(R.string.override_import_success_default)
 
@@ -212,33 +185,12 @@ object MLangOverride {
         fun `FileError`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_import_file_error, *args)
 
-        val `SurgeSuccess`: String
-            get() = LocaleBootstrap.getString(R.string.override_import_surge_success)
-
-        @Composable
-        fun `SurgeSuccess`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_import_surge_success, *args)
-
         val `SurgeSuccessDefault`: String
             get() = LocaleBootstrap.getString(R.string.override_import_surge_success_default)
 
         @Composable
         fun `SurgeSuccessDefault`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_import_surge_success_default, *args)
-
-        val `SurgeNoRules`: String
-            get() = LocaleBootstrap.getString(R.string.override_import_surge_no_rules)
-
-        @Composable
-        fun `SurgeNoRules`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_import_surge_no_rules, *args)
-
-        val `SurgeImportDescription`: String
-            get() = LocaleBootstrap.getString(R.string.override_import_surge_import_description)
-
-        @Composable
-        fun `SurgeImportDescription`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_import_surge_import_description, *args)
 
         val `PluginNoRules`: String
             get() = LocaleBootstrap.getString(R.string.override_import_plugin_no_rules)
@@ -325,19 +277,6 @@ object MLangOverride {
             fun `Title`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.override_import_url_sheet_title, *args)
 
-            val `JsonTitle`: String
-                get() = LocaleBootstrap.getString(R.string.override_import_url_sheet_json_title)
-
-            @Composable
-            fun `JsonTitle`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.override_import_url_sheet_json_title, *args)
-
-            val `SurgeTitle`: String
-                get() = LocaleBootstrap.getString(R.string.override_import_url_sheet_surge_title)
-
-            @Composable
-            fun `SurgeTitle`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.override_import_url_sheet_surge_title, *args)
         }
     }
 
@@ -398,34 +337,6 @@ object MLangOverride {
                     *args,
                 )
 
-            val `ImportSurgeHint`: String
-                get() = LocaleBootstrap.getString(R.string.override_dialog_create_import_surge_hint)
-
-            @Composable
-            fun `ImportSurgeHint`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.override_dialog_create_import_surge_hint, *args)
-
-            val `ImportJsonUrlHint`: String
-                get() =
-                    LocaleBootstrap.getString(R.string.override_dialog_create_import_json_url_hint)
-
-            @Composable
-            fun `ImportJsonUrlHint`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.override_dialog_create_import_json_url_hint,
-                    *args,
-                )
-
-            val `ImportSurgeUrlHint`: String
-                get() =
-                    LocaleBootstrap.getString(R.string.override_dialog_create_import_surge_url_hint)
-
-            @Composable
-            fun `ImportSurgeUrlHint`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.override_dialog_create_import_surge_url_hint,
-                    *args,
-                )
         }
 
         object `Delete` {
@@ -1069,13 +980,6 @@ object MLangOverride {
         fun `DragToSort`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_drag_to_sort, *args)
 
-        val `CancelDelete`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_cancel_delete)
-
-        @Composable
-        fun `CancelDelete`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_cancel_delete, *args)
-
         val `DeleteSelected`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_delete_selected)
 
@@ -1412,26 +1316,12 @@ object MLangOverride {
         fun `SelectSubRuleTarget`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_select_sub_rule_target, *args)
 
-        val `SelectProxyGroupTarget`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_select_proxy_group_target)
-
-        @Composable
-        fun `SelectProxyGroupTarget`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_select_proxy_group_target, *args)
-
         val `CustomSubRuleTarget`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_custom_sub_rule_target)
 
         @Composable
         fun `CustomSubRuleTarget`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_custom_sub_rule_target, *args)
-
-        val `CustomProxyGroupTarget`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_custom_proxy_group_target)
-
-        @Composable
-        fun `CustomProxyGroupTarget`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_custom_proxy_group_target, *args)
 
         val `SelectRuleProvider`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_select_rule_provider)
@@ -1481,13 +1371,6 @@ object MLangOverride {
         @Composable
         fun `NetworkAndRoute`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_network_and_route, *args)
-
-        val `PortEmptyHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_port_empty_hint)
-
-        @Composable
-        fun `PortEmptyHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_port_empty_hint, *args)
 
         val `TypeEmpty`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_type_empty)
@@ -2626,13 +2509,6 @@ object MLangOverride {
         fun `DnsBasicParams`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_dns_basic_params, *args)
 
-        val `DnsFakeIpRange`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_dns_fake_ip_range)
-
-        @Composable
-        fun `DnsFakeIpRange`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_dns_fake_ip_range, *args)
-
         val `FakeIpMode`: String
             get() = LocaleBootstrap.getString(R.string.override_form_fake_ip_mode)
 
@@ -2653,55 +2529,6 @@ object MLangOverride {
         @Composable
         fun `DnsUpstream`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_dns_upstream, *args)
-
-        val `DnsPolicyMode`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_dns_policy_mode)
-
-        @Composable
-        fun `DnsPolicyMode`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_dns_policy_mode, *args)
-
-        val `SnifferSwitch`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_switch)
-
-        @Composable
-        fun `SnifferSwitch`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_switch, *args)
-
-        val `SnifferPorts`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_ports)
-
-        @Composable
-        fun `SnifferPorts`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_ports, *args)
-
-        val `SnifferOverride`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_override)
-
-        @Composable
-        fun `SnifferOverride`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_override, *args)
-
-        val `SnifferSkipDomain`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_skip_domain)
-
-        @Composable
-        fun `SnifferSkipDomain`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_skip_domain, *args)
-
-        val `SnifferForceDomain`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_force_domain)
-
-        @Composable
-        fun `SnifferForceDomain`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_force_domain, *args)
-
-        val `SnifferParsePureIp`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sniffer_parse_pure_ip)
-
-        @Composable
-        fun `SnifferParsePureIp`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sniffer_parse_pure_ip, *args)
 
         val `TunRouteAndApps`: String
             get() = LocaleBootstrap.getString(R.string.override_form_tun_route_and_apps)
@@ -2751,13 +2578,6 @@ object MLangOverride {
         @Composable
         fun `CacheLimit`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_cache_limit, *args)
-
-        val `DnsUpstreamServers`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_dns_upstream_servers)
-
-        @Composable
-        fun `DnsUpstreamServers`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_dns_upstream_servers, *args)
 
         val `NameserverPolicySection`: String
             get() = LocaleBootstrap.getString(R.string.override_form_nameserver_policy_section)
@@ -2905,13 +2725,6 @@ object MLangOverride {
         fun `Policy`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_dns_policy, *args)
 
-        val `PolicyNotModify`: String
-            get() = LocaleBootstrap.getString(R.string.override_dns_policy_not_modify)
-
-        @Composable
-        fun `PolicyNotModify`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_dns_policy_not_modify, *args)
-
         val `PolicyForceEnable`: String
             get() = LocaleBootstrap.getString(R.string.override_dns_policy_force_enable)
 
@@ -2974,13 +2787,6 @@ object MLangOverride {
         @Composable
         fun `EnhancedMode`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_dns_enhanced_mode, *args)
-
-        val `EnhancedNotModify`: String
-            get() = LocaleBootstrap.getString(R.string.override_dns_enhanced_not_modify)
-
-        @Composable
-        fun `EnhancedNotModify`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_dns_enhanced_not_modify, *args)
 
         val `EnhancedDisable`: String
             get() = LocaleBootstrap.getString(R.string.override_dns_enhanced_disable)

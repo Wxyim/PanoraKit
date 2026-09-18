@@ -93,12 +93,6 @@ object MLangProxy {
     }
 
     object `Action` {
-        val `Panel`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_panel)
-
-        @Composable
-        fun `Panel`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_panel, *args)
 
         val `Test`: String
             get() = LocaleBootstrap.getString(R.string.proxy_action_test)
@@ -113,13 +107,6 @@ object MLangProxy {
         @Composable
         fun `Resources`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_action_resources, *args)
-
-        val `ControlPanel`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_control_panel)
-
-        @Composable
-        fun `ControlPanel`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_control_panel, *args)
 
         val `More`: String
             get() = LocaleBootstrap.getString(R.string.proxy_action_more)
@@ -191,19 +178,6 @@ object MLangProxy {
         fun `AddProvider`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_action_add_provider, *args)
 
-        val `AddOverride`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_add_override)
-
-        @Composable
-        fun `AddOverride`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_add_override, *args)
-
-        val `AddChain`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_add_chain)
-
-        @Composable
-        fun `AddChain`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_add_chain, *args)
     }
 
     object `Empty` {
@@ -245,13 +219,6 @@ object MLangProxy {
         @Composable
         fun `All`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_testing_all, *args)
-
-        val `RequestSent`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_testing_request_sent)
-
-        @Composable
-        fun `RequestSent`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_testing_request_sent, *args)
 
         val `Failed`: String
             get() = LocaleBootstrap.getString(R.string.proxy_testing_failed)

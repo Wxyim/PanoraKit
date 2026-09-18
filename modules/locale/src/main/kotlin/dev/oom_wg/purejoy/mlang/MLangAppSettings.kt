@@ -111,19 +111,6 @@ object MLangAppSettings {
                 *args,
             )
 
-        val `OneChinaTitle`: String
-            get() = LocaleBootstrap.getString(R.string.app_settings_behavior_one_china_title)
-
-        @Composable
-        fun `OneChinaTitle`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.app_settings_behavior_one_china_title, *args)
-
-        val `OneChinaSummary`: String
-            get() = LocaleBootstrap.getString(R.string.app_settings_behavior_one_china_summary)
-
-        @Composable
-        fun `OneChinaSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.app_settings_behavior_one_china_summary, *args)
     }
 
     object `Interface` {
@@ -203,13 +190,6 @@ object MLangAppSettings {
         @Composable
         fun `ColorThemeTitle`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.app_settings_interface_color_theme_title, *args)
-
-        val `ColorThemeSummary`: String
-            get() = LocaleBootstrap.getString(R.string.app_settings_interface_color_theme_summary)
-
-        @Composable
-        fun `ColorThemeSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.app_settings_interface_color_theme_summary, *args)
 
         val `ColorThemePickerTitle`: String
             get() =
@@ -487,12 +467,6 @@ object MLangAppSettings {
                 *args,
             )
 
-        @Composable
-        fun `ExternalIpLookupUrlSummarySet`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.app_settings_network_external_ip_lookup_url_summary_set,
-                *args,
-            )
     }
 
     object `Cleanup` {

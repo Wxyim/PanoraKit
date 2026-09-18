@@ -148,12 +148,6 @@ object MLangComponent {
         fun `HoursAgo`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_profile_card_hours_ago, *args)
 
-        val `DaysAgo`: String
-            get() = LocaleBootstrap.getString(R.string.component_profile_card_days_ago)
-
-        @Composable
-        fun `DaysAgo`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_profile_card_days_ago, *args)
     }
 
     object `Selector` {
@@ -336,13 +330,6 @@ object MLangComponent {
             fun `Available`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_update_title_available, *args)
 
-            val `ForceCancel`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_title_force_cancel)
-
-            @Composable
-            fun `ForceCancel`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_title_force_cancel, *args)
-
             val `Install`: String
                 get() = LocaleBootstrap.getString(R.string.component_update_title_install)
 
@@ -359,27 +346,6 @@ object MLangComponent {
             fun `Available`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_update_message_available, *args)
 
-            val `CoverDesc`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_cover_desc)
-
-            @Composable
-            fun `CoverDesc`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_cover_desc, *args)
-
-            val `CurrentVersion`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_current_version)
-
-            @Composable
-            fun `CurrentVersion`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_current_version, *args)
-
-            val `RemoteVersion`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_remote_version)
-
-            @Composable
-            fun `RemoteVersion`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_remote_version, *args)
-
             val `Updating`: String
                 get() = LocaleBootstrap.getString(R.string.component_update_message_updating)
 
@@ -394,19 +360,6 @@ object MLangComponent {
             fun `Preparing`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_update_message_preparing, *args)
 
-            val `DownloadingWithProgress`: String
-                get() =
-                    LocaleBootstrap.getString(
-                        R.string.component_update_message_downloading_with_progress
-                    )
-
-            @Composable
-            fun `DownloadingWithProgress`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.component_update_message_downloading_with_progress,
-                    *args,
-                )
-
             val `Verifying`: String
                 get() = LocaleBootstrap.getString(R.string.component_update_message_verifying)
 
@@ -414,46 +367,12 @@ object MLangComponent {
             fun `Verifying`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_update_message_verifying, *args)
 
-            val `Finished`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_finished)
-
-            @Composable
-            fun `Finished`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_finished, *args)
-
             val `Downloading`: String
                 get() = LocaleBootstrap.getString(R.string.component_update_message_downloading)
 
             @Composable
             fun `Downloading`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_update_message_downloading, *args)
-
-            val `DownloadReady`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_download_ready)
-
-            @Composable
-            fun `DownloadReady`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_download_ready, *args)
-
-            val `VerifyFailed`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_verify_failed)
-
-            @Composable
-            fun `VerifyFailed`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_verify_failed, *args)
-
-            val `DownloadErrorWithCode`: String
-                get() =
-                    LocaleBootstrap.getString(
-                        R.string.component_update_message_download_error_with_code
-                    )
-
-            @Composable
-            fun `DownloadErrorWithCode`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.component_update_message_download_error_with_code,
-                    *args,
-                )
 
             val `Error`: String
                 get() = LocaleBootstrap.getString(R.string.component_update_message_error)
@@ -516,12 +435,6 @@ object MLangComponent {
     }
 
     object `Accessibility` {
-        val `CountryFlag`: String
-            get() = LocaleBootstrap.getString(R.string.component_accessibility_country_flag)
-
-        @Composable
-        fun `CountryFlag`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_accessibility_country_flag, *args)
     }
 
     object `BottomBar` {
@@ -611,13 +524,6 @@ object MLangComponent {
             @Composable
             fun `Save`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_action_save, *args)
-
-            val `SaveAndExit`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_action_save_and_exit)
-
-            @Composable
-            fun `SaveAndExit`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_action_save_and_exit, *args)
 
             val `SaveLocally`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_action_save_locally)
@@ -958,17 +864,6 @@ object MLangComponent {
             @Composable
             fun `TargetMatch`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_rule_target_match, *args)
-
-            val `ErrorTargetRequired`: String
-                get() =
-                    LocaleBootstrap.getString(R.string.component_editor_rule_error_target_required)
-
-            @Composable
-            fun `ErrorTargetRequired`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.component_editor_rule_error_target_required,
-                    *args,
-                )
 
             val `ErrorContentRequired`: String
                 get() =

@@ -166,19 +166,6 @@ object MLangHome {
                 *args,
             )
 
-        val `ExternalIpLookupTransportTimeout`: String
-            get() =
-                LocaleBootstrap.getString(
-                    R.string.home_message_external_ip_lookup_transport_timeout
-                )
-
-        @Composable
-        fun `ExternalIpLookupTransportTimeout`(vararg args: Any): String =
-            LocaleBootstrap.getString(
-                R.string.home_message_external_ip_lookup_transport_timeout,
-                *args,
-            )
-
         val `ExternalIpLookupFailed`: String
             get() = LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_failed)
 

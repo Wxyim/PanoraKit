@@ -57,12 +57,6 @@ object MLangProviders {
         fun `Upload`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_action_upload, *args)
 
-        val `Operation`: String
-            get() = LocaleBootstrap.getString(R.string.providers_action_operation)
-
-        @Composable
-        fun `Operation`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.providers_action_operation, *args)
     }
 
     object `Empty` {
@@ -149,18 +143,6 @@ object MLangProviders {
     }
 
     object `Summary` {
-        val `OverrideIntervalAndCount`: String
-            get() =
-                LocaleBootstrap.getString(R.string.providers_summary_override_interval_and_count)
-
-        @Composable
-        fun `OverrideIntervalAndCount`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.providers_summary_override_interval_and_count, *args)
-
-        val `ItemCount`: String
-            get() = LocaleBootstrap.getString(R.string.providers_summary_item_count)
-
-        @Composable
         fun `ItemCount`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_summary_item_count, *args)
     }
@@ -193,13 +175,6 @@ object MLangProviders {
         @Composable
         fun `UpdateFailedResources`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_message_update_failed_resources, *args)
-
-        val `AllUpdated`: String
-            get() = LocaleBootstrap.getString(R.string.providers_message_all_updated)
-
-        @Composable
-        fun `AllUpdated`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.providers_message_all_updated, *args)
 
         val `AppliedOnNextStart`: String
             get() = LocaleBootstrap.getString(R.string.providers_message_applied_on_next_start)

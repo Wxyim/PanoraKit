@@ -557,13 +557,6 @@ object MLangProfilesPage {
                 *args,
             )
 
-        val `EditProfile`: String
-            get() = LocaleBootstrap.getString(R.string.profiles_page_settings_dialog_edit_profile)
-
-        @Composable
-        fun `EditProfile`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.profiles_page_settings_dialog_edit_profile, *args)
-
         val `OpenConfig`: String
             get() = LocaleBootstrap.getString(R.string.profiles_page_settings_dialog_open_config)
 

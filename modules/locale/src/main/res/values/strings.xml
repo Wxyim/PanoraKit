@@ -3,8 +3,6 @@
 <resources>
     <string name="about_title">About</string>
     <string name="about_app_description">A customized Android client based on mihomo</string>
-    <string name="about_app_version_loading">Loading…</string>
-    <string name="about_app_version_failed">Failed to load</string>
     <string name="about_app_version_with_mihomo" formatted="false">%s · mihomo %s</string>
     <string name="about_app_name">MonadBox</string>
     <string name="about_section_project_links">Project Links</string>
@@ -15,10 +13,6 @@
     <string name="about_link_releases">MonadBox Releases (Update Source)</string>
     <string name="about_link_mihomo">mihomo</string>
     <string name="about_link_upstream">YumeBox (Upstream)</string>
-    <string name="about_link_telegram_group">Telegram Group</string>
-    <string name="about_link_telegram_channel">Telegram Channel</string>
-    <string name="about_license_check_update">Check for Updates</string>
-    <string name="about_license_check_update_summary">Open the GitHub releases page</string>
     <string name="about_license_libraries">Libraries</string>
     <string name="about_license_libraries_summary">View all third-party libraries used in this app</string>
     <string name="about_license_agpl_name">GNU Affero General Public License v3.0</string>
@@ -41,10 +35,8 @@
     <string name="access_control_app_list_no_selected_packages">No package names selected yet</string>
     <string name="access_control_settings_title">Access Control Settings</string>
     <string name="access_control_settings_show_system_apps">Show System Apps</string>
-    <string name="access_control_settings_descending_order">Descending Order</string>
     <string name="access_control_settings_selected_first">Selected Apps First</string>
     <string name="access_control_settings_sort_mode">Sort Mode</string>
-    <string name="access_control_settings_sort_mode_current">Current: %s</string>
     <string name="access_control_settings_batch_operation">Batch Operation</string>
     <string name="access_control_settings_batch_operation_summary_browse">Apply bulk actions to apps in the current filtered list</string>
     <string name="access_control_settings_batch_operation_summary_manual">Run batch actions against the selected package list</string>
@@ -85,8 +77,6 @@
     <string name="app_settings_behavior_auto_start_summary">Automatically start proxy service on app launch and boot</string>
     <string name="app_settings_behavior_auto_update_on_start_title">Update on Start</string>
     <string name="app_settings_behavior_auto_update_on_start_summary">Auto-update the active subscription profile on start</string>
-    <string name="app_settings_behavior_one_china_title">One-China Policy</string>
-    <string name="app_settings_behavior_one_china_summary">Automatically display TW region flags and codes as China</string>
     <string name="app_settings_interface_language_title">App Language</string>
     <string name="app_settings_interface_language_summary">Choose the display language for the app UI</string>
     <string name="app_settings_interface_language_system">Follow System</string>
@@ -98,7 +88,6 @@
     <string name="app_settings_interface_theme_mode_light">Light</string>
     <string name="app_settings_interface_theme_mode_dark">Dark</string>
     <string name="app_settings_interface_color_theme_title">Theme Palette</string>
-    <string name="app_settings_interface_color_theme_summary">Pick a seed color and auto-derive monochrome theme colors</string>
     <string name="app_settings_interface_color_theme_picker_title">Pick Theme Color</string>
     <string name="app_settings_interface_color_theme_code_label">Theme Color Code (#RRGGBB)</string>
     <string name="app_settings_interface_color_theme_custom_summary">Current theme color: %s</string>
@@ -125,7 +114,6 @@
     <string name="app_settings_network_custom_user_agent_summary_default">Not set, using default</string>
     <string name="app_settings_network_external_ip_lookup_url_title">External IP lookup URL</string>
     <string name="app_settings_network_external_ip_lookup_url_summary_default">Not set — the home screen will not show the lookup button</string>
-    <string name="app_settings_network_external_ip_lookup_url_summary_set">Manual lookup: %s</string>
     <string name="app_settings_cleanup_auto_enabled_title">Timed Auto Cleanup</string>
     <string name="app_settings_cleanup_auto_enabled_summary">Periodically check storage usage and clean when threshold is exceeded</string>
     <string name="app_settings_cleanup_policy_title">Cleanup Policy</string>
@@ -169,7 +157,6 @@
     <string name="component_profile_card_just_now">Just now</string>
     <string name="component_profile_card_minutes_ago">%d min ago</string>
     <string name="component_profile_card_hours_ago">%d hours ago</string>
-    <string name="component_profile_card_days_ago">%d days ago</string>
     <string name="component_selector_not_modify">Don\'t Modify</string>
     <string name="component_selector_use_default">Use Default</string>
     <string name="component_selector_enable">Enable</string>
@@ -194,21 +181,12 @@
     <string name="component_button_start">Start</string>
     <string name="component_loading_starting">Starting…</string>
     <string name="component_update_title_available">New Version Available</string>
-    <string name="component_update_title_force_cancel">Mandatory Update</string>
     <string name="component_update_title_install">Install Update</string>
     <string name="component_update_message_available">A new update is available</string>
-    <string name="component_update_message_cover_desc">Update cover</string>
-    <string name="component_update_message_current_version">Current Version</string>
-    <string name="component_update_message_remote_version">Target Version</string>
     <string name="component_update_message_updating">Updating</string>
     <string name="component_update_message_preparing">Preparing download…</string>
-    <string name="component_update_message_downloading_with_progress">Downloading update package %d%%</string>
     <string name="component_update_message_verifying">Verifying update package…</string>
-    <string name="component_update_message_finished">Download complete, waiting for install confirmation</string>
     <string name="component_update_message_downloading">Downloading update package…</string>
-    <string name="component_update_message_download_ready">Download complete, ready to install</string>
-    <string name="component_update_message_verify_failed">Package verification failed, please retry</string>
-    <string name="component_update_message_download_error_with_code" formatted="false">Download failed (%d): %s</string>
     <string name="component_update_message_error">Download failed, please try again later</string>
     <string name="component_update_message_close">Got it</string>
     <string name="component_update_message_waiting">Waiting for download…</string>
@@ -217,7 +195,6 @@
     <string name="component_config_input_replace_helper">After saving, this field is replaced by the complete dictionary edited here. Existing keys not listed here will be removed.</string>
     <string name="component_config_input_merge_helper">After saving, only the keys edited here are merged into the current dictionary</string>
     <string name="component_config_input_merge_notice">In merge mode, keys with the same name are overwritten, and keys not provided here keep their current values.</string>
-    <string name="component_accessibility_country_flag">%s flag</string>
     <string name="component_bottom_bar_home">Home</string>
     <string name="component_bottom_bar_proxy">Proxy</string>
     <string name="component_bottom_bar_config">Config</string>
@@ -230,7 +207,6 @@
     <string name="component_editor_action_redo">Redo</string>
     <string name="component_editor_action_format">Format</string>
     <string name="component_editor_action_save">Save</string>
-    <string name="component_editor_action_save_and_exit">Save &amp; Exit</string>
     <string name="component_editor_action_save_locally">Save Directly</string>
     <string name="component_editor_action_save_and_stop">Save Directly &amp; Stop</string>
     <string name="component_editor_action_continue_editing">Continue Editing</string>
@@ -274,7 +250,6 @@
     <string name="component_editor_rule_target_reject">REJECT</string>
     <string name="component_editor_rule_target_direct">DIRECT</string>
     <string name="component_editor_rule_target_match">MATCH</string>
-    <string name="component_editor_rule_error_target_required">Please select target</string>
     <string name="component_editor_rule_error_content_required">Rule content cannot be empty</string>
     <string name="connection_detail_info">Connection Info</string>
     <string name="connection_detail_protocol">Protocol</string>
@@ -307,7 +282,6 @@
     <string name="home_message_stop_failed">Stop failed: %s</string>
     <string name="home_message_external_ip_lookup_not_running">External IP lookup is only available while the VPN is running</string>
     <string name="home_message_external_ip_lookup_not_configured">External IP lookup URL is not configured</string>
-    <string name="home_message_external_ip_lookup_transport_timeout">External IP lookup timed out while waiting for the proxy tunnel to become ready</string>
     <string name="home_message_external_ip_lookup_failed">External IP lookup failed. Check the lookup URL and current network path</string>
     <string name="home_control_hint_add_profile">Please add a profile first</string>
     <string name="home_control_hint_enable_profile">Please enable a profile in Config page first</string>
@@ -326,8 +300,6 @@
     <string name="home_status_stopping">Stopping</string>
     <string name="home_status_tap_to_start">Tap to start</string>
     <string name="log_title">Logs</string>
-    <string name="log_action_stop_recording">Stop Recording</string>
-    <string name="log_action_start_recording">Start Recording</string>
     <string name="log_action_save">Save</string>
     <string name="log_action_cleanup">Cleanup Logs</string>
     <string name="log_action_cleanup_done">Log cleanup completed</string>
@@ -340,9 +312,7 @@
     <string name="log_action_cancel">Cancel</string>
     <string name="log_action_export_done">Export completed</string>
     <string name="log_empty_no_logs">No log records</string>
-    <string name="log_empty_start_recording_hint">Click the bottom-right button to start recording logs</string>
     <string name="log_empty_auto_record_hint">Recording starts automatically when the kernel is started from Home</string>
-    <string name="log_detail_waiting_log">Waiting for logs…</string>
     <string name="log_detail_will_show_when_generated">Logs will appear when generated</string>
     <string name="log_history_title">Runtime Log Archives</string>
     <string name="log_history_live_section">Live Runtime Logs (Current Session)</string>
@@ -369,19 +339,6 @@
     <string name="meta_feature_download_dialog_title">Update GeoX Online</string>
     <string name="meta_feature_download_select_files">Please select files to update</string>
     <string name="meta_feature_download_download_complete" formatted="false">Download complete: %d/%d</string>
-    <string name="meta_feature_dashboard_title">Web Dashboard</string>
-    <string name="meta_feature_dashboard_port">Dashboard Port</string>
-    <string name="meta_feature_dashboard_port_summary">Configure the port for the web dashboard</string>
-    <string name="meta_feature_dashboard_secret">API Secret</string>
-    <string name="meta_feature_dashboard_secret_summary">The secret used to authenticate the user for the web dashboard</string>
-    <string name="meta_feature_dashboard_show_secret">Show Secret</string>
-    <string name="meta_feature_dashboard_download">Download MetaCubeXD</string>
-    <string name="meta_feature_dashboard_download_summary">Download and extract the Web UI assets into the data directory</string>
-    <string name="meta_feature_dashboard_download_ok">Dashboard UI downloaded successfully</string>
-    <string name="meta_feature_dashboard_download_failed">Download failed: %s</string>
-    <string name="meta_feature_dashboard_launch">Launch Dashboard</string>
-    <string name="meta_feature_dashboard_launch_summary">Open the Web UI in full-screen</string>
-    <string name="meta_feature_dashboard_launch_disabled">Please download dashboard first</string>
     <string name="network_settings_title">Network Settings</string>
     <string name="network_settings_section_vpn_service">Proxy Mode</string>
     <string name="network_settings_section_vpn_options">Service Options</string>
@@ -411,8 +368,6 @@
     <string name="network_settings_proxy_options_tun_stack_gvisor">GVisor</string>
     <string name="network_settings_proxy_options_tun_stack_mixed">Mixed</string>
     <string name="network_settings_proxy_options_access_control_mode_title">Access Control Mode</string>
-    <string name="network_settings_proxy_options_allow_non_localhost_http_remote_title">Allow HTTP for Remote Resources</string>
-    <string name="network_settings_proxy_options_allow_non_localhost_http_remote_summary">By default, HTTP is only allowed for localhost; enabling this allows non-localhost HTTP remote URLs (MITM risk).</string>
     <string name="network_settings_proxy_options_allow_all">Allow All</string>
     <string name="network_settings_proxy_options_allow_selected">Allow Selected</string>
     <string name="network_settings_proxy_options_reject_selected">Reject Selected</string>
@@ -423,10 +378,8 @@
     <string name="network_settings_root_tun_mtu_title">MTU</string>
     <string name="network_settings_root_tun_mtu_summary">Maximum transmission unit used by RootTun</string>
     <string name="network_settings_root_tun_android_users_title">Android Users</string>
-    <string name="network_settings_root_tun_android_users_summary">Android user IDs allowed to use RootTun</string>
     <string name="network_settings_root_tun_android_users_placeholder">0, 10</string>
     <string name="network_settings_root_tun_route_excludes_title">Route Excludes</string>
-    <string name="network_settings_root_tun_route_excludes_summary">Addresses excluded from RootTun routes</string>
     <string name="network_settings_root_tun_route_excludes_placeholder">No excluded addresses</string>
     <string name="network_settings_root_tun_auto_route_title">Auto Route</string>
     <string name="network_settings_root_tun_auto_route_summary">Automatically add required routes</string>
@@ -480,9 +433,6 @@
     <string name="override_action_import">Import Config/Rules</string>
     <string name="override_action_import_file">Import Config/Rules File</string>
     <string name="override_action_import_from_url">Import Config/Rules from URL</string>
-    <string name="override_action_import_surge">Import Surge/Loon Plugin Rules</string>
-    <string name="override_action_import_json_url">Import Config from URL</string>
-    <string name="override_action_import_surge_url">Import Surge Plugin Rules from URL</string>
     <string name="override_empty_title">No override configs</string>
     <string name="override_empty_hint">Click the button below to create a new config, or import JSON / Surge / Loon rules</string>
     <string name="override_status_in_use">In Use</string>
@@ -495,14 +445,10 @@
     <string name="override_card_delete_button">Delete</string>
     <string name="override_card_no_description">No description</string>
     <string name="override_import_read_error">Cannot read import file</string>
-    <string name="override_import_success">Imported %1$d configs from %2$s</string>
     <string name="override_import_success_default">Imported %d configs</string>
     <string name="override_import_failed">Import failed: %s</string>
     <string name="override_import_file_error">Failed to read file: %s</string>
-    <string name="override_import_surge_success">Imported %1$d plugin rules from %2$s</string>
     <string name="override_import_surge_success_default">Imported %d plugin rules</string>
-    <string name="override_import_surge_no_rules">No usable rules found in [Rule] section</string>
-    <string name="override_import_surge_import_description">Rules imported from Surge plugin</string>
     <string name="override_import_plugin_no_rules">No usable rules found in [Rule] section</string>
     <string name="override_import_plugin_import_description">Rules imported from Surge/Loon plugin</string>
     <string name="override_import_auto_detect_failed">No importable content found. Expect JSON or a plugin with [Rule] section</string>
@@ -515,8 +461,6 @@
     <string name="override_import_url_redirect_invalid">Invalid redirect target, download aborted</string>
     <string name="override_import_url_too_many_redirects">Too many redirects, download aborted</string>
     <string name="override_import_url_sheet_title">Auto Import Config/Rules from URL</string>
-    <string name="override_import_url_sheet_json_title">Import Config from URL</string>
-    <string name="override_import_url_sheet_surge_title">Import Surge Plugin Rules from URL</string>
     <string name="override_export_failed">Export failed: %s</string>
     <string name="override_export_success">Exported config: %s</string>
     <string name="override_dialog_create_title">Add Config</string>
@@ -524,9 +468,6 @@
     <string name="override_dialog_create_description">Config Description</string>
     <string name="override_dialog_create_import_hint">Auto-detect a JSON config, or extract [Rule] entries from a Surge/Loon plugin</string>
     <string name="override_dialog_create_import_from_url_hint">Enter a remote URL to auto-detect a JSON config, or extract [Rule] entries from a Surge/Loon plugin</string>
-    <string name="override_dialog_create_import_surge_hint">Select a .sgmodule file to extract [Rule] rules</string>
-    <string name="override_dialog_create_import_json_url_hint">Enter the remote URL of a JSON config</string>
-    <string name="override_dialog_create_import_surge_url_hint">Enter the remote URL of a .sgmodule file</string>
     <string name="override_dialog_delete_title">Delete Config</string>
     <string name="override_dialog_delete_in_use_message">Config %s is being used by subscriptions. Deleting will unbind the relationship. Are you sure? This action cannot be undone.</string>
     <string name="override_dialog_delete_message">Are you sure you want to delete config %s? This action cannot be undone.</string>
@@ -607,7 +548,6 @@
     <string name="override_editor_unnamed_rule">Unnamed Rule</string>
     <string name="override_editor_edit">Edit</string>
     <string name="override_editor_drag_to_sort">Drag to Sort</string>
-    <string name="override_editor_cancel_delete">Cancel Delete</string>
     <string name="override_editor_delete_selected">Delete Selected</string>
     <string name="override_editor_delete_selected_named_item">Delete selected %s</string>
     <string name="override_editor_delete_selected_rules">Delete Selected Rules</string>
@@ -656,9 +596,7 @@
     <string name="override_editor_select_match_result">Select Match Result</string>
     <string name="override_editor_custom_match_result">Custom Match Result</string>
     <string name="override_editor_select_sub_rule_target">Select Sub Rule Target</string>
-    <string name="override_editor_select_proxy_group_target">Select Proxy Group Target</string>
     <string name="override_editor_custom_sub_rule_target">Custom Sub Rule Target</string>
-    <string name="override_editor_custom_proxy_group_target">Custom Proxy Group Target</string>
     <string name="override_editor_select_rule_provider">Select Rule Provider</string>
     <string name="override_editor_rule_body">Rule Body</string>
     <string name="override_editor_rule_type">Type</string>
@@ -666,7 +604,6 @@
     <string name="override_editor_additional_params">Additional Params</string>
     <string name="override_editor_basic_connection">Basic Connection</string>
     <string name="override_editor_network_and_route">Network &amp; Route</string>
-    <string name="override_editor_port_empty_hint">Leave empty to not override port</string>
     <string name="override_editor_type_empty">Type cannot be empty</string>
     <string name="override_editor_member_source">Member Source</string>
     <string name="override_editor_health_check_and_filter">Health Check &amp; Filter</string>
@@ -828,17 +765,9 @@
     <string name="override_form_gso_max_size">GSO Max Size</string>
     <string name="override_form_dns_basic_switch">Basic Switch</string>
     <string name="override_form_dns_basic_params">DNS Basic Params</string>
-    <string name="override_form_dns_fake_ip_range">FakeIP Range</string>
     <string name="override_form_fake_ip_mode">Fake-IP Mode</string>
     <string name="override_form_fake_ip_params">Fake-IP Params</string>
     <string name="override_form_dns_upstream">Upstream Servers</string>
-    <string name="override_form_dns_policy_mode">Policy Mode</string>
-    <string name="override_form_sniffer_switch">Switch</string>
-    <string name="override_form_sniffer_ports">Ports</string>
-    <string name="override_form_sniffer_override">Override Destination</string>
-    <string name="override_form_sniffer_skip_domain">Skip Domain</string>
-    <string name="override_form_sniffer_force_domain">Force Domain</string>
-    <string name="override_form_sniffer_parse_pure_ip">Parse Pure IP</string>
     <string name="override_form_tun_route_and_apps">Route &amp; Apps</string>
     <string name="override_form_dns_hijack">DNS Hijack</string>
     <string name="override_form_route_address">Route Address</string>
@@ -846,7 +775,6 @@
     <string name="override_form_include_package">Include Package</string>
     <string name="override_form_exclude_package">Exclude Package</string>
     <string name="override_form_cache_limit">Cache Limit</string>
-    <string name="override_form_dns_upstream_servers">Upstream Servers</string>
     <string name="override_form_nameserver_policy_section">Nameserver Policy</string>
     <string name="override_form_filter_list">Filter List</string>
     <string name="override_form_fallback_switch">Fallback Switch</string>
@@ -867,7 +795,6 @@
     <string name="override_save_import_empty">Import content cannot be empty</string>
     <string name="override_save_import_default_name">Imported Override Config</string>
     <string name="override_dns_policy">DNS Policy</string>
-    <string name="override_dns_policy_not_modify">Don\'t Modify</string>
     <string name="override_dns_policy_force_enable">Force Enable</string>
     <string name="override_dns_policy_use_builtin">Use Built-in</string>
     <string name="override_dns_prefer_h3">Prefer HTTP/3</string>
@@ -877,7 +804,6 @@
     <string name="override_dns_use_hosts">Use Hosts</string>
     <string name="override_dns_append_system">Append System DNS</string>
     <string name="override_dns_enhanced_mode">Enhanced Mode</string>
-    <string name="override_dns_enhanced_not_modify">Don\'t Modify</string>
     <string name="override_dns_enhanced_disable">Disable</string>
     <string name="override_dns_enhanced_fakeip">FakeIP</string>
     <string name="override_dns_enhanced_mapping">Mapping</string>
@@ -1007,7 +933,6 @@
     <string name="profiles_page_settings_dialog_local_source">Config Source</string>
     <string name="profiles_page_settings_dialog_local_source_blank">Built-in Basic Template</string>
     <string name="profiles_page_settings_dialog_local_source_imported">Imported Local File</string>
-    <string name="profiles_page_settings_dialog_edit_profile">Edit Profile</string>
     <string name="profiles_page_settings_dialog_open_config">Edit Text</string>
     <string name="profiles_page_settings_dialog_edit_settings">Profile Options</string>
     <string name="profiles_page_settings_dialog_save_failed">Failed to save profile</string>
@@ -1032,7 +957,6 @@
     <string name="providers_action_update_all">Update All</string>
     <string name="providers_action_update">Update</string>
     <string name="providers_action_upload">Upload</string>
-    <string name="providers_action_operation">Operation</string>
     <string name="providers_empty_not_running">Proxy not running</string>
     <string name="providers_empty_not_running_hint">Please start proxy service to view external resources</string>
     <string name="providers_empty_no_providers">No external resources</string>
@@ -1044,13 +968,11 @@
     <string name="providers_transport_file">Local File</string>
     <string name="providers_transport_inline">Inline</string>
     <string name="providers_transport_compatible">Compatible</string>
-    <string name="providers_summary_override_interval_and_count" formatted="false">Update every %d s · %d rules</string>
     <string name="providers_summary_item_count">%d items</string>
     <string name="providers_message_fetch_failed">Failed to fetch resources: %s</string>
     <string name="providers_message_update_success">%s updated successfully</string>
     <string name="providers_message_update_failed">Update failed: %s</string>
     <string name="providers_message_update_failed_resources">Failed resources: %s</string>
-    <string name="providers_message_all_updated">All updated</string>
     <string name="providers_message_applied_on_next_start">Updated &amp; will take effect on next start</string>
     <string name="providers_message_applied_now">Updated &amp; applied immediately</string>
     <string name="providers_message_upload_success">%s uploaded successfully</string>
@@ -1067,10 +989,8 @@
     <string name="proxy_mode_direct_summary">No proxy nodes are used</string>
     <string name="proxy_mode_switched">Switched to: %s mode</string>
     <string name="proxy_mode_switch_failed">Mode switch failed: %s</string>
-    <string name="proxy_action_panel">Panel</string>
     <string name="proxy_action_test">Test</string>
     <string name="proxy_action_resources">Resources</string>
-    <string name="proxy_action_control_panel">Control Panel</string>
     <string name="proxy_action_more">More</string>
     <string name="proxy_action_group_style">Group Style</string>
     <string name="proxy_action_show_hidden_groups">Show Hidden Proxy Groups</string>
@@ -1081,14 +1001,11 @@
     <string name="proxy_action_sort_mode_summary">Adjust item order inside each group</string>
     <string name="proxy_action_add_profile">Add Profile</string>
     <string name="proxy_action_add_provider">Add Provider</string>
-    <string name="proxy_action_add_override">Add Override</string>
-    <string name="proxy_action_add_chain">Add Chain</string>
     <string name="proxy_empty_no_nodes">No nodes</string>
     <string name="proxy_empty_hint">Please load a profile in Config page</string>
     <string name="proxy_loading_groups">Loading proxy groups…</string>
     <string name="proxy_testing_group">Testing node group: %s</string>
     <string name="proxy_testing_all">Testing all node groups…</string>
-    <string name="proxy_testing_request_sent">Test request sent</string>
     <string name="proxy_testing_failed">Test failed: %s</string>
     <string name="proxy_testing_in_progress">Checking</string>
     <string name="proxy_selection_switched">Switched to: %s</string>
@@ -1117,9 +1034,6 @@
     <string name="service_tile_click_to_stop_proxy">Stop proxy</string>
     <string name="service_tile_connecting">Connecting…</string>
     <string name="service_tile_disconnecting">Disconnecting…</string>
-    <string name="service_auto_restart_channel_name">Auto Restart Service</string>
-    <string name="service_auto_restart_channel_description">Used to restart proxy service automatically</string>
-    <string name="service_auto_restart_checking">Checking auto-start…</string>
     <string name="service_log_record_channel_name">Log Recording</string>
     <string name="service_log_record_channel_description">Notification for log recording service</string>
     <string name="service_log_record_notification_title">Recording logs</string>
@@ -1137,16 +1051,12 @@
     <string name="settings_ui_settings_override_summary">Rule Override</string>
     <string name="settings_ui_settings_meta_features">Meta Features</string>
     <string name="settings_ui_settings_meta_features_summary">Meta Extensions</string>
-    <string name="settings_more_lab">Lab</string>
-    <string name="settings_more_lab_summary">SubStore · Experiments</string>
     <string name="settings_more_traffic_statistics">Traffic Statistics</string>
     <string name="settings_more_traffic_statistics_summary">Traffic overview and recent requests</string>
     <string name="settings_more_logs">Logs &amp; Diagnostics</string>
     <string name="settings_more_logs_summary">Runtime logs, startup diagnostics &amp; troubleshooting</string>
     <string name="settings_more_about">About</string>
     <string name="settings_more_about_summary">Version &amp; License</string>
-    <string name="status_no_active_issues">No active issues</string>
-    <string name="status_attention_items">%d items need attention</string>
     <string name="status_source_ready_items">%d sources ready</string>
     <string name="status_source_stale_items">%d sources need refresh</string>
     <string name="status_source_pending_items">%d sources waiting for first sync</string>
@@ -1176,8 +1086,6 @@
     <string name="status_impact_service_down">Service down</string>
     <string name="status_impact_data_loss">Data loss risk</string>
     <string name="status_log_live_logs">Live logs</string>
-    <string name="status_log_archives">Archives</string>
-    <string name="status_log_startup_archives">Startup archives</string>
     <string name="status_log_recording">Recording</string>
     <string name="status_log_not_recording">Not recording</string>
     <string name="status_meta_section_title">Tools and entry points</string>
