@@ -174,12 +174,4 @@ object MLangSettings {
             LocaleBootstrap.getString(R.string.settings_more_about_summary, *args)
     }
 
-    object `Error` {
-        val `WebviewFailed`: String
-            get() = LocaleBootstrap.getString(R.string.settings_error_webview_failed)
-
-        @Composable
-        fun `WebviewFailed`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.settings_error_webview_failed, *args)
-    }
 }

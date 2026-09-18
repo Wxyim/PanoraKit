@@ -170,7 +170,6 @@
     <string name="component_profile_card_minutes_ago">%d 分钟前</string>
     <string name="component_profile_card_hours_ago">%d 小时前</string>
     <string name="component_profile_card_days_ago">%d 天前</string>
-    <string name="component_web_view_invalid_url">无效的 URL</string>
     <string name="component_selector_not_modify">不修改</string>
     <string name="component_selector_use_default">使用默认</string>
     <string name="component_selector_enable">启用</string>
@@ -1146,7 +1145,6 @@
     <string name="settings_more_logs_summary">运行日志、启动诊断与故障排查</string>
     <string name="settings_more_about">关于</string>
     <string name="settings_more_about_summary">版本与许可</string>
-    <string name="settings_error_webview_failed">无法打开 WebView：%s</string>
     <string name="status_no_active_issues">暂无活动问题</string>
     <string name="status_attention_items">%d 项需要关注</string>
     <string name="status_source_ready_items">%d 个资源可用</string>

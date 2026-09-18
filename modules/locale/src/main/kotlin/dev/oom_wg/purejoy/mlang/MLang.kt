@@ -110,9 +110,6 @@ object `MLang` {
         val `ProfileCard`
             get() = MLangComponent.`ProfileCard`
 
-        val `WebView`
-            get() = MLangComponent.`WebView`
-
         val `Selector`
             get() = MLangComponent.`Selector`
 

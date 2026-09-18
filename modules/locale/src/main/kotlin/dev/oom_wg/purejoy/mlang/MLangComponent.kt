@@ -156,15 +156,6 @@ object MLangComponent {
             LocaleBootstrap.getString(R.string.component_profile_card_days_ago, *args)
     }
 
-    object `WebView` {
-        val `InvalidUrl`: String
-            get() = LocaleBootstrap.getString(R.string.component_web_view_invalid_url)
-
-        @Composable
-        fun `InvalidUrl`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_web_view_invalid_url, *args)
-    }
-
     object `Selector` {
         val `NotModify`: String
             get() = LocaleBootstrap.getString(R.string.component_selector_not_modify)

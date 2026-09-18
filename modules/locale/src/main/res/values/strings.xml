@@ -170,7 +170,6 @@
     <string name="component_profile_card_minutes_ago">%d min ago</string>
     <string name="component_profile_card_hours_ago">%d hours ago</string>
     <string name="component_profile_card_days_ago">%d days ago</string>
-    <string name="component_web_view_invalid_url">Invalid URL</string>
     <string name="component_selector_not_modify">Don\'t Modify</string>
     <string name="component_selector_use_default">Use Default</string>
     <string name="component_selector_enable">Enable</string>
@@ -1146,7 +1145,6 @@
     <string name="settings_more_logs_summary">Runtime logs, startup diagnostics &amp; troubleshooting</string>
     <string name="settings_more_about">About</string>
     <string name="settings_more_about_summary">Version &amp; License</string>
-    <string name="settings_error_webview_failed">Unable to open WebView: %s</string>
     <string name="status_no_active_issues">No active issues</string>
     <string name="status_attention_items">%d items need attention</string>
     <string name="status_source_ready_items">%d sources ready</string>
