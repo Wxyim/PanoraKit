@@ -19,7 +19,7 @@ concurrency:
 jobs:
   resolve:
     name: Resolve mihomo/alpha
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       new_sha: ${{ steps.resolve.outputs.new_sha }}
       new_sha_short: ${{ steps.resolve.outputs.new_sha_short }}
@@ -103,7 +103,7 @@ jobs:
     name: Build arm64 APK
     needs: resolve
     if: needs.resolve.outputs.should_build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -342,7 +342,7 @@ jobs:
     name: Update tracked mihomo/alpha SHA
     needs: [resolve, build]
     if: needs.resolve.outputs.should_build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
