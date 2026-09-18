@@ -977,9 +977,6 @@ object `MLang` {
 
         val `More`
             get() = MLangSettings.`More`
-
-        val `Error`
-            get() = MLangSettings.`Error`
     }
 
     object `TrafficStatistics` {
