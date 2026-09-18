@@ -44,9 +44,15 @@ import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.domain.model.TrafficData
 import com.github.nomadboxlab.monadbox.feature.proxy.api.ProxyModeController
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+
+// The quick mode-switch overlay exits over ~220ms. Surface a failed mode
+// switch only after it has fully closed so the error dialog entrance never
+// competes with the overlay exit animation on a cold start.
+private const val MODE_SWITCH_ERROR_DELAY_MS = 280L
 
 @Composable
 fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
@@ -62,6 +68,15 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
 
     var showQuickModePanel by remember { mutableStateOf(false) }
     var modeBadgeBounds by remember { mutableStateOf<Rect?>(null) }
+
+    var surfacedModeError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(proxyUiState.error) {
+        val error = proxyUiState.error
+        if (error != null) {
+            delay(MODE_SWITCH_ERROR_DELAY_MS)
+            surfacedModeError = error
+        }
+    }
 
     LaunchedEffect(Unit) { homeViewModel.refreshProxyMode() }
 
@@ -124,11 +139,12 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
             isExternalIpQuerying = screenState.isExternalIpQuerying,
             onQueryExternalIp = { homeViewModel.queryExternalIp() },
             proxyMode = screenState.proxyMode,
-            uiError = screenState.ui.error ?: proxyUiState.error,
+            uiError = screenState.ui.error ?: surfacedModeError,
             uiMessage = screenState.ui.message ?: proxyUiState.message,
             onConsumeError = {
                 homeViewModel.consumeError()
                 proxyModeController.clearError()
+                surfacedModeError = null
             },
             onConsumeMessage = {
                 homeViewModel.consumeMessage()

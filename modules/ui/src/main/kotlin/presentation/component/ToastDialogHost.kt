@@ -85,19 +85,24 @@ fun ToastDialogHost() {
                     confirmTone = SemanticTone.Brand,
                 )
             } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    AppCommandButton(
-                        title = MLang.Component.Button.Confirm,
-                        imageVector = MonadIcons.Check,
-                        tone = SemanticTone.Brand,
-                        highEmphasis = true,
-                        onClick = { showDialog.value = false },
-                    )
-                }
+                ToastDialogInfoContent(onConfirm = { showDialog.value = false })
             }
         }
+    }
+}
+
+@Composable
+internal fun ToastDialogInfoContent(onConfirm: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        AppCommandButton(
+            title = MLang.Component.Button.Confirm,
+            imageVector = MonadIcons.Check,
+            tone = SemanticTone.Brand,
+            highEmphasis = true,
+            onClick = onConfirm,
+        )
     }
 }
