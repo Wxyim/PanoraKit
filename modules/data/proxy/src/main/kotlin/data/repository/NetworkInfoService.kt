@@ -23,18 +23,17 @@ package com.github.nomadboxlab.monadbox.data.repository
 
 import com.github.nomadboxlab.monadbox.core.util.NetworkInterfaces
 import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.serialization.kotlinx.json.*
 import java.io.Closeable
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 @Serializable
 data class IpInfo(val ip: String, @SerialName("country_code") val countryCode: String? = null)
@@ -59,14 +58,12 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
     private val externalIpCache = MutableStateFlow<IpInfo?>(null)
     val externalIp: StateFlow<IpInfo?> = externalIpCache.asStateFlow()
 
-    private fun newLookupClient(): HttpClient = HttpClient {
-        install(HttpTimeout) {
-            requestTimeoutMillis = 5000
-            connectTimeoutMillis = 5000
-            socketTimeoutMillis = 5000
-        }
-        install(ContentNegotiation) { json(json) }
-    }
+    private fun newLookupClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .callTimeout(5, TimeUnit.SECONDS)
+            .build()
 
     private val _refreshTrigger =
         MutableSharedFlow<Unit>(
@@ -108,20 +105,33 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
         val url = appSettings.externalIpLookupUrl.value.trim()
         if (url.isEmpty()) return null
         if (!isAllowedExternalIpUrl(url)) return null
-        // A fresh client per lookup forces a brand-new TCP/TLS connection. The
-        // Android HttpURLConnection engine keeps a keep-alive pool, so reusing
-        // the shared client would replay the connection that was established
-        // under the previous routing mode: after switching Direct -> Global (or
-        // back) the lookup would keep reporting the old exit IP.
-        val client = newLookupClient()
-        return try {
-            val response = client.get(url)
-            val body = response.bodyAsText().trim()
-            ExternalIpResponseParser.parse(body = body, json = json)
-        } catch (e: Exception) {
-            null
-        } finally {
-            client.close()
+        return withContext(Dispatchers.IO) {
+            // Each query uses a brand-new OkHttpClient whose connection pool
+            // starts empty, so the request always opens a fresh TCP/TLS
+            // connection that follows the current routing mode. The Android
+            // HttpURLConnection engine that Ktor wraps keeps a process-wide
+            // keep-alive pool, so reusing it after a Rule <-> Direct switch
+            // would replay the old egress IP.
+            val client = newLookupClient()
+            try {
+                val request =
+                    Request.Builder()
+                        .url(url)
+                        .header("Connection", "close")
+                        .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        null
+                    } else {
+                        val body = response.body?.string()?.trim().orEmpty()
+                        ExternalIpResponseParser.parse(body = body, json = json)
+                    }
+                }
+            } catch (e: Exception) {
+                null
+            } finally {
+                client.close()
+            }
         }
     }
 
