@@ -186,5 +186,4 @@ object MLangMetaFeature {
         fun `DownloadComplete`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.meta_feature_download_download_complete, *args)
     }
-
 }

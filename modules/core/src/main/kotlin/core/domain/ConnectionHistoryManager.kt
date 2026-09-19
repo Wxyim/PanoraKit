@@ -74,18 +74,18 @@ object ConnectionHistoryManager {
             // Stash the close timestamp so downstream consumers can calculate
             // accurate connection duration (closeTime → start instead of now → start).
             previousConnections.keys.minus(liveIds).forEach { closedId ->
-                previousConnections[closedId]?.let { conn ->
-                    recordClosed(conn, now)
-                }
+                previousConnections[closedId]?.let { conn -> recordClosed(conn, now) }
             }
 
             // Connections the core flagged closed are recorded immediately. They
             // linger in the snapshot for a short grace period, so deduplicate by id.
-            currentConnections.filter { it.closed }.forEach { conn ->
-                if (_closedConnections.none { (_, existing) -> existing.id == conn.id }) {
-                    recordClosed(conn, now)
+            currentConnections
+                .filter { it.closed }
+                .forEach { conn ->
+                    if (_closedConnections.none { (_, existing) -> existing.id == conn.id }) {
+                        recordClosed(conn, now)
+                    }
                 }
-            }
 
             // Trim beyond the hard cap while preserving the minimum
             // guaranteed tail so the "Recent Requests" screen always has

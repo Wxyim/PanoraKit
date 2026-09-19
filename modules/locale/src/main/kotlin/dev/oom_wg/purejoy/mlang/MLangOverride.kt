@@ -70,7 +70,6 @@ object MLangOverride {
         @Composable
         fun `ImportFromUrl`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_action_import_from_url, *args)
-
     }
 
     object `Empty` {
@@ -276,7 +275,6 @@ object MLangOverride {
             @Composable
             fun `Title`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.override_import_url_sheet_title, *args)
-
         }
     }
 
@@ -336,7 +334,6 @@ object MLangOverride {
                     R.string.override_dialog_create_import_from_url_hint,
                     *args,
                 )
-
         }
 
         object `Delete` {

@@ -317,9 +317,9 @@ class SaveProfileWithRollbackUseCase(
     }
 
     /**
-     * Replaces [targetDir]'s contents with [sourceDir]'s using a same-directory
-     * rename swap. The old directory is moved aside first, so a crash or a failed
-     * rename never leaves the profile directory missing.
+     * Replaces [targetDir]'s contents with [sourceDir]'s using a same-directory rename swap. The
+     * old directory is moved aside first, so a crash or a failed rename never leaves the profile
+     * directory missing.
      */
     private suspend fun atomicReplaceDirectoryContents(sourceDir: File, targetDir: File) {
         withContext(Dispatchers.IO) {

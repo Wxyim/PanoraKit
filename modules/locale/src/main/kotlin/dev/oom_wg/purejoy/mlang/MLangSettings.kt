@@ -160,5 +160,4 @@ object MLangSettings {
         fun `AboutSummary`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.settings_more_about_summary, *args)
     }
-
 }

@@ -147,7 +147,6 @@ object MLangComponent {
         @Composable
         fun `HoursAgo`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_profile_card_hours_ago, *args)
-
     }
 
     object `Selector` {
@@ -434,8 +433,7 @@ object MLangComponent {
             LocaleBootstrap.getString(R.string.component_config_input_merge_notice, *args)
     }
 
-    object `Accessibility` {
-    }
+    object `Accessibility` {}
 
     object `BottomBar` {
         val `Home`: String

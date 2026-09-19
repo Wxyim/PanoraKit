@@ -35,8 +35,8 @@ import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordin
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
 import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
-import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

@@ -177,7 +177,6 @@ object MLangProxy {
         @Composable
         fun `AddProvider`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_action_add_provider, *args)
-
     }
 
     object `Empty` {

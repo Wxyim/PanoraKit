@@ -31,13 +31,12 @@ import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * One-time warm-up for the shared Miuix dialog machinery ([AppDialog] /
- * [SuperDialog]) used by every dialog in the app. On a cold start the first
- * dialog (e.g. the no-profile mode-switch failure on the home page) is
- * composed from scratch while other UI is still animating, which drops
- * frames. Rendering an invisible warm-up dialog once at startup (no dim,
- * empty panel) forces the shared class-loading / JIT / first-draw path to run
- * so all subsequent dialogs reuse warm render state.
+ * One-time warm-up for the shared Miuix dialog machinery ([AppDialog] / [SuperDialog]) used by
+ * every dialog in the app. On a cold start the first dialog (e.g. the no-profile mode-switch
+ * failure on the home page) is composed from scratch while other UI is still animating, which drops
+ * frames. Rendering an invisible warm-up dialog once at startup (no dim, empty panel) forces the
+ * shared class-loading / JIT / first-draw path to run so all subsequent dialogs reuse warm render
+ * state.
  */
 private const val DIALOG_WARM_UP_DURATION_MS = 500L
 

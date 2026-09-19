@@ -56,7 +56,6 @@ object MLangProviders {
         @Composable
         fun `Upload`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_action_upload, *args)
-
     }
 
     object `Empty` {

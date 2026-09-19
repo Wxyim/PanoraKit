@@ -115,7 +115,6 @@ object MLangAbout {
         @Composable
         fun `Upstream`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.about_link_upstream, *args)
-
     }
 
     object `License` {

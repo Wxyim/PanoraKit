@@ -110,7 +110,6 @@ object MLangAppSettings {
                 R.string.app_settings_behavior_auto_update_on_start_summary,
                 *args,
             )
-
     }
 
     object `Interface` {
@@ -466,7 +465,6 @@ object MLangAppSettings {
                 R.string.app_settings_network_external_ip_lookup_url_summary_default,
                 *args,
             )
-
     }
 
     object `Cleanup` {

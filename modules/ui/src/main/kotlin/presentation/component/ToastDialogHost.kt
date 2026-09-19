@@ -92,10 +92,7 @@ fun ToastDialogHost() {
 
 @Composable
 internal fun ToastDialogInfoContent(onConfirm: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        contentAlignment = Alignment.CenterEnd,
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.CenterEnd) {
         AppCommandButton(
             title = MLang.Component.Button.Confirm,
             imageVector = MonadIcons.Check,

@@ -116,9 +116,10 @@ fun Profile.isConfigSaved(workDir: File): Boolean {
 
 fun Profile.hasLocalUnvalidatedMarker(workDir: File): Boolean {
     return listOf(
-        File(workDir, "${uuid}/.local-unvalidated-profile"),
-        File(workDir.parentFile ?: workDir, "clash/profiles/${uuid}/.local-unvalidated-profile"),
-    ).any { it.isFile }
+            File(workDir, "${uuid}/.local-unvalidated-profile"),
+            File(workDir.parentFile ?: workDir, "clash/profiles/${uuid}/.local-unvalidated-profile"),
+        )
+        .any { it.isFile }
 }
 
 fun formatProfileTimestamp(timestamp: Long): String {

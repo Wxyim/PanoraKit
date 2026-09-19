@@ -114,11 +114,7 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
             // would replay the old egress IP.
             val client = newLookupClient()
             try {
-                val request =
-                    Request.Builder()
-                        .url(url)
-                        .header("Connection", "close")
-                        .build()
+                val request = Request.Builder().url(url).header("Connection", "close").build()
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
                         null

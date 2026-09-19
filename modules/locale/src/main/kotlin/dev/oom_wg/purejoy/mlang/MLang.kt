@@ -226,7 +226,6 @@ object `MLang` {
 
         val `Download`
             get() = MLangMetaFeature.`Download`
-
     }
 
     object `NetworkSettings` {

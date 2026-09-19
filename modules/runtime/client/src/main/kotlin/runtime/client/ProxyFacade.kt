@@ -182,9 +182,7 @@ private class ProxyFacadeEventBus(
                             intent.getStringExtra(Intents.EXTRA_ERROR_MESSAGE)
                                 ?: intent.getStringExtra("error")
                         onAccessControlApplyFailed(
-                            error
-                                ?.takeIf { it.isNotBlank() }
-                                ?: "Failed to apply access control"
+                            error?.takeIf { it.isNotBlank() } ?: "Failed to apply access control"
                         )
                     }
                 }
