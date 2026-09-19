@@ -94,6 +94,11 @@ interface RuntimeActionExecutor {
         presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult>
 
+    suspend fun applyAccessControlPackages(
+        operation: String,
+        presentation: RuntimeActionFailurePresentation,
+    ): RuntimeActionOutcome<RuntimeMutationResult>
+
     fun resolveDialogMode(): ProxyMode
 
     fun showGlobalError(message: String, title: String = "Error")

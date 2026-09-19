@@ -130,6 +130,29 @@ class RuntimeControlCoordinator(
         }
     }
 
+    /**
+     * Applies a per-app access-control change on the live runtime. Unlike [applyConfigChange] this
+     * does not restart the service: the running TUN session re-establishes its VPN parameters in
+     * place, so the connection is never dropped and no VPN consent re-prompt is required.
+     */
+    suspend fun applyAccessControlPackages(operation: String): RuntimeMutationResult {
+        return runSerialized(operation) {
+            if (!isRuntimeRunning()) {
+                return@runSerialized RuntimeMutationResult(
+                    status = RuntimeMutationStatus.Deferred,
+                    effectiveMode = networkSettingsStorage.proxyMode.value,
+                    runtimeRunning = false,
+                )
+            }
+            proxyFacade.reestablishForAccessControl()
+            RuntimeMutationResult(
+                status = RuntimeMutationStatus.Updated,
+                effectiveMode = resolveCurrentMode(),
+                runtimeRunning = true,
+            )
+        }
+    }
+
     suspend fun activateProfile(
         operation: String,
         profileId: UUID,

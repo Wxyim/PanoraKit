@@ -36,6 +36,7 @@ import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
 import com.github.nomadboxlab.monadbox.service.root.RootPackageShell
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -342,21 +343,33 @@ class AccessControlViewModel(
                 if (networkSettingsStorage.accessControlMode.value == AccessControlMode.ALLOW_ALL)
                     return@launch
 
-                val outcome =
-                    runtimeActionExecutor.applyConfigChange(
-                        operation = "access-control:packages",
-                        persist = {},
-                        shouldRestart = { mode ->
-                            mode != ProxyMode.Http &&
-                                networkSettingsStorage.accessControlMode.value !=
-                                    AccessControlMode.ALLOW_ALL
-                        },
-                        presentation =
-                            RuntimeActionFailurePresentation.Runtime(
-                                fallbackMessage = "Failed to apply access control packages",
-                                targetMode = activeMode,
-                            ),
+                val presentation =
+                    RuntimeActionFailurePresentation.Runtime(
+                        fallbackMessage = "Failed to apply access control packages",
+                        targetMode = activeMode,
                     )
+                val outcome =
+                    if (snapshot.owner == RuntimeOwner.LocalTun) {
+                        // Re-establish the VPN parameters in place so the running connection is
+                        // never dropped and no consent re-prompt appears on every change.
+                        runtimeActionExecutor.applyAccessControlPackages(
+                            operation = "access-control:packages",
+                            presentation = presentation,
+                        )
+                    } else {
+                        // RootTun bakes the package list into its config at build time, so it
+                        // still needs a full reload.
+                        runtimeActionExecutor.applyConfigChange(
+                            operation = "access-control:packages",
+                            persist = {},
+                            shouldRestart = { mode ->
+                                mode != ProxyMode.Http &&
+                                    networkSettingsStorage.accessControlMode.value !=
+                                        AccessControlMode.ALLOW_ALL
+                            },
+                            presentation = presentation,
+                        )
+                    }
                 when (outcome) {
                     is RuntimeActionOutcome.Success -> Unit
                     is RuntimeActionOutcome.PermissionRequired -> {

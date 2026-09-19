@@ -120,6 +120,7 @@ private data class RuntimeEventActions(
     val profileLoaded: String,
     val overrideChanged: String,
     val rootRuntimeFailed: String,
+    val accessControlApplyFailed: String,
 ) {
     companion object {
         fun forPackage(packageName: String): RuntimeEventActions {
@@ -132,6 +133,7 @@ private data class RuntimeEventActions(
                 profileLoaded = Intents.actionProfileLoaded(packageName),
                 overrideChanged = Intents.actionOverrideChanged(packageName),
                 rootRuntimeFailed = Intents.actionRootRuntimeFailed(packageName),
+                accessControlApplyFailed = Intents.actionAccessControlApplyFailed(packageName),
             )
         }
     }
@@ -145,6 +147,7 @@ private class ProxyFacadeEventBus(
     private val onProfileLoaded: (String?) -> Unit,
     private val onRefreshRequested: () -> Unit,
     private val onRootRuntimeFailed: (String, String?) -> Unit,
+    private val onAccessControlApplyFailed: (String) -> Unit,
 ) {
     @Volatile private var registered = false
 
@@ -174,6 +177,16 @@ private class ProxyFacadeEventBus(
                                 .ifBlank { "ROOT_RUNTIME_QUERY_FAILED: root runtime failed" }
                         onRootRuntimeFailed(composed, code)
                     }
+                    actions.accessControlApplyFailed -> {
+                        val error =
+                            intent.getStringExtra(Intents.EXTRA_ERROR_MESSAGE)
+                                ?: intent.getStringExtra("error")
+                        onAccessControlApplyFailed(
+                            error
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "Failed to apply access control"
+                        )
+                    }
                 }
             }
         }
@@ -190,6 +203,7 @@ private class ProxyFacadeEventBus(
                 addAction(actions.overrideChanged)
                 addAction(actions.serviceRecreated)
                 addAction(actions.rootRuntimeFailed)
+                addAction(actions.accessControlApplyFailed)
             }
         runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -449,6 +463,9 @@ class ProxyFacade(
                 Timber.w("Root runtime failed: $composed")
                 scope.launch { handleRuntimeFailure(composed, code) }
             },
+            onAccessControlApplyFailed = { reason ->
+                scope.launch { handleAccessControlApplyFailed(reason) }
+            },
         )
     private val trafficPoller =
         ProxyFacadeTrafficPoller(scope = scope) { _ ->
@@ -542,7 +559,10 @@ class ProxyFacade(
         val activeProfile = ServiceClient.profile().queryActive()
         check(activeProfile != null) { "No profile selected" }
 
-        if (mode == ProxyMode.Tun) {
+        // VPN consent is only required before the first establishment. When the TUN session is
+        // already active (restarting to pick up routing/parameter changes), calling prepare() can
+        // revoke the live connection on some OEMs and always re-prompts for consent, so skip it.
+        if (mode == ProxyMode.Tun && !isLocalSessionActive(ProxyMode.Tun)) {
             val vpnIntent = VpnService.prepare(context)
             if (vpnIntent != null) {
                 throw VpnPermissionRequired(vpnIntent)
@@ -642,6 +662,22 @@ class ProxyFacade(
                 throw e
             }
         }
+    }
+
+    /**
+     * Applies a per-app access-control change without tearing the VPN down. The running local TUN
+     * service re-establishes its VPN parameters in place (seamless handover), so the connection is
+     * never dropped and no VPN permission re-prompt is needed. No-op when the local TUN runtime is
+     * not the active owner; failures are reported asynchronously via [runtimeFailureEvents].
+     */
+    fun reestablishForAccessControl() {
+        val snapshot = runtimeSnapshot.value
+        if (snapshot.owner != RuntimeOwner.LocalTun || snapshot.phase != RuntimePhase.Running) {
+            return
+        }
+        appContext.sendBroadcast(
+            Intent(Intents.ACTION_ACCESS_CONTROL_CHANGED).setPackage(appContext.packageName)
+        )
     }
 
     suspend fun queryProxyGroupNames(excludeNotSelectable: Boolean = false): List<String> {
@@ -1421,6 +1457,18 @@ class ProxyFacade(
             configuredMode = networkSettingsStorage.proxyMode.value,
             generation = generation,
             lastError = normalizedError,
+        )
+    }
+
+    /**
+     * Surfaces an in-place access-control re-establish failure from the running service. The
+     * session itself is left untouched (the service stays up), so unlike [handleRuntimeFailure]
+     * this never transitions the snapshot to Idle.
+     */
+    private fun handleAccessControlApplyFailed(reason: String) {
+        Timber.w("Access control apply failed: $reason")
+        _runtimeFailureEvents.tryEmit(
+            RuntimeFailureEvent(reason, networkSettingsStorage.proxyMode.value)
         )
     }
 

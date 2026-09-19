@@ -90,3 +90,14 @@ fun Context.sendClashStopped(reason: String?) {
         Intent(Intents.ACTION_CLASH_STOPPED).putExtra(Intents.EXTRA_STOP_REASON, reason)
     )
 }
+
+fun Context.sendAccessControlChanged() {
+    sendBroadcastSelf(Intent(Intents.ACTION_ACCESS_CONTROL_CHANGED))
+}
+
+fun Context.sendAccessControlApplyFailed(reason: String?) {
+    sendBroadcastSelf(
+        Intent(Intents.ACTION_ACCESS_CONTROL_APPLY_FAILED)
+            .putExtra(Intents.EXTRA_ERROR_MESSAGE, reason)
+    )
+}

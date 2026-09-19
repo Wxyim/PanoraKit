@@ -41,6 +41,7 @@ internal fun Context.registerRuntimeEventsReceiver(receiver: BroadcastReceiver) 
             addAction(Intents.ACTION_PROFILE_CHANGED)
             addAction(Intents.ACTION_OVERRIDE_CHANGED)
             addAction(Intents.ACTION_CLASH_REQUEST_STOP)
+            addAction(Intents.ACTION_ACCESS_CONTROL_CHANGED)
         }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)

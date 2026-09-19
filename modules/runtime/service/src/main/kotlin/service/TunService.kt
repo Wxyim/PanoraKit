@@ -38,6 +38,7 @@ import com.github.nomadboxlab.monadbox.service.notification.ServiceNotificationM
 import com.github.nomadboxlab.monadbox.service.runtime.session.*
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import com.github.nomadboxlab.monadbox.service.runtime.util.cancelAndJoinBlocking
+import com.github.nomadboxlab.monadbox.service.runtime.util.sendAccessControlApplyFailed
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendProfileLoaded
@@ -64,6 +65,7 @@ class TunService : VpnService(), CoroutineScope {
     private var notificationJob: Job? = null
     private lateinit var runtime: SessionRuntime
     private var reloadJob: Job? = null
+    private var accessControlJob: Job? = null
 
     private val runtimeEventsReceiver =
         object : BroadcastReceiver() {
@@ -71,6 +73,7 @@ class TunService : VpnService(), CoroutineScope {
                 when (intent?.action ?: return) {
                     Intents.ACTION_PROFILE_CHANGED,
                     Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
+                    Intents.ACTION_ACCESS_CONTROL_CHANGED -> scheduleAccessControlApply()
                     Intents.ACTION_CLASH_REQUEST_STOP -> {
                         reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
                         startupLogStore.append(
@@ -213,6 +216,8 @@ class TunService : VpnService(), CoroutineScope {
         runCatching { unregisterReceiver(runtimeEventsReceiver) }
         reloadJob?.cancel()
         reloadJob = null
+        accessControlJob?.cancel()
+        accessControlJob = null
         notificationManager.stopTrafficUpdate()
         notificationJob = null
 
@@ -270,6 +275,42 @@ class TunService : VpnService(), CoroutineScope {
                 StatusProvider.markRuntimeStopped(ProxyMode.Tun)
                 sendClashStopped(reason)
                 stopSelf()
+            }
+        }
+    }
+
+    /**
+     * Applies an access-control (per-app allow/deny) change on the live session by re-establishing
+     * the VPN parameters in place. The service is intentionally left running: Android replaces the
+     * active VPN session seamlessly, so a failed re-establish keeps the previous session intact.
+     * The caller is only told about the failure via [sendAccessControlApplyFailed].
+     */
+    private fun scheduleAccessControlApply() {
+        if (!this::runtime.isInitialized) return
+        accessControlJob?.cancel()
+        accessControlJob = launch {
+            startupLogStore.append("LOCAL_TUN access control: reestablish begin")
+            val spec =
+                runCatching { SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec() }
+                    .getOrElse { error ->
+                        val message = error.runtimeGatewayMessage("tun access control spec failed")
+                        startupLogStore.append("LOCAL_TUN failed=$message")
+                        Log.w("Tun access control spec failed: $message")
+                        sendAccessControlApplyFailed(message)
+                        return@launch
+                    }
+
+            val result = runtime.reestablishTransport(spec)
+            if (!result.success) {
+                val failure =
+                    result.toException(
+                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                        defaultMessage = "tun access control reestablish failed",
+                    )
+                val message = failure.runtimeGatewayMessage("tun access control reestablish failed")
+                startupLogStore.append("LOCAL_TUN failed=$message")
+                Log.w("Tun access control reestablish failed: $message")
+                sendAccessControlApplyFailed(message)
             }
         }
     }

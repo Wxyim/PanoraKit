@@ -103,6 +103,11 @@ class ApplyRuntimeModeUseCaseTest {
             return outcome
         }
 
+        override suspend fun applyAccessControlPackages(
+            operation: String,
+            presentation: RuntimeActionFailurePresentation,
+        ): RuntimeActionOutcome<RuntimeMutationResult> = error("Not used")
+
         override suspend fun startProxy(
             operation: String,
             mode: ProxyMode,

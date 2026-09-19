@@ -130,7 +130,10 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
             } catch (e: Exception) {
                 null
             } finally {
-                client.close()
+                // OkHttp 5 removed OkHttpClient.close(); release the per-request
+                // dispatcher thread pool and connection pool directly instead.
+                client.dispatcher.executorService.shutdown()
+                client.connectionPool.evictAll()
             }
         }
     }

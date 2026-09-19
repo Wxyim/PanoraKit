@@ -54,6 +54,12 @@ object Intents {
     fun actionRootRuntimeFailed(packageName: String): String =
         "$packageName.intent.action.ROOT_RUNTIME_FAILED"
 
+    fun actionAccessControlChanged(packageName: String): String =
+        "$packageName.intent.action.ACCESS_CONTROL_CHANGED"
+
+    fun actionAccessControlApplyFailed(packageName: String): String =
+        "$packageName.intent.action.ACCESS_CONTROL_APPLY_FAILED"
+
     val ACTION_PROVIDE_URL: String
         get() = actionProvideUrl(packageName)
 
@@ -91,6 +97,12 @@ object Intents {
 
     val ACTION_ROOT_RUNTIME_FAILED: String
         get() = actionRootRuntimeFailed(packageName)
+
+    val ACTION_ACCESS_CONTROL_CHANGED: String
+        get() = actionAccessControlChanged(packageName)
+
+    val ACTION_ACCESS_CONTROL_APPLY_FAILED: String
+        get() = actionAccessControlApplyFailed(packageName)
 
     const val EXTRA_STOP_REASON = "stop_reason"
     const val EXTRA_UUID = "uuid"

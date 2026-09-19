@@ -133,6 +133,42 @@ class SessionRuntime(
         }
     }
 
+    /**
+     * Rebuilds the VPN parameters (routes, DNS, per-app allow/deny list, system proxy) and
+     * re-establishes the transport on the live session. Unlike [reload] it does not recompile the
+     * config, and unlike a full restart it never stops the service: Android re-establishes the VPN
+     * in place (seamless handover), so a failure leaves the previous VPN session intact instead of
+     * dropping the user's connection.
+     */
+    suspend fun reestablishTransport(spec: RuntimeSpec): RuntimeOperationResult {
+        return withContext(Dispatchers.Default) {
+            operationMutex.withLock {
+                runCatching {
+                        startupLog(spec, "session: transport reestablish begin")
+                        transport.prepare(spec)
+                        transport.start(spec)
+                        startupLog(spec, "session: transport reestablish done")
+                        RuntimeOperationResult.ok()
+                    }
+                    .getOrElse { error ->
+                        val failure =
+                            error.toRuntimeFailure(
+                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                                fallbackMessage = "transport reestablish failed",
+                            )
+                        Timber.e(
+                            error,
+                            "SessionRuntime transport reestablish failed: %s %s",
+                            failure.code,
+                            failure.message,
+                        )
+                        startupLog(spec, "failed=${failure.code.name}:${failure.message}")
+                        RuntimeOperationResult.fail(failure)
+                    }
+            }
+        }
+    }
+
     suspend fun restart(spec: RuntimeSpec): RuntimeOperationResult {
         return withContext(Dispatchers.Default) {
             operationMutex.withLock {

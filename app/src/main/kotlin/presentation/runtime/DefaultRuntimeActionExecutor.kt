@@ -123,6 +123,15 @@ class DefaultRuntimeActionExecutor(
         }
     }
 
+    override suspend fun applyAccessControlPackages(
+        operation: String,
+        presentation: RuntimeActionFailurePresentation,
+    ): RuntimeActionOutcome<RuntimeMutationResult> {
+        return runAction(presentation = presentation) {
+            runtimeControlCoordinator.applyAccessControlPackages(operation = operation)
+        }
+    }
+
     override fun resolveDialogMode(): ProxyMode {
         val snapshot = proxyFacade.runtimeSnapshot.value
         return RuntimeStateMapper.modeForOwner(snapshot.owner) ?: snapshot.targetMode
