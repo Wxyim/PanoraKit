@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -132,6 +133,12 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
                 }
             }
         }
+
+    // Route the system back gesture through the animated sheet exit instead of
+    // finishing the activity directly. Direct finish on the root activity of a
+    // translucent task plays the system "return to home" scale-to-icon
+    // animation, which looks like a full-screen flicker for a half-sheet.
+    BackHandler(enabled = showSheet.value) { dismissSheet() }
 
     WindowBlurEffect(useBlur = true, blurRadius = blurRadius)
 

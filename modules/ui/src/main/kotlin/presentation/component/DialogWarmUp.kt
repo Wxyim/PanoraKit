@@ -26,32 +26,43 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * One-time warm-up for the shared Miuix dialog machinery ([AppDialog] /
  * [SuperDialog]) used by every dialog in the app. On a cold start the first
  * dialog (e.g. the no-profile mode-switch failure on the home page) is
  * composed from scratch while other UI is still animating, which drops
- * frames. Pre-composing the dialog once, invisibly (its enter animation
- * slides it in from below the screen), warms the shared class-loading / JIT
- * path so all subsequent dialogs reuse warm render state.
+ * frames. Rendering an invisible warm-up dialog once at startup (no dim,
+ * empty panel) forces the shared class-loading / JIT / first-draw path to run
+ * so all subsequent dialogs reuse warm render state.
  */
+private const val DIALOG_WARM_UP_DURATION_MS = 500L
+
 @Composable
 fun DialogWarmUp() {
     val visible = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        // Let the first frames of the home screen settle before warming up.
         withFrameNanos {}
         withFrameNanos {}
         visible.value = true
-        withFrameNanos {}
+        // Keep the dialog composed and on-screen for a full enter cycle. A
+        // one-frame flash starts off-screen (the enter animation slides it up
+        // from below) so the panel is never actually drawn; the shader / JIT
+        // warm-up must see the real first draw to matter.
+        delay(DIALOG_WARM_UP_DURATION_MS)
         visible.value = false
     }
 
     AppDialog(
         show = visible.value,
         onDismissRequest = {},
+        enableWindowDim = false,
+        // Match the root Scaffold's container color so the warm-up panel is
+        // invisible while still exercising the real first-draw path.
+        backgroundColor = MiuixTheme.colorScheme.surface,
         renderInRootScaffold = true,
-    ) {
-        ToastDialogInfoContent(onConfirm = {})
-    }
+    ) {}
 }
