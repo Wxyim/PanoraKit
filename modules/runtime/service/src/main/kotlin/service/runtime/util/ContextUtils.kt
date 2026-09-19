@@ -91,10 +91,6 @@ fun Context.sendClashStopped(reason: String?) {
     )
 }
 
-fun Context.sendAccessControlChanged() {
-    sendBroadcastSelf(Intent(Intents.ACTION_ACCESS_CONTROL_CHANGED))
-}
-
 fun Context.sendAccessControlApplyFailed(reason: String?) {
     sendBroadcastSelf(
         Intent(Intents.ACTION_ACCESS_CONTROL_APPLY_FAILED)
