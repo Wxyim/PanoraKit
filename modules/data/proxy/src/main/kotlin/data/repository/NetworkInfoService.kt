@@ -119,7 +119,7 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
                     if (!response.isSuccessful) {
                         null
                     } else {
-                        val body = response.body?.string()?.trim().orEmpty()
+                        val body = response.body.string().trim().orEmpty()
                         ExternalIpResponseParser.parse(body = body, json = json)
                     }
                 }
