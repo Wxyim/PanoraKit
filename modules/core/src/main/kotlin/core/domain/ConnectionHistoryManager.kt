@@ -60,27 +60,30 @@ object ConnectionHistoryManager {
      */
     fun updateConnections(currentConnections: List<ConnectionInfo>) {
         synchronized(lock) {
-            val currentMap = currentConnections.associateBy { it.id }
-            val currentIds = currentMap.keys
             val now = System.currentTimeMillis()
 
+            // Connections still considered live by the core (not flagged closed).
+            // Closed-flagged entries are retained briefly by the core so that
+            // short-lived requests survive the poll cadence; they must not be
+            // kept as "previous" or they would never be recorded as closed.
+            val liveMap = currentConnections.filterNot { it.closed }.associateBy { it.id }
+            val liveIds = liveMap.keys
+
             // Detect newly-closed connections: IDs in the previous snapshot
-            // that are absent from the current one.
+            // that are absent from the current live set.
             // Stash the close timestamp so downstream consumers can calculate
             // accurate connection duration (closeTime → start instead of now → start).
-            previousConnections.keys.minus(currentIds).forEach { closedId ->
+            previousConnections.keys.minus(liveIds).forEach { closedId ->
                 previousConnections[closedId]?.let { conn ->
-                    val enriched =
-                        conn.copy(
-                            metadata =
-                                JsonObject(
-                                    conn.metadata.toMutableMap().apply {
-                                        put("_closeTimeMs", JsonPrimitive(now))
-                                    }
-                                )
-                        )
-                    _closedConnections.add(0, now to enriched)
-                    closedRevision++
+                    recordClosed(conn, now)
+                }
+            }
+
+            // Connections the core flagged closed are recorded immediately. They
+            // linger in the snapshot for a short grace period, so deduplicate by id.
+            currentConnections.filter { it.closed }.forEach { conn ->
+                if (_closedConnections.none { (_, existing) -> existing.id == conn.id }) {
+                    recordClosed(conn, now)
                 }
             }
 
@@ -91,8 +94,23 @@ object ConnectionHistoryManager {
                 _closedConnections.removeAt(_closedConnections.lastIndex)
             }
 
-            previousConnections = currentMap
+            previousConnections = liveMap
         }
+    }
+
+    /** Append a closed connection (newest first) and bump the revision. */
+    private fun recordClosed(conn: ConnectionInfo, now: Long) {
+        val enriched =
+            conn.copy(
+                metadata =
+                    JsonObject(
+                        conn.metadata.toMutableMap().apply {
+                            put("_closeTimeMs", JsonPrimitive(now))
+                        }
+                    )
+            )
+        _closedConnections.add(0, now to enriched)
+        closedRevision++
     }
 
     /**

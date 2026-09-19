@@ -48,6 +48,22 @@ type recentClosedEntry struct {
 	closedAt time.Time
 }
 
+// connectionSnapshot mirrors statistic.Snapshot but tags every connection with
+// whether it has already closed. Closed connections are retained briefly by
+// [observeRecentClosed] so short-lived requests remain observable by the app's
+// periodic poll; the flag lets the app render them as closed immediately.
+type connectionSnapshot struct {
+	DownloadTotal int64             `json:"downloadTotal"`
+	UploadTotal   int64             `json:"uploadTotal"`
+	Connections   []*connectionInfo `json:"connections"`
+	Memory        uint64            `json:"memory"`
+}
+
+type connectionInfo struct {
+	*statistic.TrackerInfo
+	Closed bool `json:"closed"`
+}
+
 var (
 	recentClosedOnce   sync.Once
 	recentClosedMu     sync.Mutex
@@ -110,17 +126,27 @@ func observeRecentClosed() {
 	}
 }
 
-func QueryConnections() *statistic.Snapshot {
+func QueryConnections() *connectionSnapshot {
 	ensureRecentClosedSampler()
 	snap := statistic.DefaultManager.Snapshot()
 
 	recentClosedMu.Lock()
-	for i := range recentClosedBuffer {
-		snap.Connections = append(snap.Connections, recentClosedBuffer[i].info)
-	}
-	recentClosedMu.Unlock()
+	defer recentClosedMu.Unlock()
 
-	return snap
+	conns := make([]*connectionInfo, 0, len(snap.Connections)+len(recentClosedBuffer))
+	for _, c := range snap.Connections {
+		conns = append(conns, &connectionInfo{TrackerInfo: c})
+	}
+	for _, e := range recentClosedBuffer {
+		conns = append(conns, &connectionInfo{TrackerInfo: e.info, Closed: true})
+	}
+
+	return &connectionSnapshot{
+		DownloadTotal: snap.DownloadTotal,
+		UploadTotal:   snap.UploadTotal,
+		Connections:   conns,
+		Memory:        snap.Memory,
+	}
 }
 
 func CloseConnection(id string) bool {

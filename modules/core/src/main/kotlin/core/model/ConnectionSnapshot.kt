@@ -44,4 +44,9 @@ data class ConnectionInfo(
     val providerChains: List<String> = emptyList(),
     val rule: String = "",
     val rulePayload: String = "",
+    /**
+     * True when the Go core has already closed the connection but still retains
+     * it briefly so short-lived requests remain observable by the periodic poll.
+     */
+    val closed: Boolean = false,
 )

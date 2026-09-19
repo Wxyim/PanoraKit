@@ -102,7 +102,10 @@ class ConnectionActivityRepository(
                         runCatching {
                                 val connections = runtimeConnectionReader.queryConnections()
                                 ConnectionHistoryManager.updateConnections(connections)
-                                _activeConnections.value = connections
+                                // Closed-flagged connections are retained briefly by the
+                                // core so short-lived requests remain observable; keep them
+                                // out of the active set so the UI renders them as closed.
+                                _activeConnections.value = connections.filterNot { it.closed }
                                 val revision = ConnectionHistoryManager.closedConnectionsRevision()
                                 if (revision != lastClosedRevision) {
                                     val closed = ConnectionHistoryManager.getClosedConnections()
