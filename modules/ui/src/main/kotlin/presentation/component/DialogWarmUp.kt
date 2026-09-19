@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -63,6 +64,12 @@ fun DialogWarmUp() {
         // Match the root Scaffold's container color so the warm-up panel is
         // invisible while still exercising the real first-draw path.
         backgroundColor = MiuixTheme.colorScheme.surface,
+        // Render the same title/summary text structure as a real info dialog,
+        // tinted with the panel color so it stays invisible.
+        title = MLang.Component.Message.Hint,
+        summary = MLang.Component.Message.Hint,
+        titleColor = MiuixTheme.colorScheme.surface,
+        summaryColor = MiuixTheme.colorScheme.surface,
         renderInRootScaffold = true,
     ) {}
 }

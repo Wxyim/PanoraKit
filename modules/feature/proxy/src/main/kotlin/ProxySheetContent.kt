@@ -48,8 +48,6 @@ import com.github.nomadboxlab.monadbox.presentation.util.WindowBlurEffect
 import com.github.nomadboxlab.monadbox.presentation.util.resolveAdaptiveProxyDisplayMode
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
@@ -61,7 +59,6 @@ private const val POPUP_ANIMATION_DURATION_MS = 320
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val windowAdaptiveInfo = LocalWindowAdaptiveInfo.current
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsStateWithLifecycle()
@@ -127,10 +124,6 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             {
                 showSortPopup.value = false
                 showSheet.value = false
-                scope.launch {
-                    delay(POPUP_ANIMATION_DURATION_MS.toLong())
-                    onDismiss()
-                }
             }
         }
 
@@ -194,6 +187,7 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
             )
         },
         onDismissRequest = { dismissSheet() },
+        onDismissFinished = onDismiss,
         insideMargin = DpSize(16.dp, 16.dp),
         enableNestedScroll = false,
     ) {
