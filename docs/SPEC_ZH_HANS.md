@@ -305,15 +305,9 @@ Android 官方明确要求应用处理窗口运行时变化、方向变化、分
 应用 **SHOULD** 沉淀以下基础组件族：
 
 * `StatusBadge`
-* `SemanticActionButton`
 * `HealthBanner`
-* `MetricCard`
 * `SettingsRow`
-* `TimelineRow`
-* `DiffViewer`
-* `NavigationSurface`
 * `EditorCommandBar`
-* `TracePanel`
 
 ### 9.5 列表与设置页
 

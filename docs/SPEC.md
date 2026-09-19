@@ -305,15 +305,9 @@ The constraints are:
 The app **SHOULD** standardize the following foundational component families:
 
 * `StatusBadge`
-* `SemanticActionButton`
 * `HealthBanner`
-* `MetricCard`
 * `SettingsRow`
-* `TimelineRow`
-* `DiffViewer`
-* `NavigationSurface`
 * `EditorCommandBar`
-* `TracePanel`
 
 ### 9.5 Lists And Settings Pages
 

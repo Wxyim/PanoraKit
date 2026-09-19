@@ -59,5 +59,4 @@ Distribution rules:
 ### 6.3 Dependencies With Additional Distribution Obligations
 
 - [sora-editor](https://github.com/Rosemoe/sora-editor): LGPL-2.1, retain notices and satisfy LGPL obligations when distributing modified copies
-- [android-tree-sitter](https://github.com/itsaky/android-tree-sitter): LGPL-2.1, retain notices and satisfy LGPL obligations when distributing modified copies
-- LSP4J and `org.eclipse.jdt.annotation`: EPL-2.0, retain notices when redistributing
+- `org.eclipse.jdt.annotation` (transitive via sora-editor): EPL-2.0, retain notices when redistributing

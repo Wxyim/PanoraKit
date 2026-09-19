@@ -59,5 +59,4 @@ MonadBox 自有代码和 fork 衍生代码采用 AGPL-3.0-only 许可。
 ### 6.3 附带分发义务的依赖
 
 - [sora-editor](https://github.com/Rosemoe/sora-editor)：LGPL-2.1，分发时保留上游声明；如分发修改版副本，需履行 LGPL 对应义务
-- [android-tree-sitter](https://github.com/itsaky/android-tree-sitter)：LGPL-2.1，分发时保留上游声明；如分发修改版副本，需履行 LGPL 对应义务
-- LSP4J 与 `org.eclipse.jdt.annotation`：EPL-2.0，分发时保留 EPL 声明
+- `org.eclipse.jdt.annotation`（sora-editor 的传递依赖）：EPL-2.0，分发时保留 EPL 声明
