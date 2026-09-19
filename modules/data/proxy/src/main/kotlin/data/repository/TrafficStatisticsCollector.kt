@@ -34,6 +34,15 @@ class TrafficStatisticsCollector(
     companion object {
         private const val TAG = "TrafficStatisticsCollector"
         private const val COLLECTION_INTERVAL_MS = 5000L
+
+        /**
+         * Traffic deltas are accumulated in memory and flushed to MMKV in one batched write every
+         * [FLUSH_INTERVAL_MS] (and on runtime stop / collector stop) instead of persisting on every
+         * 5s sample. Each flush serializes the full daily-summaries and profile-usages maps, so
+         * batching cuts both CPU and flash cost roughly 6x while bounding crash-loss to at most one
+         * flush window.
+         */
+        private const val FLUSH_INTERVAL_MS = 30_000L
     }
 
     private var collectionJob: Job? = null
@@ -42,6 +51,17 @@ class TrafficStatisticsCollector(
     private var lastTotalDownload: Long = 0L
     private var lastProfileId: String? = null
     private var lastSampleAt: Long = 0L
+
+    // Deltas accumulated between flushes. Guarded by pendingLock so a runtime-stop
+    // flush from the collection coroutine never races an in-flight sample.
+    private val pendingLock = Any()
+    private var pendingUpload: Long = 0L
+    private var pendingDownload: Long = 0L
+    private var pendingWindowStart: Long = 0L
+    private var pendingWindowEnd: Long = 0L
+    private var pendingProfileId: String? = null
+    private var pendingProfileName: String? = null
+    private var lastFlushAt: Long = 0L
 
     init {
         startCollection()
@@ -57,7 +77,9 @@ class TrafficStatisticsCollector(
                         monitoringJob = startTrafficMonitoring()
                     } else {
                         monitoringJob?.cancel()
+                        monitoringJob?.join()
                         monitoringJob = null
+                        flushPending()
                         resetLastValues()
                     }
                 }
@@ -70,6 +92,13 @@ class TrafficStatisticsCollector(
             lastTotalDownload = trafficStatisticsStore.getLastTrafficDownload()
             lastProfileId = trafficStatisticsStore.getLastProfileId()
             lastSampleAt = trafficStatisticsStore.getLastTrafficTimestamp()
+            synchronized(pendingLock) {
+                pendingUpload = 0L
+                pendingDownload = 0L
+                pendingWindowStart = 0L
+                pendingWindowEnd = 0L
+                lastFlushAt = System.currentTimeMillis()
+            }
 
             while (isActive && runtimeStateReader.isRuntimeRunning.value) {
                 runCatching {
@@ -82,6 +111,8 @@ class TrafficStatisticsCollector(
                         delay(COLLECTION_INTERVAL_MS)
                     }
             }
+            // Runtime stopped (or the job was cancelled): persist any buffered deltas.
+            flushPending()
         }
     }
 
@@ -120,24 +151,70 @@ class TrafficStatisticsCollector(
         val downloadDelta = currentDownload - lastTotalDownload
 
         if (uploadDelta > 0 || downloadDelta > 0) {
-            trafficStatisticsStore.recordTraffic(
-                uploadDelta,
-                downloadDelta,
-                currentProfileId,
-                currentProfileName,
-                windowStartMillis = lastSampleAt,
-                windowEndMillis = collectedAt,
-            )
+            synchronized(pendingLock) {
+                if (pendingUpload == 0L && pendingDownload == 0L) {
+                    pendingWindowStart = lastSampleAt
+                }
+                pendingUpload += uploadDelta
+                pendingDownload += downloadDelta
+                pendingWindowEnd = collectedAt
+                pendingProfileId = currentProfileId
+                pendingProfileName = currentProfileName
+            }
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload
             lastSampleAt = collectedAt
-            trafficStatisticsStore.setLastTraffic(
-                currentUpload,
-                currentDownload,
-                currentProfileId,
-                timestamp = collectedAt,
-            )
         }
+
+        if (shouldFlush(collectedAt)) {
+            flushPending()
+        }
+    }
+
+    private fun shouldFlush(collectedAt: Long): Boolean {
+        synchronized(pendingLock) {
+            return (pendingUpload > 0L || pendingDownload > 0L) &&
+                collectedAt - lastFlushAt >= FLUSH_INTERVAL_MS
+        }
+    }
+
+    private fun flushPending() {
+        var upload = 0L
+        var download = 0L
+        var windowStart = 0L
+        var windowEnd = 0L
+        var profileId: String? = null
+        var profileName: String? = null
+        synchronized(pendingLock) {
+            if (pendingUpload <= 0L && pendingDownload <= 0L) return
+            upload = pendingUpload
+            download = pendingDownload
+            windowStart = pendingWindowStart
+            windowEnd = pendingWindowEnd
+            profileId = pendingProfileId
+            profileName = pendingProfileName
+            pendingUpload = 0L
+            pendingDownload = 0L
+            pendingWindowStart = 0L
+            pendingWindowEnd = 0L
+            lastFlushAt = System.currentTimeMillis()
+        }
+        val start = windowStart.takeIf { it > 0L } ?: lastSampleAt
+        val end = windowEnd.coerceAtLeast(start)
+        trafficStatisticsStore.recordTraffic(
+            upload,
+            download,
+            profileId,
+            profileName,
+            windowStartMillis = start,
+            windowEndMillis = end,
+        )
+        trafficStatisticsStore.setLastTraffic(
+            lastTotalUpload,
+            lastTotalDownload,
+            profileId,
+            timestamp = System.currentTimeMillis(),
+        )
     }
 
     private fun resetLastValues() {
@@ -153,6 +230,9 @@ class TrafficStatisticsCollector(
         currentProfileId: String?,
         collectedAt: Long,
     ) {
+        // Attribute any deltas still buffered under the previous profile/totals
+        // before switching the baseline.
+        flushPending()
         lastTotalUpload = currentUpload
         lastTotalDownload = currentDownload
         lastProfileId = currentProfileId
@@ -166,6 +246,7 @@ class TrafficStatisticsCollector(
     }
 
     fun stop() {
+        flushPending()
         collectionJob?.cancel()
         collectionJob = null
         monitoringJob?.cancel()

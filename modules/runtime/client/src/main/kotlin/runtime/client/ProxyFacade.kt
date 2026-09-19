@@ -223,12 +223,16 @@ private class ProxyFacadeEventBus(
     }
 }
 
-private class AppForegroundObserver(private val context: Context) {
+private class AppForegroundObserver(
+    private val context: Context,
+    private val onWakeRequested: () -> Unit = {},
+) {
     private val startedActivityCount = java.util.concurrent.atomic.AtomicInteger(0)
     private val callback =
         object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 startedActivityCount.incrementAndGet()
+                onWakeRequested()
             }
 
             override fun onActivityStopped(activity: Activity) {
@@ -246,15 +250,43 @@ private class AppForegroundObserver(private val context: Context) {
             override fun onActivityDestroyed(activity: Activity) = Unit
         }
 
+    private val screenReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_ON -> onWakeRequested()
+                    Intent.ACTION_SCREEN_OFF -> Unit
+                }
+            }
+        }
+
     val isForeground: Boolean
         get() = startedActivityCount.get() > 0
 
     fun start() {
         (context.applicationContext as? Application)?.registerActivityLifecycleCallbacks(callback)
+        val filter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_SCREEN_OFF)
+            }
+        runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    context.applicationContext.registerReceiver(
+                        screenReceiver,
+                        filter,
+                        Context.RECEIVER_NOT_EXPORTED,
+                    )
+                } else {
+                    context.applicationContext.registerReceiver(screenReceiver, filter)
+                }
+            }
+            .onFailure { error -> Timber.w(error, "Failed to register screen receiver") }
     }
 
     fun stop() {
         (context.applicationContext as? Application)?.unregisterActivityLifecycleCallbacks(callback)
+        runCatching { context.applicationContext.unregisterReceiver(screenReceiver) }
     }
 }
 
@@ -279,6 +311,19 @@ private class ProxyFacadeTrafficPoller(
     fun stop() {
         job?.cancel()
         job = null
+    }
+
+    /**
+     * Restart the poller immediately so it can break out of a long background delay (e.g. the app
+     * returned to the foreground or the screen turned on) and resume the active cadence without
+     * waiting for the next scheduled tick.
+     */
+    fun kick() {
+        val active = job ?: return
+        if (!active.isActive) return
+        job = null
+        active.cancel()
+        start()
     }
 }
 
@@ -428,7 +473,8 @@ class ProxyFacade(
     private val powerManager by lazy {
         appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
     }
-    private val appForegroundObserver = AppForegroundObserver(appContext)
+    private val appForegroundObserver =
+        AppForegroundObserver(appContext, onWakeRequested = { kickTrafficPoller() })
     @Volatile private var lastPayloadRefreshAt = 0L
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
@@ -480,6 +526,8 @@ class ProxyFacade(
             try {
                 connectCurrentBackend()
                 queryTrafficSnapshot()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: ControllerError) {
                 Timber.d(e, "Traffic polling skipped: ${e.message}")
             } catch (e: Exception) {
@@ -1200,6 +1248,14 @@ class ProxyFacade(
 
     private fun stopTrafficPolling() {
         trafficPoller.stop()
+    }
+
+    /**
+     * Wakes the traffic poller out of a long background delay when the app returns to the
+     * foreground or the screen turns on, so refreshes resume immediately.
+     */
+    private fun kickTrafficPoller() {
+        trafficPoller.kick()
     }
 
     override fun close() {
@@ -2092,7 +2148,7 @@ class ProxyFacade(
 
     private companion object {
         private const val ACTIVE_POLL_MS = 2_000L
-        private const val BACKGROUND_POLL_MS = 15_000L
+        private const val BACKGROUND_POLL_MS = 60_000L
         private const val PAYLOAD_REFRESH_INTERVAL_MS = 4_000L
         private const val PROXY_PAGE_PAYLOAD_REFRESH_INTERVAL_MS = 2_000L
         private const val START_WAIT_RETRY_COUNT = 80

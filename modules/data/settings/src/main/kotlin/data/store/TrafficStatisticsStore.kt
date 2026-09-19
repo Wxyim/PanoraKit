@@ -266,10 +266,6 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
 
     fun getLastTrafficTimestamp(): Long = mmkv.decodeLong(KEY_LAST_TRAFFIC_TIMESTAMP, 0L)
 
-    fun flushNow() {
-        // The current store writes eagerly; keep this no-op for API symmetry.
-    }
-
     private fun getDayKey(calendar: Calendar): Long {
         val cal = calendar.clone() as Calendar
         cal.set(Calendar.HOUR_OF_DAY, 0)
