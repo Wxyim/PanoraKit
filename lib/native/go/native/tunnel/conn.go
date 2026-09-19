@@ -19,6 +19,7 @@
 package tunnel
 
 import (
+	"sync"
 	"time"
 
 	C "github.com/metacubex/mihomo/constant"
@@ -27,8 +28,99 @@ import (
 
 const closeAllTimeout = 2 * time.Second
 
+// Recently-closed connection retention.
+//
+// The app polls connection snapshots on a fixed cadence (1s) and only records a
+// connection as "closed" after observing it in at least one snapshot. A
+// short-lived request that opens and closes between two polls would therefore
+// never surface in the recent-request history. To make such connections
+// observable, keep the final tracker info of recently-closed connections around
+// for [recentClosedRetention] and include them in [QueryConnections] snapshots,
+// so the next poll is guaranteed to see them and record them as closed.
+const (
+	recentClosedRetention = 2 * time.Second
+	recentClosedSampler   = 50 * time.Millisecond
+	recentClosedMax       = 500
+)
+
+type recentClosedEntry struct {
+	info     *statistic.TrackerInfo
+	closedAt time.Time
+}
+
+var (
+	recentClosedOnce   sync.Once
+	recentClosedMu     sync.Mutex
+	recentClosedSeen   = make(map[string]*statistic.TrackerInfo)
+	recentClosedBuffer []recentClosedEntry
+)
+
+// ensureRecentClosedSampler starts the background sampler that watches the
+// manager for connections leaving and retains their final tracker info.
+func ensureRecentClosedSampler() {
+	recentClosedOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(recentClosedSampler)
+			defer ticker.Stop()
+			for range ticker.C {
+				observeRecentClosed()
+			}
+		}()
+	})
+}
+
+func observeRecentClosed() {
+	snap := statistic.DefaultManager.Snapshot()
+	now := time.Now()
+
+	alive := make(map[string]bool, len(snap.Connections))
+	for _, c := range snap.Connections {
+		alive[c.UUID.String()] = true
+	}
+
+	recentClosedMu.Lock()
+	defer recentClosedMu.Unlock()
+
+	// Detect connections that left the manager since the previous sample and
+	// retain their final tracker info so a later poll can still observe them.
+	for id, info := range recentClosedSeen {
+		if !alive[id] {
+			recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
+			delete(recentClosedSeen, id)
+		}
+	}
+	for _, c := range snap.Connections {
+		id := c.UUID.String()
+		if _, ok := recentClosedSeen[id]; !ok {
+			recentClosedSeen[id] = c
+		}
+	}
+
+	// Prune retained entries whose retention window has elapsed.
+	cutoff := now.Add(-recentClosedRetention)
+	keep := 0
+	for keep < len(recentClosedBuffer) && !recentClosedBuffer[keep].closedAt.After(cutoff) {
+		keep++
+	}
+	recentClosedBuffer = recentClosedBuffer[keep:]
+
+	// Bound the buffer on a busy device.
+	if len(recentClosedBuffer) > recentClosedMax {
+		recentClosedBuffer = recentClosedBuffer[len(recentClosedBuffer)-recentClosedMax:]
+	}
+}
+
 func QueryConnections() *statistic.Snapshot {
-	return statistic.DefaultManager.Snapshot()
+	ensureRecentClosedSampler()
+	snap := statistic.DefaultManager.Snapshot()
+
+	recentClosedMu.Lock()
+	for i := range recentClosedBuffer {
+		snap.Connections = append(snap.Connections, recentClosedBuffer[i].info)
+	}
+	recentClosedMu.Unlock()
+
+	return snap
 }
 
 func CloseConnection(id string) bool {
