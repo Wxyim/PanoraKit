@@ -158,6 +158,14 @@ android {
     }
 
     packaging {
+        resources {
+            // org.eclipse.jdt.annotation ships its *.java sources as jar resources;
+            // they are never loaded at runtime and only bloat the APK.
+            excludes += "src/**"
+            // org.jcodings transcode tables are dead: R8 strips all
+            // org.jcodings.transcode classes, so nothing can ever load them.
+            excludes += "tables/Transcoder_*"
+        }
         jniLibs {
             excludes += listOf("lib/**/libyume.so")
             // Align with gradle.properties

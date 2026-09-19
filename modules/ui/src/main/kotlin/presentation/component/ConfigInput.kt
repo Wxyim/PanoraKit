@@ -137,56 +137,6 @@ fun StringInputContent(
 }
 
 @Composable
-fun StringListInputContent(
-    title: String,
-    value: List<String>?,
-    onClick: () -> Unit,
-    imageVector: ImageVector = MonadIcons.List,
-    unsetLabel: String = MLang.Component.Selector.UseDefault,
-) {
-    val itemCount = value?.size ?: 0
-    ConfigSettingRow(
-        title = title,
-        summary = value?.firstOrNull(),
-        valueLabel =
-            if (itemCount > 0) {
-                MLang.Component.ConfigInput.CountItems.format(itemCount)
-            } else {
-                unsetLabel
-            },
-        imageVector = imageVector,
-        tone = if (itemCount > 0) SemanticTone.Info else SemanticTone.Neutral,
-        badgeTone = if (itemCount > 0) SemanticTone.Info else SemanticTone.Neutral,
-        onClick = onClick,
-    )
-}
-
-@Composable
-fun StringMapInputContent(
-    title: String,
-    value: Map<String, String>?,
-    onClick: () -> Unit,
-    imageVector: ImageVector = MonadIcons.`Git-merge`,
-    unsetLabel: String = MLang.Component.Selector.UseDefault,
-) {
-    val itemCount = value?.size ?: 0
-    ConfigSettingRow(
-        title = title,
-        summary = value?.entries?.firstOrNull()?.key,
-        valueLabel =
-            if (itemCount > 0) {
-                MLang.Component.ConfigInput.CountItems.format(itemCount)
-            } else {
-                unsetLabel
-            },
-        imageVector = imageVector,
-        tone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
-        badgeTone = if (itemCount > 0) SemanticTone.Warning else SemanticTone.Neutral,
-        onClick = onClick,
-    )
-}
-
-@Composable
 private fun ConfigTextInputDialog(
     show: MutableState<Boolean>,
     title: String,

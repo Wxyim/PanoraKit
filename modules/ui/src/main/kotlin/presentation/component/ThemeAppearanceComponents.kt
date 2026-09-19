@@ -37,20 +37,6 @@ import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 
 @Composable
-fun ThemeModeAndColorItems(
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
-    themeSeedColorArgb: Long,
-    onThemeSeedColorChange: (Long) -> Unit,
-) {
-    ThemeModeSelectorItem(themeMode = themeMode, onThemeModeChange = onThemeModeChange)
-    ThemeColorPickerItem(
-        themeSeedColorArgb = themeSeedColorArgb,
-        onThemeSeedColorChange = onThemeSeedColorChange,
-    )
-}
-
-@Composable
 fun ThemeModeSelectorItem(themeMode: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit) {
     EnumSelector(
         title = MLang.AppSettings.Interface.ThemeModeTitle,

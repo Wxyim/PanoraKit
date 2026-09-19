@@ -33,7 +33,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -66,28 +65,6 @@ fun TopBar(
     val hazeEnabled = hazeState != null && hazeStyle != null
 
     TopAppBar(
-        title = title,
-        modifier = modifier.topBarHazeEffect(hazeState, hazeStyle),
-        color = if (hazeEnabled) Color.Transparent else MiuixTheme.colorScheme.surface,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        scrollBehavior = scrollBehavior,
-    )
-}
-
-@Composable
-fun SmallTopBar(
-    title: String,
-    scrollBehavior: ScrollBehavior,
-    modifier: Modifier = Modifier,
-    navigationIcon: @Composable () -> Unit = {},
-    actions: @Composable RowScope.() -> Unit = {},
-) {
-    val hazeState = LocalTopBarHazeState.current
-    val hazeStyle = LocalTopBarHazeStyle.current
-    val hazeEnabled = hazeState != null && hazeStyle != null
-
-    SmallTopAppBar(
         title = title,
         modifier = modifier.topBarHazeEffect(hazeState, hazeStyle),
         color = if (hazeEnabled) Color.Transparent else MiuixTheme.colorScheme.surface,

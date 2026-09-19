@@ -41,7 +41,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
-import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
@@ -59,56 +58,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val SYSTEM_OVERRIDE_PREFIX = "preset-"
 private const val BLANK_LOCAL_PROFILE_SOURCE = "blank://local-config"
-
-@Composable
-internal fun EditProfileNameDialog(
-    show: MutableState<Boolean>,
-    currentName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var editName by rememberSaveable(currentName) { mutableStateOf(currentName) }
-
-    AppDialog(
-        title = MLang.ProfilesPage.EditDialog.Title,
-        show = show.value,
-        onDismissRequest = onDismiss,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            TextField(
-                value = editName,
-                onValueChange = { editName = it },
-                label = MLang.ProfilesPage.Input.ProfileName,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AppActionTile(
-                    title = MLang.ProfilesPage.Button.Cancel,
-                    imageVector = MonadIcons.Close,
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    compact = true,
-                    minHeight = 64.dp,
-                    tone = SemanticTone.Neutral,
-                )
-                AppActionTile(
-                    title = MLang.ProfilesPage.Button.Confirm,
-                    imageVector = MonadIcons.Check,
-                    onClick = { onConfirm(editName) },
-                    modifier = Modifier.weight(1f),
-                    compact = true,
-                    minHeight = 64.dp,
-                    tone = SemanticTone.Brand,
-                    highEmphasis = true,
-                )
-            }
-        }
-    }
-}
 
 @Composable
 internal fun DeleteConfirmDialog(

@@ -230,50 +230,6 @@ object HomeModeSwitchOverlayLayoutDefaults {
     val ItemIconSize = 20.dp
 }
 
-@Immutable data class HomeIdleLayoutMetrics(val topSpacing: Dp, val bottomSpacing: Dp)
-
-object HomeIdleLayoutDefaults {
-    const val TopSpacingFraction = 0.14f
-    val TopSpacingMin = 72.dp
-    val TopSpacingMax = 122.dp
-    const val BottomSpacingFraction = 0.05f
-    val BottomSpacingMin = DefaultSpacing.xxl
-    val BottomSpacingMax = 40.dp
-    val SectionSpacing = DefaultSpacing.lg
-    val TitleTopPadding = 18.dp
-    val TitleStartPadding = DefaultSpacing.sm
-    val TitleRowSpacing = DefaultSpacing.md
-    val AccentBarTopPadding = DefaultSpacing.md
-    val AccentBarWidth = DefaultSpacing.xxs
-    val AccentBarHeight = 36.dp
-    val TitleFontSize = 28.sp
-    val TitleLineHeight = 50.sp
-    val TitleLetterSpacing = 0.8.sp
-    val AuthorLineWidth = 30.dp
-    val AuthorLineHeight = 1.dp
-    val AuthorSpacing = DefaultSpacing.md
-    val AuthorFontSize = 15.sp
-    val AuthorLetterSpacing = 1.6.sp
-}
-
-@Composable
-fun rememberHomeIdleLayoutMetrics(maxHeight: Dp): HomeIdleLayoutMetrics {
-    return remember(maxHeight) {
-        HomeIdleLayoutMetrics(
-            topSpacing =
-                (maxHeight * HomeIdleLayoutDefaults.TopSpacingFraction).coerceIn(
-                    HomeIdleLayoutDefaults.TopSpacingMin,
-                    HomeIdleLayoutDefaults.TopSpacingMax,
-                ),
-            bottomSpacing =
-                (maxHeight * HomeIdleLayoutDefaults.BottomSpacingFraction).coerceIn(
-                    HomeIdleLayoutDefaults.BottomSpacingMin,
-                    HomeIdleLayoutDefaults.BottomSpacingMax,
-                ),
-        )
-    }
-}
-
 @Immutable
 data class HomeTrafficMetrics(
     val topPadding: Dp,

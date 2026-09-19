@@ -128,9 +128,7 @@ compose-material3-window-size = { module = "androidx.compose.material3:material3
 
 # Sora Editor BOM-managed (version resolved by editor-bom platform dependency)
 editor = { module = "io.github.rosemoe:editor" }
-editor-lsp = { module = "io.github.rosemoe:editor-lsp" }
 editor-language-textmate = { module = "io.github.rosemoe:language-textmate" }
-editor-language-treesitter = { module = "io.github.rosemoe:language-treesitter" }
 
 # MMKV dual-ABI (chosen dynamically per android.injected.build.abi)
 mmkv-v32 = { module = "com.tencent:mmkv", version.ref = "mmkv32" }

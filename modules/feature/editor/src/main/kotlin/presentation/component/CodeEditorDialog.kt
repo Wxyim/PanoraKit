@@ -90,26 +90,6 @@ fun CodeEditorDialog(
 }
 
 @Composable
-fun YamlEditorDialog(
-    show: Boolean,
-    title: String,
-    subtitle: String? = null,
-    value: String?,
-    onValueChange: (String?) -> Unit,
-    onDismiss: () -> Unit = {},
-) {
-    CodeEditorDialog(
-        show = show,
-        title = title,
-        subtitle = subtitle,
-        value = value,
-        language = LanguageScope.Yaml,
-        onValueChange = onValueChange,
-        onDismiss = onDismiss,
-    )
-}
-
-@Composable
 fun JsonEditorDialog(
     show: Boolean,
     title: String,

@@ -102,65 +102,6 @@ fun OverrideFormSection(
 }
 
 @Composable
-fun OverridePlainFormSection(
-    title: String,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    OverrideSection(title = title, modifier = modifier) {
-        OverrideFormFieldColumn(content = content)
-    }
-}
-
-@Composable
-fun OverrideFormFieldColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        content()
-    }
-}
-
-@Composable
-fun OverrideFormField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    supportText: String? = null,
-    errorText: String? = null,
-    maxLines: Int = 1,
-) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = label,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .then(
-                        if (maxLines > 1) {
-                            Modifier.heightIn(min = 0.dp)
-                        } else {
-                            Modifier
-                        }
-                    ),
-            maxLines = maxLines,
-        )
-        supportText?.takeIf(String::isNotBlank)?.let { helper ->
-            OverrideFieldAssistText(
-                text = helper,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
-        errorText?.takeIf(String::isNotBlank)?.let { message ->
-            OverrideFieldAssistText(text = message, color = MiuixTheme.colorScheme.error)
-        }
-    }
-}
-
-@Composable
 fun OverrideFieldAssistText(text: String, color: Color, modifier: Modifier = Modifier) {
     Text(
         text = text,
@@ -344,34 +285,6 @@ fun OverrideSectionVisibility(visible: Boolean, content: @Composable () -> Unit)
         label = "override_section_visibility",
     ) {
         content()
-    }
-}
-
-@Composable
-fun OverrideAdvancedCard(
-    title: String,
-    summary: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    OverrideSelectorCard(modifier = modifier) {
-        OverrideSectionCardHeader(
-            title = title,
-            summary = summary,
-            expanded = expanded,
-            onClick = { onExpandedChange(!expanded) },
-        )
-        OverrideSectionVisibility(visible = expanded) {
-            Column(
-                modifier =
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                content()
-            }
-        }
     }
 }
 

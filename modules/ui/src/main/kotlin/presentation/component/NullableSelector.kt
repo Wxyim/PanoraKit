@@ -150,74 +150,9 @@ fun <T> NullableEnumSelector(
     )
 }
 
-enum class ListMergeStrategy {
-
-    None,
-    Replace,
-    Start,
-    End,
-}
-
 enum class MapMergeStrategy {
 
     None,
     Replace,
     Merge,
-}
-
-@Composable
-fun ListMergeStrategySelector(
-    title: String,
-    summary: String? = null,
-    value: ListMergeStrategy,
-    onValueChange: (ListMergeStrategy) -> Unit,
-) {
-    val items =
-        listOf(
-            MLang.Component.Selector.NotModify,
-            MLang.Component.Selector.Replace,
-            MLang.Component.Selector.Prepend,
-            MLang.Component.Selector.Append,
-        )
-    val values =
-        listOf(
-            ListMergeStrategy.None,
-            ListMergeStrategy.Replace,
-            ListMergeStrategy.Start,
-            ListMergeStrategy.End,
-        )
-
-    NullableEnumSelector(
-        title = title,
-        summary = summary,
-        value = value,
-        items = items,
-        values = values,
-        onValueChange = { onValueChange(it ?: ListMergeStrategy.None) },
-    )
-}
-
-@Composable
-fun MapMergeStrategySelector(
-    title: String,
-    summary: String? = null,
-    value: MapMergeStrategy,
-    onValueChange: (MapMergeStrategy) -> Unit,
-) {
-    val items =
-        listOf(
-            MLang.Component.Selector.NotModify,
-            MLang.Component.Selector.Replace,
-            MLang.Component.Selector.Merge,
-        )
-    val values = listOf(MapMergeStrategy.None, MapMergeStrategy.Replace, MapMergeStrategy.Merge)
-
-    NullableEnumSelector(
-        title = title,
-        summary = summary,
-        value = value,
-        items = items,
-        values = values,
-        onValueChange = { onValueChange(it ?: MapMergeStrategy.None) },
-    )
 }

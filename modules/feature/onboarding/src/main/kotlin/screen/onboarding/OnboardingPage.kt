@@ -35,7 +35,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -76,35 +75,6 @@ private const val RevealDurationMs = 420
 private const val LinkPolicyTag = "policy"
 
 private val StartupTypewriterPhrases = listOf("MonadBox", "Hello Word")
-
-@Composable
-internal fun DreamBackdrop(modifier: Modifier = Modifier, boosted: Boolean = true) {
-    val surface = MiuixTheme.colorScheme.surface
-    val primary = MiuixTheme.colorScheme.primary
-    val baseTint =
-        remember(surface, boosted) { lerp(surface, primary, if (boosted) 0.035f else 0.02f) }
-    Canvas(modifier = modifier.fillMaxSize()) {
-        drawRect(
-            brush =
-                Brush.linearGradient(
-                    colors = listOf(surface, baseTint, lerp(surface, primary, 0.02f)),
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height),
-                )
-        )
-        drawRect(
-            brush =
-                Brush.verticalGradient(
-                    colors =
-                        listOf(
-                            Color.White.copy(alpha = 0.05f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.015f),
-                        )
-                )
-        )
-    }
-}
 
 @Composable
 internal fun DetailBackdrop(modifier: Modifier = Modifier) {

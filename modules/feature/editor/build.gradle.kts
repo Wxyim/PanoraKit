@@ -44,9 +44,7 @@ dependencies {
     // Sora Editor
     implementation(platform(libs.editor.bom))
     implementation(libs.editor)
-    implementation(libs.editor.lsp)
     implementation(libs.editor.language.textmate)
-    implementation(libs.editor.language.treesitter)
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)

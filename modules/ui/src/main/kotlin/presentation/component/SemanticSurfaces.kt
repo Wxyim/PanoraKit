@@ -38,43 +38,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-@Composable
-fun SemanticIconSurface(
-    imageVector: ImageVector,
-    tone: SemanticTone,
-    modifier: Modifier = Modifier,
-    highEmphasis: Boolean = true,
-    containerSize: Dp = 46.dp,
-    iconSize: Dp = 22.dp,
-    cornerRadius: Dp = 16.dp,
-) {
-    val style = SemanticActionDefaults.style(tone = tone, highEmphasis = highEmphasis)
-    val shape = RoundedCornerShape(cornerRadius)
-
-    Box(
-        modifier =
-            modifier
-                .size(containerSize)
-                .clip(shape)
-                .background(style.iconContainerColor, shape)
-                .border(AppTheme.strokes.default, style.borderColor.copy(alpha = 0.72f), shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            modifier = Modifier.size(iconSize),
-            imageVector = imageVector,
-            tint = style.contentColor,
-            contentDescription = null,
-        )
-    }
-}
 
 @Composable
 fun ReadonlyInfoField(

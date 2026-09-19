@@ -72,14 +72,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.Zashboard
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.TextField
 
-typealias OpenStringListEditor =
-    (
-        title: String,
-        placeholder: String,
-        value: List<String>?,
-        onValueChange: (List<String>?) -> Unit,
-    ) -> Unit
-
 typealias OpenStringMapEditor =
     (
         title: String,

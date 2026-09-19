@@ -23,8 +23,6 @@ package com.github.nomadboxlab.monadbox.common.util
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import dev.oom_wg.purejoy.mlang.MLang
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -108,9 +106,4 @@ fun Context.toast(
 ) {
     @Suppress("UNUSED_VARIABLE") val ignored = duration
     showToastDialog(message, mode = mode)
-}
-
-@Composable
-fun ShowToast(message: String, mode: ToastMode = ToastMode.INFO) {
-    LaunchedEffect(message) { showToastDialog(message, mode = mode) }
 }

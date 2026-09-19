@@ -30,66 +30,6 @@ val OverrideEditorJson = Json {
     ignoreUnknownKeys = true
 }
 
-fun encodeObjectList(value: List<Map<String, JsonElement>>?): String? {
-    if (value.isNullOrEmpty()) return null
-    return OverrideEditorJson.encodeToString(
-        JsonElement.serializer(),
-        JsonArray(value.map { fields -> JsonObject(toOrderedJsonElementMap(fields)) }),
-    )
-}
-
-fun decodeObjectList(value: String?): List<Map<String, JsonElement>>? {
-    if (value.isNullOrBlank()) return null
-    return OverrideEditorJson.parseToJsonElement(value)
-        .jsonArray
-        .map { element -> orderedJsonObjectFields(element.jsonObject) }
-        .ifEmpty { null }
-}
-
-fun encodeObjectMap(value: Map<String, Map<String, JsonElement>>?): String? {
-    if (value.isNullOrEmpty()) return null
-    return OverrideEditorJson.encodeToString(
-        JsonElement.serializer(),
-        JsonObject(
-            LinkedHashMap<String, JsonElement>(value.size).apply {
-                toOrderedObjectMap(value)?.forEach { (key, fields) ->
-                    put(key, JsonObject(toOrderedJsonElementMap(fields)))
-                }
-            }
-        ),
-    )
-}
-
-fun decodeObjectMap(value: String?): Map<String, Map<String, JsonElement>>? {
-    if (value.isNullOrBlank()) return null
-    return OverrideEditorJson.parseToJsonElement(value)
-        .jsonObject
-        .let(::orderedObjectMapFromJson)
-        .ifEmpty { null }
-}
-
-fun encodeSubRules(value: Map<String, List<String>>?): String? {
-    if (value.isNullOrEmpty()) return null
-    return OverrideEditorJson.encodeToString(
-        JsonElement.serializer(),
-        JsonObject(
-            LinkedHashMap<String, JsonElement>(value.size).apply {
-                toOrderedSubRuleMap(value)?.forEach { (key, rules) ->
-                    put(key, JsonArray(rules.map(::JsonPrimitive)))
-                }
-            }
-        ),
-    )
-}
-
-fun decodeSubRules(value: String?): Map<String, List<String>>? {
-    if (value.isNullOrBlank()) return null
-    return OverrideEditorJson.parseToJsonElement(value)
-        .jsonObject
-        .let(::orderedSubRuleMapFromJson)
-        .ifEmpty { null }
-}
-
 fun encodeObjectFields(value: Map<String, JsonElement>?): String? {
     if (value.isNullOrEmpty()) return null
     return OverrideEditorJson.encodeToString(
@@ -112,24 +52,6 @@ private fun orderedJsonObjectFields(value: JsonObject): LinkedHashMap<String, Js
     return orderedMap
 }
 
-private fun orderedObjectMapFromJson(
-    value: JsonObject
-): LinkedHashMap<String, Map<String, JsonElement>> {
-    val orderedMap = LinkedHashMap<String, Map<String, JsonElement>>(value.size)
-    value.forEach { (key, element) ->
-        orderedMap[key] = orderedJsonObjectFields(element.jsonObject)
-    }
-    return orderedMap
-}
-
-private fun orderedSubRuleMapFromJson(value: JsonObject): LinkedHashMap<String, List<String>> {
-    val orderedMap = LinkedHashMap<String, List<String>>(value.size)
-    value.forEach { (key, element) ->
-        orderedMap[key] = element.jsonArray.map { it.jsonPrimitive.content }
-    }
-    return orderedMap
-}
-
 fun jsonElementToEditorValue(element: JsonElement): String {
     return when (element) {
         is JsonPrimitive -> {
@@ -141,29 +63,6 @@ fun jsonElementToEditorValue(element: JsonElement): String {
         }
 
         else -> OverrideEditorJson.encodeToString(JsonElement.serializer(), element)
-    }
-}
-
-fun editorValueToJsonElement(rawValue: String): JsonElement {
-    val trimmedValue = rawValue.trim()
-    if (trimmedValue.isEmpty()) {
-        return JsonPrimitive("")
-    }
-    if (trimmedValue == "null") {
-        return JsonNull
-    }
-    val parsedElement =
-        runCatching { OverrideEditorJson.parseToJsonElement(trimmedValue) }.getOrNull()
-    if (parsedElement != null) {
-        return parsedElement
-    }
-
-    val primitive = JsonPrimitive(trimmedValue)
-    return when {
-        primitive.booleanOrNull != null -> JsonPrimitive(primitive.booleanOrNull!!)
-        primitive.intOrNull != null -> JsonPrimitive(primitive.intOrNull!!)
-        primitive.doubleOrNull != null -> JsonPrimitive(primitive.doubleOrNull!!)
-        else -> JsonPrimitive(trimmedValue)
     }
 }
 

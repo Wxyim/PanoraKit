@@ -101,31 +101,6 @@ fun collectRuleProviderNames(
     )
 }
 
-fun buildOrderedProxyGroupMembers(
-    catalog: OverrideReferenceCatalog,
-    selectedKnownValues: Collection<String>,
-    customValues: List<String>,
-): List<String> {
-    val orderedValues = LinkedHashSet<String>()
-    catalog.proxyNames.forEach { name ->
-        if (name in selectedKnownValues) {
-            orderedValues += name
-        }
-    }
-    catalog.proxyGroupNames.forEach { name ->
-        if (name in selectedKnownValues) {
-            orderedValues += name
-        }
-    }
-    customValues.forEach { name ->
-        val normalizedName = name.trim()
-        if (normalizedName.isNotBlank() && normalizedName !in orderedValues) {
-            orderedValues += normalizedName
-        }
-    }
-    return orderedValues.toList()
-}
-
 private fun collectOrderedNames(vararg groups: List<String>): List<String> {
     val orderedNames = LinkedHashSet<String>()
     groups.forEach { values ->
