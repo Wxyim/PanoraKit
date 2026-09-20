@@ -310,6 +310,10 @@ AnotherScreen|path/to/AnotherScreen.kt|another-id|app|top-level|navigation|ui-se
 
 Column definitions: `destination` (route class name), `screenFile`, `capabilityId` (kebab-case), `ownerModule` (module subdirectory path), `uiType` (`system`, `top-level`, `detail`, `editor`), `entryMode` (`start`, `navigation`, `implicit`), `settingsSection` (`ui-settings`, `more`, or empty), `implementationFiles` (semicolon-separated paths).
 
+The `RootGraph` must register exactly one start destination with `entryMode=start`, and the
+validator requires that `entryMode` to match the destination's `@Destination<...>(start = true)`
+annotation. `MainScreen` is currently the RootGraph start destination.
+
 Failure handling:
 
 1. Inspect report files under `build/reports/ui-contracts/`.
@@ -356,6 +360,15 @@ Contribution rule:
 
 - do not add deferred startup logic to `App.kt`
 - register new startup steps via coordinator classes
+
+Navigation startup:
+
+- `MainScreen` is the `RootGraph` start destination (`@Destination<RootGraph>(start = true)` in
+  `app/src/main/kotlin/MainActivity.kt`); cold start composes it directly with no intermediate
+  start screen and no startup navigation transition.
+- Do not overlay full-screen layers (e.g. invisible dialog warm-ups) on top of the bottom
+  navigation bar during cold start — they invalidate the liquid-glass bar's render-node capture
+  and cause a visible bar flicker.
 
 ## 17. Modernization Baseline
 

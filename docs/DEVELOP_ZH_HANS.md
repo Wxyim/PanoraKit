@@ -314,6 +314,9 @@ AnotherScreen|path/to/AnotherScreen.kt|another-id|app|top-level|navigation|ui-se
 
 列定义：`destination`（路由类名）、`screenFile`（文件路径）、`capabilityId`（kebab-case 标识）、`ownerModule`（模块子目录路径）、`uiType`（`system`、`top-level`、`detail`、`editor`）、`entryMode`（`start`、`navigation`、`implicit`）、`settingsSection`（`ui-settings`、`more` 或留空）、`implementationFiles`（分号分隔路径列表）。
 
+`RootGraph` 必须登记恰好一个 `entryMode=start` 的起始目的地，且校验器要求该 `entryMode` 与目的地上的
+`@Destination<...>(start = true)` 注解一致。当前 `MainScreen` 为 `RootGraph` 起始目的地。
+
 失败处理：
 
 1. 查看 `build/reports/ui-contracts/` 报告。
@@ -360,6 +363,13 @@ App.onCreate()
 
 - 不向 `App.kt` 添加延迟启动逻辑
 - 新增启动步骤通过协调器接入
+
+导航启动：
+
+- `MainScreen` 为 `RootGraph` 起始目的地（`app/src/main/kotlin/MainActivity.kt` 中
+  `@Destination<RootGraph>(start = true)`），冷启动直接组合主屏，无中间起始页，也无启动导航过渡动画。
+- 冷启动期间不得在底部导航条之上叠加全屏层（例如不可见对话框预热）——会无效化 liquid 毛玻璃导航条的
+  渲染节点采样，导致导航条闪烁。
 
 ## 17. 现代化基线
 
