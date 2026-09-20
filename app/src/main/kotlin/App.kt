@@ -43,14 +43,6 @@ import org.koin.core.qualifier.named
 import timber.log.Timber
 
 class App : Application() {
-
-    companion object {
-        private const val TEMP_FILE_PREFIX = "temp_"
-        private const val TEMP_FILE_SUFFIX = ".yaml"
-        private const val TEMP_FILE_STALE_MS = 24L * 60L * 60L * 1000L
-        private const val CLEANUP_POLL_INTERVAL_MS = 15L * 60L * 1000L
-    }
-
     private lateinit var koin: Koin
     private lateinit var appSettingsStorage: AppSettingsStorage
     private lateinit var startupCoordinator: AppStartupCoordinator
