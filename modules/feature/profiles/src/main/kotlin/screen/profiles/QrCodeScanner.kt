@@ -47,14 +47,13 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
 import com.google.zxing.LuminanceSource
-import com.google.zxing.MultiFormatReader
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
+import com.google.zxing.qrcode.QRCodeReader
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
@@ -65,11 +64,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 private val qrDecodeHints =
-    mapOf(
-        DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
-        DecodeHintType.TRY_HARDER to true,
-        DecodeHintType.CHARACTER_SET to Charsets.UTF_8.name(),
-    )
+    mapOf(DecodeHintType.TRY_HARDER to true, DecodeHintType.CHARACTER_SET to Charsets.UTF_8.name())
 
 @Composable
 internal fun StableQrScanner(onScanned: (String) -> Unit) {
@@ -283,9 +278,9 @@ private fun decodeQrFromBitmap(bitmap: Bitmap): String? {
 }
 
 private fun decodeQrFromSource(source: LuminanceSource): String? {
-    val reader = MultiFormatReader().apply { setHints(qrDecodeHints) }
+    val reader = QRCodeReader()
     return try {
-        reader.decodeWithState(BinaryBitmap(HybridBinarizer(source))).text
+        reader.decode(BinaryBitmap(HybridBinarizer(source)), qrDecodeHints).text
     } catch (_: Exception) {
         null
     } finally {

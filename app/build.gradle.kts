@@ -432,7 +432,6 @@ dependencies {
 
     implementation(libs.sketch4.compose)
     implementation(libs.sketch4.http)
-    implementation(libs.sketch4.animated.webp)
 
     implementation(libs.okhttp)
     implementation(libs.reorderable)

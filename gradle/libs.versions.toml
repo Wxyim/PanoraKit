@@ -89,7 +89,6 @@ haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 liquid = { module = "io.github.fletchmckee.liquid:liquid", version.ref = "liquid" }
 sketch4-compose = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch4" }
 sketch4-http = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch4" }
-sketch4-animated-webp = { module = "io.github.panpf.sketch4:sketch-animated-webp", version.ref = "sketch4" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
