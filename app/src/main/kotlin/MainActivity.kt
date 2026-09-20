@@ -335,7 +335,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-@Destination<RootGraph>
+@Destination<RootGraph>(start = true)
 fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
     val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
     val adaptiveInfo = LocalWindowAdaptiveInfo.current
