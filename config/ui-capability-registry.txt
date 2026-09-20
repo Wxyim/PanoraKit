@@ -1,7 +1,6 @@
 # destination|screenFile|capabilityId|ownerModule|uiType|entryMode|settingsSection|implementationFiles
-AppStartScreen|app/src/main/kotlin/screen/onboarding/AppStartScreen.kt|app-start|app|system|start||app/src/main/kotlin/screen/onboarding/AppStartScreen.kt
 ActivationWizardScreen|app/src/main/kotlin/screen/onboarding/ActivationWizardScreen.kt|activation-wizard|app|system|implicit||app/src/main/kotlin/screen/onboarding/ActivationWizardScreen.kt;modules/feature/onboarding/src/main/kotlin/screen/onboarding/OnboardingLauncher.kt
-MainScreen|app/src/main/kotlin/MainActivity.kt|main-shell|app|top-level|navigation||app/src/main/kotlin/MainActivity.kt
+MainScreen|app/src/main/kotlin/MainActivity.kt|main-shell|app|top-level|start||app/src/main/kotlin/MainActivity.kt
 TrafficStatisticsScreen|app/src/main/kotlin/screen/traffic/TrafficStatisticsScreen.kt|traffic-statistics|feature/traffic|top-level|navigation|more|app/src/main/kotlin/screen/traffic/TrafficStatisticsScreen.kt;modules/feature/traffic/src/main/kotlin/screen/traffic/TrafficStatisticsScreenBody.kt;modules/feature/meta-api/src/main/kotlin/feature/meta/api/TrafficStatisticsExplorer.kt;modules/feature/meta/src/main/kotlin/presentation/contract/DefaultTrafficStatisticsExplorer.kt
 AboutScreen|app/src/main/kotlin/screen/about/AboutScreen.kt|about|app|top-level|navigation|more|app/src/main/kotlin/screen/about/AboutScreen.kt
 OpenSourceLicensesScreen|app/src/main/kotlin/screen/about/OpenSourceLicensesScreen.kt|open-source-licenses|app|detail|navigation||app/src/main/kotlin/screen/about/OpenSourceLicensesScreen.kt
