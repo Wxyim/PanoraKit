@@ -93,14 +93,12 @@ class StatusProvider : ContentProvider() {
             listOf("service_running.lock", "service_autostart.lock", "service_running_mode.txt")
         private const val SERVICE_CACHE_ID = StoreIds.SERVICE_CACHE
         private const val KEY_TUN_STARTING = "local_tun_starting"
+        private const val KEY_RUNTIME_MODE = "runtime_mode"
 
         private val _runtimeMode = AtomicReference<ProxyMode?>(null)
 
         val serviceRunning: Boolean
             get() = _runtimeMode.get() != null
-
-        val runningMode: ProxyMode?
-            get() = _runtimeMode.get()
 
         @Volatile var currentProfile: String? = null
 
@@ -109,6 +107,7 @@ class StatusProvider : ContentProvider() {
                 clearTunStarting()
             }
             _runtimeMode.set(mode)
+            persistRuntimeMode(mode)
         }
 
         fun markRuntimeStopped(mode: ProxyMode) {
@@ -116,6 +115,12 @@ class StatusProvider : ContentProvider() {
                 clearTunStarting()
             }
             _runtimeMode.compareAndSet(mode, null)
+            // Also drop the persisted marker even when this process was recreated
+            // (in-memory state is null here), so a later startup never mistakes a
+            // stale marker for a runtime that is actually gone.
+            if (persistedRuntimeMode() == mode) {
+                clearPersistedRuntimeMode()
+            }
         }
 
         fun isRuntimeActive(mode: ProxyMode): Boolean {
@@ -134,9 +139,31 @@ class StatusProvider : ContentProvider() {
             return serviceCache().decodeBool(KEY_TUN_STARTING, false)
         }
 
+        /**
+         * Last runtime mode persisted across process death. The service process can be killed at
+         * night and recreated later by START_STICKY; this marker lets a freshly-created client
+         * reconcile with the real service state instead of assuming the VPN is off.
+         */
+        fun persistedRuntimeMode(): ProxyMode? {
+            return runCatching {
+                    serviceCache().decodeString(KEY_RUNTIME_MODE, null)?.let { name ->
+                        ProxyMode.values().firstOrNull { it.name == name }
+                    }
+                }
+                .getOrNull()
+        }
+
+        fun clearPersistedRuntimeMode() {
+            runCatching { serviceCache().removeValueForKey(KEY_RUNTIME_MODE) }
+        }
+
         fun clearLegacyStateFiles() {
             val filesDir = Global.application.filesDir
             legacyRuntimeFiles.forEach { name -> runCatching { filesDir.resolve(name).delete() } }
+        }
+
+        private fun persistRuntimeMode(mode: ProxyMode) {
+            runCatching { serviceCache().encode(KEY_RUNTIME_MODE, mode.name) }
         }
 
         private fun serviceCache(): MMKV {

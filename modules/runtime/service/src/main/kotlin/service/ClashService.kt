@@ -76,26 +76,30 @@ class ClashService : BaseService() {
                             "LOCAL_HTTP stop request received reason=${reason ?: "manual"}"
                         )
                         launch {
-                            val stopResult =
-                                if (this@ClashService::runtime.isInitialized) {
-                                    runtime.stop(reason)
-                                } else {
-                                    RuntimeOperationResult.ok()
-                                }
-                            if (!stopResult.success) {
-                                val failure =
-                                    stopResult.toException(
-                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-                                        defaultMessage = "http runtime stop failed",
+                            try {
+                                val stopResult =
+                                    if (this@ClashService::runtime.isInitialized) {
+                                        runtime.stop(reason)
+                                    } else {
+                                        RuntimeOperationResult.ok()
+                                    }
+                                if (!stopResult.success) {
+                                    val failure =
+                                        stopResult.toException(
+                                            defaultCode =
+                                                RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                                            defaultMessage = "http runtime stop failed",
+                                        )
+                                    reason = failure.runtimeGatewayMessage("http runtime stop failed")
+                                    startupLogStore.append(
+                                        "LOCAL_HTTP failed=${failure.code.name}:${failure.message}"
                                     )
-                                reason = failure.runtimeGatewayMessage("http runtime stop failed")
-                                startupLogStore.append(
-                                    "LOCAL_HTTP failed=${failure.code.name}:${failure.message}"
-                                )
-                            } else {
-                                startupLogStore.append("LOCAL_HTTP stop request handled")
+                                } else {
+                                    startupLogStore.append("LOCAL_HTTP stop request handled")
+                                }
+                            } finally {
+                                stopSelf()
                             }
-                            stopSelf()
                         }
                     }
                 }
@@ -223,6 +227,8 @@ class ClashService : BaseService() {
 
         if (this::runtime.isInitialized) {
             runtime.destroy()
+        } else {
+            runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener() }
         }
 
         StatusProvider.markRuntimeStopped(ProxyMode.Http)

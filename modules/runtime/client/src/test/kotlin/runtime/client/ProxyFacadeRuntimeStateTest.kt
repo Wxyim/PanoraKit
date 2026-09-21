@@ -168,6 +168,26 @@ class ProxyFacadeRuntimeStateTest {
     }
 
     @Test
+    fun persistedModeMapsToExpectedLocalOwnerOnly() {
+        assertEquals(
+            RuntimeOwner.LocalTun,
+            ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(ProxyMode.Tun),
+        )
+        assertEquals(
+            RuntimeOwner.LocalHttp,
+            ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(ProxyMode.Http),
+        )
+        assertEquals(
+            RuntimeOwner.None,
+            ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(null),
+        )
+        assertEquals(
+            RuntimeOwner.None,
+            ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(ProxyMode.RootTun),
+        )
+    }
+
+    @Test
     fun previewCacheFallsBackOnlyForMatchingProfileFingerprint() {
         val cache = ProxyFacadePreviewCache()
         val profile = sampleProfile()

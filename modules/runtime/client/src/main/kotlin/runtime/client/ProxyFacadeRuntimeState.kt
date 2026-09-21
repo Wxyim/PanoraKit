@@ -215,10 +215,6 @@ internal class ProxyFacadeRuntimeState(
         trafficTotalMutable.setIfChanged(traffic)
     }
 
-    fun setIsRunning(isRunning: Boolean) {
-        isRunningMutable.setIfChanged(isRunning)
-    }
-
     fun updateProfileReady(profile: Profile?) {
         synchronized(stateLock) {
             val snapshot = runtimeSnapshotMutable.value
@@ -274,6 +270,18 @@ internal object ProxyFacadeOwnerPolicy {
             rootActive -> RuntimeOwner.RootTun
             localTunActive -> RuntimeOwner.LocalTun
             localHttpActive -> RuntimeOwner.LocalHttp
+            else -> RuntimeOwner.None
+        }
+    }
+
+    /**
+     * Maps the persisted runtime-mode marker to the local owner it implies. Only local modes
+     * (TUN/HTTP) are reconciled this way; RootTun has its own persisted state store.
+     */
+    fun expectedOwnerForPersistedMode(mode: ProxyMode?): RuntimeOwner {
+        return when (mode) {
+            ProxyMode.Tun -> RuntimeOwner.LocalTun
+            ProxyMode.Http -> RuntimeOwner.LocalHttp
             else -> RuntimeOwner.None
         }
     }

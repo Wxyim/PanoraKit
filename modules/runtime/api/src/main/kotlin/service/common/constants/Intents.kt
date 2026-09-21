@@ -32,9 +32,6 @@ object Intents {
 
     fun actionToggleClash(packageName: String): String = "$packageName.action.TOGGLE_CLASH"
 
-    fun actionServiceRecreated(packageName: String): String =
-        "$packageName.intent.action.CLASH_RECREATED"
-
     fun actionClashStarted(packageName: String): String = "$packageName.intent.action.CLASH_STARTED"
 
     fun actionClashStopped(packageName: String): String = "$packageName.intent.action.CLASH_STOPPED"
@@ -73,9 +70,6 @@ object Intents {
         get() = actionToggleClash(packageName)
 
     const val EXTRA_NAME = "name"
-
-    val ACTION_SERVICE_RECREATED: String
-        get() = actionServiceRecreated(packageName)
 
     val ACTION_CLASH_STARTED: String
         get() = actionClashStarted(packageName)

@@ -80,26 +80,33 @@ class TunService : VpnService(), CoroutineScope {
                             "LOCAL_TUN stop request received reason=${reason ?: "manual"}"
                         )
                         launch {
-                            val stopResult =
-                                if (this@TunService::runtime.isInitialized) {
-                                    runtime.stop(reason)
-                                } else {
-                                    RuntimeOperationResult.ok()
-                                }
-                            if (!stopResult.success) {
-                                val failure =
-                                    stopResult.toException(
-                                        defaultCode = RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
-                                        defaultMessage = "tun runtime stop failed",
+                            try {
+                                val stopResult =
+                                    if (this@TunService::runtime.isInitialized) {
+                                        runtime.stop(reason)
+                                    } else {
+                                        RuntimeOperationResult.ok()
+                                    }
+                                if (!stopResult.success) {
+                                    val failure =
+                                        stopResult.toException(
+                                            defaultCode =
+                                                RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
+                                            defaultMessage = "tun runtime stop failed",
+                                        )
+                                    reason = failure.runtimeGatewayMessage("tun runtime stop failed")
+                                    startupLogStore.append(
+                                        "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
                                     )
-                                reason = failure.runtimeGatewayMessage("tun runtime stop failed")
-                                startupLogStore.append(
-                                    "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
-                                )
-                            } else {
-                                startupLogStore.append("LOCAL_TUN stop request handled")
+                                } else {
+                                    startupLogStore.append("LOCAL_TUN stop request handled")
+                                }
+                            } finally {
+                                // Always tear the service down, even if the runtime stop
+                                // threw; otherwise the VPN session survives behind an
+                                // "off" toggle and the system keeps showing the VPN icon.
+                                stopSelf()
                             }
-                            stopSelf()
                         }
                     }
                 }
@@ -223,6 +230,10 @@ class TunService : VpnService(), CoroutineScope {
 
         if (this::runtime.isInitialized) {
             runtime.destroy()
+        } else {
+            // onCreate may have failed before the runtime was built; close the TUN fd
+            // directly so Android tears the VPN down even in that case.
+            runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopTun() }
         }
 
         StatusProvider.markRuntimeStopped(ProxyMode.Tun)

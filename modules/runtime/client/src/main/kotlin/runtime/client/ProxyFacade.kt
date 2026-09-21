@@ -112,7 +112,6 @@ private data class StopSignalConsistency(
 }
 
 private data class RuntimeEventActions(
-    val serviceRecreated: String,
     val clashStarted: String,
     val clashStopped: String,
     val clashRequestStop: String,
@@ -125,7 +124,6 @@ private data class RuntimeEventActions(
     companion object {
         fun forPackage(packageName: String): RuntimeEventActions {
             return RuntimeEventActions(
-                serviceRecreated = Intents.actionServiceRecreated(packageName),
                 clashStarted = Intents.actionClashStarted(packageName),
                 clashStopped = Intents.actionClashStopped(packageName),
                 clashRequestStop = Intents.actionClashRequestStop(packageName),
@@ -161,8 +159,7 @@ private class ProxyFacadeEventBus(
                     actions.profileLoaded ->
                         onProfileLoaded(intent.getStringExtra(Intents.EXTRA_UUID))
                     actions.profileChanged,
-                    actions.overrideChanged,
-                    actions.serviceRecreated -> onRefreshRequested()
+                    actions.overrideChanged -> onRefreshRequested()
                     actions.rootRuntimeFailed -> {
                         val code = intent.getStringExtra(Intents.EXTRA_ERROR_CODE)
                         val error =
@@ -199,7 +196,6 @@ private class ProxyFacadeEventBus(
                 addAction(actions.profileChanged)
                 addAction(actions.profileLoaded)
                 addAction(actions.overrideChanged)
-                addAction(actions.serviceRecreated)
                 addAction(actions.rootRuntimeFailed)
                 addAction(actions.accessControlApplyFailed)
             }
@@ -477,6 +473,7 @@ class ProxyFacade(
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
+    private var runtimeReconcileJob: Job? = null
 
     private data class RefreshFlight(val previewEpoch: Long, val deferred: Deferred<Unit>)
 
@@ -590,6 +587,7 @@ class ProxyFacade(
 
     suspend fun startProxy(mode: ProxyMode = networkSettingsStorage.proxyMode.value) {
         Timber.i("Start proxy: mode=$mode")
+        cancelRuntimeReconcile()
 
         if (
             mode == ProxyMode.Tun &&
@@ -689,6 +687,7 @@ class ProxyFacade(
     }
 
     suspend fun stopProxy(mode: ProxyMode? = null) {
+        cancelRuntimeReconcile()
         val targetMode = mode ?: networkSettingsStorage.proxyMode.value
         operationMutex.withLock {
             val generation = synchronized(runtimeTransitionLock) { runtimeState.nextGeneration() }
@@ -873,10 +872,6 @@ class ProxyFacade(
             Timber.e(e, "Failed to reload current profile")
             Result.failure(ControllerError.Unknown(e.runtimeGatewayMessage("reload failed"), e))
         }
-    }
-
-    fun updateServiceState(isRunning: Boolean) {
-        runtimeState.setIsRunning(isRunning)
     }
 
     private fun normalizeProxyGroups(groups: List<ProxyGroup>): List<ProxyGroupInfo> {
@@ -1225,6 +1220,15 @@ class ProxyFacade(
                     if (isOwnerProcessStopped(owner)) return@async true
                     delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
                 }
+                if (isOwnerProcessStopped(owner)) return@async true
+                // The service is still alive after the grace window: force-close it
+                // so the VPN cannot stay up behind an already-idle toggle.
+                Timber.w("Local stop drain timed out; force-closing ${owner.name}")
+                forceCloseLocalRuntime(owner)
+                repeat(STOP_FORCE_CLOSE_RETRY_COUNT) {
+                    if (isOwnerProcessStopped(owner)) return@async true
+                    delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
+                }
                 isOwnerProcessStopped(owner)
             }
     }
@@ -1257,6 +1261,7 @@ class ProxyFacade(
     }
 
     override fun close() {
+        cancelRuntimeReconcile()
         previewWarmupJob?.cancel()
         previewWarmupJob = null
         localStopDrain?.cancel()
@@ -1280,6 +1285,30 @@ class ProxyFacade(
             )
 
         if (owner == RuntimeOwner.None) {
+            val expectedOwner = expectedLocalOwnerFromPersistedState()
+            if (expectedOwner != RuntimeOwner.None) {
+                // The service process may have been killed overnight. The persisted
+                // marker says a local runtime should be running, but the START_STICKY
+                // recreation may not have landed yet. Show an honest reconciling state
+                // and wait briefly instead of declaring the VPN off while the system
+                // is about to bring it back up.
+                runtimeState.clearRuntimePayload(resetGroups = false)
+                publishRuntimeSnapshot(
+                    RuntimeSnapshot(
+                        owner = expectedOwner,
+                        phase = RuntimePhase.Starting,
+                        targetMode =
+                            ProxyFacadeOwnerPolicy.modeForOwner(
+                                expectedOwner,
+                                configuredMode,
+                            ),
+                        generation = runtimeState.nextGeneration(),
+                    )
+                )
+                scope.launch { refreshPreviewStateSafely() }
+                runtimeReconcileJob = scope.launch { reconcileExpectedLocalRuntime(expectedOwner) }
+                return
+            }
             runtimeState.clearRuntimePayload(resetGroups = false)
             publishRuntimeSnapshot(RuntimeStateMapper.idleSnapshot(configuredMode))
             scope.launch { refreshPreviewStateSafely() }
@@ -1318,6 +1347,77 @@ class ProxyFacade(
             localTunActive = isLocalSessionActive(ProxyMode.Tun),
             localHttpActive = isLocalSessionActive(ProxyMode.Http),
         )
+    }
+
+    private fun expectedLocalOwnerFromPersistedState(): RuntimeOwner {
+        return ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(
+            StatusProvider.persistedRuntimeMode()
+        )
+    }
+
+    /**
+     * Waits a bounded window for a sticky-restarted local service to appear after the process was
+     * recreated. If it comes back, the snapshot is advanced to Running (the later
+     * started/profileLoaded broadcasts refine it further without downgrading it). If it never comes
+     * back, the stale persisted marker is dropped and the snapshot is finalized to Idle so the UI
+     * never shows a phantom VPN.
+     */
+    private suspend fun reconcileExpectedLocalRuntime(owner: RuntimeOwner) {
+        val serviceClass =
+            when (owner) {
+                RuntimeOwner.LocalTun -> TunService::class.java
+                RuntimeOwner.LocalHttp -> ClashService::class.java
+                else -> return
+            }
+        val expectedMode =
+            ProxyFacadeOwnerPolicy.modeForOwner(owner, networkSettingsStorage.proxyMode.value)
+
+        repeat(LOCAL_RECONCILE_RETRY_COUNT) {
+            if (isLocalServiceLive(serviceClass, expectedMode)) {
+                val advanced =
+                    synchronized(runtimeTransitionLock) {
+                        val snapshot = runtimeSnapshot.value
+                        // The started/profileLoaded broadcasts may already have advanced the
+                        // snapshot to Running; never downgrade it back to Starting.
+                        if (snapshot.owner == owner && snapshot.phase == RuntimePhase.Starting) {
+                            publishRuntimeSnapshot(
+                                snapshot.copy(
+                                    phase = RuntimePhase.Running,
+                                    configReady = true,
+                                    transportReady = true,
+                                    generation = runtimeState.nextGeneration(),
+                                )
+                            )
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                if (advanced) {
+                    startTrafficPolling()
+                    scope.launch { refreshAllSafely() }
+                }
+                return
+            }
+            delay(LOCAL_RECONCILE_RETRY_DELAY_MS.milliseconds)
+        }
+
+        synchronized(runtimeTransitionLock) {
+            StatusProvider.markRuntimeStopped(expectedMode)
+            val snapshot = runtimeSnapshot.value
+            if (snapshot.owner == owner && snapshot.phase == RuntimePhase.Starting) {
+                transitionToIdle(
+                    configuredMode = networkSettingsStorage.proxyMode.value,
+                    generation = runtimeState.nextGeneration(),
+                    lastError = null,
+                )
+            }
+        }
+    }
+
+    private fun cancelRuntimeReconcile() {
+        runtimeReconcileJob?.cancel()
+        runtimeReconcileJob = null
     }
 
     private fun resolveInitialRootTunStatus(): RootTunStatus {
@@ -1368,8 +1468,19 @@ class ProxyFacade(
                     )
                 // clashStarted only means that the process/TUN exists. Keep the client
                 // in Starting until the service publishes its profile-loaded boundary
-                // after config loading and transport establishment.
-                publishRuntimeSnapshot(started.copy(phase = RuntimePhase.Starting))
+                // after config loading and transport establishment. Never downgrade a
+                // session that is already Running: the startup reconcile may have
+                // advanced it before this broadcast was delivered.
+                publishRuntimeSnapshot(
+                    started.copy(
+                        phase =
+                            if (currentSnapshot.phase == RuntimePhase.Running) {
+                                RuntimePhase.Running
+                            } else {
+                                RuntimePhase.Starting
+                            }
+                    )
+                )
                 resolvedOwner
             }
         if (owner == RuntimeOwner.None) return
@@ -1798,18 +1909,76 @@ class ProxyFacade(
     /**
      * When the in-memory status says no owner but a local service process is still alive, the
      * client and service are desynced (e.g. the service was recreated without marking itself
-     * started). Asking the leftover service to stop prevents a silent no-op that would leave the
-     * VPN running behind an "off" toggle. Returns true when no local service remains alive.
+     * started). The persisted marker is consulted too, because a sticky-restarted service may not
+     * be visible in the process list yet when the app process was recreated. Asking the leftover
+     * service to stop prevents a silent no-op that would leave the VPN running behind an "off"
+     * toggle. Returns true when no local service remains alive.
      */
     private suspend fun drainStaleLocalServiceIfPresent(): Boolean {
         val tunAlive = isServiceRunning(TunService::class.java)
         val httpAlive = isServiceRunning(ClashService::class.java)
-        if (!tunAlive && !httpAlive) return true
+        val persistedMode = StatusProvider.persistedRuntimeMode()
+        val staleOwner =
+            when {
+                tunAlive -> RuntimeOwner.LocalTun
+                httpAlive -> RuntimeOwner.LocalHttp
+                persistedMode == ProxyMode.Tun -> RuntimeOwner.LocalTun
+                persistedMode == ProxyMode.Http -> RuntimeOwner.LocalHttp
+                else -> return true
+            }
+        val staleMode =
+            ProxyFacadeOwnerPolicy.modeForOwner(
+                staleOwner,
+                networkSettingsStorage.proxyMode.value,
+            )
+        val serviceClass =
+            if (staleOwner == RuntimeOwner.LocalTun) {
+                TunService::class.java
+            } else {
+                ClashService::class.java
+            }
 
-        val staleOwner = if (tunAlive) RuntimeOwner.LocalTun else RuntimeOwner.LocalHttp
+        if (!isLocalServiceLive(serviceClass, staleMode)) {
+            // The service may still be pending its START_STICKY recreation. Wait for
+            // it to appear so the VPN cannot come back up behind an "off" toggle.
+            var appeared = false
+            repeat(LOCAL_RECONCILE_RETRY_COUNT) {
+                if (isLocalServiceLive(serviceClass, staleMode)) {
+                    appeared = true
+                    return@repeat
+                }
+                delay(LOCAL_RECONCILE_RETRY_DELAY_MS.milliseconds)
+            }
+            if (!appeared) {
+                // Nothing is (or will be) running: drop the stale marker and leave.
+                StatusProvider.markRuntimeStopped(staleMode)
+                StatusProvider.clearPersistedRuntimeMode()
+                return true
+            }
+        }
+
         runCatching { triggerStop(staleOwner) }
         repeat(STOP_WAIT_RETRY_COUNT) {
-            if (isOwnerProcessStopped(staleOwner)) return true
+            if (isOwnerProcessStopped(staleOwner)) {
+                StatusProvider.markRuntimeStopped(staleMode)
+                StatusProvider.clearPersistedRuntimeMode()
+                return true
+            }
+            delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
+        }
+        if (isOwnerProcessStopped(staleOwner)) {
+            StatusProvider.markRuntimeStopped(staleMode)
+            StatusProvider.clearPersistedRuntimeMode()
+            return true
+        }
+        // The service is wedged: force-close so the VPN cannot survive the stop.
+        forceCloseLocalRuntime(staleOwner)
+        repeat(STOP_FORCE_CLOSE_RETRY_COUNT) {
+            if (isOwnerProcessStopped(staleOwner)) {
+                StatusProvider.markRuntimeStopped(staleMode)
+                StatusProvider.clearPersistedRuntimeMode()
+                return true
+            }
             delay(STOP_WAIT_RETRY_DELAY_MS.milliseconds)
         }
         return isOwnerProcessStopped(staleOwner)
@@ -1940,6 +2109,15 @@ class ProxyFacade(
                 }
             }
             .getOrDefault(false)
+    }
+
+    /**
+     * The service process list (getRunningServices) is unreliable on some OEMs, so a live runtime
+     * is also detected through the in-process StatusProvider marker that the service sets in
+     * onCreate. The marker is authoritative and immediately visible within this same process.
+     */
+    private fun isLocalServiceLive(serviceClass: Class<*>, mode: ProxyMode): Boolean {
+        return isServiceRunning(serviceClass) || StatusProvider.isRuntimeActive(mode)
     }
 
     private suspend fun finalizeStopIfSnapshotNotTerminal(owner: RuntimeOwner) {
@@ -2156,5 +2334,7 @@ class ProxyFacade(
         private const val STOP_TIMEOUT_GRACE_RETRY_COUNT = 20
         private const val STOP_TIMEOUT_GRACE_RETRY_DELAY_MS = 125L
         private const val STOP_FORCE_CLOSE_RETRY_COUNT = 20
+        private const val LOCAL_RECONCILE_RETRY_COUNT = 40
+        private const val LOCAL_RECONCILE_RETRY_DELAY_MS = 125L
     }
 }
