@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.presentation.screen
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -41,6 +42,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
+    val activity = LocalActivity.current
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
     val title = remember {
@@ -56,26 +58,20 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
     }
     var payload by remember { mutableStateOf(initialValue?.payload.orEmpty()) }
     var target by remember { mutableStateOf(initialValue?.target.orEmpty()) }
-    var useSrc by remember {
-        mutableStateOf(initialValue?.extras.orEmpty().any { it.equals("src", ignoreCase = true) })
-    }
-    var useNoResolve by remember {
-        mutableStateOf(
-            initialValue?.extras.orEmpty().any { it.equals("no-resolve", ignoreCase = true) }
-        )
-    }
-    var extraText by remember {
-        mutableStateOf(
-            initialValue
-                ?.extras
-                .orEmpty()
-                .filterNot {
-                    it.equals("src", ignoreCase = true) ||
-                        it.equals("no-resolve", ignoreCase = true)
-                }
-                .joinToString(",")
-        )
-    }
+    val initialExtras = remember { initialValue?.extras.orEmpty() }
+    val initialExtraText =
+        initialExtras
+            .filterNot {
+                it.equals("src", ignoreCase = true) ||
+                    it.equals("no-resolve", ignoreCase = true)
+            }
+            .joinToString(",")
+    val initialUseSrc = initialExtras.any { it.equals("src", ignoreCase = true) }
+    val initialUseNoResolve = initialExtras.any { it.equals("no-resolve", ignoreCase = true) }
+    val initialCanUseExtraSwitches = supportsRuleExtra(initialValue?.type.orEmpty())
+    var useSrc by remember { mutableStateOf(initialUseSrc) }
+    var useNoResolve by remember { mutableStateOf(initialUseNoResolve) }
+    var extraText by remember { mutableStateOf(initialExtraText) }
     var errorText by remember { mutableStateOf<String?>(null) }
     var showTypeSelector by remember { mutableStateOf(false) }
     var showTargetSelector by remember { mutableStateOf(false) }
@@ -117,7 +113,64 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
             it.contains(MLang.Override.Draft.Name) || it.contains(MLang.Override.Editor.MatchResult)
         }
 
-    DisposableEffect(Unit) { onDispose { OverrideStructuredEditorStore.clearRuleDraftEditor() } }
+    val draftUiId = remember { initialValue?.uiId ?: OverrideRuleDraft().uiId }
+
+    /**
+     * Rebuild the extras list from the text field plus the src/no-resolve
+     * toggles. When nothing about the extras was changed, the original extras
+     * are returned verbatim so an unchanged rule round-trips (e.g. after
+     * rotation) without reordering flags such as src/no-resolve. Once the user
+     * edits the text or toggles a switch, extras are rebuilt in text order with
+     * the enabled flags appended.
+     */
+    fun buildExtras(): List<String> {
+        val extrasChanged =
+            extraText != initialExtraText ||
+                useSrc != initialUseSrc ||
+                useNoResolve != initialUseNoResolve ||
+                canUseExtraSwitches != initialCanUseExtraSwitches
+        if (!extrasChanged) {
+            return initialExtras
+        }
+        val values =
+            extraText
+                .split(',')
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .toMutableList()
+        if (canUseExtraSwitches) {
+            if (useSrc) {
+                values += "src"
+            }
+            if (useNoResolve) {
+                values += "no-resolve"
+            }
+        }
+        return values.distinct()
+    }
+
+    // Keep the in-progress draft in the store so it survives configuration
+    // changes (e.g. rotation), then only clear it when the destination is
+    // actually left for good.
+    LaunchedEffect(ruleType, payload, target, useSrc, useNoResolve, extraText) {
+        OverrideStructuredEditorStore.updateRuleDraftEditorSession(
+            OverrideRuleDraft(
+                type = ruleType,
+                payload = payload,
+                target = target,
+                extras = buildExtras(),
+                uiId = draftUiId,
+            )
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) {
+                OverrideStructuredEditorStore.clearRuleDraftEditor()
+            }
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -139,12 +192,7 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
                             normalizedPayload
                         }
                     val normalizedTarget = target.trim()
-                    val extraValues =
-                        extraText
-                            .split(',')
-                            .map(String::trim)
-                            .filter(String::isNotBlank)
-                            .toMutableList()
+                    val extraValues = buildExtras()
 
                     if (normalizedType.isBlank()) {
                         errorText = MLang.Override.Editor.RuleTypeEmpty
@@ -161,20 +209,13 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
                         errorText = MLang.Override.Editor.TargetEmpty
                         return@OverrideAnimatedFab
                     }
-                    if (canUseExtraSwitches) {
-                        if (useSrc) {
-                            extraValues += "src"
-                        }
-                        if (useNoResolve) {
-                            extraValues += "no-resolve"
-                        }
-                    }
                     OverrideStructuredEditorStore.submitRuleDraft(
                         OverrideRuleDraft(
                             type = normalizedType,
                             payload = resolvedPayload,
                             target = normalizedTarget,
-                            extras = extraValues.distinct(),
+                            extras = extraValues,
+                            uiId = draftUiId,
                         )
                     )
                     navigator.navigateUp()

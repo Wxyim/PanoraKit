@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.feature.editor.component.ConfigSaveProgressDialog
+import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
 import com.github.nomadboxlab.monadbox.feature.editor.editor.CodeEditor
 import com.github.nomadboxlab.monadbox.feature.editor.editor.CodeEditorState
 import com.github.nomadboxlab.monadbox.feature.editor.editor.EditorActionFeedback
@@ -114,14 +115,31 @@ fun ConfigPreviewScreen(
             }
         }
 
+    // Keep the edited content across configuration changes (e.g. rotation).
+    // CodeEditorState itself is not saveable, so mirror the working text and
+    // modified flag into the preview store. The store is process-scoped and is
+    // only cleared when the destination is actually left (see
+    // OverrideConfigPreviewRoute), so the recreated screen restores exactly
+    // what was typed without serializing large configs into the saved state.
+    // The working copy lives in a field the route does not read, so the route
+    // (and therefore this screen's initialContent parameter) stays stable while
+    // typing and the editor view is not recreated on every keystroke.
+    val restoredWorkingContent = remember { ConfigPreviewStore.workingContent }
+    val restoredIsModified = remember { ConfigPreviewStore.isModified }
+
     val editorState =
-        remember(formattedContent) {
+        remember(formattedContent, restoredWorkingContent) {
             CodeEditorState(
-                initialContent = formattedContent,
+                initialContent = restoredWorkingContent ?: formattedContent,
                 language = language,
                 readOnly = isReadOnly,
+                initiallyModified = restoredIsModified,
             )
         }
+
+    LaunchedEffect(editorState.content, editorState.isModified) {
+        ConfigPreviewStore.updateWorkingContent(editorState.content, editorState.isModified)
+    }
 
     val editorThemeState = EditorThemeManager.rememberEditorTheme()
     val scrollBehavior = MiuixScrollBehavior()

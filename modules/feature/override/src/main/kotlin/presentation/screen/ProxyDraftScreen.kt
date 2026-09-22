@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.presentation.screen
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
+    val activity = LocalActivity.current
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
     val title = remember {
@@ -69,7 +71,51 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
     var errorText by remember { mutableStateOf<String?>(null) }
     var showTypeSelector by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) { onDispose { OverrideStructuredEditorStore.clearProxyDraftEditor() } }
+    val draftUiId = remember { initialValue?.uiId ?: OverrideProxyDraft().uiId }
+
+    // Keep the in-progress draft in the store so it survives configuration
+    // changes (e.g. rotation), then only clear it when the destination is
+    // actually left for good.
+    LaunchedEffect(
+        name,
+        type,
+        server,
+        portText,
+        ipVersion,
+        interfaceName,
+        routingMarkText,
+        dialerProxy,
+        udp,
+        tfo,
+        mptcp,
+        extraFields,
+    ) {
+        OverrideStructuredEditorStore.updateProxyDraftEditorSession(
+            OverrideProxyDraft(
+                name = name,
+                type = type,
+                server = server,
+                port = portText.trim().toIntOrNull(),
+                ipVersion = ipVersion,
+                udp = udp,
+                interfaceName = interfaceName,
+                routingMark = routingMarkText.trim().toIntOrNull(),
+                tfo = tfo,
+                mptcp = mptcp,
+                dialerProxy = dialerProxy,
+                extraFields = extraFields,
+                uiId = draftUiId,
+            )
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) {
+                OverrideStructuredEditorStore.clearProxyDraftEditor()
+            }
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -102,7 +148,7 @@ fun OverrideProxyDraftEditorScreen(navigator: DestinationsNavigator) {
                             mptcp = mptcp,
                             dialerProxy = dialerProxy.trim(),
                             extraFields = extraFields,
-                            uiId = initialValue?.uiId ?: OverrideProxyDraft().uiId,
+                            uiId = draftUiId,
                         )
                     )
                     navigator.navigateUp()

@@ -21,6 +21,9 @@
 
 package com.github.nomadboxlab.monadbox.data.repository
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import com.github.nomadboxlab.monadbox.core.util.NetworkInterfaces
 import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import java.io.Closeable
@@ -35,6 +38,15 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
+
+private const val ACCESS_LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
+
+/**
+ * Android 17 (target SDK 37+) restricts local network discovery through
+ * [NetworkInterface.getNetworkInterfaces] behind ACCESS_LOCAL_NETWORK. On older
+ * platforms the permission does not exist and the query is always allowed.
+ */
+private const val ACCESS_LOCAL_NETWORK_SDK_INT = 37
 
 @Serializable
 data class IpInfo(val ip: String, @SerialName("country_code") val countryCode: String? = null)
@@ -51,7 +63,10 @@ sealed class IpMonitoringState {
     object Loading : IpMonitoringState()
 }
 
-class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeable {
+class NetworkInfoService(
+    private val context: Context,
+    private val appSettings: AppSettingsStorage,
+) : Closeable {
     private val json = Json { ignoreUnknownKeys = true }
 
     // This service is application-scoped. Keep the manually queried value here
@@ -90,7 +105,19 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
     }
 
     suspend fun getLocalIp(): String? {
+        if (!hasLocalNetworkAccess()) {
+            Timber.w("ACCESS_LOCAL_NETWORK denied; local IP discovery degraded")
+            return null
+        }
         return NetworkInterfaces.getLocalIpAddress()
+    }
+
+    private fun hasLocalNetworkAccess(): Boolean {
+        if (Build.VERSION.SDK_INT < ACCESS_LOCAL_NETWORK_SDK_INT) {
+            return true
+        }
+        return context.checkSelfPermission(ACCESS_LOCAL_NETWORK_PERMISSION) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     /**
@@ -105,7 +132,7 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
     suspend fun queryExternalIp(): IpInfo? {
         val url = appSettings.externalIpLookupUrl.value.trim()
         if (url.isEmpty()) return null
-        if (!isAllowedExternalIpUrl(url)) return null
+        if (!isAllowedExternalIpLookupUrl(url)) return null
         return withContext(Dispatchers.IO) {
             // Each query uses a brand-new OkHttpClient whose connection pool
             // starts empty, so the request always opens a fresh TCP/TLS
@@ -136,17 +163,6 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
         }
     }
 
-    private fun isAllowedExternalIpUrl(url: String): Boolean {
-        val lower = url.lowercase()
-        if (lower.startsWith("https://")) return true
-        // Allow cleartext only to loopback so power users can self-host on-device.
-        if (lower.startsWith("http://")) {
-            val host = lower.removePrefix("http://").substringBefore('/').substringBefore(':')
-            return host == "127.0.0.1" || host == "localhost" || host == "::1"
-        }
-        return false
-    }
-
     /**
      * Stream the local IP and (optionally) a previously-queried external IP.
      *
@@ -170,6 +186,50 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
                 IpMonitoringState.Error(e.message ?: "Unknown error")
             }
         }
+}
+
+/**
+ * Single source of truth for which external IP lookup URLs are accepted.
+ *
+ * HTTPS is allowed for any host. Cleartext HTTP is allowed only for loopback
+ * so power users can self-host an on-device lookup endpoint. Settings screens
+ * use the same rule when validating user input (allowing an unchanged legacy
+ * value to be re-saved), so a brand-new URL is never silently rejected later at
+ * query time.
+ */
+fun isAllowedExternalIpLookupUrl(url: String): Boolean {
+    val lower = url.lowercase()
+    val isHttps =
+        when {
+            lower.startsWith("https://") -> true
+            lower.startsWith("http://") -> false
+            else -> return false
+        }
+    val authority = lower.substringAfter("://").substringBefore('/')
+    val host = extractUrlHost(authority)
+    if (host.isBlank()) {
+        return false
+    }
+    if (isHttps) {
+        return true
+    }
+    // Allow cleartext only to loopback so power users can self-host on-device.
+    return host == "127.0.0.1" || host == "localhost" || host == "::1"
+}
+
+/**
+ * Extracts the host from a URL authority (the part between the scheme and the
+ * first path separator), ignoring userinfo (e.g. `user:pass@` in
+ * `https://user:pass@example.com/`) and bracketed IPv6 literals.
+ */
+private fun extractUrlHost(authority: String): String {
+    // Strip userinfo: the host starts after the last '@'.
+    val withoutUserInfo = authority.substringAfterLast('@', authority)
+    // Bracketed IPv6 literal, e.g. [::1].
+    if (withoutUserInfo.startsWith("[")) {
+        return withoutUserInfo.substringAfter('[').substringBefore(']')
+    }
+    return withoutUserInfo.substringBefore(':')
 }
 
 internal object ExternalIpResponseParser {

@@ -35,6 +35,18 @@ object ConfigPreviewStore {
     var content: String by mutableStateOf("")
         private set
 
+    /**
+     * Working copy of the editor text. The route reads [content] as the
+     * preview payload and must not recompose on every keystroke, so in-progress
+     * edits are mirrored here instead. Null means "no edits yet"; the screen
+     * falls back to [content].
+     */
+    var workingContent: String? by mutableStateOf(null)
+        private set
+
+    var isModified: Boolean by mutableStateOf(false)
+        private set
+
     var language: LanguageScope by mutableStateOf(LanguageScope.Json)
         private set
 
@@ -54,15 +66,30 @@ object ConfigPreviewStore {
         this.isReady = true
         this.title = title
         this.content = content
+        this.workingContent = null
+        this.isModified = false
         this.language = language
         this.runtimeRunning = runtimeRunning
         this.onSave = onSave
+    }
+
+    /**
+     * Mirrors the working editor text and modified flag into the store so the
+     * in-progress edits survive configuration changes (e.g. rotation). The
+     * route does not read this field, so the editor can restore exactly what
+     * was typed without serializing large configs into the saved state.
+     */
+    fun updateWorkingContent(content: String, isModified: Boolean) {
+        this.workingContent = content
+        this.isModified = isModified
     }
 
     fun clear() {
         isReady = false
         title = ""
         content = ""
+        workingContent = null
+        isModified = false
         language = LanguageScope.Json
         runtimeRunning = false
         onSave = null

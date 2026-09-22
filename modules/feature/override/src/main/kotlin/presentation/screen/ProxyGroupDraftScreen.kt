@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.presentation.screen
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
+    val activity = LocalActivity.current
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
     val title = remember {
@@ -115,8 +117,70 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
             )
         }
 
+    val draftUiId = remember { initialValue?.uiId ?: OverrideProxyGroupDraft().uiId }
+
+    // Keep the in-progress draft in the store so it survives configuration
+    // changes (e.g. rotation), then only clear it when the destination is
+    // actually left for good.
+    LaunchedEffect(
+        name,
+        type,
+        proxies,
+        useText,
+        url,
+        intervalText,
+        timeoutText,
+        maxFailedTimesText,
+        interfaceName,
+        routingMarkText,
+        filter,
+        excludeFilter,
+        excludeType,
+        expectedStatus,
+        icon,
+        lazy,
+        disableUdp,
+        includeAll,
+        includeAllProxies,
+        includeAllProviders,
+        hidden,
+        extraFields,
+    ) {
+        OverrideStructuredEditorStore.updateProxyGroupDraftEditorSession(
+            OverrideProxyGroupDraft(
+                name = name,
+                type = type,
+                proxies = proxies,
+                use = parseMultilineValues(useText),
+                url = url,
+                interval = intervalText.trim().toIntOrNull(),
+                lazy = lazy,
+                timeout = timeoutText.trim().toIntOrNull(),
+                maxFailedTimes = maxFailedTimesText.trim().toIntOrNull(),
+                disableUdp = disableUdp,
+                interfaceName = interfaceName,
+                routingMark = routingMarkText.trim().toIntOrNull(),
+                includeAll = includeAll,
+                includeAllProxies = includeAllProxies,
+                includeAllProviders = includeAllProviders,
+                filter = filter,
+                excludeFilter = excludeFilter,
+                excludeType = excludeType,
+                expectedStatus = expectedStatus,
+                hidden = hidden,
+                icon = icon,
+                extraFields = extraFields,
+                uiId = draftUiId,
+            )
+        )
+    }
+
     DisposableEffect(Unit) {
-        onDispose { OverrideStructuredEditorStore.clearProxyGroupDraftEditor() }
+        onDispose {
+            if (activity?.isChangingConfigurations != true) {
+                OverrideStructuredEditorStore.clearProxyGroupDraftEditor()
+            }
+        }
     }
 
     Scaffold(
@@ -160,7 +224,7 @@ fun OverrideProxyGroupDraftEditorScreen(navigator: DestinationsNavigator) {
                             hidden = hidden,
                             icon = icon.trim(),
                             extraFields = extraFields,
-                            uiId = initialValue?.uiId ?: OverrideProxyGroupDraft().uiId,
+                            uiId = draftUiId,
                         )
                     )
                     navigator.navigateUp()

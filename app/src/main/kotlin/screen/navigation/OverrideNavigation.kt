@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.screen.navigation
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -455,6 +456,7 @@ fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
 @Destination<OverrideEditorNavGraph>
 fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
+    val activity = LocalActivity.current
     if (!ConfigPreviewStore.isReady) {
         LaunchedEffect(Unit) { runCatching { navigator.popBackStack() } }
         return
@@ -473,7 +475,16 @@ fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
                 previewContentLength,
             )
     }
-    DisposableEffect(Unit) { onDispose { ConfigPreviewStore.clear() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            // The store keeps the preview payload across configuration changes
+            // (e.g. rotation). Only clear it when the destination is actually
+            // left for good, not when the Activity is being recreated.
+            if (activity?.isChangingConfigurations != true) {
+                ConfigPreviewStore.clear()
+            }
+        }
+    }
 
     ConfigPreviewScreen(
         navigator = navigator,

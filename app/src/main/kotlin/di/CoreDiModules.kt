@@ -156,7 +156,7 @@ val appDataRuntimeModule = module {
     single<com.github.nomadboxlab.monadbox.feature.settings.CleanupController> {
         com.github.nomadboxlab.monadbox.common.util.CleanupControllerImpl(get(), get())
     }
-    single { NetworkInfoService(get()) }
+    single { NetworkInfoService(androidContext(), get()) }
     single { ProxyChainResolver() }
     single { OverrideRepository(androidContext(), get(), get()) }
     single<OverrideProvider> { get<OverrideRepository>() }

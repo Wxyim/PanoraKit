@@ -319,6 +319,21 @@ internal fun AddProfileSheet(
             return
         }
 
+        // Normalize before starting the download so an invalid subscription
+        // link never leaves the sheet stuck in the downloading state. The same
+        // normalization applies when editing an existing URL profile, so a
+        // stored clash:// link or quoted URL is not persisted verbatim.
+        val normalizedUrl =
+            if (selectedTypeIndex == 0) {
+                normalizeSubscriptionLink(url)
+            } else {
+                null
+            }
+        if (selectedTypeIndex == 0 && normalizedUrl == null) {
+            error = MLang.ProfilesPage.Validation.EnterUrl
+            return
+        }
+
         keyboardController?.hide()
         profilesViewModel.clearError()
 
@@ -331,12 +346,13 @@ internal fun AddProfileSheet(
         isDownloading = true
 
         if (selectedTypeIndex == 0) {
+            val urlToUse = checkNotNull(normalizedUrl)
             if (profileToEdit != null) {
-                onUpdateProfile(profileToEdit.uuid, name, url, profileToEdit.interval)
+                onUpdateProfile(profileToEdit.uuid, name, urlToUse, profileToEdit.interval)
             } else {
                 onAddProfile(
                     name.ifBlank { MLang.ProfilesPage.Input.NewProfile },
-                    url,
+                    urlToUse,
                     Profile.Type.Url,
                     0L,
                     null,

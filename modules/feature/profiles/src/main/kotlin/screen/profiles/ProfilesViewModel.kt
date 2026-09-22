@@ -371,7 +371,8 @@ class ProfilesViewModel(
                     message = MLang.ProfilesVM.Progress.ImportComplete,
                     isCompleted = true,
                 )
-            showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(uuid.toString()))
+            val profileName = profilesRepository.queryProfileByUUID(uuid)?.name ?: uuid.toString()
+            showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profileName))
             refreshProfiles()
             Timber.i("Profile updated: $uuid")
         }

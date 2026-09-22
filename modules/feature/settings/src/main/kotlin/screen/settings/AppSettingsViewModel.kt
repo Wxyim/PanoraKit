@@ -27,6 +27,7 @@ import com.github.nomadboxlab.monadbox.data.model.AppLanguage
 import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
 import com.github.nomadboxlab.monadbox.data.model.ThemeMode
 import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
+import com.github.nomadboxlab.monadbox.data.repository.isAllowedExternalIpLookupUrl
 import com.github.nomadboxlab.monadbox.data.store.Preference
 import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
 import dev.oom_wg.purejoy.mlang.MLang
@@ -67,17 +68,19 @@ class AppSettingsViewModel(
 
     fun applyExternalIpLookupUrl(url: String) {
         val normalized = url.trim()
-        if (normalized.isNotEmpty() && !isValidExternalIpLookupUrl(normalized)) {
+        // A previously saved value (e.g. a legacy cleartext URL that predates
+        // the loopback-only policy) must stay re-saveable even though it would
+        // not be accepted as a brand-new entry. Query-time enforcement in
+        // NetworkInfoService still rejects those URLs gracefully.
+        val isUnchangedLegacyValue =
+            normalized.isNotEmpty() && normalized == externalIpLookupUrl.value.trim()
+        if (normalized.isNotEmpty() && !isAllowedExternalIpLookupUrl(normalized) &&
+            !isUnchangedLegacyValue
+        ) {
             GlobalDialogPresenter.showError(MLang.AppSettings.Network.ExternalIpLookupUrlInvalid)
             return
         }
         externalIpLookupUrl.set(normalized)
-    }
-
-    private fun isValidExternalIpLookupUrl(url: String): Boolean {
-        val parsed = runCatching { android.net.Uri.parse(url) }.getOrNull() ?: return false
-        val scheme = parsed.scheme?.lowercase()
-        return (scheme == "http" || scheme == "https") && !parsed.host.isNullOrBlank()
     }
 
     fun onAppLanguageChange(language: AppLanguage) = repository.onAppLanguageChange(language)

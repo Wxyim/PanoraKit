@@ -18,14 +18,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.CAMERA"/>
-
     <!--
-      TODO: When compileSdk is bumped to 37+, declare ACCESS_LOCAL_NETWORK.
-      NetworkInterfaces.kt uses NetworkInterface.getNetworkInterfaces() for
-      local IP discovery; this requires ACCESS_LOCAL_NETWORK on Android 17
-      (target 37+). Also add a runtime-check degradation path in
-      NetworkInfoService for when the permission is denied.
+      Required for local IP discovery (NetworkInterface.getNetworkInterfaces)
+      on Android 17 / target SDK 37+. Declared ahead of the SDK bump so it is
+      already in place; NetworkInfoService guards it at runtime (SDK_INT >= 37)
+      and degrades gracefully when the permission is denied.
     -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK"/>
 
     <application
             android:name="com.github.nomadboxlab.monadbox.App"

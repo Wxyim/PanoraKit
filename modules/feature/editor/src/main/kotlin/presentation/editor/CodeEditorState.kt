@@ -38,6 +38,7 @@ class CodeEditorState(
     val readOnly: Boolean = false,
     val showLineNumbers: Boolean = true,
     val wordWrap: Boolean = false,
+    initiallyModified: Boolean = false,
 ) {
 
     var editor: CodeEditor? by mutableStateOf(null)
@@ -46,7 +47,7 @@ class CodeEditorState(
     var content: String by mutableStateOf(initialContent)
         private set
 
-    var isModified: Boolean by mutableStateOf(false)
+    var isModified: Boolean by mutableStateOf(initiallyModified)
         private set
 
     var lastActionFeedback: EditorActionFeedback? by mutableStateOf(null)

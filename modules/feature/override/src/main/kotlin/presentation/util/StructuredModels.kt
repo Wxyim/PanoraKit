@@ -616,15 +616,15 @@ fun formatSubRuleGroupDrafts(value: List<OverrideSubRuleGroupDraft>): Map<String
     return linkedMap.ifEmpty { null }
 }
 
-private fun MutableMap<String, JsonElement>.putStringField(key: String, value: String) {
+internal fun MutableMap<String, JsonElement>.putStringField(key: String, value: String) {
     value.trim().takeIf(String::isNotBlank)?.let { put(key, JsonPrimitive(it)) }
 }
 
-private fun MutableMap<String, JsonElement>.putIntField(key: String, value: Int?) {
+internal fun MutableMap<String, JsonElement>.putIntField(key: String, value: Int?) {
     value?.let { put(key, JsonPrimitive(it)) }
 }
 
-private fun MutableMap<String, JsonElement>.putBooleanField(key: String, value: Boolean?) {
+internal fun MutableMap<String, JsonElement>.putBooleanField(key: String, value: Boolean?) {
     value?.let { put(key, JsonPrimitive(it)) }
 }
 
@@ -635,7 +635,7 @@ private fun MutableMap<String, JsonElement>.putStringListField(key: String, valu
     }
 }
 
-private fun Map<String, JsonElement>.stringField(key: String): String? {
+internal fun Map<String, JsonElement>.stringField(key: String): String? {
     val element = get(key) ?: return null
     return if (element is JsonPrimitive && element.isString) {
         element.content
@@ -644,11 +644,11 @@ private fun Map<String, JsonElement>.stringField(key: String): String? {
     }
 }
 
-private fun Map<String, JsonElement>.intField(key: String): Int? {
+internal fun Map<String, JsonElement>.intField(key: String): Int? {
     return get(key)?.jsonPrimitive?.intOrNull
 }
 
-private fun Map<String, JsonElement>.booleanField(key: String): Boolean? {
+internal fun Map<String, JsonElement>.booleanField(key: String): Boolean? {
     return get(key)?.jsonPrimitive?.booleanOrNull
 }
 

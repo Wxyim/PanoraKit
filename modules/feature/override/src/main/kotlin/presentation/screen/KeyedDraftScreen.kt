@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.presentation.screen
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -83,6 +84,7 @@ private val ProviderFormatPresets = listOf("yaml", "text", "mrs")
 
 @Composable
 fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
+    val activity = LocalActivity.current
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
     val title = remember {
@@ -96,13 +98,13 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     val initialFields = initialValue?.fields.orEmpty()
 
     var key by remember { mutableStateOf(initialValue?.key.orEmpty()) }
-    var type by remember { mutableStateOf(initialFields.stringField("type")) }
-    var path by remember { mutableStateOf(initialFields.stringField("path")) }
-    var url by remember { mutableStateOf(initialFields.stringField("url")) }
-    var proxy by remember { mutableStateOf(initialFields.stringField("proxy")) }
-    var behavior by remember { mutableStateOf(initialFields.stringField("behavior")) }
-    var format by remember { mutableStateOf(initialFields.stringField("format")) }
-    var vehicle by remember { mutableStateOf(initialFields.stringField("vehicle")) }
+    var type by remember { mutableStateOf(initialFields.stringField("type").orEmpty()) }
+    var path by remember { mutableStateOf(initialFields.stringField("path").orEmpty()) }
+    var url by remember { mutableStateOf(initialFields.stringField("url").orEmpty()) }
+    var proxy by remember { mutableStateOf(initialFields.stringField("proxy").orEmpty()) }
+    var behavior by remember { mutableStateOf(initialFields.stringField("behavior").orEmpty()) }
+    var format by remember { mutableStateOf(initialFields.stringField("format").orEmpty()) }
+    var vehicle by remember { mutableStateOf(initialFields.stringField("vehicle").orEmpty()) }
     var intervalText by remember {
         mutableStateOf(initialFields.intField("interval")?.toString().orEmpty())
     }
@@ -115,7 +117,9 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     var healthCheckEnable by remember {
         mutableStateOf(initialHealthCheckFields.booleanField("enable"))
     }
-    var healthCheckUrl by remember { mutableStateOf(initialHealthCheckFields.stringField("url")) }
+    var healthCheckUrl by remember {
+        mutableStateOf(initialHealthCheckFields.stringField("url").orEmpty())
+    }
     var healthCheckIntervalText by remember {
         mutableStateOf(initialHealthCheckFields.intField("interval")?.toString().orEmpty())
     }
@@ -126,7 +130,7 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
         mutableStateOf(initialHealthCheckFields.booleanField("lazy"))
     }
     var healthCheckExpectedStatus by remember {
-        mutableStateOf(initialHealthCheckFields.stringField("expected-status"))
+        mutableStateOf(initialHealthCheckFields.stringField("expected-status").orEmpty())
     }
     var healthCheckExtraFields by remember {
         mutableStateOf(initialHealthCheckFields.filterKeys { it !in ProviderHealthCheckKnownKeys })
@@ -137,33 +141,37 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     var overrideUdpOverTcp by remember {
         mutableStateOf(initialOverrideFields.booleanField("udp-over-tcp"))
     }
-    var overrideDown by remember { mutableStateOf(initialOverrideFields.stringField("down")) }
-    var overrideUp by remember { mutableStateOf(initialOverrideFields.stringField("up")) }
+    var overrideDown by remember {
+        mutableStateOf(initialOverrideFields.stringField("down").orEmpty())
+    }
+    var overrideUp by remember {
+        mutableStateOf(initialOverrideFields.stringField("up").orEmpty())
+    }
     var overrideSkipCertVerify by remember {
         mutableStateOf(initialOverrideFields.booleanField("skip-cert-verify"))
     }
     var overrideDialerProxy by remember {
-        mutableStateOf(initialOverrideFields.stringField("dialer-proxy"))
+        mutableStateOf(initialOverrideFields.stringField("dialer-proxy").orEmpty())
     }
     var overrideInterfaceName by remember {
-        mutableStateOf(initialOverrideFields.stringField("interface-name"))
+        mutableStateOf(initialOverrideFields.stringField("interface-name").orEmpty())
     }
     var overrideRoutingMarkText by remember {
         mutableStateOf(initialOverrideFields.intField("routing-mark")?.toString().orEmpty())
     }
     var overrideIpVersion by remember {
-        mutableStateOf(initialOverrideFields.stringField("ip-version"))
+        mutableStateOf(initialOverrideFields.stringField("ip-version").orEmpty())
     }
     var additionalPrefix by remember {
-        mutableStateOf(initialOverrideFields.stringField("additional-prefix"))
+        mutableStateOf(initialOverrideFields.stringField("additional-prefix").orEmpty())
     }
     var additionalSuffix by remember {
-        mutableStateOf(initialOverrideFields.stringField("additional-suffix"))
+        mutableStateOf(initialOverrideFields.stringField("additional-suffix").orEmpty())
     }
     var providerOverrideExtraFields by remember {
         mutableStateOf(initialOverrideFields.filterKeys { it !in ProviderOverrideKnownKeys })
     }
-    var filter by remember { mutableStateOf(initialFields.stringField("filter")) }
+    var filter by remember { mutableStateOf(initialFields.stringField("filter").orEmpty()) }
     var enable by remember { mutableStateOf(initialFields.booleanField("enable")) }
     var disableUdp by remember { mutableStateOf(initialFields.booleanField("disable-udp")) }
     var extraFields by remember {
@@ -182,8 +190,113 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     var errorText by remember { mutableStateOf<String?>(null) }
     val keyLabel = MLang.Override.Draft.Name
 
+    val draftUiId = remember { initialValue?.uiId ?: OverrideKeyedObjectDraft().uiId }
+
+    fun buildFields(): Map<String, JsonElement> =
+        linkedMapOf<String, JsonElement>().apply {
+            putAll(extraFields)
+            putStringField("type", type)
+            putStringField("path", path)
+            putStringField("url", url)
+            putStringField("proxy", proxy)
+            putStringField("behavior", behavior)
+            putStringField("format", format)
+            putStringField("vehicle", vehicle)
+            putIntField("interval", intervalText.trim().toIntOrNull())
+            putIntField("size-limit", sizeLimitText.trim().toIntOrNull())
+            putObjectField("header", parseHeaderEditorText(headerText))
+            putStringField("filter", filter)
+            putBooleanField("enable", enable)
+            putBooleanField("disable-udp", disableUdp)
+            putObjectField(
+                "health-check",
+                linkedMapOf<String, JsonElement>().apply {
+                    putAll(healthCheckExtraFields)
+                    putBooleanField("enable", healthCheckEnable)
+                    putStringField("url", healthCheckUrl)
+                    putIntField("interval", healthCheckIntervalText.trim().toIntOrNull())
+                    putIntField("timeout", healthCheckTimeoutText.trim().toIntOrNull())
+                    putBooleanField("lazy", healthCheckLazy)
+                    putStringField("expected-status", healthCheckExpectedStatus)
+                },
+            )
+            putObjectField(
+                "override",
+                linkedMapOf<String, JsonElement>().apply {
+                    putAll(providerOverrideExtraFields)
+                    putBooleanField("tfo", overrideTfo)
+                    putBooleanField("mptcp", overrideMptcp)
+                    putBooleanField("udp", overrideUdp)
+                    putBooleanField("udp-over-tcp", overrideUdpOverTcp)
+                    putStringField("down", overrideDown)
+                    putStringField("up", overrideUp)
+                    putBooleanField("skip-cert-verify", overrideSkipCertVerify)
+                    putStringField("dialer-proxy", overrideDialerProxy)
+                    putStringField("interface-name", overrideInterfaceName)
+                    putIntField("routing-mark", overrideRoutingMarkText.trim().toIntOrNull())
+                    putStringField("ip-version", overrideIpVersion)
+                    putStringField("additional-prefix", additionalPrefix)
+                    putStringField("additional-suffix", additionalSuffix)
+                },
+            )
+        }
+
+    // Keep the in-progress draft in the store so it survives configuration
+    // changes (e.g. rotation), then only clear it when the destination is
+    // actually left for good.
+    LaunchedEffect(
+        key,
+        type,
+        path,
+        url,
+        proxy,
+        behavior,
+        format,
+        vehicle,
+        intervalText,
+        sizeLimitText,
+        headerText,
+        healthCheckEnable,
+        healthCheckUrl,
+        healthCheckIntervalText,
+        healthCheckTimeoutText,
+        healthCheckLazy,
+        healthCheckExpectedStatus,
+        healthCheckExtraFields,
+        overrideTfo,
+        overrideMptcp,
+        overrideUdp,
+        overrideUdpOverTcp,
+        overrideDown,
+        overrideUp,
+        overrideSkipCertVerify,
+        overrideDialerProxy,
+        overrideInterfaceName,
+        overrideRoutingMarkText,
+        overrideIpVersion,
+        additionalPrefix,
+        additionalSuffix,
+        providerOverrideExtraFields,
+        filter,
+        enable,
+        disableUdp,
+        extraFields,
+    ) {
+        OverrideStructuredEditorStore.updateKeyedObjectDraftEditorSession(
+            OverrideKeyedObjectDraft(
+                key = key,
+                fields = buildFields(),
+                uiId = draftUiId,
+            )
+        )
+    }
+
     DisposableEffect(Unit) {
-        onDispose { OverrideStructuredEditorStore.clearKeyedObjectDraftEditor() }
+        onDispose {
+            if (activity?.isChangingConfigurations != true) {
+                OverrideStructuredEditorStore.clearKeyedObjectDraftEditor()
+            }
+        }
     }
 
     Scaffold(
@@ -202,70 +315,8 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
                     OverrideStructuredEditorStore.submitKeyedObjectDraft(
                         OverrideKeyedObjectDraft(
                             key = key.trim(),
-                            fields =
-                                linkedMapOf<String, JsonElement>().apply {
-                                    putAll(extraFields)
-                                    putStringField("type", type)
-                                    putStringField("path", path)
-                                    putStringField("url", url)
-                                    putStringField("proxy", proxy)
-                                    putStringField("behavior", behavior)
-                                    putStringField("format", format)
-                                    putStringField("vehicle", vehicle)
-                                    putIntField("interval", intervalText.trim().toIntOrNull())
-                                    putIntField("size-limit", sizeLimitText.trim().toIntOrNull())
-                                    putObjectField("header", parseHeaderEditorText(headerText))
-                                    putStringField("filter", filter)
-                                    putBooleanField("enable", enable)
-                                    putBooleanField("disable-udp", disableUdp)
-                                    putObjectField(
-                                        "health-check",
-                                        linkedMapOf<String, JsonElement>().apply {
-                                            putAll(healthCheckExtraFields)
-                                            putBooleanField("enable", healthCheckEnable)
-                                            putStringField("url", healthCheckUrl)
-                                            putIntField(
-                                                "interval",
-                                                healthCheckIntervalText.trim().toIntOrNull(),
-                                            )
-                                            putIntField(
-                                                "timeout",
-                                                healthCheckTimeoutText.trim().toIntOrNull(),
-                                            )
-                                            putBooleanField("lazy", healthCheckLazy)
-                                            putStringField(
-                                                "expected-status",
-                                                healthCheckExpectedStatus,
-                                            )
-                                        },
-                                    )
-                                    putObjectField(
-                                        "override",
-                                        linkedMapOf<String, JsonElement>().apply {
-                                            putAll(providerOverrideExtraFields)
-                                            putBooleanField("tfo", overrideTfo)
-                                            putBooleanField("mptcp", overrideMptcp)
-                                            putBooleanField("udp", overrideUdp)
-                                            putBooleanField("udp-over-tcp", overrideUdpOverTcp)
-                                            putStringField("down", overrideDown)
-                                            putStringField("up", overrideUp)
-                                            putBooleanField(
-                                                "skip-cert-verify",
-                                                overrideSkipCertVerify,
-                                            )
-                                            putStringField("dialer-proxy", overrideDialerProxy)
-                                            putStringField("interface-name", overrideInterfaceName)
-                                            putIntField(
-                                                "routing-mark",
-                                                overrideRoutingMarkText.trim().toIntOrNull(),
-                                            )
-                                            putStringField("ip-version", overrideIpVersion)
-                                            putStringField("additional-prefix", additionalPrefix)
-                                            putStringField("additional-suffix", additionalSuffix)
-                                        },
-                                    )
-                                },
-                            uiId = initialValue?.uiId ?: OverrideKeyedObjectDraft().uiId,
+                            fields = buildFields(),
+                            uiId = draftUiId,
                         )
                     )
                     navigator.navigateUp()
@@ -843,35 +894,6 @@ private fun parseHeaderEditorText(rawValue: String): Map<String, JsonElement>? {
     }
 
     return headerEntries.ifEmpty { null }
-}
-
-private fun Map<String, JsonElement>.stringField(key: String): String {
-    val element = get(key) ?: return ""
-    return if (element is JsonPrimitive && element.isString) {
-        element.content
-    } else {
-        element.toString()
-    }
-}
-
-private fun Map<String, JsonElement>.intField(key: String): Int? {
-    return get(key)?.jsonPrimitive?.intOrNull
-}
-
-private fun Map<String, JsonElement>.booleanField(key: String): Boolean? {
-    return get(key)?.jsonPrimitive?.booleanOrNull
-}
-
-private fun MutableMap<String, JsonElement>.putStringField(key: String, value: String) {
-    value.trim().takeIf(String::isNotBlank)?.let { put(key, JsonPrimitive(it)) }
-}
-
-private fun MutableMap<String, JsonElement>.putIntField(key: String, value: Int?) {
-    value?.let { put(key, JsonPrimitive(it)) }
-}
-
-private fun MutableMap<String, JsonElement>.putBooleanField(key: String, value: Boolean?) {
-    value?.let { put(key, JsonPrimitive(it)) }
 }
 
 private fun Map<String, JsonElement>.objectField(key: String): Map<String, JsonElement>? {
