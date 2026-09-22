@@ -267,7 +267,10 @@ class ProfilesViewModel(
             failureMessage = { e -> MLang.ProfilesVM.Message.AddFailed.format(e.uiErrorMessage()) },
         ) {
             val newUuid = profilesRepository.cloneProfile(uuid)
-            showMessage(MLang.ProfilesVM.Message.ProfileAdded.format("Clone"))
+            val clonedName = profilesRepository.queryProfileByUUID(newUuid)?.name
+            showMessage(
+                MLang.ProfilesVM.Message.ProfileAdded.format(clonedName ?: newUuid.toString())
+            )
             refreshProfiles()
             Timber.i("Profile cloned: from=$uuid to=$newUuid")
         }
@@ -338,7 +341,8 @@ class ProfilesViewModel(
                 }
                 RuntimeActionOutcome.FailureHandled -> throw HandledRuntimeActionFailure()
             }
-            showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format("Active"))
+            val profileName = profilesRepository.queryProfileByUUID(uuid)?.name ?: uuid.toString()
+            showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profileName))
             refreshProfiles()
             Timber.i("Profile activated: $uuid")
         }

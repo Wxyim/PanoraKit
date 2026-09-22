@@ -472,7 +472,6 @@ class HomeViewModel(
     }
 
     private fun refreshHomeEntryData() {
-        refreshProfiles()
         viewModelScope.launch {
             runCatching { refreshHomeEntryDataUseCase.refreshRuntimePreview() }
                 .onFailure { error -> Timber.d(error, "Skipped home entry preview refresh") }

@@ -29,4 +29,5 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(libs.coroutines.android)
+    implementation(libs.timber)
 }

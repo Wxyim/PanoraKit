@@ -114,6 +114,7 @@
     <string name="app_settings_network_custom_user_agent_summary_default">未设置，使用默认值</string>
     <string name="app_settings_network_external_ip_lookup_url_title">外部 IP 查询 URL</string>
     <string name="app_settings_network_external_ip_lookup_url_summary_default">未设置 — 主页不显示查询按钮</string>
+    <string name="app_settings_network_external_ip_lookup_url_invalid">请输入合法的 http(s) 地址</string>
     <string name="app_settings_cleanup_auto_enabled_title">定时自动清理</string>
     <string name="app_settings_cleanup_auto_enabled_summary">周期检查存储占用，超过阈值时自动清理</string>
     <string name="app_settings_cleanup_policy_title">清理策略</string>
@@ -351,6 +352,8 @@
     <string name="network_settings_vpn_service_vpn_mode">VPN 模式</string>
     <string name="network_settings_vpn_service_root_tun_mode">Root TUN</string>
     <string name="network_settings_vpn_service_system_proxy">HTTP 系统代理</string>
+    <string name="network_settings_vpn_service_start_failed">启动代理服务失败</string>
+    <string name="network_settings_vpn_service_restart_failed">重启代理服务失败</string>
     <string name="network_settings_http_mode_info_title">本地 HTTP 代理</string>
     <string name="network_settings_http_mode_info_summary">启动后在本机随机端口监听 HTTP 代理请求，需手动配置系统或应用代理地址。不创建 VPN 隧道，不拦截全局流量，仅为主动指向该端口的连接提供代理。</string>
     <string name="network_settings_vpn_options_bypass_private_title">绕过私有网络</string>
@@ -373,10 +376,12 @@
     <string name="network_settings_proxy_options_reject_selected">拒绝选择</string>
     <string name="network_settings_proxy_options_manage_access_control_title">管理访问控制列表</string>
     <string name="network_settings_proxy_options_manage_access_control_summary">为应用和域名配置访问控制规则</string>
+    <string name="network_settings_proxy_options_requires_full_app_access">Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。</string>
     <string name="network_settings_root_tun_if_name_title">接口名称</string>
     <string name="network_settings_root_tun_if_name_summary">RootTun 创建的虚拟网卡名</string>
     <string name="network_settings_root_tun_mtu_title">MTU</string>
     <string name="network_settings_root_tun_mtu_summary">RootTun 链路的最大传输单元</string>
+    <string name="network_settings_root_tun_mtu_invalid">请输入正整数 MTU</string>
     <string name="network_settings_root_tun_android_users_title">Android 用户</string>
     <string name="network_settings_root_tun_android_users_placeholder">0, 10</string>
     <string name="network_settings_root_tun_route_excludes_title">排除路由</string>

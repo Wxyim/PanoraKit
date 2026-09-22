@@ -596,8 +596,9 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             backupsDir.mkdirs()
             val backupFile = backupsDir.resolve(configFile.name)
             configFile.copyTo(backupFile, overwrite = true)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             // Backup is best-effort; do not block the save path
+            timber.log.Timber.w(error, "Failed to backup override config file: %s", configFile.name)
         }
     }
 
@@ -605,7 +606,8 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
         val backupFile = backupsDir.resolve("$id.json")
         return try {
             if (backupFile.exists()) backupFile.readText() else null
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            timber.log.Timber.w(error, "Failed to read override config backup: %s", id)
             null
         }
     }
@@ -617,7 +619,8 @@ class OverrideConfigRepository(private val context: Context) : OverrideConfigPro
             val configFile = configsDir.resolve("$id.json")
             backupFile.copyTo(configFile, overwrite = true)
             true
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            timber.log.Timber.w(error, "Failed to restore override config from backup: %s", id)
             false
         }
     }

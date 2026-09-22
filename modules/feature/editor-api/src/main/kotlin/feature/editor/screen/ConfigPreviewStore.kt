@@ -26,6 +26,9 @@ import androidx.compose.runtime.setValue
 import com.github.nomadboxlab.monadbox.feature.editor.language.LanguageScope
 
 object ConfigPreviewStore {
+    var isReady: Boolean by mutableStateOf(false)
+        private set
+
     var title: String by mutableStateOf("")
         private set
 
@@ -48,6 +51,7 @@ object ConfigPreviewStore {
         runtimeRunning: Boolean = false,
         onSave: ConfigPreviewSaveCallback? = null,
     ) {
+        this.isReady = true
         this.title = title
         this.content = content
         this.language = language
@@ -56,6 +60,7 @@ object ConfigPreviewStore {
     }
 
     fun clear() {
+        isReady = false
         title = ""
         content = ""
         language = LanguageScope.Json

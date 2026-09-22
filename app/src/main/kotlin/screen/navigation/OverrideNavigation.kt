@@ -22,6 +22,7 @@
 package com.github.nomadboxlab.monadbox.screen.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import com.github.nomadboxlab.monadbox.common.util.ProfilesNavigationMetrics
 import com.github.nomadboxlab.monadbox.core.StoreIds
@@ -454,6 +455,11 @@ fun OverrideSubRuleDraftEditorRoute(navigator: DestinationsNavigator) {
 @Destination<OverrideEditorNavGraph>
 fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
     val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
+    if (!ConfigPreviewStore.isReady) {
+        LaunchedEffect(Unit) { runCatching { navigator.popBackStack() } }
+        return
+    }
+
     val previewTitle = ConfigPreviewStore.title
     val previewLanguage = ConfigPreviewStore.language
     val previewContentLength = ConfigPreviewStore.content.length
@@ -467,6 +473,8 @@ fun OverrideConfigPreviewRoute(navigator: DestinationsNavigator) {
                 previewContentLength,
             )
     }
+    DisposableEffect(Unit) { onDispose { ConfigPreviewStore.clear() } }
+
     ConfigPreviewScreen(
         navigator = navigator,
         title = previewTitle,

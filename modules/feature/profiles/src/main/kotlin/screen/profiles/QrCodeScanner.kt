@@ -128,7 +128,9 @@ internal fun StableQrScanner(onScanned: (String) -> Unit) {
             try {
                 val context = previewView.context
                 ProcessCameraProvider.getInstance(context).get().unbindAll()
-            } catch (_: Exception) {}
+            } catch (error: Exception) {
+                Timber.w(error, "Failed to unbind camera provider")
+            }
         },
     )
 }

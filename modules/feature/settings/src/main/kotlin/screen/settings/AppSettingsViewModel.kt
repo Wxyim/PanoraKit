@@ -28,6 +28,8 @@ import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
 import com.github.nomadboxlab.monadbox.data.model.ThemeMode
 import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import com.github.nomadboxlab.monadbox.data.store.Preference
+import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
+import dev.oom_wg.purejoy.mlang.MLang
 
 class AppSettingsViewModel(
     private val repository: AppSettingsRepository,
@@ -63,7 +65,20 @@ class AppSettingsViewModel(
 
     val externalIpLookupUrl: Preference<String> = repository.externalIpLookupUrl
 
-    fun applyExternalIpLookupUrl(url: String) = externalIpLookupUrl.set(url.trim())
+    fun applyExternalIpLookupUrl(url: String) {
+        val normalized = url.trim()
+        if (normalized.isNotEmpty() && !isValidExternalIpLookupUrl(normalized)) {
+            GlobalDialogPresenter.showError(MLang.AppSettings.Network.ExternalIpLookupUrlInvalid)
+            return
+        }
+        externalIpLookupUrl.set(normalized)
+    }
+
+    private fun isValidExternalIpLookupUrl(url: String): Boolean {
+        val parsed = runCatching { android.net.Uri.parse(url) }.getOrNull() ?: return false
+        val scheme = parsed.scheme?.lowercase()
+        return (scheme == "http" || scheme == "https") && !parsed.host.isNullOrBlank()
+    }
 
     fun onAppLanguageChange(language: AppLanguage) = repository.onAppLanguageChange(language)
 

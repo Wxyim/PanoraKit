@@ -136,6 +136,20 @@ object MLangNetworkSettings {
         @Composable
         fun `SystemProxy`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.network_settings_vpn_service_system_proxy, *args)
+
+        val `StartFailed`: String
+            get() = LocaleBootstrap.getString(R.string.network_settings_vpn_service_start_failed)
+
+        @Composable
+        fun `StartFailed`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.network_settings_vpn_service_start_failed, *args)
+
+        val `RestartFailed`: String
+            get() = LocaleBootstrap.getString(R.string.network_settings_vpn_service_restart_failed)
+
+        @Composable
+        fun `RestartFailed`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.network_settings_vpn_service_restart_failed, *args)
     }
 
     object `HttpMode` {
@@ -380,6 +394,19 @@ object MLangNetworkSettings {
                 R.string.network_settings_proxy_options_manage_access_control_summary,
                 *args,
             )
+
+        val `RequiresFullAppAccess`: String
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.network_settings_proxy_options_requires_full_app_access
+                )
+
+        @Composable
+        fun `RequiresFullAppAccess`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_requires_full_app_access,
+                *args,
+            )
     }
 
     object `RootTun` {
@@ -410,6 +437,13 @@ object MLangNetworkSettings {
         @Composable
         fun `MtuSummary`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_summary, *args)
+
+        val `MtuInvalid`: String
+            get() = LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_invalid)
+
+        @Composable
+        fun `MtuInvalid`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.network_settings_root_tun_mtu_invalid, *args)
 
         val `AndroidUsersTitle`: String
             get() =

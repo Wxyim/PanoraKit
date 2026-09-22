@@ -32,6 +32,7 @@ import kotlin.enums.enumEntries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class LogRepository(
     private val application: Application,
@@ -117,9 +118,11 @@ class LogRepository(
                     }
                     ring.toList()
                 }
-            } catch (_: IOException) {
+            } catch (error: IOException) {
+                Timber.w(error, "Failed to read managed log file: %s", fileName)
                 emptyList()
-            } catch (_: SecurityException) {
+            } catch (error: SecurityException) {
+                Timber.w(error, "Unable to read managed log file: %s", fileName)
                 emptyList()
             }
         }
@@ -143,9 +146,11 @@ class LogRepository(
                     }
                     ring.toList()
                 }
-            } catch (_: IOException) {
+            } catch (error: IOException) {
+                Timber.w(error, "Failed to read startup log file: %s", fileName)
                 emptyList()
-            } catch (_: SecurityException) {
+            } catch (error: SecurityException) {
+                Timber.w(error, "Unable to read startup log file: %s", fileName)
                 emptyList()
             }
         }

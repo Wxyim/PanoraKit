@@ -34,6 +34,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import timber.log.Timber
 
 @Serializable
 data class IpInfo(val ip: String, @SerialName("country_code") val countryCode: String? = null)
@@ -124,6 +125,7 @@ class NetworkInfoService(private val appSettings: AppSettingsStorage) : Closeabl
                     }
                 }
             } catch (e: Exception) {
+                Timber.w(e, "Failed to query external IP")
                 null
             } finally {
                 // OkHttp 5 removed OkHttpClient.close(); release the per-request
@@ -177,8 +179,9 @@ internal object ExternalIpResponseParser {
 
         try {
             return json.decodeFromString<IpInfo>(normalizedBody)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             // Fall through to plain-text and key=value response parsing.
+            Timber.d(error, "External IP response is not JSON; continuing with fallback parsing")
         }
 
         parseKeyValueTrace(normalizedBody)?.let {

@@ -66,6 +66,7 @@ import java.io.File
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.WindowSpinner
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -113,10 +114,6 @@ internal fun AddProfileSheet(
         }
     }
 
-    val urlPattern = remember {
-        Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
-    }
-
     val readClipboardAndCheckUrl: () -> String? = {
         try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -124,11 +121,7 @@ internal fun AddProfileSheet(
             if (clipData != null && clipData.itemCount > 0) {
                 val item = clipData.getItemAt(0)
                 val clipText = item?.text?.toString()?.trim() ?: ""
-                if (clipText.isNotEmpty() && urlPattern.matches(clipText)) {
-                    clipText
-                } else {
-                    null
-                }
+                if (clipText.isNotEmpty()) normalizeSubscriptionLink(clipText) else null
             } else {
                 null
             }
@@ -208,7 +201,9 @@ internal fun AddProfileSheet(
                     if (clipboardUrl != null) {
                         url = clipboardUrl
                     }
-                } catch (_: Exception) {}
+                } catch (error: Exception) {
+                    Timber.w(error, "Failed to prefill subscription URL from clipboard")
+                }
             }
         }
         onDispose {}
@@ -681,3 +676,24 @@ internal fun AddProfileSheet(
         }
     }
 }
+
+private fun normalizeSubscriptionLink(raw: String): String? {
+    var text = raw.trim().trim('"', '\'')
+    repeat(MAX_SUBSCRIPTION_LINK_DEPTH) {
+        if (text.isEmpty()) return null
+
+        val uri = runCatching { text.toUri() }.getOrNull() ?: return null
+        when (val scheme = uri.scheme?.lowercase()) {
+            "clash", "clashmeta" -> {
+                text = uri.getQueryParameter("url") ?: return null
+            }
+            "http", "https" -> {
+                return if (uri.host.isNullOrBlank()) null else text
+            }
+            else -> return null
+        }
+    }
+    return null
+}
+
+private const val MAX_SUBSCRIPTION_LINK_DEPTH = 5

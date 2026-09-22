@@ -75,10 +75,10 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
         if (error != null) {
             delay(MODE_SWITCH_ERROR_DELAY_MS)
             surfacedModeError = error
+        } else {
+            surfacedModeError = null
         }
     }
-
-    LaunchedEffect(Unit) { homeViewModel.refreshProxyMode() }
 
     LaunchedEffect(isActive) { homeViewModel.setScreenActive(isActive) }
 

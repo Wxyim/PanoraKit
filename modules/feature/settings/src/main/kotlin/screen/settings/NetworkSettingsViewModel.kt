@@ -38,6 +38,7 @@ import com.github.nomadboxlab.monadbox.presentation.runtime.RuntimeActionOutcome
 import com.github.nomadboxlab.monadbox.presentation.runtime.VpnPermissionCoordinator
 import com.github.nomadboxlab.monadbox.runtime.client.ProxyFacade
 import com.github.nomadboxlab.monadbox.runtime.client.RuntimeStateMapper
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -274,7 +275,7 @@ class NetworkSettingsViewModel(
 
     fun onAccessControlModeChange(mode: AccessControlMode) {
         if (!canUseAccessControlMode(mode)) {
-            GlobalDialogPresenter.showError("Root 模式下该访问控制模式需要完整应用列表访问权限，请先授权或切换为仅允许指定应用。")
+            GlobalDialogPresenter.showError(MLang.NetworkSettings.ProxyOptions.RequiresFullAppAccess)
             return
         }
         updatePreference(
@@ -312,7 +313,12 @@ class NetworkSettingsViewModel(
     }
 
     fun commitRootTunMtu() {
-        val parsed = RootTunDraftFormatter.normalizeMtu(_rootTunMtuDraft.value) ?: return
+        val parsed = RootTunDraftFormatter.normalizeMtu(_rootTunMtuDraft.value)
+        if (parsed == null) {
+            _rootTunMtuDraft.value = rootTunMtu.value.toString()
+            GlobalDialogPresenter.showError(MLang.NetworkSettings.RootTun.MtuInvalid)
+            return
+        }
         _rootTunMtuDraft.value = parsed.toString()
         updatePreference(rootTunMtu, parsed, "network:root-mtu")
     }
@@ -366,7 +372,7 @@ class NetworkSettingsViewModel(
                 runtimeActionExecutor.startProxy(
                     operation = "network:start-service",
                     mode = mode,
-                    fallbackMessage = "Failed to start proxy service",
+                    fallbackMessage = MLang.NetworkSettings.VpnService.StartFailed,
                 )
             when (outcome) {
                 is RuntimeActionOutcome.Success -> Unit
@@ -388,7 +394,7 @@ class NetworkSettingsViewModel(
                     presentation =
                         RuntimeActionFailurePresentation.Start(
                             targetMode = runtimeActionExecutor.resolveDialogMode(),
-                            fallbackMessage = "Failed to restart proxy service",
+                            fallbackMessage = MLang.NetworkSettings.VpnService.RestartFailed,
                         ),
                 )
             when (outcome) {

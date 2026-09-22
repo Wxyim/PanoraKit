@@ -114,6 +114,7 @@
     <string name="app_settings_network_custom_user_agent_summary_default">Not set, using default</string>
     <string name="app_settings_network_external_ip_lookup_url_title">External IP lookup URL</string>
     <string name="app_settings_network_external_ip_lookup_url_summary_default">Not set — the home screen will not show the lookup button</string>
+    <string name="app_settings_network_external_ip_lookup_url_invalid">Enter a valid http(s) URL</string>
     <string name="app_settings_cleanup_auto_enabled_title">Timed Auto Cleanup</string>
     <string name="app_settings_cleanup_auto_enabled_summary">Periodically check storage usage and clean when threshold is exceeded</string>
     <string name="app_settings_cleanup_policy_title">Cleanup Policy</string>
@@ -351,6 +352,8 @@
     <string name="network_settings_vpn_service_vpn_mode">VPN Mode</string>
     <string name="network_settings_vpn_service_root_tun_mode">Root TUN</string>
     <string name="network_settings_vpn_service_system_proxy">HTTP System Proxy</string>
+    <string name="network_settings_vpn_service_start_failed">Failed to start proxy service</string>
+    <string name="network_settings_vpn_service_restart_failed">Failed to restart proxy service</string>
     <string name="network_settings_http_mode_info_title">Local HTTP Proxy</string>
     <string name="network_settings_http_mode_info_summary">Listens on a random local port for HTTP proxy requests after startup. Requires manual proxy configuration in system or app settings. Does not create a VPN tunnel or intercept global traffic — only proxies connections explicitly directed to the listening port.</string>
     <string name="network_settings_vpn_options_bypass_private_title">Bypass Private Networks</string>
@@ -373,10 +376,12 @@
     <string name="network_settings_proxy_options_reject_selected">Reject Selected</string>
     <string name="network_settings_proxy_options_manage_access_control_title">Manage Access Control</string>
     <string name="network_settings_proxy_options_manage_access_control_summary">Configure access control rules for apps and domains</string>
+    <string name="network_settings_proxy_options_requires_full_app_access">Root mode requires full app-list access for this mode. Grant the permission first, or switch to Allow Selected.</string>
     <string name="network_settings_root_tun_if_name_title">Interface Name</string>
     <string name="network_settings_root_tun_if_name_summary">Virtual interface name created by RootTun</string>
     <string name="network_settings_root_tun_mtu_title">MTU</string>
     <string name="network_settings_root_tun_mtu_summary">Maximum transmission unit used by RootTun</string>
+    <string name="network_settings_root_tun_mtu_invalid">Enter a positive integer MTU</string>
     <string name="network_settings_root_tun_android_users_title">Android Users</string>
     <string name="network_settings_root_tun_android_users_placeholder">0, 10</string>
     <string name="network_settings_root_tun_route_excludes_title">Route Excludes</string>

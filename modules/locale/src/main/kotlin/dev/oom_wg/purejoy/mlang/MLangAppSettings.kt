@@ -465,6 +465,19 @@ object MLangAppSettings {
                 R.string.app_settings_network_external_ip_lookup_url_summary_default,
                 *args,
             )
+
+        val `ExternalIpLookupUrlInvalid`: String
+            get() =
+                LocaleBootstrap.getString(
+                    R.string.app_settings_network_external_ip_lookup_url_invalid
+                )
+
+        @Composable
+        fun `ExternalIpLookupUrlInvalid`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.app_settings_network_external_ip_lookup_url_invalid,
+                *args,
+            )
     }
 
     object `Cleanup` {
