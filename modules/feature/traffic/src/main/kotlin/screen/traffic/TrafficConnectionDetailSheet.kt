@@ -347,7 +347,7 @@ private fun InfoRow(
     label: String,
     value: String,
     valueColor: Color = MiuixTheme.colorScheme.onSurface,
-    onCopy: ((String) -> Unit)? = null,
+    onCopy: (String) -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
@@ -356,19 +356,13 @@ private fun InfoRow(
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = Modifier.width(64.dp),
         )
-        val valueModifier =
-            if (onCopy != null) {
-                Modifier.weight(1f).pointerInput(value) {
-                    detectTapGestures(onLongPress = { onCopy(value) })
-                }
-            } else {
-                Modifier.weight(1f)
-            }
         Text(
             text = value,
             style = MiuixTheme.textStyles.footnote1,
             color = valueColor,
-            modifier = valueModifier,
+            modifier = Modifier.weight(1f).pointerInput(value) {
+                detectTapGestures(onLongPress = { onCopy(value) })
+            },
         )
     }
 }

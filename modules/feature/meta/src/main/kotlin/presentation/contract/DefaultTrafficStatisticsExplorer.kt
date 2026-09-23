@@ -297,8 +297,7 @@ class DefaultTrafficStatisticsExplorer(
     private fun resolveTopLevelGroupName(connection: ConnectionInfo): String? {
         val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
         if (chains.isEmpty()) return null
-        val builtIn = setOf("DIRECT", "REJECT", "REJECT-DROP", "直连", "拦截")
-        return chains.last().takeIf { it.uppercase(Locale.ROOT) !in builtIn }
+        return chains.last().takeIf { it.uppercase(Locale.ROOT) !in HARD_POLICY_NODE_NAMES }
     }
 
     /**
@@ -354,8 +353,14 @@ class DefaultTrafficStatisticsExplorer(
     }
 
     companion object {
+        /** Names of the DIRECT built-in policy (with Chinese alias). */
+        private val DIRECT_NODE_NAMES = setOf("DIRECT", "直连")
+
         /** Exit-node names that route the connection to a reject policy. */
         private val REJECT_NODE_NAMES = setOf("REJECT", "REJECT-DROP", "REJECTDROP", "拦截")
+
+        /** Built-in policies that are not proxy groups and should be skipped as a top-level group. */
+        private val HARD_POLICY_NODE_NAMES = DIRECT_NODE_NAMES + REJECT_NODE_NAMES
 
         /** Maximum number of recent requests to surface in the UI. */
         private const val MAX_RECENT_REQUESTS = 100

@@ -287,7 +287,7 @@ fun LocalProfileConfigEditScreen(
                     }
                 else -> Unit
             }
-            ProfileConfigEditSessionHolder.clear(profileUuid)
+            ProfileConfigEditSessionHolder.clear(profileUuid, editState)
             navigator.navigateUp()
         }
     }
@@ -299,7 +299,7 @@ fun LocalProfileConfigEditScreen(
             editState.isLoading || editState.isSaving -> Unit
             editState.isModified || editState.bindingChanged -> deferredSaveAndExit()
             else -> {
-                ProfileConfigEditSessionHolder.clear(profileUuid)
+                ProfileConfigEditSessionHolder.clear(profileUuid, editState)
                 navigator.navigateUp()
             }
         }

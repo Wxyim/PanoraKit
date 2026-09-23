@@ -170,10 +170,20 @@ object ProfileConfigEditSessionHolder {
     private val sessions = mutableMapOf<String, ProfileConfigEditState>()
 
     fun forProfile(profileUuid: String): ProfileConfigEditState {
+        // A session stuck in isSaving can only be left behind by an abnormal exit (e.g. the save
+        // coroutine was cancelled before clear() ran). Reuse it and the editor would restore a
+        // stale in-memory snapshot or stay stuck in the saving state, so drop it and start fresh.
+        if (sessions[profileUuid]?.isSaving == true) {
+            sessions.remove(profileUuid)
+        }
         return sessions.getOrPut(profileUuid) { ProfileConfigEditState(profileUuid) }
     }
 
-    fun clear(profileUuid: String) {
-        sessions.remove(profileUuid)
+    /**
+     * Removes the session only if it is still [session]. A save coroutine that was orphaned by an
+     * abnormal exit must not wipe a newer session that was created for the same profile.
+     */
+    fun clear(profileUuid: String, session: ProfileConfigEditState) {
+        sessions.remove(profileUuid, session)
     }
 }
