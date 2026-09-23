@@ -32,7 +32,7 @@ import com.tencent.mmkv.MMKV
  * Read and written from both the app process and the `:runtime:service` VPN process. Must NOT be
  * migrated to Room or single-process Preferences DataStore — neither offers multi-process
  * coherence. Any future replacement requires a ContentProvider or AIDL shim in front of the storage
- * engine. See `docs/REFACTOR_ROADMAP.md` Phase 7 step 3.
+ * engine.
  */
 class RootTunStateStore(context: Context) {
     private val store = MMKV.mmkvWithID(STORE_ID, MMKV.MULTI_PROCESS_MODE)

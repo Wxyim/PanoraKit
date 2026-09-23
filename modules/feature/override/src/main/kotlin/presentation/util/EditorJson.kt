@@ -30,42 +30,6 @@ val OverrideEditorJson = Json {
     ignoreUnknownKeys = true
 }
 
-fun encodeObjectFields(value: Map<String, JsonElement>?): String? {
-    if (value.isNullOrEmpty()) return null
-    return OverrideEditorJson.encodeToString(
-        JsonElement.serializer(),
-        JsonObject(toOrderedJsonElementMap(value)),
-    )
-}
-
-fun decodeObjectFields(value: String?): Map<String, JsonElement>? {
-    if (value.isNullOrBlank()) return null
-    return OverrideEditorJson.parseToJsonElement(value)
-        .jsonObject
-        .let(::orderedJsonObjectFields)
-        .ifEmpty { null }
-}
-
-private fun orderedJsonObjectFields(value: JsonObject): LinkedHashMap<String, JsonElement> {
-    val orderedMap = LinkedHashMap<String, JsonElement>(value.size)
-    value.forEach { (key, element) -> orderedMap[key] = element }
-    return orderedMap
-}
-
-fun jsonElementToEditorValue(element: JsonElement): String {
-    return when (element) {
-        is JsonPrimitive -> {
-            if (element.isString) {
-                element.content
-            } else {
-                element.toString()
-            }
-        }
-
-        else -> OverrideEditorJson.encodeToString(JsonElement.serializer(), element)
-    }
-}
-
 enum class OverrideExtraFieldValueType {
     String,
     Boolean,

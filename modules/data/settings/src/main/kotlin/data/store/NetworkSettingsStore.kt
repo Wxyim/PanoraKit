@@ -33,7 +33,7 @@ import com.tencent.mmkv.MMKV
  * Shared between the app process and the `:runtime:service` VPN process via
  * `MMKV.MULTI_PROCESS_MODE` (see `MMKVProvider`). Must NOT be migrated to Room or single-process
  * Preferences DataStore — neither offers multi-process coherence. Any future replacement requires a
- * ContentProvider or AIDL shim. See `docs/REFACTOR_ROADMAP.md` Phase 7 step 3.
+ * ContentProvider or AIDL shim.
  */
 class NetworkSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
 

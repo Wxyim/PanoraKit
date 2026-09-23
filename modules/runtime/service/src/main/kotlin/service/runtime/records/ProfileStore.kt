@@ -39,7 +39,7 @@ import kotlinx.serialization.json.Json
  * Read and written from both the app process and the `:runtime:service` VPN process. Must NOT be
  * migrated to Room or single-process Preferences DataStore — neither offers multi-process
  * coherence. Any future replacement requires a ContentProvider or AIDL shim in front of the storage
- * engine. See `docs/REFACTOR_ROADMAP.md` Phase 7 step 3.
+ * engine.
  */
 object ProfileStore {
     private const val IMPORTED_KEY = "imported"

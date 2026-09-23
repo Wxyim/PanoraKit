@@ -27,8 +27,8 @@ import com.tencent.mmkv.MMKV
  * Cross-process MMKV-backed [StoreProvider] adapter.
  *
  * The underlying MMKV instance is expected to have been opened with `MMKV.MULTI_PROCESS_MODE` by
- * the caller — this adapter itself is transport only. See `docs/REFACTOR_ROADMAP.md` Phase 7 step 3
- * for why the runtime stores behind this provider must remain MMKV-backed.
+ * the caller — this adapter itself is transport only. The runtime stores behind this provider must
+ * remain MMKV-backed because they are shared across the app and VPN processes.
  */
 class MMKVStoreProvider(private val mmkv: MMKV) : StoreProvider {
     override fun getInt(key: String, defaultValue: Int): Int {
