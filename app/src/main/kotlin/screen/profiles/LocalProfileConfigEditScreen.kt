@@ -66,6 +66,7 @@ import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewSavePh
 import com.github.nomadboxlab.monadbox.feature.home.api.HomeRuntimeController
 import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOption
 import com.github.nomadboxlab.monadbox.feature.override.api.ProfileOverrideOptionsProvider
+import com.github.nomadboxlab.monadbox.feature.profiles.ProfileConfigEditSessionHolder
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfileConfigEditState
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesViewModel
 import com.github.nomadboxlab.monadbox.presentation.component.JsonTextEditorDialog
@@ -134,7 +135,7 @@ fun LocalProfileConfigEditScreen(
     val editorListState = rememberLazyListState()
     val profileId = remember(profileUuid) { UUID.fromString(profileUuid) }
 
-    val editState = remember(profileUuid) { ProfileConfigEditState(profileUuid) }
+    val editState = remember(profileUuid) { ProfileConfigEditSessionHolder.forProfile(profileUuid) }
 
     val showStringMapEditor = remember { mutableStateOf(false) }
     val showJsonEditor = remember { mutableStateOf(false) }
@@ -160,23 +161,29 @@ fun LocalProfileConfigEditScreen(
         }
 
     LaunchedEffect(profileUuid) {
-        editState.beginLoad()
         runCatching { profileOverrideOptionsProvider.refreshOptions() }
-        runCatching { profilesViewModel.loadProfileConfigForGui(profileId) }
-            .onSuccess { loadedConfig -> editState.onConfigLoaded(loadedConfig) }
-            .onFailure { error ->
-                editState.onLoadFailed(
-                    error.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
-                )
-            }
-        runCatching { profilesViewModel.loadProfileBinding(profileUuid) }
-            .onSuccess { binding ->
-                editState.onBindingLoaded(
-                    enabled = binding?.enabled ?: false,
-                    overrideIds =
-                        binding?.overrideIds.orEmpty().filterNot { it.startsWith("preset-") },
-                )
-            }
+        // Only load from disk when no in-memory session survived navigation into a
+        // sub-editor; otherwise restoring would clobber pending edits.
+        if (editState.originalConfig == null) {
+            editState.beginLoad()
+            runCatching { profilesViewModel.loadProfileConfigForGui(profileId) }
+                .onSuccess { loadedConfig -> editState.onConfigLoaded(loadedConfig) }
+                .onFailure { error ->
+                    editState.onLoadFailed(
+                        error.message ?: MLang.ProfilesPage.Message.ReadProfileFailed
+                    )
+                }
+        }
+        if (!editState.bindingChanged) {
+            runCatching { profilesViewModel.loadProfileBinding(profileUuid) }
+                .onSuccess { binding ->
+                    editState.onBindingLoaded(
+                        enabled = binding?.enabled ?: false,
+                        overrideIds =
+                            binding?.overrideIds.orEmpty().filterNot { it.startsWith("preset-") },
+                    )
+                }
+        }
         editState.onLoadingComplete()
     }
 
@@ -281,6 +288,7 @@ fun LocalProfileConfigEditScreen(
                     }
                 else -> Unit
             }
+            ProfileConfigEditSessionHolder.clear(profileUuid)
             navigator.navigateUp()
         }
     }
@@ -291,7 +299,10 @@ fun LocalProfileConfigEditScreen(
             showJsonEditor.value -> showJsonEditor.value = false
             editState.isLoading || editState.isSaving -> Unit
             editState.isModified || editState.bindingChanged -> deferredSaveAndExit()
-            else -> navigator.navigateUp()
+            else -> {
+                ProfileConfigEditSessionHolder.clear(profileUuid)
+                navigator.navigateUp()
+            }
         }
     }
 
