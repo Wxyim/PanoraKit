@@ -46,7 +46,7 @@ APK 打包依赖 native 产物。
 Linux/macOS：
 
 ```bash
-./scripts/sync-kernel.sh alpha # or meta/smart
+./scripts/sync-kernel.sh alpha
 kotlin scripts/native-build.main.kts --all
 ./gradlew build
 ```
@@ -54,7 +54,7 @@ kotlin scripts/native-build.main.kts --all
 Windows PowerShell：
 
 ```powershell
-./scripts/sync-kernel.ps1 alpha # or meta/smart
+./scripts/sync-kernel.ps1 alpha
 kotlin scripts/native-build.main.kts --all
 .\gradlew.bat build
 ```
@@ -72,8 +72,7 @@ kotlin scripts/native-build.main.kts --all
 ./gradlew spotlessApply
 ./gradlew checkUiContracts
 ./gradlew checkModernizationBaseline
-./gradlew test
-./gradlew lint
+./gradlew check
 ```
 
 Windows 等价命令：
@@ -82,14 +81,13 @@ Windows 等价命令：
 .\gradlew.bat spotlessApply
 .\gradlew.bat checkUiContracts
 .\gradlew.bat checkModernizationBaseline
-.\gradlew.bat test
-.\gradlew.bat lint
+.\gradlew.bat check
 ```
 
-根任务 `check` 已包含 `checkUiContracts` 与 `checkModernizationBaseline`。
+根任务 `check` 已包含 `checkUiContracts` 与 `checkModernizationBaseline`，
+并会运行所有模块的单元测试与 Android lint；上方两个契约任务单独列出仅为便于定位。
 
-如果需要与 CI 保持一致（CI 会启动 emulator 执行 instrumentation），请在
-可用模拟器环境中额外执行：
+如需要本地运行 instrumented 测试，请在可用模拟器环境中额外执行：
 
 ```powershell
 .\gradlew.bat connectedDebugAndroidTest --continue
@@ -220,6 +218,7 @@ CI 变量：
 | `scripts/repo-health.{sh,ps1}` | 仓库健康检查 |
 | `scripts/setup-release-signing.{sh,ps1}` | 初始化 release 签名 |
 | `scripts/llm-runtime-fuzz.{sh,ps1}` | 运行时 fuzz 辅助 |
+| `kotlin scripts/remove-comments.main.kts` | 一次性注释清理工具（`--dry-run` 可预览） |
 
 ## 10. 故障排查
 
@@ -339,7 +338,7 @@ CollectFlowWithLifecycle(viewModel.navigationEvents) { event ->
 }
 ```
 
-参考实现：`app/src/presentation/component/CollectFlowWithLifecycle.kt`
+参考实现：`modules/ui/src/main/kotlin/presentation/component/CollectFlowWithLifecycle.kt`
 
 Compose 页面禁用模式：
 
@@ -394,7 +393,7 @@ App.onCreate()
 
 1. `.\gradlew.bat spotlessApply`
 2. `.\gradlew.bat check`
-3. `.\gradlew.bat test`
+3. `.\gradlew.bat :app:testDebugUnitTest`
 4. 如修改了 `androidTest` 或 Compose 语义，启动模拟器后执行 `.\gradlew.bat connectedDebugAndroidTest --continue`。
 5. 新增或重命名 Destination 后更新 `config/ui-capability-registry.txt`。
 

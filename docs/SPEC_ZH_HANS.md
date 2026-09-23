@@ -307,7 +307,6 @@ Android 官方明确要求应用处理窗口运行时变化、方向变化、分
 * `StatusBadge`
 * `HealthBanner`
 * `SettingsRow`
-* `EditorCommandBar`
 
 ### 9.5 列表与设置页
 

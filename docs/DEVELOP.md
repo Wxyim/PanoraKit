@@ -73,8 +73,7 @@ Run from repository root:
 ./gradlew spotlessApply
 ./gradlew checkUiContracts
 ./gradlew checkModernizationBaseline
-./gradlew test
-./gradlew lint
+./gradlew check
 ```
 
 Windows equivalent:
@@ -83,11 +82,12 @@ Windows equivalent:
 .\gradlew.bat spotlessApply
 .\gradlew.bat checkUiContracts
 .\gradlew.bat checkModernizationBaseline
-.\gradlew.bat test
-.\gradlew.bat lint
+.\gradlew.bat check
 ```
 
-Root `check` includes both `checkUiContracts` and `checkModernizationBaseline`.
+Root `check` includes both `checkUiContracts` and `checkModernizationBaseline`, and runs every
+module's unit tests and Android lint; the two contract tasks are listed explicitly for visibility.
+Optionally run instrumented tests on an emulator with `.\gradlew.bat connectedDebugAndroidTest --continue`.
 
 ## 5. Module Topology
 
@@ -214,6 +214,7 @@ Notes:
 | `scripts/repo-health.{sh,ps1}` | repository health checks |
 | `scripts/setup-release-signing.{sh,ps1}` | release signing bootstrap |
 | `scripts/llm-runtime-fuzz.{sh,ps1}` | runtime fuzz helper |
+| `kotlin scripts/remove-comments.main.kts` | one-off comment-stripping utility (`--dry-run` previews) |
 
 ## 10. Troubleshooting
 
@@ -336,7 +337,7 @@ CollectFlowWithLifecycle(viewModel.navigationEvents) { event ->
 }
 ```
 
-Reference implementation: `app/src/presentation/component/CollectFlowWithLifecycle.kt`
+Reference implementation: `modules/ui/src/main/kotlin/presentation/component/CollectFlowWithLifecycle.kt`
 
 Disallowed patterns in Compose screens:
 
@@ -393,8 +394,9 @@ This task is normative. Inline suppressions intended to bypass the rule set are 
 
 1. `.\gradlew.bat spotlessApply`
 2. `.\gradlew.bat check`
-3. `.\gradlew.bat test`
-4. Update `config/ui-capability-registry.txt` for Destination additions or renames.
+3. `.\gradlew.bat :app:testDebugUnitTest`
+4. If `androidTest` or Compose semantics changed, run `.\gradlew.bat connectedDebugAndroidTest --continue` on an emulator.
+5. Update `config/ui-capability-registry.txt` for Destination additions or renames.
 
 ## 19. License
 

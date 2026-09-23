@@ -40,7 +40,7 @@ Common commands:
 
 ```bash
 ./gradlew spotlessApply
-./gradlew test
+./gradlew check
 ./gradlew assembleDebug
 ```
 

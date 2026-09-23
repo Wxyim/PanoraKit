@@ -307,7 +307,6 @@ The app **SHOULD** standardize the following foundational component families:
 * `StatusBadge`
 * `HealthBanner`
 * `SettingsRow`
-* `EditorCommandBar`
 
 ### 9.5 Lists And Settings Pages
 

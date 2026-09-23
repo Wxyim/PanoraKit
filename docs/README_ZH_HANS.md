@@ -24,6 +24,7 @@ MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCu
 
 - 开发指南：[DEVELOP_ZH_HANS.md](DEVELOP_ZH_HANS.md)
 - 许可策略：[LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md)
+- 产品规范：[SPEC_ZH_HANS.md](SPEC_ZH_HANS.md)
 - 隐私说明：[PRIVACY_POLICY_ZH_HANS.md](PRIVACY_POLICY_ZH_HANS.md)
 
 ## 快速开始
@@ -39,7 +40,7 @@ MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCu
 
 ```bash
 ./gradlew spotlessApply
-./gradlew test
+./gradlew check
 ./gradlew assembleDebug
 ```
 
