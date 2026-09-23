@@ -678,7 +678,6 @@ private val RejectTagColor = Color(0xFFE53935)
 private fun RequestChip(
     text: String,
     color: androidx.compose.ui.graphics.Color,
-    containerColor: androidx.compose.ui.graphics.Color = color.copy(alpha = 0.12f),
 ) {
     val spacing = AppTheme.spacing
     val pageMetrics = AppTheme.pageMetrics
@@ -690,7 +689,7 @@ private fun RequestChip(
         overflow = TextOverflow.Ellipsis,
         modifier =
             Modifier.clip(RoundedCornerShape(pageMetrics.trafficRecentRequestChipCorner))
-                .background(containerColor)
+                .background(color.copy(alpha = 0.12f))
                 .padding(
                     horizontal = spacing.sm,
                     vertical = TrafficStatisticsScreenLayoutDefaults.RequestChipVerticalPadding,
