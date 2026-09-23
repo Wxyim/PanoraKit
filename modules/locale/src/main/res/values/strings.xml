@@ -265,6 +265,7 @@
     <string name="connection_detail_rule">Rule</string>
     <string name="connection_detail_type">Type</string>
     <string name="connection_detail_content">Content</string>
+    <string name="connection_detail_copied">Copied to clipboard</string>
     <string name="home_title">MonadBox</string>
     <string name="home_message_config_switched">Config switched</string>
     <string name="home_message_config_switch_failed">Config switch failed: %s</string>

@@ -19,7 +19,11 @@
 
 package com.github.nomadboxlab.monadbox.feature.traffic
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,9 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.feature.meta.api.toConnectionDisplayAddress
@@ -113,6 +120,7 @@ internal fun ConnectionDetailSheet(
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
     ) {
+        val copy = rememberClipboardCopier()
         connectionInfo?.let { info ->
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -130,13 +138,33 @@ internal fun ConnectionDetailSheet(
                         upload = info.upload,
                         download = info.download,
                         chains = info.chains,
+                        onCopy = copy,
                     )
                 }
                 if (info.rule.isNotEmpty()) {
-                    item { RuleInfoSection(rule = info.rule, rulePayload = info.rulePayload) }
+                    item {
+                        RuleInfoSection(
+                            rule = info.rule,
+                            rulePayload = info.rulePayload,
+                            onCopy = copy,
+                        )
+                    }
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
+        }
+    }
+}
+
+@Composable
+private fun rememberClipboardCopier(): (String, String) -> Unit {
+    val context = LocalContext.current
+    return remember(context) {
+        { label: String, value: String ->
+            val clipboardManager =
+                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value))
+            context.toast(MLang.Connection.Detail.Copied)
         }
     }
 }
@@ -153,45 +181,76 @@ private fun ConnectionInfoSection(
     upload: Long,
     download: Long,
     chains: List<String>,
+    onCopy: (String, String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Info)
-        InfoRow(label = MLang.Connection.Detail.Protocol, value = network.uppercase())
+        InfoRow(
+            label = MLang.Connection.Detail.Protocol,
+            value = network.uppercase(),
+            onCopy = { value -> onCopy(MLang.Connection.Detail.Protocol, value) },
+        )
         if (sourceAppName.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.SourceApp, value = sourceAppName)
+            InfoRow(
+                label = MLang.Connection.Detail.SourceApp,
+                value = sourceAppName,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.SourceApp, value) },
+            )
         }
         if (!sourcePackageName.isNullOrEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.PackageName, value = sourcePackageName)
+            InfoRow(
+                label = MLang.Connection.Detail.PackageName,
+                value = sourcePackageName,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.PackageName, value) },
+            )
         }
         if (process.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.Process, value = process)
+            InfoRow(
+                label = MLang.Connection.Detail.Process,
+                value = process,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.Process, value) },
+            )
         }
         if (sourceAddress.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.SourceAddress, value = sourceAddress)
+            InfoRow(
+                label = MLang.Connection.Detail.SourceAddress,
+                value = sourceAddress,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.SourceAddress, value) },
+            )
         }
         if (destinationAddress.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.DestinationAddress, value = destinationAddress)
+            InfoRow(
+                label = MLang.Connection.Detail.DestinationAddress,
+                value = destinationAddress,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.DestinationAddress, value) },
+            )
         }
-        InfoRow(label = MLang.Connection.Detail.Duration, value = duration)
+        InfoRow(
+            label = MLang.Connection.Detail.Duration,
+            value = duration,
+            onCopy = { value -> onCopy(MLang.Connection.Detail.Duration, value) },
+        )
         InfoRow(
             label = MLang.Connection.Detail.Upload,
             value = formatBytes(upload),
             valueColor = Color(0xFF2196F3),
+            onCopy = { value -> onCopy(MLang.Connection.Detail.Upload, value) },
         )
         InfoRow(
             label = MLang.Connection.Detail.Download,
             value = formatBytes(download),
             valueColor = Color(0xFF4CAF50),
+            onCopy = { value -> onCopy(MLang.Connection.Detail.Download, value) },
         )
         if (chains.isNotEmpty()) {
             Spacer(modifier = Modifier.height(4.dp))
-            ProxyChainRow(chains = chains)
+            ProxyChainRow(chains = chains, onCopy = { name -> onCopy(name, name) })
         }
     }
 }
 
 @Composable
-private fun ProxyChainRow(chains: List<String>) {
+private fun ProxyChainRow(chains: List<String>, onCopy: (String) -> Unit) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -205,7 +264,7 @@ private fun ProxyChainRow(chains: List<String>) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                ChainNode(name = chain, isActive = isLast)
+                ChainNode(name = chain, isActive = isLast, onCopy = onCopy)
                 if (!isLast) {
                     Text(
                         text = "->",
@@ -220,16 +279,16 @@ private fun ProxyChainRow(chains: List<String>) {
 }
 
 @Composable
-private fun ChainNode(name: String, isActive: Boolean) {
+private fun ChainNode(name: String, isActive: Boolean, onCopy: (String) -> Unit) {
     val backgroundColor =
         if (isActive) {
-            Color(0xFF00BFA5).copy(alpha = 0.12f)
+            Color(0xFF0A8F6A).copy(alpha = 0.12f)
         } else {
             MiuixTheme.colorScheme.surfaceVariant
         }
     val textColor =
         if (isActive) {
-            Color(0xFF00BFA5)
+            Color(0xFF0A8F6A)
         } else {
             Color(0xFF6B7280)
         }
@@ -238,12 +297,13 @@ private fun ChainNode(name: String, isActive: Boolean) {
         modifier =
             Modifier.clip(RoundedCornerShape(8.dp))
                 .background(backgroundColor)
+                .pointerInput(name) { detectTapGestures(onLongPress = { onCopy(name) }) }
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (isActive) {
-            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00BFA5)))
+            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF0A8F6A)))
         }
         Text(
             text = name,
@@ -255,12 +315,20 @@ private fun ChainNode(name: String, isActive: Boolean) {
 }
 
 @Composable
-private fun RuleInfoSection(rule: String, rulePayload: String) {
+private fun RuleInfoSection(rule: String, rulePayload: String, onCopy: (String, String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Rule)
-        InfoRow(label = MLang.Connection.Detail.Type, value = rule)
+        InfoRow(
+            label = MLang.Connection.Detail.Type,
+            value = rule,
+            onCopy = { value -> onCopy(MLang.Connection.Detail.Type, value) },
+        )
         if (rulePayload.isNotEmpty()) {
-            InfoRow(label = MLang.Connection.Detail.Content, value = rulePayload)
+            InfoRow(
+                label = MLang.Connection.Detail.Content,
+                value = rulePayload,
+                onCopy = { value -> onCopy(MLang.Connection.Detail.Content, value) },
+            )
         }
     }
 }
@@ -279,6 +347,7 @@ private fun InfoRow(
     label: String,
     value: String,
     valueColor: Color = MiuixTheme.colorScheme.onSurface,
+    onCopy: ((String) -> Unit)? = null,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
@@ -287,11 +356,19 @@ private fun InfoRow(
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = Modifier.width(64.dp),
         )
+        val valueModifier =
+            if (onCopy != null) {
+                Modifier.weight(1f).pointerInput(value) {
+                    detectTapGestures(onLongPress = { onCopy(value) })
+                }
+            } else {
+                Modifier.weight(1f)
+            }
         Text(
             text = value,
             style = MiuixTheme.textStyles.footnote1,
             color = valueColor,
-            modifier = Modifier.weight(1f),
+            modifier = valueModifier,
         )
     }
 }

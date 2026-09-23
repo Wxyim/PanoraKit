@@ -36,6 +36,8 @@ data class RecentRequestRecord(
     val bottomNodeName: String?,
     val sourceAppName: String,
     val sourcePackageName: String?,
+    /** True when the connection was rejected (REJECT / REJECT-DROP exit node). */
+    val isRejected: Boolean = false,
 )
 
 interface TrafficStatisticsExplorer {

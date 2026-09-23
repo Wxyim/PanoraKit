@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -653,10 +654,19 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                         )
                     }
                     if (!bottomNodeName.isNullOrBlank()) {
-                        RequestChip(
-                            text = bottomNodeName,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
+                        if (record.isRejected) {
+                            // Same red as the built-in REJECT node visual (NodeCard.kt).
+                            RequestChip(
+                                text = bottomNodeName,
+                                color = Color.White,
+                                containerColor = RejectTagContainerColor,
+                            )
+                        } else {
+                            RequestChip(
+                                text = bottomNodeName,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
                     }
                 }
             }
@@ -664,8 +674,15 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
     }
 }
 
+/** Background of the reject chip in the recent-requests list. */
+private val RejectTagContainerColor = Color(0xFFE53935)
+
 @Composable
-private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color) {
+private fun RequestChip(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    containerColor: androidx.compose.ui.graphics.Color = color.copy(alpha = 0.12f),
+) {
     val spacing = AppTheme.spacing
     val pageMetrics = AppTheme.pageMetrics
     Text(
@@ -676,7 +693,7 @@ private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color)
         overflow = TextOverflow.Ellipsis,
         modifier =
             Modifier.clip(RoundedCornerShape(pageMetrics.trafficRecentRequestChipCorner))
-                .background(color.copy(alpha = 0.12f))
+                .background(containerColor)
                 .padding(
                     horizontal = spacing.sm,
                     vertical = TrafficStatisticsScreenLayoutDefaults.RequestChipVerticalPadding,

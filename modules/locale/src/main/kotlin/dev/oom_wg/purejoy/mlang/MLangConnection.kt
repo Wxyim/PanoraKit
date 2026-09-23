@@ -119,5 +119,12 @@ object MLangConnection {
         @Composable
         fun `Content`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.connection_detail_content, *args)
+
+        val `Copied`: String
+            get() = LocaleBootstrap.getString(R.string.connection_detail_copied)
+
+        @Composable
+        fun `Copied`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.connection_detail_copied, *args)
     }
 }

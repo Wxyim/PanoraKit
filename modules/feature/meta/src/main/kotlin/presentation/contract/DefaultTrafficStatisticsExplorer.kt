@@ -312,6 +312,16 @@ class DefaultTrafficStatisticsExplorer(
         return localizeBuiltInProxyName(chains.first())
     }
 
+    /**
+     * True when the connection exited through a reject policy. mihomo reports chains
+     * innermost-first, so the first element is the actual exit node.
+     */
+    private fun isRejectedConnection(connection: ConnectionInfo): Boolean {
+        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
+        if (chains.isEmpty()) return false
+        return chains.first().uppercase(Locale.ROOT) in REJECT_NODE_NAMES
+    }
+
     private fun localizeBuiltInProxyName(name: String): String {
         val normalized = name.trim().uppercase(Locale.ROOT)
         return when (normalized) {
@@ -339,10 +349,14 @@ class DefaultTrafficStatisticsExplorer(
             bottomNodeName = resolveBottomNodeName(connection),
             sourceAppName = appName,
             sourcePackageName = packageName,
+            isRejected = isRejectedConnection(connection),
         )
     }
 
     companion object {
+        /** Exit-node names that route the connection to a reject policy. */
+        private val REJECT_NODE_NAMES = setOf("REJECT", "REJECT-DROP", "REJECTDROP", "拦截")
+
         /** Maximum number of recent requests to surface in the UI. */
         private const val MAX_RECENT_REQUESTS = 100
 
