@@ -655,12 +655,9 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                     }
                     if (!bottomNodeName.isNullOrBlank()) {
                         if (record.isRejected) {
-                            // Same red as the built-in REJECT node visual (NodeCard.kt).
-                            RequestChip(
-                                text = bottomNodeName,
-                                color = Color.White,
-                                containerColor = RejectTagContainerColor,
-                            )
+                            // Same red as the built-in REJECT node visual (NodeCard.kt):
+                            // solid red text on a light red tinted container.
+                            RequestChip(text = bottomNodeName, color = RejectTagColor)
                         } else {
                             RequestChip(
                                 text = bottomNodeName,
@@ -674,8 +671,8 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
     }
 }
 
-/** Background of the reject chip in the recent-requests list. */
-private val RejectTagContainerColor = Color(0xFFE53935)
+/** Base red of the reject chip; matches the built-in REJECT node visual. */
+private val RejectTagColor = Color(0xFFE53935)
 
 @Composable
 private fun RequestChip(
