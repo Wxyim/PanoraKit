@@ -63,6 +63,7 @@ import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
 import com.github.nomadboxlab.monadbox.presentation.theme.HomeModeSwitchOverlayLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
@@ -193,6 +194,7 @@ fun HomeModeSwitchOverlay(
                     modeItems.forEach { (mode, label) ->
                         HomeModeMenuItem(
                             text = label,
+                            mode = mode,
                             selected = mode == currentMode,
                             onClick = {
                                 if (mode != currentMode) onSelectMode(mode)
@@ -207,18 +209,25 @@ fun HomeModeSwitchOverlay(
 }
 
 @Composable
-private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Unit) {
+private fun HomeModeMenuItem(
+    text: String,
+    mode: TunnelState.Mode,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     val primary = MiuixTheme.colorScheme.primary
+    val semanticColors = LocalSemanticColors.current
+    val accentColor = mode.toModeAccentColor(primary, semanticColors)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
         animateColorAsState(
             targetValue =
                 when {
-                    selected && isPressed -> primary.copy(alpha = 0.14f)
-                    selected -> primary.copy(alpha = 0.10f)
-                    isPressed -> primary.copy(alpha = 0.05f)
-                    else -> Color.Transparent
+                    selected && isPressed -> accentColor.copy(alpha = 0.16f)
+                    selected -> accentColor.copy(alpha = 0.12f)
+                    isPressed -> accentColor.copy(alpha = 0.08f)
+                    else -> accentColor.copy(alpha = 0.05f)
                 },
             animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
             label = "ModeMenuItemContainerColor",
@@ -264,13 +273,13 @@ private fun HomeModeMenuItem(text: String, selected: Boolean, onClick: () -> Uni
                         fontSize = HomeModeSwitchOverlayLayoutDefaults.ItemTextSize,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     ),
-                color = if (selected) primary else MiuixTheme.colorScheme.onSurface,
+                color = if (selected) accentColor else MiuixTheme.colorScheme.onSurface,
             )
             if (selected) {
                 Icon(
                     imageVector = MonadIcons.Check,
                     contentDescription = null,
-                    tint = primary,
+                    tint = accentColor,
                     modifier = Modifier.size(HomeModeSwitchOverlayLayoutDefaults.ItemIconSize),
                 )
             }

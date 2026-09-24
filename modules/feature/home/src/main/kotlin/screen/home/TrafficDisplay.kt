@@ -267,16 +267,6 @@ private fun ProfileModeBadge(
                 ),
             label = "ModeBadgeContainerColor",
         )
-    val controlScale by
-        animateFloatAsState(
-            targetValue = 1f,
-            animationSpec =
-                tween(
-                    durationMillis = AnimationSpecs.DURATION_INSTANT,
-                    easing = AnimationSpecs.StandardEasing,
-                ),
-            label = "ModeBadgeScale",
-        )
     Box(
         modifier = Modifier.fillMaxWidth().heightIn(min = metrics.controlTouchTargetHeight),
         contentAlignment = Alignment.CenterEnd,
@@ -286,7 +276,6 @@ private fun ProfileModeBadge(
             shape = RoundedCornerShape(metrics.controlCornerRadius),
             modifier =
                 Modifier.fillMaxWidth()
-                    .scale(controlScale)
                     .heightIn(min = metrics.modeBadgeHeight)
                     .testTag(TestTags.Home.ProfileModeBadge)
                     .semantics(mergeDescendants = true) { contentDescription = controlDescription }
@@ -686,7 +675,7 @@ private fun TunnelState.Mode?.toDisplayName(): String =
         else -> MLang.Home.Profile.Rule
     }
 
-private fun TunnelState.Mode?.toModeAccentColor(
+internal fun TunnelState.Mode?.toModeAccentColor(
     fallback: Color,
     semanticColors: AppSemanticColors,
 ): Color =
