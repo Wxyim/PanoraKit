@@ -231,11 +231,15 @@ class TunService : VpnService(), CoroutineScope {
 
         if (this::runtime.isInitialized) {
             runtime.destroy()
-        } else {
-            // onCreate may have failed before the runtime was built; close the TUN fd
-            // directly so Android tears the VPN down even in that case.
-            runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopTun() }
         }
+
+        // Always close the native tunnel/listener directly on destruction. SessionRuntime's
+        // stopInternal early-returns when its phase is already Idle, and in that desync case
+        // (e.g. a system-restarted service whose in-memory state was already reset) the TUN fd
+        // would otherwise stay open in this still-alive process, keeping the VPN up behind an
+        // already-"off" toggle while the status bar still shows the VPN icon.
+        runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopTun() }
+        runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener() }
 
         StatusProvider.markRuntimeStopped(ProxyMode.Tun)
         sendClashStopped(reason)

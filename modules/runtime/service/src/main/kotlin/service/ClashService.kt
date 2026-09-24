@@ -228,9 +228,13 @@ class ClashService : BaseService() {
 
         if (this::runtime.isInitialized) {
             runtime.destroy()
-        } else {
-            runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener() }
         }
+
+        // Always close the native listener directly on destruction, even when the
+        // SessionRuntime was already Idle (its stopInternal early-returns there and
+        // would otherwise leave the HTTP listener up in this still-alive process).
+        runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener() }
+        runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopTun() }
 
         StatusProvider.markRuntimeStopped(ProxyMode.Http)
         sendClashStopped(reason)
