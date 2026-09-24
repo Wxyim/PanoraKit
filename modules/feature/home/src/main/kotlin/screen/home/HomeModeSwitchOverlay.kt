@@ -224,8 +224,14 @@ private fun HomeModeMenuItem(
         animateColorAsState(
             targetValue =
                 when {
-                    selected && isPressed -> accentColor.copy(alpha = 0.16f)
-                    selected -> accentColor.copy(alpha = 0.12f)
+                    selected && isPressed ->
+                        accentColor.copy(
+                            alpha = modeContainerAlpha(enabled = true, pressed = true),
+                        )
+                    selected ->
+                        accentColor.copy(
+                            alpha = modeContainerAlpha(enabled = true, pressed = false),
+                        )
                     isPressed -> accentColor.copy(alpha = 0.08f)
                     else -> accentColor.copy(alpha = 0.05f)
                 },

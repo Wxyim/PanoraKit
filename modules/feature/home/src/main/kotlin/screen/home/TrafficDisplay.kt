@@ -248,7 +248,6 @@ private fun ProfileModeBadge(
             MiuixTheme.colorScheme.onSurface
         }
     val accentColor = tunnelMode.toModeAccentColor(fallbackAccent, semanticColors)
-    val containerTone = if (isDirect) HomeControlTone.Primary else tone
     val headline = tunnelMode.toDisplayName()
     val controlDescription =
         listOf(profileName ?: MLang.Home.Profile.NoProfile, headline).joinToString(", ")
@@ -258,7 +257,11 @@ private fun ProfileModeBadge(
         animateColorAsState(
             targetValue =
                 accentColor.copy(
-                    alpha = containerTone.containerAlpha(onClick != null, pressed = isPressed)
+                    alpha =
+                        modeContainerAlpha(
+                            enabled = onClick != null,
+                            pressed = isPressed,
+                        )
                 ),
             animationSpec =
                 tween(
@@ -684,6 +687,9 @@ internal fun TunnelState.Mode?.toModeAccentColor(
         TunnelState.Mode.Global -> semanticColors.global.foreground
         else -> fallback
     }
+
+internal fun modeContainerAlpha(enabled: Boolean, pressed: Boolean): Float =
+    HomeControlTone.Primary.containerAlpha(enabled, pressed)
 
 private fun TunnelState.Mode?.toDisplayIcon(): ImageVector =
     when (this) {
