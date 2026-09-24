@@ -61,9 +61,11 @@ import com.github.nomadboxlab.monadbox.presentation.component.TestTags
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
 import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
+import com.github.nomadboxlab.monadbox.presentation.theme.AppSemanticColors
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.HomeTrafficMetrics
 import com.github.nomadboxlab.monadbox.presentation.theme.HomeTrafficMetricsDefaults
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberHomeTrafficMetrics
 import dev.oom_wg.purejoy.mlang.MLang
@@ -237,20 +239,27 @@ private fun ProfileModeBadge(
     onBoundsChanged: (Rect) -> Unit,
 ) {
     val primary = MiuixTheme.colorScheme.primary
-    val accentColor =
-        if (tone == HomeControlTone.Primary) {
+    val semanticColors = LocalSemanticColors.current
+    val isDirect = tunnelMode == TunnelState.Mode.Direct
+    val fallbackAccent =
+        if (isDirect || tone == HomeControlTone.Primary) {
             primary
         } else {
             MiuixTheme.colorScheme.onSurface
         }
+    val accentColor = tunnelMode.toModeAccentColor(fallbackAccent, semanticColors)
+    val containerTone = if (isDirect) HomeControlTone.Primary else tone
     val headline = tunnelMode.toDisplayName()
     val controlDescription =
         listOf(profileName ?: MLang.Home.Profile.NoProfile, headline).joinToString(", ")
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val containerColor by
         animateColorAsState(
             targetValue =
-                accentColor.copy(alpha = tone.containerAlpha(onClick != null, pressed = false)),
+                accentColor.copy(
+                    alpha = containerTone.containerAlpha(onClick != null, pressed = isPressed)
+                ),
             animationSpec =
                 tween(
                     durationMillis = AnimationSpecs.DURATION_INSTANT,
@@ -675,6 +684,16 @@ private fun TunnelState.Mode?.toDisplayName(): String =
         TunnelState.Mode.Global -> MLang.Home.Profile.Global
         TunnelState.Mode.Rule -> MLang.Home.Profile.Rule
         else -> MLang.Home.Profile.Rule
+    }
+
+private fun TunnelState.Mode?.toModeAccentColor(
+    fallback: Color,
+    semanticColors: AppSemanticColors,
+): Color =
+    when (this) {
+        TunnelState.Mode.Rule -> semanticColors.info.foreground
+        TunnelState.Mode.Global -> semanticColors.global.foreground
+        else -> fallback
     }
 
 private fun TunnelState.Mode?.toDisplayIcon(): ImageVector =

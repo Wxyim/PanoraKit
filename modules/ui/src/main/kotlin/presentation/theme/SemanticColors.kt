@@ -44,6 +44,7 @@ data class AppSemanticColors(
     val warning: SemanticColorToken,
     val danger: SemanticColorToken,
     val neutral: SemanticColorToken,
+    val global: SemanticColorToken,
 )
 
 val LocalSemanticColors = staticCompositionLocalOf {
@@ -109,5 +110,6 @@ fun appSemanticColors(
                 border = neutralForeground.copy(alpha = 0.12f),
                 highEmphasisBorder = neutralForeground.copy(alpha = 0.22f),
             ),
+        global = token(if (isDark) Color(0xFFC9B6F2) else Color(0xFF5E35B1)),
     )
 }
