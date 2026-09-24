@@ -1,0 +1,13 @@
+{
+  "uniqueId": "com.github.topjohnwu.libsu:service",
+  "name": "libsu service",
+  "website": "https://github.com/topjohnwu/libsu",
+  "developers": [
+    {
+      "name": "topjohnwu"
+    }
+  ],
+  "licenses": [
+    "Apache-2.0"
+  ]
+}

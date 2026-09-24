@@ -1,0 +1,14 @@
+{
+  "uniqueId": "com.github.MetaCubeX:mihomo",
+  "name": "mihomo",
+  "description": "A rule-based tunnel in Go",
+  "website": "https://github.com/MetaCubeX/mihomo",
+  "developers": [
+    {
+      "name": "MetaCubeX"
+    }
+  ],
+  "licenses": [
+    "GPL-3.0-only"
+  ]
+}

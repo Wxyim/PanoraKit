@@ -456,4 +456,13 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
 }
 
+aboutLibraries {
+    collect {
+        // Custom library/license definitions used to complete the Open Source Licenses screen
+        // for components the dependency graph cannot describe (e.g. the synced mihomo kernel,
+        // or libraries whose POM omits license metadata such as libsu).
+        configPath = file("../config/aboutlibraries")
+    }
+}
+
 ksp { arg("compose-destinations.defaultTransitions", "none") }
