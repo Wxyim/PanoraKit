@@ -36,6 +36,13 @@ class TrafficStatisticsCollector(
         private const val COLLECTION_INTERVAL_MS = 5000L
 
         /**
+         * Sentinel for "no traffic baseline persisted yet". A real runtime total can legitimately
+         * be 0, so 0 cannot be used as the no-baseline marker (it would reset the baseline on the
+         * next sample and discard the first delta).
+         */
+        private const val NO_BASELINE = -1L
+
+        /**
          * Traffic deltas are accumulated in memory and flushed to MMKV in one batched write every
          * [FLUSH_INTERVAL_MS] (and on runtime stop / collector stop) instead of persisting on every
          * 5s sample. Each flush serializes the full daily-summaries and profile-usages maps, so
@@ -47,8 +54,8 @@ class TrafficStatisticsCollector(
 
     private var collectionJob: Job? = null
     private var monitoringJob: Job? = null
-    private var lastTotalUpload: Long = 0L
-    private var lastTotalDownload: Long = 0L
+    private var lastTotalUpload: Long = NO_BASELINE
+    private var lastTotalDownload: Long = NO_BASELINE
     private var lastProfileId: String? = null
     private var lastSampleAt: Long = 0L
 
@@ -88,6 +95,8 @@ class TrafficStatisticsCollector(
 
     private fun startTrafficMonitoring(): Job {
         return scope.launch {
+            // A persisted 0 total is a real baseline (the runtime was sampled with zero traffic),
+            // not "no baseline": keeping it lets the next sample capture the whole gap from 0.
             lastTotalUpload = trafficStatisticsStore.getLastTrafficUpload()
             lastTotalDownload = trafficStatisticsStore.getLastTrafficDownload()
             lastProfileId = trafficStatisticsStore.getLastProfileId()
@@ -127,17 +136,27 @@ class TrafficStatisticsCollector(
         val currentProfileId = currentProfile?.id
         val currentProfileName = currentProfile?.name
 
-        if (lastTotalUpload == 0L && lastTotalDownload == 0L) {
+        if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) {
             resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
 
-        if (currentProfileId != lastProfileId) {
+        // A null profile means the runtime profile has not been resolved yet (e.g. the app process
+        // was recreated while the service kept running). Do not treat that as a profile switch:
+        // resetting the baseline here discards the unrecorded traffic gap between the persisted
+        // baseline and the current totals.
+        if (currentProfileId != null && currentProfileId != lastProfileId) {
             resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
 
-        if (currentUpload < lastTotalUpload || currentDownload < lastTotalDownload) {
+        // The counter went backwards, so the core was restarted. A drop to exactly (0, 0) can also
+        // mean the app process's traffic snapshot has not been populated yet after a restart, so
+        // defer the reset in that case instead of throwing away the gap.
+        if (
+            (currentUpload < lastTotalUpload || currentDownload < lastTotalDownload) &&
+                !(currentUpload == 0L && currentDownload == 0L)
+        ) {
             resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)
             return
         }
@@ -158,7 +177,7 @@ class TrafficStatisticsCollector(
                 pendingUpload += uploadDelta
                 pendingDownload += downloadDelta
                 pendingWindowEnd = collectedAt
-                pendingProfileId = currentProfileId
+                pendingProfileId = currentProfileId ?: lastProfileId
                 pendingProfileName = currentProfileName
             }
             lastTotalUpload = currentUpload
@@ -218,8 +237,8 @@ class TrafficStatisticsCollector(
     }
 
     private fun resetLastValues() {
-        lastTotalUpload = 0L
-        lastTotalDownload = 0L
+        lastTotalUpload = NO_BASELINE
+        lastTotalDownload = NO_BASELINE
         lastProfileId = null
         lastSampleAt = 0L
     }
