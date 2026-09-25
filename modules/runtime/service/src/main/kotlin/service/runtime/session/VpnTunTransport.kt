@@ -95,7 +95,11 @@ class VpnTunTransport(
                             runCatching { addAllowedApplication(it) }
                         }
                     }
-                    AccessControlMode.RejectAll -> Unit
+                    AccessControlMode.RejectAll -> {
+                        // Reject every app from the tunnel: allow only the VPN's own package so all
+                        // other apps bypass the proxy.
+                        runCatching { addAllowedApplication(vpnService.packageName) }
+                    }
                     AccessControlMode.RejectSelected -> {
                         (store.accessControlPackages - vpnService.packageName).forEach {
                             runCatching { addDisallowedApplication(it) }

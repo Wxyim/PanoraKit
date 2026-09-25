@@ -97,8 +97,10 @@ class StopHomeProxyUseCaseTest {
             presentation: RuntimeActionFailurePresentation,
         ): RuntimeActionOutcome<RuntimeMutationResult> = error("Not used")
 
-        override suspend fun applyAccessControlPackages(
+        override suspend fun applyAccessControlChange(
             operation: String,
+            persist: suspend () -> Unit,
+            rollback: suspend () -> Unit,
             presentation: RuntimeActionFailurePresentation,
         ): RuntimeActionOutcome<RuntimeMutationResult> = error("Not used")
 

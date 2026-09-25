@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -278,14 +279,30 @@ class NetworkSettingsViewModel(
             GlobalDialogPresenter.showError(MLang.NetworkSettings.ProxyOptions.RequiresFullAppAccess)
             return
         }
-        updatePreference(
-            preference = accessControlMode,
-            value = mode,
-            operation = "network:access-control-mode",
-            shouldRestart = { configuredMode ->
-                configuredMode != ProxyMode.Http && mode != AccessControlMode.ALLOW_ALL
-            },
-        )
+        if (runtimeActionExecutor.isMutating.value) return
+        if (accessControlMode.value == mode) return
+        val previousMode = accessControlMode.value
+        viewModelScope.launch {
+            val outcome =
+                runtimeActionExecutor.applyAccessControlChange(
+                    operation = "network:access-control-mode",
+                    persist = { accessControlMode.set(mode) },
+                    rollback = { accessControlMode.set(previousMode) },
+                    presentation =
+                        RuntimeActionFailurePresentation.Runtime(
+                            fallbackMessage = "Failed to switch access control mode",
+                            targetMode = runtimeActionExecutor.resolveDialogMode(),
+                        ),
+                )
+            when (outcome) {
+                is RuntimeActionOutcome.Success -> Unit
+                is RuntimeActionOutcome.PermissionRequired ->
+                    requestVpnPermission(startOutcome = outcome) {
+                        onAccessControlModeChange(mode)
+                    }
+                RuntimeActionOutcome.FailureHandled -> Unit
+            }
+        }
     }
 
     private fun canUseAccessControlMode(mode: AccessControlMode): Boolean {
@@ -412,8 +429,18 @@ class NetworkSettingsViewModel(
         operation: String,
         shouldRestart: (ProxyMode) -> Boolean = { true },
     ) {
-        if (runtimeActionExecutor.isMutating.value) return
         if (preference.value == value) return
+        if (runtimeActionExecutor.isMutating.value) {
+            // A rapid second change during an in-flight apply must not be silently dropped:
+            // wait for the current mutation to finish, then re-apply the latest requested value.
+            viewModelScope.launch {
+                runtimeActionExecutor.isMutating.first { !it }
+                if (preference.value != value) {
+                    updatePreference(preference, value, operation, shouldRestart)
+                }
+            }
+            return
+        }
         val previousValue = preference.value
         viewModelScope.launch {
             val outcome =

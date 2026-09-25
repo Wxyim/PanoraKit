@@ -109,7 +109,9 @@ class SessionRuntime(
     suspend fun reload(spec: RuntimeSpec): RuntimeOperationResult {
         return withContext(Dispatchers.Default) {
             operationMutex.withLock {
-                runCatching {
+                val previousSpec = currentSpec
+                val result =
+                    runCatching {
                         startupLog(spec, "session: reload begin")
                         reloadInternal(spec)
                         RuntimeOperationResult.ok()
@@ -129,6 +131,36 @@ class SessionRuntime(
                         startupLog(spec, "failed=${failure.message}")
                         RuntimeOperationResult.fail(failure)
                     }
+
+                if (result.success || previousSpec == null || previousSpec === spec) {
+                    return@withLock result
+                }
+
+                // Keep the previous session alive instead of leaving the runtime in a failed
+                // state: a failed config reload must not silently drop the user's connection.
+                // currentSpec still points at the last-known-good spec (reloadInternal only
+                // replaces it on success), so restoring it re-applies the working config. When the
+                // restore succeeds the session is healthy again, so report success to keep the
+                // caller (e.g. the reload loop) from tearing the service down.
+                startupLog(spec, "reload failed; restoring previous config")
+                val restored =
+                    runCatching { reloadInternal(previousSpec) }
+                        .onSuccess {
+                            startupLog(spec, "reload failed; previous config restored")
+                        }
+                        .onFailure { restoreError ->
+                            startupLog(spec, "reload failed; previous config restore failed")
+                            Timber.w(
+                                restoreError,
+                                "SessionRuntime failed to restore previous config after reload failure",
+                            )
+                        }
+                        .isSuccess
+                if (restored) {
+                    RuntimeOperationResult.ok()
+                } else {
+                    result
+                }
             }
         }
     }

@@ -123,12 +123,18 @@ class DefaultRuntimeActionExecutor(
         }
     }
 
-    override suspend fun applyAccessControlPackages(
+    override suspend fun applyAccessControlChange(
         operation: String,
+        persist: suspend () -> Unit,
+        rollback: suspend () -> Unit,
         presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult> {
         return runAction(presentation = presentation) {
-            runtimeControlCoordinator.applyAccessControlPackages(operation = operation)
+            runtimeControlCoordinator.applyAccessControlChange(
+                operation = operation,
+                persist = persist,
+                rollback = rollback,
+            )
         }
     }
 

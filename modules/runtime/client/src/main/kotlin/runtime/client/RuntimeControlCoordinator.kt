@@ -21,6 +21,8 @@ package com.github.nomadboxlab.monadbox.runtime.client
 
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
+import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -98,8 +100,8 @@ class RuntimeControlCoordinator(
         shouldRestart: (ProxyMode) -> Boolean = { true },
     ): RuntimeMutationResult {
         return runSerialized(operation) {
-            persist()
             try {
+                persist()
                 val targetMode = networkSettingsStorage.proxyMode.value
                 if (!isRuntimeRunning()) {
                     return@runSerialized RuntimeMutationResult(
@@ -131,25 +133,67 @@ class RuntimeControlCoordinator(
     }
 
     /**
-     * Applies a per-app access-control change on the live runtime. Unlike [applyConfigChange] this
-     * does not restart the service: the running TUN session re-establishes its VPN parameters in
-     * place, so the connection is never dropped and no VPN consent re-prompt is required.
+     * Applies a per-app access-control change (mode or package list) on the live runtime without
+     * dropping the active session when possible:
+     * - a running local TUN session re-establishes its VPN parameters in place (seamless, no
+     *   consent re-prompt, connection is never dropped);
+     * - a running root TUN session is restarted because the package list / mode is baked into its
+     *   config at build time;
+     * - an HTTP session (no per-app filtering) is left untouched.
+     * When the runtime is not running the change is only persisted and takes effect on the next
+     * start ([RuntimeMutationStatus.Deferred]).
      */
-    suspend fun applyAccessControlPackages(operation: String): RuntimeMutationResult {
+    suspend fun applyAccessControlChange(
+        operation: String,
+        persist: suspend () -> Unit,
+        rollback: suspend () -> Unit = {},
+    ): RuntimeMutationResult {
         return runSerialized(operation) {
-            if (!isRuntimeRunning()) {
-                return@runSerialized RuntimeMutationResult(
-                    status = RuntimeMutationStatus.Deferred,
-                    effectiveMode = networkSettingsStorage.proxyMode.value,
-                    runtimeRunning = false,
-                )
+            try {
+                persist()
+                val snapshot = proxyFacade.runtimeSnapshot.value
+                val targetMode = networkSettingsStorage.proxyMode.value
+                if (snapshot.phase != RuntimePhase.Running) {
+                    return@runSerialized RuntimeMutationResult(
+                        status = RuntimeMutationStatus.Deferred,
+                        effectiveMode = targetMode,
+                        runtimeRunning = false,
+                    )
+                }
+
+                when (snapshot.owner) {
+                    RuntimeOwner.LocalTun -> {
+                        proxyFacade.reestablishForAccessControl()
+                        RuntimeMutationResult(
+                            status = RuntimeMutationStatus.Updated,
+                            effectiveMode = resolveCurrentMode(),
+                            runtimeRunning = true,
+                        )
+                    }
+
+                    RuntimeOwner.RootTun -> {
+                        proxyFacade.startProxy(targetMode)
+                        RuntimeMutationResult(
+                            status = RuntimeMutationStatus.Restarted,
+                            effectiveMode = targetMode,
+                            runtimeRunning = true,
+                        )
+                    }
+
+                    else -> {
+                        // LocalHttp / None: per-app access control is TUN-only. Keep the session
+                        // running unchanged; the persisted value applies on the next TUN start.
+                        RuntimeMutationResult(
+                            status = RuntimeMutationStatus.Updated,
+                            effectiveMode = resolveCurrentMode(),
+                            runtimeRunning = true,
+                        )
+                    }
+                }
+            } catch (error: Exception) {
+                rollback()
+                throw error
             }
-            proxyFacade.reestablishForAccessControl()
-            RuntimeMutationResult(
-                status = RuntimeMutationStatus.Updated,
-                effectiveMode = resolveCurrentMode(),
-                runtimeRunning = true,
-            )
         }
     }
 
@@ -217,12 +261,10 @@ class RuntimeControlCoordinator(
                 )
             }
 
-            try {
-                proxyFacade.reloadCurrentProfile().getOrThrow()
-            } catch (e: Exception) {
-                runCatching { proxyFacade.stopProxy() }
-                throw e
-            }
+            // Keep the previous session running on a reload failure instead of tearing the VPN
+            // down: a failed config reload should never silently drop the connection. The error
+            // still propagates so the caller can surface it.
+            proxyFacade.reloadCurrentProfile().getOrThrow()
             RuntimeMutationResult(
                 status = RuntimeMutationStatus.Reloaded,
                 effectiveMode = resolveCurrentMode(),
@@ -242,12 +284,9 @@ class RuntimeControlCoordinator(
                 )
             }
 
-            try {
-                proxyFacade.reloadCurrentProfile().getOrThrow()
-            } catch (e: Exception) {
-                runCatching { proxyFacade.stopProxy() }
-                throw e
-            }
+            // Keep the previous session running on a reload failure instead of tearing the VPN
+            // down. The error still propagates to the caller.
+            proxyFacade.reloadCurrentProfile().getOrThrow()
             RuntimeMutationResult(
                 status = RuntimeMutationStatus.Reloaded,
                 effectiveMode = resolveCurrentMode(),

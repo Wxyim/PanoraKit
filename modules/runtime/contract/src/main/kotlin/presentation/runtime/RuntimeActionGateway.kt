@@ -94,8 +94,18 @@ interface RuntimeActionExecutor {
         presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult>
 
-    suspend fun applyAccessControlPackages(
+    /**
+     * Applies a per-app access-control change (mode or package list) on the live runtime without
+     * dropping the active session when possible: a running local TUN session re-establishes its VPN
+     * parameters in place, a running root TUN session is restarted because the package list is
+     * baked into its config, and an HTTP session (which does not support per-app filtering) is left
+     * untouched. When the runtime is not running the change is only persisted and takes effect on
+     * the next start.
+     */
+    suspend fun applyAccessControlChange(
         operation: String,
+        persist: suspend () -> Unit,
+        rollback: suspend () -> Unit = {},
         presentation: RuntimeActionFailurePresentation,
     ): RuntimeActionOutcome<RuntimeMutationResult>
 
