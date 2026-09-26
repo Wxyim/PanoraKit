@@ -422,10 +422,8 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         logObserverJob?.cancel()
         logObserverJob = null
 
-        logReceiver?.apply {
-            cancel()
-            Clash.forceGc()
-        }
+        // GC is already requested from the observer's finally block on cancellation.
+        logReceiver?.cancel()
         logReceiver = null
     }
 }

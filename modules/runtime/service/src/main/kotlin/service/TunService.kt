@@ -250,9 +250,15 @@ class TunService : VpnService(), CoroutineScope {
         super.onDestroy()
     }
 
+    // TRIM_MEMORY_RUNNING_CRITICAL is deprecated in API 36 but its value is stable.
+    @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        com.github.nomadboxlab.monadbox.core.Clash.forceGc()
+        // RUNNING_* low-level trims fire frequently on a foreground service; only force
+        // native GC once pressure is critical or the process is a kill candidate.
+        if (level >= TRIM_MEMORY_RUNNING_CRITICAL) {
+            com.github.nomadboxlab.monadbox.core.Clash.forceGc()
+        }
     }
 
     private fun registerRuntimeReceiver() {
