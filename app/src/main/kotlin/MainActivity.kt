@@ -155,6 +155,15 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) {
+            // A fresh task (app force-quit, force-stop or first launch) should
+            // start on the home tab. Only recreations of the same backgrounded
+            // task (task id recorded in onStop) restore the last tab.
+            if (taskId.toLong() != appSettingsStorage.lastBackgroundTaskId.value) {
+                appSettingsStorage.lastMainPage.set(0)
+            }
+            appSettingsStorage.lastBackgroundTaskId.set(-1L)
+        }
         applyExcludeFromRecents(appSettingsStorage.excludeFromRecents.value)
 
         intentController = IntentController()
@@ -276,6 +285,11 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    override fun onStop() {
+        super.onStop()
+        appSettingsStorage.lastBackgroundTaskId.set(taskId.toLong())
+    }
+
     private fun handleIntent(intent: Intent?) {
         intent?.let { safeIntent ->
             safeIntent.data?.let { uri ->
@@ -367,7 +381,8 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         }
 
     // Persist the current main tab so it survives activity recreation without instance
-    // state (e.g. launcher task reset right after a fresh install).
+    // state (e.g. launcher task reset). The activity clears it on force-quit so a
+    // fresh launch starts on the home tab.
     LaunchedEffect(pagerState.currentPage) {
         appSettingsStorage.lastMainPage.set(pagerState.currentPage)
     }
