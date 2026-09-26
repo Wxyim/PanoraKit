@@ -1040,6 +1040,7 @@ class ProxyFacade(
 
             else -> {
                 try {
+                    connectCurrentBackend()
                     val profile = ServiceClient.profile().queryActive()
                     runtimeState.setCurrentProfile(profile)
                     runtimeState.updateProfileReady(profile)
@@ -2180,6 +2181,7 @@ class ProxyFacade(
     }
 
     private suspend fun queryPreviewProxyGroups(): List<ProxyGroupInfo> {
+        connectCurrentBackend()
         val cachedProfile = currentProfile.value
         val activeProfile =
             cachedProfile
