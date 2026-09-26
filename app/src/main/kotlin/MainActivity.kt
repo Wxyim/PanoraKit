@@ -69,6 +69,7 @@ import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
 import com.github.nomadboxlab.monadbox.common.util.IntentController
 import com.github.nomadboxlab.monadbox.common.util.ProfilesNavigationMetrics
 import com.github.nomadboxlab.monadbox.core.StoreIds
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.domain.deeplink.DeepLinkBus
 import com.github.nomadboxlab.monadbox.feature.home.HomeRoute
 import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesPagerBody
@@ -336,10 +337,19 @@ class MainActivity : ComponentActivity() {
 @Destination<RootGraph>(start = true)
 fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
     val settingsMmkv: MMKV = koinInject(qualifier = named(StoreIds.SETTINGS))
+    val appSettingsStorage: AppSettingsStorage = koinInject()
     val adaptiveInfo = LocalWindowAdaptiveInfo.current
     val useRailNavigation = adaptiveInfo.useRailNavigation
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, 3), pageCount = { 4 })
+    val restoredPage =
+        remember {
+            if (initialPage != 0) {
+                initialPage.coerceIn(0, 3)
+            } else {
+                appSettingsStorage.lastMainPage.value.coerceIn(0, 3)
+            }
+        }
+    val pagerState = rememberPagerState(initialPage = restoredPage, pageCount = { 4 })
     val hazeState = remember { HazeState() }
     val bottomBarLiquidState = if (useRailNavigation) null else rememberLiquidState()
 
@@ -355,6 +365,12 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         } else {
             rememberBottomBarScrollBehavior(autoHideEnabled = bottomBarAutoHideEnabled)
         }
+
+    // Persist the current main tab so it survives activity recreation without instance
+    // state (e.g. launcher task reset right after a fresh install).
+    LaunchedEffect(pagerState.currentPage) {
+        appSettingsStorage.lastMainPage.set(pagerState.currentPage)
+    }
 
     LaunchedEffect(useRailNavigation, pagerState.currentPage, bottomBarScrollBehavior) {
         if (!useRailNavigation) {
