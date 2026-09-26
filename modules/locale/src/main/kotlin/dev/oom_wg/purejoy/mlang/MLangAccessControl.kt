@@ -59,6 +59,13 @@ object MLangAccessControl {
         fun `Title`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.access_control_app_list_title, *args)
 
+        val `CountTitle`: String
+            get() = LocaleBootstrap.getString(R.string.access_control_app_list_count_title)
+
+        @Composable
+        fun `CountTitle`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.access_control_app_list_count_title, *args)
+
         val `Loading`: String
             get() = LocaleBootstrap.getString(R.string.access_control_app_list_loading)
 

@@ -22,6 +22,7 @@
     <string name="access_control_search_placeholder">Search apps…</string>
     <string name="access_control_search_empty_results">No matching apps found</string>
     <string name="access_control_app_list_title">App List (%d selected)</string>
+    <string name="access_control_app_list_count_title">App List (%d)</string>
     <string name="access_control_app_list_loading">Loading…</string>
     <string name="access_control_app_list_browse_unavailable_permission">Installed-app browsing is unavailable until the device permission is granted.</string>
     <string name="access_control_app_list_browse_unavailable_manual">Installed-app browsing is unavailable on this device build. You can still manage access control by importing or manually adding package names.</string>

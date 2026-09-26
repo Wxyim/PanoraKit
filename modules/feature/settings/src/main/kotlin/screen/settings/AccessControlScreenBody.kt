@@ -248,7 +248,7 @@ fun AccessControlScreenBody(navigator: DestinationsNavigator) {
                                                 MLang.AccessControl.Search.Placeholder
                                             },
                                         summary =
-                                            MLang.AccessControl.AppList.Title.format(
+                                            MLang.AccessControl.AppList.CountTitle.format(
                                                 filteredApps.size
                                             ),
                                         onClick = { searchExpanded.value = true },

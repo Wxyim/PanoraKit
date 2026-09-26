@@ -22,6 +22,7 @@
     <string name="access_control_search_placeholder">搜索应用…</string>
     <string name="access_control_search_empty_results">没有找到匹配的应用</string>
     <string name="access_control_app_list_title">应用列表 (%d 已选择)</string>
+    <string name="access_control_app_list_count_title">应用列表 (%d)</string>
     <string name="access_control_app_list_loading">加载中…</string>
     <string name="access_control_app_list_browse_unavailable_permission">在授予设备权限前，暂时无法浏览已安装应用。</string>
     <string name="access_control_app_list_browse_unavailable_manual">当前设备构建不支持浏览已安装应用。您仍然可以通过导入或手动添加包名来管理访问控制。</string>
