@@ -1035,6 +1035,7 @@ private fun CommonTunServiceOptions(
                     MLang.NetworkSettings.ProxyOptions.TunStackSystem,
                     MLang.NetworkSettings.ProxyOptions.TunStackGvisor,
                     MLang.NetworkSettings.ProxyOptions.TunStackMixed,
+                    MLang.NetworkSettings.ProxyOptions.TunStackMips,
                 ),
             values = TunStack.entries,
             onValueChange = onTunStackChange,

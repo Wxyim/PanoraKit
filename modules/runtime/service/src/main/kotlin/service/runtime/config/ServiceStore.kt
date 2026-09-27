@@ -202,17 +202,19 @@ class ServiceStore {
     var tunStackMode: String
         get() {
             if (networkSettings.containsKey("tunStack")) {
-                return when (networkSettings.decodeString("tunStack", "GVisor")) {
+                return when (networkSettings.decodeString("tunStack", "Mips")) {
                     "System",
                     "system" -> "system"
                     "GVisor",
                     "gvisor" -> "gvisor"
                     "Mixed",
                     "mixed" -> "mixed"
-                    else -> "gvisor"
+                    "Mips",
+                    "mips" -> "mips"
+                    else -> "mips"
                 }
             }
-            return store.provider.getString("tun_stack_mode", "gvisor")
+            return store.provider.getString("tun_stack_mode", "mips")
         }
         set(value) {
             val normalized = value.lowercase()
@@ -223,7 +225,8 @@ class ServiceStore {
                     "system" -> "System"
                     "gvisor" -> "GVisor"
                     "mixed" -> "Mixed"
-                    else -> "GVisor"
+                    "mips" -> "Mips"
+                    else -> "Mips"
                 },
             )
         }

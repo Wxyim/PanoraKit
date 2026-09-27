@@ -330,6 +330,17 @@ object MLangNetworkSettings {
                 *args,
             )
 
+        val `TunStackMips`: String
+            get() =
+                LocaleBootstrap.getString(R.string.network_settings_proxy_options_tun_stack_mips)
+
+        @Composable
+        fun `TunStackMips`(vararg args: Any): String =
+            LocaleBootstrap.getString(
+                R.string.network_settings_proxy_options_tun_stack_mips,
+                *args,
+            )
+
         val `AccessControlModeTitle`: String
             get() =
                 LocaleBootstrap.getString(

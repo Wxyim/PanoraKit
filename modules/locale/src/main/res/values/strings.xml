@@ -372,6 +372,7 @@
     <string name="network_settings_proxy_options_tun_stack_system">System</string>
     <string name="network_settings_proxy_options_tun_stack_gvisor">GVisor</string>
     <string name="network_settings_proxy_options_tun_stack_mixed">Mixed</string>
+    <string name="network_settings_proxy_options_tun_stack_mips">MIPS</string>
     <string name="network_settings_proxy_options_access_control_mode_title">Access Control Mode</string>
     <string name="network_settings_proxy_options_allow_all">Allow All</string>
     <string name="network_settings_proxy_options_allow_selected">Allow Selected</string>

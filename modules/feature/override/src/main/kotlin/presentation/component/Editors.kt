@@ -802,8 +802,8 @@ fun TunEditor(
             OverrideEnumSelector(
                 title = MLang.Override.Form.Stack,
                 value = config.tun.stack,
-                items = listOf(unsetLabel, "system", "gvisor", "mixed"),
-                values = listOf(null, "system", "gvisor", "mixed"),
+                items = listOf(unsetLabel, "system", "gvisor", "mixed", "mips"),
+                values = listOf(null, "system", "gvisor", "mixed", "mips"),
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(stack = it))) },
             )
             OverrideBooleanSelector(

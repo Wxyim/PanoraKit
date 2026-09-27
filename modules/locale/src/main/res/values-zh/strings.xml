@@ -372,6 +372,7 @@
     <string name="network_settings_proxy_options_tun_stack_system">系统</string>
     <string name="network_settings_proxy_options_tun_stack_gvisor">GVisor</string>
     <string name="network_settings_proxy_options_tun_stack_mixed">混合</string>
+    <string name="network_settings_proxy_options_tun_stack_mips">MIPS</string>
     <string name="network_settings_proxy_options_access_control_mode_title">访问控制模式</string>
     <string name="network_settings_proxy_options_allow_all">允许所有</string>
     <string name="network_settings_proxy_options_allow_selected">允许选择</string>

@@ -87,7 +87,7 @@ func StartRoot(configJSON string) (io.Closer, error) {
 func (c RootTunConfig) toListenerOptions() (LC.Tun, error) {
 	stack, ok := C.StackTypeMapping[strings.ToLower(c.Stack)]
 	if !ok {
-		stack = C.TunSystem
+		stack = C.TunMips
 	}
 
 	inet4Address, err := parsePrefixes(c.Inet4Address)
