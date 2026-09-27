@@ -862,7 +862,7 @@ fun TunEditor(
             OverrideIntInputContent(
                 title = MLang.Override.Form.Mtu,
                 value = config.tun.mtu,
-                placeholder = "9000",
+                placeholder = "1500",
                 onValueChange = { onConfigChange(config.copy(tun = config.tun.copy(mtu = it))) },
             )
             OverrideIntInputContent(

@@ -43,6 +43,16 @@ func init() {
 		defer log.UnSubscribe(sub)
 
 		for msg := range sub {
+			// Always-on drainer keeps the unbuffered mihomo log channel from
+			// blocking data-plane goroutines. Only forward lines at or above
+			// the configured level to logcat so per-packet debug output (DNS
+			// hijack, process lookup) never pays for a logcat write when it is
+			// not requested. [APP] lines always stay visible for lifecycle
+			// diagnostics. Mirrors the level gate in subscribeLogcat.
+			if msg.LogLevel < log.Level() && !strings.HasPrefix(msg.Payload, "[APP]") {
+				continue
+			}
+
 			cPayload := cString(msg.Payload)
 
 			switch msg.LogLevel {

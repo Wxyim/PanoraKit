@@ -219,6 +219,7 @@ class VpnTunTransport(
             return -1
         }
         val now = android.os.SystemClock.elapsedRealtime()
+        val warmupActive = now < uidWarmupUntilElapsedMs
         val key =
             UidQueryKey(
                 protocol = protocol,
@@ -236,7 +237,7 @@ class VpnTunTransport(
         // During the first VPN start Android can publish the socket owner a
         // few milliseconds after the TUN is established. Retry only in this
         // short warm-up window; normal traffic keeps a single IPC query.
-        if (uid <= 0 && android.os.SystemClock.elapsedRealtime() < uidWarmupUntilElapsedMs) {
+        if (uid <= 0 && warmupActive) {
             repeat(UID_WARMUP_RETRIES) {
                 if (uid <= 0) {
                     android.os.SystemClock.sleep(UID_WARMUP_RETRY_DELAY_MS)
@@ -245,7 +246,7 @@ class VpnTunTransport(
             }
         }
         if (uid > 0) {
-            cacheUid(key, uid, now + UID_CACHE_TTL_MS)
+            cacheUid(key, uid, now + UID_CACHE_POSITIVE_TTL_MS)
             return uid
         }
 
@@ -255,15 +256,22 @@ class VpnTunTransport(
         if (uid <= 0) {
             val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
             if (procUid > 0) {
-                cacheUid(key, procUid, now + UID_CACHE_TTL_MS)
+                cacheUid(key, procUid, now + UID_CACHE_POSITIVE_TTL_MS)
                 return procUid
             }
         }
         // A miss is inherently transient during VPN startup: Android may not
         // have published the socket owner yet, and procfs may lag behind the
-        // first packet. Do not negative-cache it, otherwise the same socket
-        // can remain unattributed for the rest of its short lifetime.
-        uidCache.remove(key)
+        // first packet. Only negative-cache once the warm-up window has
+        // elapsed, otherwise the same socket can remain unattributed for the
+        // rest of its short lifetime. After warm-up a miss is stable enough to
+        // cache briefly so retransmits and TIME_WAIT re-queries stop hammering
+        // the ConnectivityService Binder and procfs with the same 4-tuple.
+        if (warmupActive) {
+            uidCache.remove(key)
+        } else {
+            cacheUid(key, -1, now + UID_CACHE_NEGATIVE_TTL_MS)
+        }
         return -1
     }
 
@@ -301,13 +309,24 @@ class VpnTunTransport(
 
     private fun cacheUid(key: UidQueryKey, uid: Int, expiresAt: Long) {
         uidCache[key] = UidCacheEntry(uid = uid, expiresAt = expiresAt)
-        if (uidCache.size > UID_CACHE_MAX_ENTRIES) {
-            val cutoff = expiresAt - UID_CACHE_TTL_MS
-            uidCache.entries.forEach { entry ->
-                if (entry.value.expiresAt <= cutoff) {
-                    uidCache.remove(entry.key, entry.value)
-                }
+        if (uidCache.size <= UID_CACHE_MAX_ENTRIES) {
+            return
+        }
+        // Drop expired entries first; they are always safe to remove.
+        val now = android.os.SystemClock.elapsedRealtime()
+        uidCache.entries.forEach { entry ->
+            if (entry.value.expiresAt <= now) {
+                uidCache.remove(entry.key, entry.value)
             }
+        }
+        // Still over the cap (e.g. a burst of long-lived entries): evict the
+        // entries that expire soonest, keeping the freshly cached one.
+        if (uidCache.size > UID_CACHE_MAX_ENTRIES) {
+            uidCache.entries
+                .filterNot { it.key == key }
+                .sortedBy { it.value.expiresAt }
+                .take(uidCache.size - UID_CACHE_MAX_ENTRIES)
+                .forEach { uidCache.remove(it.key, it.value) }
         }
     }
 
@@ -324,7 +343,7 @@ class VpnTunTransport(
     )
 
     private companion object {
-        private const val TUN_MTU = 9000
+        private const val TUN_MTU = 1500
         private const val TUN_SUBNET_PREFIX = 30
         private const val TUN_GATEWAY = "172.19.0.1"
         private const val TUN_SUBNET_PREFIX6 = 126
@@ -335,8 +354,9 @@ class VpnTunTransport(
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
-        private const val UID_CACHE_TTL_MS = 500L
-        private const val UID_CACHE_MAX_ENTRIES = 512
+        private const val UID_CACHE_POSITIVE_TTL_MS = 15_000L
+        private const val UID_CACHE_NEGATIVE_TTL_MS = 5_000L
+        private const val UID_CACHE_MAX_ENTRIES = 2048
         private const val UID_WARMUP_WINDOW_MS = 3_000L
         private const val UID_WARMUP_RETRIES = 2
         private const val UID_WARMUP_RETRY_DELAY_MS = 2L

@@ -563,8 +563,13 @@ class SessionRuntime(
         if (!wasIdle) {
             teardownCore()
         }
-        // VPN establish (Android IPC) and config compilation (Go JNI) are
-        // independent — overlap them to reduce total wall-clock time.
+        // VPN establish (Android IPC), config compilation (Go JNI) and the
+        // App→UID table publication are independent: the first two never touch
+        // the mihomo core concurrently, and NotifyInstalledAppsChanged only
+        // updates the RWMutex-guarded native app-uid table (disjoint from core
+        // state), so all three can overlap to reduce cold-start wall-clock
+        // time. The mapping must still finish before transport.start() so the
+        // first packet can resolve package names.
         coroutineScope {
             val prepareJob = async {
                 measureStartupStep(spec, "transport prepare") { transport.prepare(spec) }
@@ -572,16 +577,21 @@ class SessionRuntime(
             val compileJob = async {
                 measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
             }
+            val appMappingJob = async {
+                measureStartupStep(spec, "app mapping publish") {
+                    startInstalledAppsPublisher()
+                }
+            }
             prepareJob.await()
             compileJob.await()
+            appMappingJob.await()
         }
-        // App→UID mappings must be populated before transport.start() so Go's
-        // QueryAppByUid resolves package names from the first packet. Kept
-        // sequential after compileAndLoad to avoid concurrent JNI into Go.
+        // patchSelector mutates the loaded core, so the GLOBAL selection
+        // bootstrap must run strictly after compileAndLoad — keep it
+        // sequential.
         measureStartupStep(spec, "runtime GLOBAL selection bootstrap") {
             restoreGlobalSelectionBeforeTransport(spec)
         }
-        measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
         measureStartupStep(spec, "transport start") { transport.start(spec) }
         publishSnapshot(
             currentSnapshot.copy(

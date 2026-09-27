@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 /*
  * This file is part of YumeBox.
  *
@@ -16,8 +19,6 @@
  *
  * Copyright (c) YumeLira 2025 - 2026
  */
-//go:build linux
-// +build linux
 
 package platform
 

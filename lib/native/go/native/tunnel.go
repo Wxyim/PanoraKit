@@ -96,10 +96,10 @@ func queryRuntimeSnapshot() *C.char {
 
 	return marshalJson(&struct {
 		Configuration config.RuntimeUiConfiguration `json:"configuration"`
-		Providers     []*tunnel.Provider             `json:"providers"`
-		ProxyGroups   []*tunnel.ProxyGroup           `json:"proxyGroups"`
-		TrafficNow    int64                          `json:"trafficNow"`
-		TrafficTotal  int64                          `json:"trafficTotal"`
+		Providers     []*tunnel.Provider            `json:"providers"`
+		ProxyGroups   []*tunnel.ProxyGroup          `json:"proxyGroups"`
+		TrafficNow    int64                         `json:"trafficNow"`
+		TrafficTotal  int64                         `json:"trafficTotal"`
 	}{
 		Configuration: config.QueryUiConfiguration(),
 		Providers:     tunnel.QueryProviders(),

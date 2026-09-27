@@ -74,12 +74,16 @@ func Start(fd int, stack, gateway, portal, dns string) (io.Closer, error) {
 		Device:              sing_tun.InterfaceName,
 		Stack:               tunStack,
 		DNSHijack:           dnsHijack,
-		AutoRoute:           false, // had set route in TunService.kt
+		AutoRoute:           false, // route/addresses are set in VpnTunTransport.kt
 		AutoDetectInterface: false, // implements by VpnService::protect
 		Inet4Address:        prefix4,
 		Inet6Address:        prefix6,
-		MTU:                 9000, // private const val TUN_MTU = 9000 in TunService.kt
-		FileDescriptor:      fd,
+		// Keep in sync with VpnTunTransport.TUN_MTU: the userspace stack MTU
+		// must match the VpnService device MTU. GSO is intentionally left off
+		// (LC.Tun.GSO defaults false); enabling it changes segmentation on the
+		// TUN fd and needs per-device validation.
+		MTU:            1500,
+		FileDescriptor: fd,
 	}
 
 	tunOptions, _ := json.Marshal(options)

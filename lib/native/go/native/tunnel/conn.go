@@ -37,10 +37,25 @@ const closeAllTimeout = 2 * time.Second
 // observable, keep the final tracker info of recently-closed connections around
 // for [recentClosedRetention] and include them in [QueryConnections] snapshots,
 // so the next poll is guaranteed to see them and record them as closed.
+//
+// [recentClosedSampler] is the active cadence: it must be finer than the app's
+// 1s poll to catch short-lived connections, and the finer it is the shorter a
+// connection has to live to be guaranteed observable. 20ms means any connection
+// alive for >=20ms spans at least one sample and is captured with certainty;
+// shorter ones are captured probabilistically (~lifetime/20ms).
+//
+// [recentClosedIdleSampler] is the backoff cadence used while the manager is
+// idle (no live connections, nothing retained). Idle ticks are already nearly
+// free CPU-wise, but keeping a 20ms timer armed prevents the CPU from idling
+// deep between ticks on a quiet device, so the sampler backs off to 250ms when
+// there is nothing to track and returns to 20ms as soon as activity resumes.
+// The only tradeoff: a connection that opens and closes entirely inside a
+// single idle window (the first connection of a new burst) is not observed.
 const (
-	recentClosedRetention = 2 * time.Second
-	recentClosedSampler   = 50 * time.Millisecond
-	recentClosedMax       = 500
+	recentClosedRetention   = 2 * time.Second
+	recentClosedSampler     = 20 * time.Millisecond
+	recentClosedIdleSampler = 250 * time.Millisecond
+	recentClosedMax         = 500
 )
 
 type recentClosedEntry struct {
@@ -76,39 +91,62 @@ var (
 func ensureRecentClosedSampler() {
 	recentClosedOnce.Do(func() {
 		go func() {
-			ticker := time.NewTicker(recentClosedSampler)
-			defer ticker.Stop()
-			for range ticker.C {
-				observeRecentClosed()
+			interval := recentClosedSampler
+			for {
+				timer := time.NewTimer(interval)
+				<-timer.C
+				if observeRecentClosed() {
+					interval = recentClosedSampler
+				} else {
+					interval = recentClosedIdleSampler
+				}
 			}
 		}()
 	})
 }
 
-func observeRecentClosed() {
-	snap := statistic.DefaultManager.Snapshot()
+// observeRecentClosed samples the live connection set, moves connections that
+// closed since the previous sample into the retention buffer and prunes
+// expired entries. It reports whether there is anything left to track (live
+// connections, pending seen entries or retained entries); a false return means
+// the manager is idle and the caller may back off the sampling cadence.
+func observeRecentClosed() bool {
 	now := time.Now()
 
-	alive := make(map[string]bool, len(snap.Connections))
-	for _, c := range snap.Connections {
-		alive[c.UUID.String()] = true
-	}
+	// Snapshot() also reads /proc/<pid>/statm for the memory field, which is
+	// not needed on this watcher. Iterate the manager directly so ticks avoid a
+	// per-tick /proc read and the slice allocation Snapshot() performs.
+	var alive map[string]*statistic.TrackerInfo
+	connectionCount := 0
+	statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
+		if alive == nil {
+			alive = make(map[string]*statistic.TrackerInfo, 8)
+		}
+		alive[c.ID()] = c.Info()
+		connectionCount++
+		return true
+	})
 
 	recentClosedMu.Lock()
 	defer recentClosedMu.Unlock()
 
+	// Idle fast path: no live connections and nothing retained from earlier
+	// samples, so there is nothing to detect, add or prune this tick.
+	if connectionCount == 0 && len(recentClosedSeen) == 0 && len(recentClosedBuffer) == 0 {
+		return false
+	}
+
 	// Detect connections that left the manager since the previous sample and
 	// retain their final tracker info so a later poll can still observe them.
 	for id, info := range recentClosedSeen {
-		if !alive[id] {
+		if alive[id] == nil {
 			recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
 			delete(recentClosedSeen, id)
 		}
 	}
-	for _, c := range snap.Connections {
-		id := c.UUID.String()
+	for id, info := range alive {
 		if _, ok := recentClosedSeen[id]; !ok {
-			recentClosedSeen[id] = c
+			recentClosedSeen[id] = info
 		}
 	}
 
@@ -124,6 +162,8 @@ func observeRecentClosed() {
 	if len(recentClosedBuffer) > recentClosedMax {
 		recentClosedBuffer = recentClosedBuffer[len(recentClosedBuffer)-recentClosedMax:]
 	}
+
+	return true
 }
 
 func QueryConnections() *connectionSnapshot {

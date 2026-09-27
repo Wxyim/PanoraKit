@@ -27,7 +27,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RootTunConfig(
     val ifName: String = "monad",
-    val mtu: Int = 9000,
+    val mtu: Int = 1500,
     val stack: String = "mips",
     val inet4Address: List<String> = listOf("172.19.0.1/30"),
     val inet6Address: List<String> = listOf("fdfe:dcba:9876::1/126"),

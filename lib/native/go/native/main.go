@@ -81,7 +81,12 @@ func applyMemoryLimit() {
 	}
 
 	debug.SetMemoryLimit(int64(limit))
-	log.Infoln("[APP] Go runtime memory limit:", limit>>20, "MiB")
+	// With a hard memory limit in place the GC target only controls how close
+	// to the limit the heap may grow between collections. 200 reduces GC
+	// frequency (fewer pauses on the data plane) while the limit still caps
+	// peak RSS on low-RAM devices.
+	debug.SetGCPercent(200)
+	log.Infoln("[APP] Go runtime memory limit: %d MiB", limit>>20)
 }
 
 // totalSystemMemory returns the physical RAM in bytes reported by /proc/meminfo,
@@ -130,5 +135,5 @@ func forceGc() {
 func setCustomUserAgent(userAgent C.c_string) {
 	ua := C.GoString(userAgent)
 	config.SetCustomUserAgent(ua)
-	log.Infoln("[APP] custom User-Agent set:", ua)
+	log.Infoln("[APP] custom User-Agent set: %s", ua)
 }

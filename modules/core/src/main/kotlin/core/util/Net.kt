@@ -23,10 +23,24 @@ package com.github.nomadboxlab.monadbox.core.util
 
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.URL
 
 fun parseInetSocketAddress(address: String): InetSocketAddress {
-    val url = URL("https://$address")
-
-    return InetSocketAddress(InetAddress.getByName(url.host), url.port)
+    // Fast, allocation-light parser for the "a.b.c.d:port" and "[ipv6]:port"
+    // forms produced by Go's net.Addr.String(). The previous URL-based parse
+    // allocated a java.net.URL per call and relied on the platform accepting
+    // bracketed IPv6 literals in InetAddress.getByName.
+    val closeBracket = address.lastIndexOf(']')
+    if (closeBracket >= 0) {
+        val host = address.substring(1, closeBracket)
+        val colon = address.indexOf(':', closeBracket)
+        val port = if (colon >= 0) address.substring(colon + 1).toIntOrNull() ?: 0 else 0
+        return InetSocketAddress(InetAddress.getByName(host), port)
+    }
+    val colon = address.lastIndexOf(':')
+    if (colon < 0) {
+        return InetSocketAddress(InetAddress.getByName(address), 0)
+    }
+    val host = address.substring(0, colon)
+    val port = address.substring(colon + 1).toIntOrNull() ?: 0
+    return InetSocketAddress(InetAddress.getByName(host), port)
 }
