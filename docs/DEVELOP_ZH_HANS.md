@@ -407,3 +407,6 @@ MonadBox 自有代码和 fork 衍生代码采用 [AGPL-3.0-only](https://www.gnu
 
 - 文档中心：[README_ZH_HANS.md](README_ZH_HANS.md)
 - 许可策略与第三方依赖清单：[LICENSING_ZH_HANS.md](../docs/LICENSING_ZH_HANS.md)
+- TUN 会话与 fd 生命周期：[TUN_LIFECYCLE_ZH_HANS.md](../docs/TUN_LIFECYCLE_ZH_HANS.md)
+- TUN 全链路性能分析：[TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](../docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
+- TUN 电量分析：[TUN_POWER_ANALYSIS_ZH_HANS.md](../docs/TUN_POWER_ANALYSIS_ZH_HANS.md)

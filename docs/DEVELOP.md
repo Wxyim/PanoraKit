@@ -408,3 +408,6 @@ The root `LICENSE` file does not relicense third-party dependencies or synced up
 
 - Documentation hub: [README.md](../README.md)
 - Licensing and third-party inventory: [LICENSING.md](../docs/LICENSING.md)
+- TUN session & fd lifecycle (ZH): [TUN_LIFECYCLE_ZH_HANS.md](../docs/TUN_LIFECYCLE_ZH_HANS.md)
+- TUN end-to-end performance analysis (ZH): [TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](../docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
+- TUN power analysis (ZH): [TUN_POWER_ANALYSIS_ZH_HANS.md](../docs/TUN_POWER_ANALYSIS_ZH_HANS.md)

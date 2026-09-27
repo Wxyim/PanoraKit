@@ -26,6 +26,9 @@ MonadBox is a customized [mihomo](https://github.com/MetaCubeX/mihomo) client fo
 - Licensing policy: [docs/LICENSING.md](docs/LICENSING.md)
 - Product specification: [docs/SPEC.md](docs/SPEC.md)
 - Privacy notice (EN): [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md)
+- TUN session & fd lifecycle (ZH): [docs/TUN_LIFECYCLE_ZH_HANS.md](docs/TUN_LIFECYCLE_ZH_HANS.md)
+- TUN end-to-end performance analysis (ZH): [docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
+- TUN power analysis (ZH): [docs/TUN_POWER_ANALYSIS_ZH_HANS.md](docs/TUN_POWER_ANALYSIS_ZH_HANS.md)
 
 ## Quick Start
 

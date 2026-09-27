@@ -137,6 +137,11 @@ object Clash {
         Bridge.nativeNotifyInstalledAppChanged(uidList)
     }
 
+    /**
+     * Hands the established TUN fd to the native stack. Throws when the Go stack failed to start
+     * (native return code != 0); the fd has already been released by the native layer in that
+     * case, so callers should roll the runtime back instead of treating the session as running.
+     */
     fun startTun(
         fd: Int,
         stack: String,
@@ -148,28 +153,32 @@ object Clash {
             (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int,
         queryPackageName: (uid: Int) -> String,
     ) {
-        Bridge.nativeStartTun(
-            fd,
-            stack,
-            gateway,
-            portal,
-            dns,
-            object : TunInterface {
-                override fun markSocket(fd: Int) {
-                    markSocket(fd)
-                }
+        val result =
+            Bridge.nativeStartTun(
+                fd,
+                stack,
+                gateway,
+                portal,
+                dns,
+                object : TunInterface {
+                    override fun markSocket(fd: Int) {
+                        markSocket(fd)
+                    }
 
-                override fun querySocketUid(protocol: Int, source: String, target: String): Int {
-                    return querySocketUid(
-                        protocol,
-                        parseInetSocketAddress(source),
-                        parseInetSocketAddress(target),
-                    )
-                }
+                    override fun querySocketUid(protocol: Int, source: String, target: String): Int {
+                        return querySocketUid(
+                            protocol,
+                            parseInetSocketAddress(source),
+                            parseInetSocketAddress(target),
+                        )
+                    }
 
-                override fun queryPackageName(uid: Int): String = queryPackageName(uid)
-            },
-        )
+                    override fun queryPackageName(uid: Int): String = queryPackageName(uid)
+                },
+            )
+        // The native TUN stack failed to start (the fd was already released by Go). Surface it
+        // as a failure so the runtime rolls back instead of staying Running with a dead tunnel.
+        check(result == 0) { "tun runtime start failed (native code=$result)" }
     }
 
     fun stopTun() {

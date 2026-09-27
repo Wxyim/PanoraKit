@@ -128,6 +128,11 @@ class TunService : VpnService(), CoroutineScope {
                 startupLogStore.append("LOCAL_TUN service: startForeground done")
 
                 StatusProvider.clearLegacyStateFiles()
+                // Mark the session live before runtime.start() starts: same-process consumers
+                // (quick-settings tile, overnight reconcile) treat this as "VPN being brought up"
+                // during the start window. onStarted re-marks after the runtime actually started,
+                // and every failure path (reportFailure / onFailure / onStopped) immediately marks
+                // stopped, so the marker never shows a stale Running past the startup attempt.
                 StatusProvider.markRuntimeStarted(ProxyMode.Tun)
                 CoreRuntimeConfig.applyCustomUserAgentIfPresent(this)
 
@@ -238,8 +243,11 @@ class TunService : VpnService(), CoroutineScope {
         // (e.g. a system-restarted service whose in-memory state was already reset) the TUN fd
         // would otherwise stay open in this still-alive process, keeping the VPN up behind an
         // already-"off" toggle while the status bar still shows the VPN icon.
+        // stopTun() releases the Go-owned fd; closeLeakedTunFd() additionally revokes an
+        // established-but-unconsumed fd from a prepare() that never reached start().
         runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopTun() }
         runCatching { com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener() }
+        runCatching { VpnTunTransport.closeLeakedTunFd() }
 
         StatusProvider.markRuntimeStopped(ProxyMode.Tun)
         sendClashStopped(reason)

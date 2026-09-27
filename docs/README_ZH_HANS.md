@@ -26,6 +26,9 @@ MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCu
 - 许可策略：[LICENSING_ZH_HANS.md](LICENSING_ZH_HANS.md)
 - 产品规范：[SPEC_ZH_HANS.md](SPEC_ZH_HANS.md)
 - 隐私说明：[PRIVACY_POLICY_ZH_HANS.md](PRIVACY_POLICY_ZH_HANS.md)
+- TUN 会话与 fd 生命周期：[TUN_LIFECYCLE_ZH_HANS.md](TUN_LIFECYCLE_ZH_HANS.md)
+- TUN 全链路性能分析：[TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
+- TUN 电量分析：[TUN_POWER_ANALYSIS_ZH_HANS.md](TUN_POWER_ANALYSIS_ZH_HANS.md)
 
 ## 快速开始
 

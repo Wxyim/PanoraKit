@@ -98,6 +98,7 @@ object Bridge {
 
     external fun nativeNotifyInstalledAppChanged(uidList: String)
 
+    /** Returns 0 on success, non-zero when the native TUN stack failed to start. */
     external fun nativeStartTun(
         fd: Int,
         stack: String,
@@ -105,7 +106,7 @@ object Bridge {
         portal: String,
         dns: String,
         cb: TunInterface,
-    )
+    ): Int
 
     external fun nativeStopTun()
 

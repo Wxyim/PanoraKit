@@ -199,7 +199,7 @@ Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeNotifyInstalledApp
   notifyInstalledAppsChanged(_uid_list);
 }
 
-JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStartTun(
+JNIEXPORT jint JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeStartTun(
     JNIEnv* env, jobject thiz, jint fd, jstring stack, jstring gateway, jstring portal, jstring dns,
     jobject cb) {
   TRACE_METHOD();
@@ -210,7 +210,10 @@ JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_n
   scoped_string _dns = get_string(dns);
   jobject _interface = new_global(cb);
 
-  startTun(fd, _stack, _gateway, _portal, _dns, _interface);
+  // startTun returns 0 on success, 1 when the Go TUN stack failed to start. Propagate
+  // the code so the Kotlin layer can surface a real failure instead of leaving the
+  // runtime in a Running state with a dead (already-closed) tunnel.
+  return startTun(fd, _stack, _gateway, _portal, _dns, _interface);
 }
 
 JNIEXPORT void JNICALL

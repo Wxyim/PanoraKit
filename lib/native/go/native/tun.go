@@ -30,6 +30,8 @@ import (
 	"time"
 	"unsafe"
 
+	"golang.org/x/sys/unix"
+
 	"golang.org/x/sync/semaphore"
 
 	"cfa/native/app"
@@ -128,6 +130,10 @@ func closeCurrentTunLocked() {
 	app.ApplyPackageNameResolver(nil)
 }
 
+// startTun hands the established TUN fd to the mihomo stack and returns 0 on success. On
+// failure the fd is closed (F_GETFD-guarded so it is never double-closed) and 1 is returned,
+// letting the Kotlin layer roll the runtime back instead of leaving a dead session marked Running.
+//
 //export startTun
 func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.Pointer) C.int {
 	rTunLock.Lock()
@@ -149,6 +155,14 @@ func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.
 	closer, err := tun.Start(f, s, g, p, d)
 	if err != nil {
 		remote.close()
+		// The fd was established (the Android VPN session is live) but the stack failed to
+		// take it over. sing-tun wraps the fd via os.NewFile, so depending on where its
+		// teardown stopped the descriptor may already be closed. Release it exactly once:
+		// F_GETFD fails on a closed descriptor, so this never double-closes (which could
+		// otherwise close an unrelated, reused descriptor number).
+		if _, ferr := unix.FcntlInt(uintptr(f), unix.F_GETFD, 0); ferr == nil {
+			_ = unix.Close(f)
+		}
 
 		return 1
 	}

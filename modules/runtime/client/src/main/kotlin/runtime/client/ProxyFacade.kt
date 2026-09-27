@@ -66,6 +66,7 @@ import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
 import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeServiceLauncher
+import com.github.nomadboxlab.monadbox.service.runtime.session.VpnTunTransport
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimePhase
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
@@ -1874,12 +1875,17 @@ class ProxyFacade(
      * runtime shares the process, so [Clash] calls here are effective and bounded) and then
      * destroys the runtime service. Used only after the normal stop request and a grace window both
      * failed to tear the VPN down.
+     *
+     * For the local TUN, [VpnTunTransport.closeLeakedTunFd] additionally revokes an
+     * established-but-unconsumed VPN fd, so the status-bar icon goes away even when the service
+     * main looper is wedged and its onDestroy is deferred.
      */
     private suspend fun forceCloseLocalRuntime(owner: RuntimeOwner) {
         withContext(Dispatchers.IO) {
             when (owner) {
                 RuntimeOwner.LocalTun -> {
                     runCatching { Clash.stopTun() }
+                    runCatching { VpnTunTransport.closeLeakedTunFd() }
                     runCatching { Clash.stopLocalProxyHttpListener() }
                     runCatching { Clash.reset() }
                     runCatching {
