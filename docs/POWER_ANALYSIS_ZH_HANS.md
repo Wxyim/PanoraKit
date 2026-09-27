@@ -1,5 +1,7 @@
 # 当前 App 耗电分析
 
+> TUN 链路的专项电量分析见 [TUN_POWER_ANALYSIS_ZH_HANS.md](TUN_POWER_ANALYSIS_ZH_HANS.md)。
+
 ## 结论范围
 
 这是基于当前源码的静态分析，不等同于某一台设备上的实测电量。真实耗电还会受 SoC、网络制式、代理流量、屏幕亮度和系统后台策略影响。
