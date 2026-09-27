@@ -52,26 +52,6 @@ class VpnTunTransport(
     @Volatile private var uidWarmupUntilElapsedMs = 0L
     private val deviceLock = Any()
 
-    companion object {
-        private val leakedTunFd = AtomicInteger(-1)
-
-        /**
-         * Closes an established-but-unconsumed TUN fd from any process-local teardown path.
-         *
-         * The established fd is tracked process-wide so teardown code that cannot reach the
-         * transport instance (e.g. the client's force-close when the service main looper is wedged
-         * and onDestroy is deferred) can still close it and revoke the VPN. Idempotent; no-op when
-         * no fd is pending. Closing an fd here that was already handed to the Go stack is prevented
-         * by clearing the tracker on start and close.
-         */
-        fun closeLeakedTunFd() {
-            val fd = leakedTunFd.getAndSet(-1)
-            if (fd > 0) {
-                runCatching { ParcelFileDescriptor.adoptFd(fd).use { } }
-            }
-        }
-    }
-
     /**
      * Phase 1: build VPN parameters and call [VpnService.establish]. This involves Android IPC to
      * the system VPN service (~0.5-1s) and is independent of the Go runtime. It runs in parallel
@@ -428,7 +408,25 @@ class VpnTunTransport(
         val dns: String,
     )
 
-    private companion object {
+    companion object {
+        private val leakedTunFd = AtomicInteger(-1)
+
+        /**
+         * Closes an established-but-unconsumed TUN fd from any process-local teardown path.
+         *
+         * The established fd is tracked process-wide so teardown code that cannot reach the
+         * transport instance (e.g. the client's force-close when the service main looper is wedged
+         * and onDestroy is deferred) can still close it and revoke the VPN. Idempotent; no-op when
+         * no fd is pending. Closing an fd here that was already handed to the Go stack is prevented
+         * by clearing the tracker on start and close.
+         */
+        fun closeLeakedTunFd() {
+            val fd = leakedTunFd.getAndSet(-1)
+            if (fd > 0) {
+                runCatching { ParcelFileDescriptor.adoptFd(fd).use { } }
+            }
+        }
+
         private const val TUN_MTU = 1500
         private const val TUN_SUBNET_PREFIX = 30
         private const val TUN_GATEWAY = "172.19.0.1"
