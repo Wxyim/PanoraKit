@@ -182,16 +182,42 @@ jobs:
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -no-snapshot
+          # This input is NOT a shell block: the action trims it, splits it on newlines and runs each
+          # line as its own `sh -c <line>`. A backslash line continuation therefore reaches Gradle as
+          # a literal `\` argument ("Task '\' not found"), and nothing carries between lines. Keep
+          # every command on a single line.
+          #
+          # ADB work must live inside this script: the action kills the emulator as soon as the script
+          # returns, after which any `adb` call just blocks on "waiting for device" until the job
+          # times out. The journey report is therefore pulled here, while the device is alive, and the
+          # later steps only process the files this script wrote. Logcat is always dumped so a failed
+          # collection still leaves the crash/assertion evidence behind.
           script: |
-            ./gradlew :app:generateBaselineProfile \
-              -Pabi.app.list=${PROFILE_ABI} \
-              -Pstartup.gate.enabled=false \
-              -Prelease.signing.required=false \
-              --no-daemon
+            mkdir -p build/reports/baseline-profile; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; timeout 60 adb logcat -d > build/reports/baseline-profile/logcat.txt || true; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+
+      - name: Extract journey report from logcat
+        # Fallback for when the report file could not be pulled from the device (the generator also
+        # mirrors it to logcat, which the emulator script dumped while the device was still alive).
+        if: always()
+        run: |
+          set -euo pipefail
+          report_dir=build/reports/baseline-profile
+          report="$report_dir/journey-report.txt"
+          if [ ! -s "$report" ] && [ -s "$report_dir/logcat.txt" ]; then
+            sed -n \
+              '/MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN/,/MONADBOX_BASELINE_JOURNEY_REPORT_END/p' \
+              "$report_dir/logcat.txt" > "$report" || true
+            if [ -s "$report" ]; then
+              echo "Recovered the journey report from logcat."
+            fi
+          fi
 
       - name: Collect journey report
         # The generator reports which journeys really exercised their surface; without this a
         # reworded UI silently shrinks profile coverage while the job stays green.
+        #
+        # No adb here: the emulator is already gone by the time this runs, and an adb call without a
+        # device blocks forever. The emulator script pulled the report while the device was alive.
         if: always()
         env:
           GENERATE_OUTCOME: ${{ steps.generate.outcome }}
@@ -199,26 +225,6 @@ jobs:
           set -euo pipefail
           report_dir=build/reports/baseline-profile
           mkdir -p "$report_dir"
-
-          report_path=""
-          for _ in 1 2 3; do
-            report_path=$(
-              adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null \
-                | tr -d '\r' | head -n1 || true
-            )
-            if [ -n "$report_path" ]; then break; fi
-            sleep 3
-          done
-
-          if [ -n "$report_path" ]; then
-            adb pull "$report_path" "$report_dir/journey-report.txt"
-          else
-            echo "::warning::journey report file not found on the device; falling back to logcat"
-            adb logcat -d > "$report_dir/logcat.txt" || true
-            sed -n \
-              '/MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN/,/MONADBOX_BASELINE_JOURNEY_REPORT_END/p' \
-              "$report_dir/logcat.txt" > "$report_dir/journey-report.txt" || true
-          fi
 
           {
             echo '### Baseline profile journeys'
@@ -285,7 +291,9 @@ jobs:
           fi
 
       - name: Upload generated profile
-        if: steps.generate.outcome == 'success'
+        # Runs even on failure: the journey report, verification output and logcat are what make a
+        # failed collection actionable.
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: baseline-profile-${{ github.run_id }}
@@ -293,7 +301,7 @@ jobs:
             app/src/**/baselineProfiles/**
             build/reports/baseline-profile/**
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Fail on profile drift
         # Regenerating on a schedule is pointless if a stale committed profile can pass unnoticed.
