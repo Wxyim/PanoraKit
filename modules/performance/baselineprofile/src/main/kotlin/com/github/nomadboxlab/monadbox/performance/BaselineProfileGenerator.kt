@@ -38,6 +38,13 @@ class BaselineProfileGenerator {
 
         rule.collect(packageName = BenchmarkConfig.TargetPackage, includeInStartupProfile = true) {
             report.run("startup", JourneyKind.Required) { startupJourney() }
+            // Runs first: a fresh install shows the first-run wizard until this has walked it, and
+            // the Home-facing journeys below have nothing to exercise before that. See
+            // `onboardingJourney`.
+            report.run("onboarding", JourneyKind.BestEffort) { onboardingJourney() }
+            // Promote to Required once a run has shown this leg really exercising its surface: the
+            // mode panel only exists on Home, with a profile and a reached main shell.
+            report.run("home_mode_switch", JourneyKind.BestEffort) { homeModeSwitchJourney() }
             report.run("configuration_import", JourneyKind.BestEffort) {
                 configurationImportJourney()
             }
