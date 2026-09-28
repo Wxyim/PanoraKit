@@ -5,9 +5,10 @@ name: Generate baseline profile
 # job. The profile itself is DEX-level and therefore architecture independent — an x86_64 emulator
 # run produces a profile that the arm64 release APK consumes just the same.
 #
-# The generated file is copied into app/src/main/baselineProfiles/ (see the `baselineProfile { }`
-# block in app/build.gradle.kts) and picked up by every release build. Run this whenever the startup
-# or navigation paths change enough that the shipped profile drifts away from the real journeys.
+# The generated files are copied into app/src/main/generated/baselineProfiles/ (see the
+# `baselineProfile { }` block in app/build.gradle.kts) and picked up by every release build. Run this
+# whenever the startup or navigation paths change enough that the shipped profile drifts away from
+# the real journeys.
 #
 # Guardrails, because a stale or shrunken profile still looks green in every other job:
 # - the generator reports each journey it ran, and a required journey that never reached the main
@@ -146,13 +147,17 @@ jobs:
         # the first run, which the verification task reports as "no committed profile to compare".
         run: |
           set -euo pipefail
-          if git show HEAD:app/src/main/baselineProfiles/baseline-prof.txt \
-            > /tmp/committed-baseline-prof.txt 2>/dev/null; then
-            wc -l /tmp/committed-baseline-prof.txt
-          else
-            rm -f /tmp/committed-baseline-prof.txt
-            echo "No committed baseline profile yet; regression comparison will be skipped."
-          fi
+          for path in \
+            app/src/main/baselineProfiles/baseline-prof.txt \
+            app/src/main/generated/baselineProfiles/baseline-prof.txt; do
+            if git show "HEAD:${path}" > /tmp/committed-baseline-prof.txt 2>/dev/null; then
+              echo "Committed profile taken from ${path}"
+              wc -l /tmp/committed-baseline-prof.txt
+              exit 0
+            fi
+          done
+          rm -f /tmp/committed-baseline-prof.txt
+          echo "No committed baseline profile yet; regression comparison will be skipped."
 
       - name: Build native libraries for the emulator ABI
         run: kotlin -Dabi.app.list=${PROFILE_ABI} scripts/native-build.main.kts --all
@@ -308,21 +313,29 @@ jobs:
         if: steps.generate.outcome == 'success'
         run: |
           set -euo pipefail
-          path=app/src/main/baselineProfiles
-          if [ -z "$(git status --porcelain -- "$path")" ]; then
+          paths=()
+          for candidate in \
+            app/src/main/baselineProfiles \
+            app/src/main/generated/baselineProfiles \
+            app/src/release/baselineProfiles; do
+            if [ -e "$candidate" ]; then
+              paths+=("$candidate")
+            fi
+          done
+          if [ "${#paths[@]}" -eq 0 ] || [ -z "$(git status --porcelain -- "${paths[@]}")" ]; then
             echo "Committed baseline profile already matches the freshly generated one."
             exit 0
           fi
 
-          git add -N -- "$path"
-          git --no-pager diff --stat -- "$path"
+          git add -N -- "${paths[@]}"
+          git --no-pager diff --stat -- "${paths[@]}"
           {
             echo '### Baseline profile drift'
             echo
             echo 'The committed profile differs from the freshly generated one:'
             echo
             echo '```'
-            git --no-pager diff --stat -- "$path"
+            git --no-pager diff --stat -- "${paths[@]}"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -338,7 +351,14 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/src
+          for candidate in \
+            app/src/main/baselineProfiles \
+            app/src/main/generated/baselineProfiles \
+            app/src/release/baselineProfiles; do
+            if [ -e "$candidate" ]; then
+              git add -- "$candidate"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "Profile unchanged — nothing to commit."
             exit 0

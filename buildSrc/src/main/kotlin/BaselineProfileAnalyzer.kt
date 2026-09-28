@@ -63,10 +63,16 @@ internal object BaselineProfileAnalyzer {
         var launcherStartupEntries = 0
         var unparsedEntries = 0
 
+        // A profile can arrive as several fragments: AGP's merged `baseline-prof.txt` already
+        // contains every line of the `startup-prof.txt` next to it. Counting duplicate lines would
+        // inflate coverage and hide a shrunken profile, so the union is de-duplicated by line.
+        val seenLines = mutableSetOf<String>()
+
         sources.forEach { source ->
             source.text.lineSequence().forEach { rawLine ->
                 val line = rawLine.trim()
                 if (line.isEmpty() || line.startsWith("#")) return@forEach
+                if (!seenLines.add(line)) return@forEach
 
                 val match = entryPattern.matchEntire(line)
                 if (match == null) {

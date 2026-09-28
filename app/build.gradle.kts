@@ -304,21 +304,32 @@ android {
 
 baselineProfile {
     // Keep the generated profile in the source tree so release builds consume it without having to
-    // re-run the generator on a device, and so profile updates arrive as reviewable diffs.
+    // re-run the generator on a device, and so profile updates arrive as reviewable diffs. AGP
+    // writes it to `src/main/generated/baselineProfiles/`, which is also one of the source sets it
+    // reads back from, so the committed file is what the release build actually uses.
     saveInSrc = true
     mergeIntoMain = true
 }
 
-val baselineProfileDir = layout.projectDirectory.dir("src/main/baselineProfiles")
+// Every directory AGP consumes baseline profile fragments from. The generator writes into the
+// `generated` one; the other two stay listed so a profile placed there is still verified.
+val baselineProfileSourceDirPaths =
+    listOf(
+        "src/main/baselineProfiles",
+        "src/main/generated/baselineProfiles",
+        "src/release/baselineProfiles",
+    )
+val baselineProfileSourceDirs =
+    baselineProfileSourceDirPaths.map { layout.projectDirectory.dir(it) }
 
 // Guards the shipped baseline profile: a profile whose recorded journeys no longer match the real
 // startup path silently stops helping, and nothing else in the build notices. Runs on `check` in
 // warn-only mode (no profile yet) and in requiring mode from the baseline profile workflow.
 val verifyBaselineProfile =
     tasks.register<BaselineProfileVerificationTask>("verifyBaselineProfile") {
-        profileDir.set(baselineProfileDir)
+        profileDirs.set(baselineProfileSourceDirPaths)
         profileFiles.setFrom(
-            layout.files(baselineProfileDir.asFileTree.matching { include("*.txt") })
+            baselineProfileSourceDirs.map { it.asFileTree.matching { include("*.txt") } }
         )
         appPackage.set(providers.gradleProperty("project.namespace.base"))
         launcherClass.set(

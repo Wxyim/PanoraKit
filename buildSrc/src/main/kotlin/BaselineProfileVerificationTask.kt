@@ -2,8 +2,8 @@ import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
@@ -20,16 +20,17 @@ import org.gradle.api.tasks.TaskAction
  *
  * A baseline profile silently stops helping as soon as its recorded journeys no longer match the
  * real startup/navigation paths, and nothing in a normal build notices. This task makes that
- * visible: it parses the profile in `app/src/main/baselineProfiles`, requires that it still covers
- * the app package and the launcher activity's startup path, and compares entry/class coverage with
- * the profile committed to the repository.
+ * visible: it parses every profile AGP consumes (see `baselineProfileSourceDirPaths` in
+ * `app/build.gradle.kts`), requires that it still covers the app package and the launcher
+ * activity's startup path, and compares entry/class coverage with the profile committed to the
+ * repository.
  *
  * Wiring: `verifyBaselineProfile` in `app/build.gradle.kts`. When no profile has been generated yet
  * the task reports `SKIPPED` unless `-PbaselineProfile.require=true` asks for a hard requirement.
  */
 abstract class BaselineProfileVerificationTask : DefaultTask() {
-    /** Directory that holds the generated profile fragments; used for reporting only. */
-    @get:Internal abstract val profileDir: DirectoryProperty
+    /** Directories searched for profile fragments; used for reporting only. */
+    @get:Internal abstract val profileDirs: ListProperty<String>
 
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -72,8 +73,7 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
         val sources = candidates.map { BaselineProfileSource(it.name, it.readText()) }
 
         if (sources.isEmpty()) {
-            val note =
-                "No baseline profile found under ${profileDir.asFile.get().invariantSeparatorsPath}."
+            val note = "No baseline profile found under any of: ${searchedDirs()}."
             if (requireProfile.get()) {
                 writeOutputs(
                     status = "FAIL",
@@ -176,7 +176,7 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
             buildString {
                 appendLine("Baseline Profile Verification Report")
                 appendLine()
-                appendLine("Profile directory: ${profileDir.asFile.get().invariantSeparatorsPath}")
+                appendLine("Profile directories searched: ${searchedDirs()}")
                 appendLine("App package: ${appPackage.get()}")
                 appendLine("Launcher class: ${launcherClass.get()}")
                 appendLine()
@@ -215,4 +215,6 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
             }
         )
     }
+
+    private fun searchedDirs(): String = profileDirs.get().joinToString(", ")
 }
