@@ -23,6 +23,8 @@ import android.os.SystemClock
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.StaleObjectException
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
 // Labels are matched against both English and Chinese resources; every journey reports the label it
@@ -167,8 +169,11 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
 private fun MacrobenchmarkScope.acceptPrivacyNoticeIfOffered() {
     if (awaitAnyLabel(PrivacyNoticeSurfaceLabels, timeoutMs = 0L) == null) return
     val checkbox = device.findObject(appSelector(By.checkable(true))) ?: return
-    if (checkbox.isChecked) return
-    checkbox.click()
+    // The wizard keeps re-rendering while it is walked, so the checkbox can be replaced between
+    // the search and the read; a stale read means this step has no notice left to accept.
+    val checked = staleSafe { checkbox.isChecked } ?: return
+    if (checked) return
+    clickNode(checkbox)
     device.waitForIdle()
 }
 
@@ -227,7 +232,7 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
     val badgeLabel =
         firstMatchingDescription(ModeSwitchLabels)
             ?: return JourneyResult.skipped("no mode badge among $ModeSwitchLabels")
-    if (!clickFirst(By.descContains(badgeLabel))) {
+    if (!clickFirst(By.descContains(badgeLabel)) && !tapFirstMatch(By.descContains(badgeLabel))) {
         return JourneyResult.skipped("mode badge '$badgeLabel' was not clickable")
     }
     device.waitForIdle()
@@ -513,13 +518,67 @@ private fun MacrobenchmarkScope.awaitAnyLabel(needles: List<String>, timeoutMs: 
  */
 private fun MacrobenchmarkScope.describeSurface(limit: Int = 12): String {
     val entries = LinkedHashSet<String>()
-    device.findObjects(By.pkg(BenchmarkConfig.TargetPackage)).forEach { node ->
-        listOfNotNull(node.text, node.contentDescription)
+    // This digest is diagnostic only. The surface it samples is still settling when it is read
+    // (the startup feature window in particular), so a node can be replaced between the tree walk
+    // and the property read and UiAutomator answers with `StaleObjectException`. Dropping one
+    // entry costs a little context in the report; letting it escape fails the journey that is
+    // being described, which is what made a required startup leg fail while the app was healthy.
+    for (node in surfaceNodes()) {
+        val labels = staleSafe { listOfNotNull(node.text, node.contentDescription) } ?: continue
+        labels
             .map { it.trim() }
             .filter { it.isNotEmpty() && it.length <= 64 }
             .forEach { entries += it }
+        if (entries.size >= limit) break
     }
     return "surface=[${entries.take(limit).joinToString(" | ").ifEmpty { "<no app nodes>" }}]"
+}
+
+private fun MacrobenchmarkScope.surfaceNodes(): List<UiObject2> =
+    staleSafe { device.findObjects(By.pkg(BenchmarkConfig.TargetPackage)) } ?: emptyList()
+
+/**
+ * Run [block], turning a node that went stale mid-read into `null`.
+ *
+ * UiAutomator hands out live handles: every property read and every tap goes back to the device,
+ * and anything the app replaced in between (a re-rendered screen, a page transition, the emulator
+ * dropping a frame) comes back as [StaleObjectException] instead of a value.
+ */
+private fun <T> staleSafe(block: () -> T): T? =
+    try {
+        block()
+    } catch (_: StaleObjectException) {
+        null
+    }
+
+/** @return `true` when the tap reached the device, `false` when [node] was replaced first. */
+private fun clickNode(node: UiObject2): Boolean =
+    try {
+        node.click()
+        true
+    } catch (_: StaleObjectException) {
+        false
+    }
+
+/**
+ * Tap the centre of the first node matching [selector], by coordinate.
+ *
+ * Fallback for a node the tree reports but `UiObject2.click` cannot resolve: the Home mode badge
+ * lives on a page that is still animating, and the accessibility search then reports it as unusable
+ * even though `hasObject` saw it a moment earlier. Tapping the reported bounds does not depend on
+ * the node staying live between the search and the tap.
+ */
+private fun MacrobenchmarkScope.tapFirstMatch(selector: BySelector): Boolean {
+    val scoped = selector.pkg(BenchmarkConfig.TargetPackage)
+    val nodes =
+        device.wait(Until.findObjects(scoped), BenchmarkConfig.UiWaitTimeoutMs) ?: return false
+    val bounds =
+        nodes.firstNotNullOfOrNull { node ->
+            staleSafe { node.visibleBounds }?.takeIf { it.width() > 0 && it.height() > 0 }
+        } ?: return false
+    device.click(bounds.centerX(), bounds.centerY())
+    device.waitForIdle()
+    return true
 }
 
 /** @return `true` when [label] was found (by text or description) and tapped. */
@@ -553,9 +612,15 @@ private fun MacrobenchmarkScope.clickFirstMatching(
  */
 private fun MacrobenchmarkScope.clickFirst(selector: BySelector, appOnly: Boolean = true): Boolean {
     val scoped = if (appOnly) selector.pkg(BenchmarkConfig.TargetPackage) else selector
-    val node =
-        device.wait(Until.findObject(scoped), BenchmarkConfig.UiWaitTimeoutMs) ?: return false
-    node.click()
-    device.waitForIdle()
-    return true
+    // A tap races the screen it is tapped on, so a node replaced between the search and the tap is
+    // searched for once more instead of aborting the leg that is driving the UI.
+    repeat(2) {
+        val node =
+            device.wait(Until.findObject(scoped), BenchmarkConfig.UiWaitTimeoutMs) ?: return false
+        if (clickNode(node)) {
+            device.waitForIdle()
+            return true
+        }
+    }
+    return false
 }
