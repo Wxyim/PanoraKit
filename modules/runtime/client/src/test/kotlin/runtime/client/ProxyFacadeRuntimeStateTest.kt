@@ -177,10 +177,7 @@ class ProxyFacadeRuntimeStateTest {
             RuntimeOwner.LocalHttp,
             ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(ProxyMode.Http),
         )
-        assertEquals(
-            RuntimeOwner.None,
-            ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(null),
-        )
+        assertEquals(RuntimeOwner.None, ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(null))
         assertEquals(
             RuntimeOwner.None,
             ProxyFacadeOwnerPolicy.expectedOwnerForPersistedMode(ProxyMode.RootTun),
@@ -290,6 +287,54 @@ class ProxyFacadeRuntimeStateTest {
                 groups,
                 ProxyFacadePreviewCache(file).restore(profile, snapshot, rootTunStatus),
             )
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun previewCacheKeepsMemoryFreshButSkipsDiskRewriteForDelayOnlyChanges() {
+        val file = File.createTempFile("monadbox-proxy-groups", ".json")
+        file.delete()
+        try {
+            val profile = sampleProfile()
+            val snapshot =
+                RuntimeSnapshot(
+                    phase = RuntimePhase.Running,
+                    groupsReady = false,
+                    effectiveFingerprint = "fingerprint-delay",
+                )
+            val rootTunStatus = RootTunStatus(state = RootTunState.Running)
+            val cache = ProxyFacadePreviewCache(file)
+            val initial =
+                listOf(
+                    sampleGroup(
+                        name = "main",
+                        proxies = listOf(sampleProxy(name = "HK", delay = 12)),
+                    )
+                )
+
+            cache.backfill(profile, initial, snapshot, rootTunStatus)
+            val persistedBefore = file.readText()
+
+            val afterHealthCheck =
+                listOf(
+                    sampleGroup(
+                        name = "main",
+                        proxies = listOf(sampleProxy(name = "HK", delay = 88)),
+                    )
+                )
+            cache.backfill(profile, afterHealthCheck, snapshot, rootTunStatus)
+
+            // The in-memory entry, which is what fallback() serves, keeps the fresh delay ...
+            assertEquals(afterHealthCheck, cache.fallback(snapshot, profile, rootTunStatus))
+            // ... while the disk copy is left untouched because nothing structural changed.
+            assertEquals(persistedBefore, file.readText())
+
+            // A structural change still writes the payload through.
+            val structural = afterHealthCheck + listOf(sampleGroup(name = "extra"))
+            cache.backfill(profile, structural, snapshot, rootTunStatus)
+            assertTrue(file.readText().contains("extra"))
         } finally {
             file.delete()
         }

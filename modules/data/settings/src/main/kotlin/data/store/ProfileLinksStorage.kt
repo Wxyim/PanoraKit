@@ -58,6 +58,18 @@ class ProfileLinksStorage(
 
     val links: Preference<List<ProfileLink>> = buildLinksPreference(dao, writeScope)
 
+    /**
+     * Forces the blocking first reads this store performs — the Room link table in the constructor
+     * and the Preferences DataStore file behind the scalar delegates — so a caller can run them on
+     * a background dispatcher at startup instead of stalling the first UI access. Idempotent.
+     */
+    @Suppress("UNUSED_EXPRESSION")
+    fun warmUp() {
+        linkOpenMode
+        defaultLinkId
+        links
+    }
+
     private fun buildLinksPreference(
         dao: ProfileLinkDao,
         writeScope: CoroutineScope,

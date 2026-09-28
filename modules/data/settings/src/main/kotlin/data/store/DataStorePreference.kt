@@ -19,6 +19,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 import kotlinx.coroutines.CoroutineScope
@@ -67,10 +68,10 @@ abstract class DataStorePreference(
         default: T
     ): ReadOnlyProperty<Any?, Preference<T>> =
         object : ReadOnlyProperty<Any?, Preference<T>> {
-            private var cached: Preference<T>? = null
+            private val cached = AtomicReference<Preference<T>?>(null)
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): Preference<T> {
-                cached?.let {
+                cached.get()?.let {
                     return it
                 }
                 val prefKey = stringPreferencesKey(property.name)
@@ -80,19 +81,10 @@ abstract class DataStorePreference(
                             .getOrDefault(default)
                     } ?: default
                 val flow = MutableStateFlow(initial)
-                val pref =
-                    Preference(
-                        state = flow.asStateFlow(),
-                        update = { value ->
-                            if (flow.value != value) {
-                                flow.value = value
-                                writeScope.launch { dataStore.edit { it[prefKey] = value.name } }
-                            }
-                        },
-                        get = { flow.value },
-                    )
-                cached = pref
-                return pref
+                val created = preferenceOf(prefKey, flow) { value -> value.name }
+                // Publishing through the reference keeps concurrent first reads (for example the
+                // startup warm-up racing the first UI access) on one shared state flow.
+                return if (cached.compareAndSet(null, created)) created else cached.get() ?: created
             }
         }
 
@@ -101,28 +93,37 @@ abstract class DataStorePreference(
         keyFactory: (String) -> Preferences.Key<T>,
     ): ReadOnlyProperty<Any?, Preference<T>> =
         object : ReadOnlyProperty<Any?, Preference<T>> {
-            private var cached: Preference<T>? = null
+            private val cached = AtomicReference<Preference<T>?>(null)
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): Preference<T> {
-                cached?.let {
+                cached.get()?.let {
                     return it
                 }
                 val prefKey = keyFactory(property.name)
                 val initial: T = snapshot[prefKey] ?: default
                 val flow = MutableStateFlow(initial)
-                val pref =
-                    Preference(
-                        state = flow.asStateFlow(),
-                        update = { value ->
-                            if (flow.value != value) {
-                                flow.value = value
-                                writeScope.launch { dataStore.edit { it[prefKey] = value } }
-                            }
-                        },
-                        get = { flow.value },
-                    )
-                cached = pref
-                return pref
+                val created = preferenceOf(prefKey, flow) { value -> value }
+                // See enumFlow: a CAS keeps concurrent first reads on one shared state flow.
+                return if (cached.compareAndSet(null, created)) created else cached.get() ?: created
             }
         }
+
+    // @PublishedApi because `enumFlow` is an inline function and therefore cannot reach a plain
+    // private member.
+    @PublishedApi
+    internal fun <T, S> preferenceOf(
+        prefKey: Preferences.Key<S>,
+        flow: MutableStateFlow<T>,
+        encode: (T) -> S,
+    ): Preference<T> =
+        Preference(
+            state = flow.asStateFlow(),
+            update = { value ->
+                if (flow.value != value) {
+                    flow.value = value
+                    writeScope.launch { dataStore.edit { it[prefKey] = encode(value) } }
+                }
+            },
+            get = { flow.value },
+        )
 }

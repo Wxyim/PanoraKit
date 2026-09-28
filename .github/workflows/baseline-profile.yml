@@ -1,0 +1,339 @@
+name: Generate baseline profile
+
+# Baseline profiles are collected from a real device/emulator run, so this stays off the per-push
+# path: it needs a working native kernel for the emulator ABI and takes far longer than a normal CI
+# job. The profile itself is DEX-level and therefore architecture independent — an x86_64 emulator
+# run produces a profile that the arm64 release APK consumes just the same.
+#
+# The generated file is copied into app/src/main/baselineProfiles/ (see the `baselineProfile { }`
+# block in app/build.gradle.kts) and picked up by every release build. Run this whenever the startup
+# or navigation paths change enough that the shipped profile drifts away from the real journeys.
+#
+# Guardrails, because a stale or shrunken profile still looks green in every other job:
+# - the generator reports each journey it ran, and a required journey that never reached the main
+#   screen fails the run (see JourneyReport.kt);
+# - :app:verifyBaselineProfile rejects a profile that lost app-package/startup coverage or fell
+#   below 90% of the committed profile's entry and class counts;
+# - a regenerated profile that differs from the committed one fails the job unless it is committed,
+#   so profile drift cannot be forgotten;
+# - the monthly schedule regenerates without a human remembering to, which is what actually notices
+#   that the committed profile went stale.
+
+on:
+  workflow_dispatch:
+    inputs:
+      emulator_api_level:
+        description: 'Emulator API level used for profile collection'
+        required: false
+        type: string
+        default: '36'
+      commit_profile:
+        description: 'Commit the regenerated profile back to this branch'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # Monthly drift check. Keep it off the hour boundary to avoid the busiest scheduler minutes.
+    - cron: '23 4 1 * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: baseline-profile
+  cancel-in-progress: false
+
+env:
+  PROFILE_ABI: x86_64
+  # `inputs` is empty for the scheduled run, so these fall back to the same defaults as the manual
+  # dispatch form.
+  EMULATOR_API_LEVEL: ${{ inputs.emulator_api_level || '36' }}
+  COMMIT_PROFILE: ${{ inputs.commit_profile || false }}
+
+jobs:
+  generate:
+    name: Generate baseline profile (x86_64 emulator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Kotlin
+        # Pinned direct download — avoids fwilhe2/setup-kotlin@main (floating ref).
+        run: |
+          set -euo pipefail
+          kotlin_version=2.4.20
+          curl -fsSL \
+            -o /tmp/kotlin-compiler.zip \
+            "https://github.com/JetBrains/kotlin/releases/download/v${kotlin_version}/kotlin-compiler-${kotlin_version}.zip"
+          unzip -oq /tmp/kotlin-compiler.zip -d /opt/
+          echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.27"
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+
+      - name: Install NDK & build-tools
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" \
+            "ndk;27.3.13750724" \
+            "platform-tools" \
+            "build-tools;36.0.0" \
+            "cmake;4.1.2"
+
+      - name: Enable KVM group perms
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+
+      - name: Sync kernel
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh alpha
+
+      - name: Cache Go build output
+        # Runs after the sync so the key can hash the resolved kernel revision; the compile of the
+        # mihomo kernel dominates this job's runtime.
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: native-go-${{ env.PROFILE_ABI }}-${{ hashFiles('config/kernel.properties') }}-${{ hashFiles('lib/mihomo/mihomo/go.sum') }}
+          restore-keys: |
+            native-go-${{ env.PROFILE_ABI }}-
+
+      - name: Update CA certificates
+        run: |
+          set -euo pipefail
+          CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+          if [ ! -f "$CA_BUNDLE" ]; then
+            echo "::error::System CA bundle not found: $CA_BUNDLE"
+            exit 1
+          fi
+          mkdir -p lib/mihomo/mihomo/component/ca
+          cp -f "$CA_BUNDLE" lib/mihomo/mihomo/component/ca/ca-certificates.crt
+
+      - name: Capture committed profile
+        # Reference for both the coverage regression check and the post-run drift check. Absent on
+        # the first run, which the verification task reports as "no committed profile to compare".
+        run: |
+          set -euo pipefail
+          if git show HEAD:app/src/main/baselineProfiles/baseline-prof.txt \
+            > /tmp/committed-baseline-prof.txt 2>/dev/null; then
+            wc -l /tmp/committed-baseline-prof.txt
+          else
+            rm -f /tmp/committed-baseline-prof.txt
+            echo "No committed baseline profile yet; regression comparison will be skipped."
+          fi
+
+      - name: Build native libraries for the emulator ABI
+        run: kotlin -Dabi.app.list=${PROFILE_ABI} scripts/native-build.main.kts --all
+
+      - name: Verify native libraries
+        run: |
+          set -euo pipefail
+          for library in \
+            build/native/go/${PROFILE_ABI}/libclash.so \
+            build/native/cpp/obj/${PROFILE_ABI}/libbridge.so \
+            build/jniLibs/${PROFILE_ABI}/libclash.so \
+            build/jniLibs/${PROFILE_ABI}/libbridge.so; do
+            test -s "$library" || {
+              echo "::error::Missing native library: $library"
+              exit 1
+            }
+          done
+
+      - name: Generate baseline profile
+        id: generate
+        uses: ReactiveCircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: ${{ env.EMULATOR_API_LEVEL }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+            -camera-back none -no-snapshot
+          script: |
+            ./gradlew :app:generateBaselineProfile \
+              -Pabi.app.list=${PROFILE_ABI} \
+              -Pstartup.gate.enabled=false \
+              -Prelease.signing.required=false \
+              --no-daemon
+
+      - name: Collect journey report
+        # The generator reports which journeys really exercised their surface; without this a
+        # reworded UI silently shrinks profile coverage while the job stays green.
+        if: always()
+        env:
+          GENERATE_OUTCOME: ${{ steps.generate.outcome }}
+        run: |
+          set -euo pipefail
+          report_dir=build/reports/baseline-profile
+          mkdir -p "$report_dir"
+
+          report_path=""
+          for _ in 1 2 3; do
+            report_path=$(
+              adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null \
+                | tr -d '\r' | head -n1 || true
+            )
+            if [ -n "$report_path" ]; then break; fi
+            sleep 3
+          done
+
+          if [ -n "$report_path" ]; then
+            adb pull "$report_path" "$report_dir/journey-report.txt"
+          else
+            echo "::warning::journey report file not found on the device; falling back to logcat"
+            adb logcat -d > "$report_dir/logcat.txt" || true
+            sed -n \
+              '/MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN/,/MONADBOX_BASELINE_JOURNEY_REPORT_END/p' \
+              "$report_dir/logcat.txt" > "$report_dir/journey-report.txt" || true
+          fi
+
+          {
+            echo '### Baseline profile journeys'
+            echo
+            if [ -s "$report_dir/journey-report.txt" ]; then
+              echo '```'
+              cat "$report_dir/journey-report.txt"
+              echo '```'
+            else
+              echo 'No journey report was produced.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$GENERATE_OUTCOME" != "success" ]; then
+            echo "::warning::profile generation did not succeed; skipping journey report validation"
+            exit 0
+          fi
+
+          if [ ! -s "$report_dir/journey-report.txt" ]; then
+            echo "::error::The generator produced a profile but no journey report."
+            exit 1
+          fi
+
+          required_failed=$(
+            grep -o 'required_failed=[0-9]*' "$report_dir/journey-report.txt" \
+              | head -n1 | cut -d= -f2 || true
+          )
+          if [ -z "$required_failed" ]; then
+            echo "::error::Journey report has no required_failed summary line."
+            exit 1
+          fi
+          if [ "$required_failed" != "0" ]; then
+            echo "::error::$required_failed required journey(s) never reached the app; the profile would be misleading."
+            exit 1
+          fi
+          echo "All required journeys exercised their surface."
+
+      - name: Verify generated profile
+        if: steps.generate.outcome == 'success'
+        run: |
+          set -euo pipefail
+          args=(-PbaselineProfile.require=true)
+          if [ -s /tmp/committed-baseline-prof.txt ]; then
+            args+=(-PbaselineProfile.baseline=/tmp/committed-baseline-prof.txt)
+          fi
+          ./gradlew :app:verifyBaselineProfile "${args[@]}" \
+            -Pabi.app.list=${PROFILE_ABI} \
+            -Pstartup.gate.enabled=false \
+            -Prelease.signing.required=false \
+            --no-daemon
+
+      - name: Publish verification summary
+        if: always()
+        run: |
+          summary=build/reports/baseline-profile/summary.md
+          if [ -f "$summary" ]; then
+            cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          report=build/reports/baseline-profile/verification.txt
+          if [ -f "$report" ]; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload generated profile
+        if: steps.generate.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: baseline-profile-${{ github.run_id }}
+          path: |
+            app/src/**/baselineProfiles/**
+            build/reports/baseline-profile/**
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Fail on profile drift
+        # Regenerating on a schedule is pointless if a stale committed profile can pass unnoticed.
+        if: steps.generate.outcome == 'success'
+        run: |
+          set -euo pipefail
+          path=app/src/main/baselineProfiles
+          if [ -z "$(git status --porcelain -- "$path")" ]; then
+            echo "Committed baseline profile already matches the freshly generated one."
+            exit 0
+          fi
+
+          git add -N -- "$path"
+          git --no-pager diff --stat -- "$path"
+          {
+            echo '### Baseline profile drift'
+            echo
+            echo 'The committed profile differs from the freshly generated one:'
+            echo
+            echo '```'
+            git --no-pager diff --stat -- "$path"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${COMMIT_PROFILE}" != "true" ]; then
+            echo "::error::The committed baseline profile is stale. Re-run with commit_profile=true, or commit the uploaded artifact."
+            exit 1
+          fi
+          echo "Drift detected and commit_profile=true; the next step commits the regenerated profile."
+
+      - name: Commit regenerated profile
+        if: steps.generate.outcome == 'success' && env.COMMIT_PROFILE == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/src
+          if git diff --cached --quiet; then
+            echo "Profile unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(baseline-profile): regenerate profile on API ${EMULATOR_API_LEVEL}"
+          git push

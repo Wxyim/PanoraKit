@@ -22,6 +22,7 @@ package com.github.nomadboxlab.monadbox.performance
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,14 +34,26 @@ class BaselineProfileGenerator {
 
     @Test
     fun generate() {
+        val report = JourneyReport(BenchmarkConfig.TargetPackage)
+
         rule.collect(packageName = BenchmarkConfig.TargetPackage, includeInStartupProfile = true) {
-            startupJourney()
-            configurationImportJourney()
-            startStopProxyJourney()
-            editSaveJourney()
-            openNextMainPage()
-            bottomNavigationJourney()
-            settingsScrollJourney()
+            report.run("startup", JourneyKind.Required) { startupJourney() }
+            report.run("configuration_import", JourneyKind.BestEffort) {
+                configurationImportJourney()
+            }
+            report.run("start_stop_proxy", JourneyKind.BestEffort) { startStopProxyJourney() }
+            report.run("edit_save", JourneyKind.BestEffort) { editSaveJourney() }
+            report.run("open_next_main_page", JourneyKind.BestEffort) {
+                openNextMainPage()
+                JourneyResult.exercised("swiped to the neighbouring main page")
+            }
+            report.run("bottom_navigation", JourneyKind.BestEffort) { bottomNavigationJourney() }
+            report.run("settings_scroll", JourneyKind.BestEffort) { settingsScrollJourney() }
         }
+
+        // Publish before asserting so a failed collection still leaves the per-journey evidence
+        // behind for CI, and so a required journey can never degrade the profile silently.
+        report.publish(InstrumentationRegistry.getInstrumentation().targetContext)
+        report.throwIfRequiredFailed()
     }
 }

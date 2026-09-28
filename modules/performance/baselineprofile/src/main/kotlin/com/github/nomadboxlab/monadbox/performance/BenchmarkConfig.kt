@@ -23,4 +23,17 @@ internal object BenchmarkConfig {
     const val TargetPackage = "com.github.nomadboxlab.monadbox"
     const val StartupTimeoutMs = 8_000L
     const val UiWaitTimeoutMs = 1_000L
+
+    /** Budget for confirming that a journey reached its surface (tab switches need more slack). */
+    const val UiVerifyTimeoutMs = 3_000L
+
+    /**
+     * The generator writes its per-journey report here (app-specific external files dir) so CI can
+     * pull it and tell whether every recorded journey actually exercised its surface. Without this
+     * a reworded UI silently reduces profile coverage while the run still looks green.
+     */
+    const val JourneyReportFileName = "journey-report.txt"
+    const val JourneyReportTag = "MonadBoxBaselineProfile"
+    const val JourneyReportBeginMarker = "MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN"
+    const val JourneyReportEndMarker = "MONADBOX_BASELINE_JOURNEY_REPORT_END"
 }

@@ -43,8 +43,8 @@ private const val ACCESS_LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_L
 
 /**
  * Android 17 (target SDK 37+) restricts local network discovery through
- * [NetworkInterface.getNetworkInterfaces] behind ACCESS_LOCAL_NETWORK. On older
- * platforms the permission does not exist and the query is always allowed.
+ * [NetworkInterface.getNetworkInterfaces] behind ACCESS_LOCAL_NETWORK. On older platforms the
+ * permission does not exist and the query is always allowed.
  */
 private const val ACCESS_LOCAL_NETWORK_SDK_INT = 37
 
@@ -191,11 +191,10 @@ class NetworkInfoService(
 /**
  * Single source of truth for which external IP lookup URLs are accepted.
  *
- * HTTPS is allowed for any host. Cleartext HTTP is allowed only for loopback
- * so power users can self-host an on-device lookup endpoint. Settings screens
- * use the same rule when validating user input (allowing an unchanged legacy
- * value to be re-saved), so a brand-new URL is never silently rejected later at
- * query time.
+ * HTTPS is allowed for any host. Cleartext HTTP is allowed only for loopback so power users can
+ * self-host an on-device lookup endpoint. Settings screens use the same rule when validating user
+ * input (allowing an unchanged legacy value to be re-saved), so a brand-new URL is never silently
+ * rejected later at query time.
  */
 fun isAllowedExternalIpLookupUrl(url: String): Boolean {
     val lower = url.lowercase()
@@ -218,9 +217,9 @@ fun isAllowedExternalIpLookupUrl(url: String): Boolean {
 }
 
 /**
- * Extracts the host from a URL authority (the part between the scheme and the
- * first path separator), ignoring userinfo (e.g. `user:pass@` in
- * `https://user:pass@example.com/`) and bracketed IPv6 literals.
+ * Extracts the host from a URL authority (the part between the scheme and the first path
+ * separator), ignoring userinfo (e.g. `user:pass@` in `https://user:pass@example.com/`) and
+ * bracketed IPv6 literals.
  */
 private fun extractUrlHost(authority: String): String {
     // Strip userinfo: the host starts after the last '@'.

@@ -28,12 +28,14 @@ class TrafficPipelineReplicaTest {
         SLOT_20_24(20, 24, "20-24");
 
         companion object {
-            fun fromHour(hour: Int): TimeSlot = entries.first { hour >= it.startHour && hour < it.endHour }
+            fun fromHour(hour: Int): TimeSlot =
+                entries.first { hour >= it.startHour && hour < it.endHour }
         }
     }
 
     data class TrafficSlotData(val slotIndex: Int, val upload: Long, val download: Long) {
-        val total: Long get() = upload + download
+        val total: Long
+            get() = upload + download
     }
 
     data class DailyTrafficSummary(
@@ -42,8 +44,12 @@ class TrafficPipelineReplicaTest {
         val totalDownload: Long,
         val hourlyData: Map<Int, TrafficSlotData> = emptyMap(),
     ) {
-        val total: Long get() = totalUpload + totalDownload
-        companion object { val EMPTY = DailyTrafficSummary(0L, 0L, 0L) }
+        val total: Long
+            get() = totalUpload + totalDownload
+
+        companion object {
+            val EMPTY = DailyTrafficSummary(0L, 0L, 0L)
+        }
     }
 
     private data class Segment(val timestampMillis: Long, val durationMillis: Long)
@@ -53,14 +59,20 @@ class TrafficPipelineReplicaTest {
 
         fun summaries(): Map<Long, DailyTrafficSummary> = dailySummaries.toMap()
 
-        fun recordTraffic(uploadDelta: Long, downloadDelta: Long, windowStartMillis: Long, windowEndMillis: Long) {
+        fun recordTraffic(
+            uploadDelta: Long,
+            downloadDelta: Long,
+            windowStartMillis: Long,
+            windowEndMillis: Long,
+        ) {
             if (uploadDelta <= 0 && downloadDelta <= 0) return
             val safeEnd = if (windowEndMillis > 0L) windowEndMillis else System.currentTimeMillis()
-            val safeStart = when {
-                windowStartMillis <= 0L -> safeEnd
-                windowStartMillis > safeEnd -> safeEnd
-                else -> windowStartMillis
-            }
+            val safeStart =
+                when {
+                    windowStartMillis <= 0L -> safeEnd
+                    windowStartMillis > safeEnd -> safeEnd
+                    else -> windowStartMillis
+                }
             val segments = buildSegments(safeStart, safeEnd)
             val totalDuration = segments.sumOf(Segment::durationMillis).coerceAtLeast(1L)
             var remainingUpload = uploadDelta
@@ -68,10 +80,18 @@ class TrafficPipelineReplicaTest {
             segments.forEachIndexed { index, segment ->
                 val segmentUpload =
                     if (index == segments.lastIndex) remainingUpload
-                    else ((uploadDelta * segment.durationMillis) / totalDuration).coerceIn(0L, remainingUpload)
+                    else
+                        ((uploadDelta * segment.durationMillis) / totalDuration).coerceIn(
+                            0L,
+                            remainingUpload,
+                        )
                 val segmentDownload =
                     if (index == segments.lastIndex) remainingDownload
-                    else ((downloadDelta * segment.durationMillis) / totalDuration).coerceIn(0L, remainingDownload)
+                    else
+                        ((downloadDelta * segment.durationMillis) / totalDuration).coerceIn(
+                            0L,
+                            remainingDownload,
+                        )
                 applyDelta(segment.timestampMillis, segmentUpload, segmentDownload)
                 remainingUpload -= segmentUpload
                 remainingDownload -= segmentDownload
@@ -87,7 +107,10 @@ class TrafficPipelineReplicaTest {
             val hourlyData = daySummary.hourlyData.toMutableMap()
             val currentSlot = hourlyData[slotIndex] ?: TrafficSlotData(slotIndex, 0L, 0L)
             hourlyData[slotIndex] =
-                currentSlot.copy(upload = currentSlot.upload + uploadDelta, download = currentSlot.download + downloadDelta)
+                currentSlot.copy(
+                    upload = currentSlot.upload + uploadDelta,
+                    download = currentSlot.download + downloadDelta,
+                )
             dailySummaries[dayKey] =
                 daySummary.copy(
                     totalUpload = daySummary.totalUpload + uploadDelta,
@@ -172,7 +195,12 @@ class TrafficPipelineReplicaTest {
             lastFlushAt = System.currentTimeMillis()
         }
 
-        fun sample(currentUpload: Long, currentDownload: Long, profileId: String?, collectedAt: Long) {
+        fun sample(
+            currentUpload: Long,
+            currentDownload: Long,
+            profileId: String?,
+            collectedAt: Long,
+        ) {
             if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) {
                 resetBaseline(currentUpload, currentDownload, profileId, collectedAt)
                 return
@@ -209,7 +237,8 @@ class TrafficPipelineReplicaTest {
         }
 
         private fun shouldFlush(collectedAt: Long): Boolean =
-            (pendingUpload > 0L || pendingDownload > 0L) && collectedAt - lastFlushAt >= flushInterval
+            (pendingUpload > 0L || pendingDownload > 0L) &&
+                collectedAt - lastFlushAt >= flushInterval
 
         fun flush() {
             if (pendingUpload <= 0L && pendingDownload <= 0L) return
@@ -225,7 +254,12 @@ class TrafficPipelineReplicaTest {
             store.recordTraffic(upload, download, start, end)
         }
 
-        private fun resetBaseline(currentUpload: Long, currentDownload: Long, profileId: String?, collectedAt: Long) {
+        private fun resetBaseline(
+            currentUpload: Long,
+            currentDownload: Long,
+            profileId: String?,
+            collectedAt: Long,
+        ) {
             flush()
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload

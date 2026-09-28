@@ -60,7 +60,10 @@ class ProxyViewModel(
     private val appSettingsRepository: AppSettingsRepository,
 ) : ViewModel() {
     private companion object {
-        const val PROXY_REFRESH_IDLE_MS = 1500L
+        // Idle poll cadence while the proxy page is on screen. It is kept above the runtime
+        // snapshot TTL (RUNTIME_SNAPSHOT_CACHE_TTL_MS) so that a page left open does not rebuild
+        // the O(all proxies) payload on every tick.
+        const val PROXY_REFRESH_IDLE_MS = 2_000L
         const val PROXY_REFRESH_PREVIEW_MS = 10_000L
         const val PROXY_TESTING_SORT_HOLD_MS = 2200L
     }
@@ -444,7 +447,9 @@ class ProxyViewModel(
         externalSelectionSyncJob =
             viewModelScope.launch {
                 while (true) {
-                    runCatching { proxyFacade.refreshProxyGroups() }
+                    // Coalesced: the traffic poller refreshes the same payload on its own schedule,
+                    // so back-to-back ticks from the two loops must not each rebuild it.
+                    runCatching { proxyFacade.refreshProxyGroups(coalesce = true) }
                         .onFailure { error -> if (error is CancellationException) throw error }
                     val delayMillis =
                         when {

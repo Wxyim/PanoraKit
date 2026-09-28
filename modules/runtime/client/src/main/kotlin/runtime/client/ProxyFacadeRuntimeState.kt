@@ -295,7 +295,11 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
         val overrideSignature: String,
     )
 
-    private data class Entry(val key: Key, val groups: List<ProxyGroupInfo>)
+    private data class Entry(
+        val key: Key,
+        val groups: List<ProxyGroupInfo>,
+        val structureHash: Int,
+    )
 
     @Serializable
     private data class PersistedEntry(
@@ -322,10 +326,18 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
                 runtimeSnapshot = runtimeSnapshot,
                 rootTunStatus = rootTunStatus,
             )
+        val structureHash = proxyGroupsStructureHash(groups)
         val existing = entry
-        if (existing != null && existing.key == key && existing.groups == groups) return
-        entry = Entry(key = key, groups = groups)
-        persist(key, groups)
+        val structureChanged =
+            existing == null || existing.key != key || existing.structureHash != structureHash
+        // The in-memory entry always tracks the newest payload so `fallback()` keeps serving
+        // fresh delays; only the disk copy is skipped while nothing structural changed. That disk
+        // write is the O(all proxies) encode + rewrite that used to repeat on every health-check
+        // result.
+        entry = Entry(key = key, groups = groups, structureHash = structureHash)
+        if (structureChanged) {
+            persist(key, groups)
+        }
     }
 
     @Synchronized
@@ -374,7 +386,12 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
             return null
         }
 
-        val restored = Entry(key = key, groups = persisted.groups)
+        val restored =
+            Entry(
+                key = key,
+                groups = persisted.groups,
+                structureHash = proxyGroupsStructureHash(persisted.groups),
+            )
         entry = restored
         return restored.groups
     }
@@ -469,4 +486,32 @@ internal class ProxyFacadePreviewCache(private val diskFile: File? = null) {
         // the following refresh replaces it with the current configuration.
         return cached == requested || requested == "profile-$profileUpdatedAt"
     }
+}
+
+/**
+ * Hash of every persisted field of [ProxyGroupInfo] except `Proxy.delay`.
+ *
+ * Delay values change on every health check, but the preview cache is only ever consumed as a
+ * cold-start placeholder. Ignoring them lets [ProxyFacadePreviewCache.backfill] skip re-encoding
+ * and rewriting the whole payload to disk while a delay test is running, without changing what a
+ * structural change stores.
+ */
+private fun proxyGroupsStructureHash(groups: List<ProxyGroupInfo>): Int {
+    var hash = 1
+    for (group in groups) {
+        hash = 31 * hash + group.name.hashCode()
+        hash = 31 * hash + group.type.ordinal
+        hash = 31 * hash + group.now.hashCode()
+        hash = 31 * hash + group.hidden.hashCode()
+        hash = 31 * hash + (group.icon?.hashCode() ?: 0)
+        for (proxy in group.proxies) {
+            hash = 31 * hash + proxy.name.hashCode()
+            hash = 31 * hash + proxy.title.hashCode()
+            hash = 31 * hash + proxy.subtitle.hashCode()
+            hash = 31 * hash + proxy.type.ordinal
+            hash = 31 * hash + proxy.hidden.hashCode()
+            hash = 31 * hash + (proxy.icon?.hashCode() ?: 0)
+        }
+    }
+    return hash
 }

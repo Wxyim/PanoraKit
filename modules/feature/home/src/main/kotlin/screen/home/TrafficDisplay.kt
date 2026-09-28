@@ -257,11 +257,7 @@ private fun ProfileModeBadge(
         animateColorAsState(
             targetValue =
                 accentColor.copy(
-                    alpha =
-                        modeContainerAlpha(
-                            enabled = onClick != null,
-                            pressed = isPressed,
-                        )
+                    alpha = modeContainerAlpha(enabled = onClick != null, pressed = isPressed)
                 ),
             animationSpec =
                 tween(

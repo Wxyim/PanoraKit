@@ -355,14 +355,13 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
     val adaptiveInfo = LocalWindowAdaptiveInfo.current
     val useRailNavigation = adaptiveInfo.useRailNavigation
     val coroutineScope = rememberCoroutineScope()
-    val restoredPage =
-        remember {
-            if (initialPage != 0) {
-                initialPage.coerceIn(0, 3)
-            } else {
-                appSettingsStorage.lastMainPage.value.coerceIn(0, 3)
-            }
+    val restoredPage = remember {
+        if (initialPage != 0) {
+            initialPage.coerceIn(0, 3)
+        } else {
+            appSettingsStorage.lastMainPage.value.coerceIn(0, 3)
         }
+    }
     val pagerState = rememberPagerState(initialPage = restoredPage, pageCount = { 4 })
     val hazeState = remember { HazeState() }
     val bottomBarLiquidState = if (useRailNavigation) null else rememberLiquidState()

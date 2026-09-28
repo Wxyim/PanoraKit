@@ -700,10 +700,12 @@ private fun normalizeSubscriptionLink(raw: String): String? {
 
         val uri = runCatching { text.toUri() }.getOrNull() ?: return null
         when (val scheme = uri.scheme?.lowercase()) {
-            "clash", "clashmeta" -> {
+            "clash",
+            "clashmeta" -> {
                 text = uri.getQueryParameter("url") ?: return null
             }
-            "http", "https" -> {
+            "http",
+            "https" -> {
                 return if (uri.host.isNullOrBlank()) null else text
             }
             else -> return null

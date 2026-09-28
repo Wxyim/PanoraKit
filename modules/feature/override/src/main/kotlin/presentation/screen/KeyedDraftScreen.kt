@@ -144,9 +144,7 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
     var overrideDown by remember {
         mutableStateOf(initialOverrideFields.stringField("down").orEmpty())
     }
-    var overrideUp by remember {
-        mutableStateOf(initialOverrideFields.stringField("up").orEmpty())
-    }
+    var overrideUp by remember { mutableStateOf(initialOverrideFields.stringField("up").orEmpty()) }
     var overrideSkipCertVerify by remember {
         mutableStateOf(initialOverrideFields.booleanField("skip-cert-verify"))
     }
@@ -283,11 +281,7 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
         extraFields,
     ) {
         OverrideStructuredEditorStore.updateKeyedObjectDraftEditorSession(
-            OverrideKeyedObjectDraft(
-                key = key,
-                fields = buildFields(),
-                uiId = draftUiId,
-            )
+            OverrideKeyedObjectDraft(key = key, fields = buildFields(), uiId = draftUiId)
         )
     }
 

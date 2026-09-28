@@ -62,8 +62,7 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
     val initialExtraText =
         initialExtras
             .filterNot {
-                it.equals("src", ignoreCase = true) ||
-                    it.equals("no-resolve", ignoreCase = true)
+                it.equals("src", ignoreCase = true) || it.equals("no-resolve", ignoreCase = true)
             }
             .joinToString(",")
     val initialUseSrc = initialExtras.any { it.equals("src", ignoreCase = true) }
@@ -116,12 +115,11 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
     val draftUiId = remember { initialValue?.uiId ?: OverrideRuleDraft().uiId }
 
     /**
-     * Rebuild the extras list from the text field plus the src/no-resolve
-     * toggles. When nothing about the extras was changed, the original extras
-     * are returned verbatim so an unchanged rule round-trips (e.g. after
-     * rotation) without reordering flags such as src/no-resolve. Once the user
-     * edits the text or toggles a switch, extras are rebuilt in text order with
-     * the enabled flags appended.
+     * Rebuild the extras list from the text field plus the src/no-resolve toggles. When nothing
+     * about the extras was changed, the original extras are returned verbatim so an unchanged rule
+     * round-trips (e.g. after rotation) without reordering flags such as src/no-resolve. Once the
+     * user edits the text or toggles a switch, extras are rebuilt in text order with the enabled
+     * flags appended.
      */
     fun buildExtras(): List<String> {
         val extrasChanged =
@@ -133,11 +131,7 @@ fun OverrideRuleDraftEditorScreen(navigator: DestinationsNavigator) {
             return initialExtras
         }
         val values =
-            extraText
-                .split(',')
-                .map(String::trim)
-                .filter(String::isNotBlank)
-                .toMutableList()
+            extraText.split(',').map(String::trim).filter(String::isNotBlank).toMutableList()
         if (canUseExtraSwitches) {
             if (useSrc) {
                 values += "src"

@@ -276,7 +276,9 @@ class NetworkSettingsViewModel(
 
     fun onAccessControlModeChange(mode: AccessControlMode) {
         if (!canUseAccessControlMode(mode)) {
-            GlobalDialogPresenter.showError(MLang.NetworkSettings.ProxyOptions.RequiresFullAppAccess)
+            GlobalDialogPresenter.showError(
+                MLang.NetworkSettings.ProxyOptions.RequiresFullAppAccess
+            )
             return
         }
         if (runtimeActionExecutor.isMutating.value) return
@@ -297,9 +299,7 @@ class NetworkSettingsViewModel(
             when (outcome) {
                 is RuntimeActionOutcome.Success -> Unit
                 is RuntimeActionOutcome.PermissionRequired ->
-                    requestVpnPermission(startOutcome = outcome) {
-                        onAccessControlModeChange(mode)
-                    }
+                    requestVpnPermission(startOutcome = outcome) { onAccessControlModeChange(mode) }
                 RuntimeActionOutcome.FailureHandled -> Unit
             }
         }

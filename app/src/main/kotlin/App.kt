@@ -28,6 +28,7 @@ import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
 import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.LegacyMmkvImporter
 import com.github.nomadboxlab.monadbox.data.store.LegacyProfileLinksImporter
+import com.github.nomadboxlab.monadbox.data.store.ProfileLinksStorage
 import com.github.nomadboxlab.monadbox.di.APPLICATION_IO_SCOPE_NAME
 import com.github.nomadboxlab.monadbox.di.APPLICATION_SCOPE_NAME
 import com.github.nomadboxlab.monadbox.di.appModule
@@ -88,6 +89,9 @@ class App : Application() {
         ioScope.launch {
             importer.importIfNeeded()
             profileLinksImporter.importIfNeeded()
+            // Seed the blocking first reads of the profile-links store (Room table + Preferences
+            // DataStore) here rather than letting the first UI access pay for them.
+            koin.get<ProfileLinksStorage>().warmUp()
         }
         ensureDeferredStartupInitialized()
     }

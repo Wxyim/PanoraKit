@@ -360,9 +360,10 @@ private fun InfoRow(
             text = value,
             style = MiuixTheme.textStyles.footnote1,
             color = valueColor,
-            modifier = Modifier.weight(1f).pointerInput(value) {
-                detectTapGestures(onLongPress = { onCopy(value) })
-            },
+            modifier =
+                Modifier.weight(1f).pointerInput(value) {
+                    detectTapGestures(onLongPress = { onCopy(value) })
+                },
         )
     }
 }

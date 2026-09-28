@@ -139,8 +139,8 @@ object Clash {
 
     /**
      * Hands the established TUN fd to the native stack. Throws when the Go stack failed to start
-     * (native return code != 0); the fd has already been released by the native layer in that
-     * case, so callers should roll the runtime back instead of treating the session as running.
+     * (native return code != 0); the fd has already been released by the native layer in that case,
+     * so callers should roll the runtime back instead of treating the session as running.
      */
     fun startTun(
         fd: Int,
@@ -165,7 +165,11 @@ object Clash {
                         markSocket(fd)
                     }
 
-                    override fun querySocketUid(protocol: Int, source: String, target: String): Int {
+                    override fun querySocketUid(
+                        protocol: Int,
+                        source: String,
+                        target: String,
+                    ): Int {
                         return querySocketUid(
                             protocol,
                             parseInetSocketAddress(source),

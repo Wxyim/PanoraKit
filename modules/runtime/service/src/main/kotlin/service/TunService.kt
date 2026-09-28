@@ -95,7 +95,8 @@ class TunService : VpnService(), CoroutineScope {
                                                 RuntimeGatewayErrorCode.RUNTIME_STOP_FAILED,
                                             defaultMessage = "tun runtime stop failed",
                                         )
-                                    reason = failure.runtimeGatewayMessage("tun runtime stop failed")
+                                    reason =
+                                        failure.runtimeGatewayMessage("tun runtime stop failed")
                                     startupLogStore.append(
                                         "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
                                     )
@@ -280,58 +281,57 @@ class TunService : VpnService(), CoroutineScope {
      * save itself, OVERRIDE_CHANGED from the override reapply, and PROFILE_CHANGED again from the
      * client-side active-profile reload). The previous implementation cancelled the in-flight
      * reload on every broadcast, which could abort a reload that was already recompiling (and, in
-     * the worst case, tear the service down) or silently drop the latest config. Instead, a
-     * pending request just marks the flag; the running loop re-reads the latest committed state and
-     * reloads again once the current one finishes, so the new config always reaches the core.
+     * the worst case, tear the service down) or silently drop the latest config. Instead, a pending
+     * request just marks the flag; the running loop re-reads the latest committed state and reloads
+     * again once the current one finishes, so the new config always reaches the core.
      */
     private fun scheduleReload() {
         if (reloadJob?.isActive == true) {
             reloadRequested = true
             return
         }
-        reloadJob =
-            launch {
-                while (true) {
-                    reloadRequested = false
-                    startupLogStore.append("LOCAL_TUN spec: reload create begin")
-                    val spec =
-                        runCatching { SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec() }
-                            .getOrElse { error ->
-                                reason = error.runtimeGatewayMessage("tun runtime spec refresh failed")
-                                startupLogStore.append("LOCAL_TUN failed=$reason")
-                                Log.w("Tun runtime spec refresh failed: $reason")
-                                StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-                                sendClashStopped(reason)
-                                stopSelf()
-                                return@launch
-                            }
-                    startupLogStore.append(
-                        "LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
-                    )
+        reloadJob = launch {
+            while (true) {
+                reloadRequested = false
+                startupLogStore.append("LOCAL_TUN spec: reload create begin")
+                val spec =
+                    runCatching { SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec() }
+                        .getOrElse { error ->
+                            reason = error.runtimeGatewayMessage("tun runtime spec refresh failed")
+                            startupLogStore.append("LOCAL_TUN failed=$reason")
+                            Log.w("Tun runtime spec refresh failed: $reason")
+                            StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                            sendClashStopped(reason)
+                            stopSelf()
+                            return@launch
+                        }
+                startupLogStore.append(
+                    "LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}"
+                )
 
-                    val result = runtime.reload(spec)
-                    if (!result.success) {
-                        val failure =
-                            result.toException(
-                                defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-                                defaultMessage = "tun runtime reload failed",
-                            )
-                        reason = failure.runtimeGatewayMessage("tun runtime reload failed")
-                        startupLogStore.append(
-                            "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
+                val result = runtime.reload(spec)
+                if (!result.success) {
+                    val failure =
+                        result.toException(
+                            defaultCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                            defaultMessage = "tun runtime reload failed",
                         )
-                        Log.w("Tun runtime reload failed: ${failure.code.name} ${failure.message}")
-                        StatusProvider.markRuntimeStopped(ProxyMode.Tun)
-                        sendClashStopped(reason)
-                        stopSelf()
-                        return@launch
-                    }
+                    reason = failure.runtimeGatewayMessage("tun runtime reload failed")
+                    startupLogStore.append(
+                        "LOCAL_TUN failed=${failure.code.name}:${failure.message}"
+                    )
+                    Log.w("Tun runtime reload failed: ${failure.code.name} ${failure.message}")
+                    StatusProvider.markRuntimeStopped(ProxyMode.Tun)
+                    sendClashStopped(reason)
+                    stopSelf()
+                    return@launch
+                }
 
-                    if (!reloadRequested) {
-                        return@launch
-                    }
+                if (!reloadRequested) {
+                    return@launch
                 }
             }
+        }
     }
 
     /**

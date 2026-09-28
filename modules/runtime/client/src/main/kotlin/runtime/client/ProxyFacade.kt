@@ -97,6 +97,12 @@ import timber.log.Timber
 
 internal data class ProxyGroupMetadata(val hidden: Boolean = false, val icon: String? = null)
 
+private data class ProxyGroupMetadataCacheEntry(
+    val key: String,
+    val fetchedAt: Long,
+    val byName: Map<String, ProxyGroupMetadata>,
+)
+
 private enum class StopTerminalOutcome {
     ReceiptObserved,
     ReconciledStaleMarker,
@@ -425,6 +431,8 @@ class ProxyFacade(
     private val scope = CoroutineScope(appScope.coroutineContext + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
     private val controllerClient = MihomoControllerClient(json)
+    private val proxyGroupMetadataMutex = Mutex()
+    private var proxyGroupMetadataCache: ProxyGroupMetadataCacheEntry? = null
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
     private val runtimeState =
         ProxyFacadeRuntimeState(
@@ -471,6 +479,8 @@ class ProxyFacade(
     private val appForegroundObserver =
         AppForegroundObserver(appContext, onWakeRequested = { kickTrafficPoller() })
     @Volatile private var lastPayloadRefreshAt = 0L
+    private val proxyGroupRefreshGateLock = Any()
+    private var lastCoalescedProxyGroupRefreshAt = 0L
     private val latencyObservations = ProxyLatencyObservationStore()
     private var previewWarmupJob: Job? = null
     private val refreshProxyGroupsMutex = Mutex()
@@ -541,7 +551,7 @@ class ProxyFacade(
                 lastPayloadRefreshAt = now
                 // Traffic was already queried above in this tick. Keep the
                 // metadata refresh from issuing the same JNI/Binder calls again.
-                refreshAllSafely(includeTraffic = false)
+                refreshAllSafely(includeTraffic = false, coalesce = true)
             }
 
             delay(ACTIVE_POLL_MS.milliseconds)
@@ -792,11 +802,13 @@ class ProxyFacade(
             }
         } else {
             scope.launch {
-                delay(300.milliseconds)
-                repeat(3) {
-                    runCatching { refreshProxyGroups(captureObservedGroupNames = setOf(group)) }
-                    delay(500.milliseconds)
-                }
+                // A single trailing refresh is enough: it records the proxies observed by this
+                // health check so their delays survive later refreshes. Picking the results up
+                // while the test runs is the job of the proxy page's own poll loop; a repeated
+                // burst here multiplied the O(all proxies) payload build by the number of groups
+                // under test.
+                delay(HEALTH_CHECK_TRAILING_REFRESH_DELAY_MS.milliseconds)
+                runCatching { refreshProxyGroups(captureObservedGroupNames = setOf(group)) }
             }
         }
     }
@@ -899,7 +911,24 @@ class ProxyFacade(
         return normalized ?: groups
     }
 
-    suspend fun refreshProxyGroups(captureObservedGroupNames: Set<String> = emptySet()) {
+    /**
+     * Refreshes the proxy-group payload.
+     *
+     * [coalesce] is meant for periodic pollers: a call that lands within
+     * [PROXY_GROUP_REFRESH_COALESCE_MS] of the previous coalesced refresh returns without
+     * rebuilding the O(all proxies) payload. The traffic poller and the proxy page each run their
+     * own loop with independent phases, so without this both paid the full cost for the same
+     * result. The window is kept at the runtime snapshot TTL, so freshness is unchanged: a caller
+     * cannot observe anything older than one snapshot TTL either way. User-initiated paths leave it
+     * at the default so their effect stays immediate.
+     */
+    suspend fun refreshProxyGroups(
+        captureObservedGroupNames: Set<String> = emptySet(),
+        coalesce: Boolean = false,
+    ) {
+        if (captureObservedGroupNames.isEmpty() && coalesce && !beginCoalescedProxyGroupRefresh()) {
+            return
+        }
         if (captureObservedGroupNames.isEmpty()) {
             val previewEpoch = runtimeState.currentPreviewEpoch()
             val request =
@@ -1057,10 +1086,10 @@ class ProxyFacade(
         }
     }
 
-    suspend fun refreshAll(includeTraffic: Boolean = true) {
+    suspend fun refreshAll(includeTraffic: Boolean = true, coalesce: Boolean = false) {
         refreshCurrentProfile()
         restoreCachedPreviewGroups()
-        refreshProxyGroups()
+        refreshProxyGroups(coalesce = coalesce)
         if (includeTraffic && runtimeSnapshot.value.phase == RuntimePhase.Running) {
             queryTrafficSnapshot()
         } else if (includeTraffic) {
@@ -1300,10 +1329,7 @@ class ProxyFacade(
                         owner = expectedOwner,
                         phase = RuntimePhase.Starting,
                         targetMode =
-                            ProxyFacadeOwnerPolicy.modeForOwner(
-                                expectedOwner,
-                                configuredMode,
-                            ),
+                            ProxyFacadeOwnerPolicy.modeForOwner(expectedOwner, configuredMode),
                         generation = runtimeState.nextGeneration(),
                     )
                 )
@@ -1655,14 +1681,17 @@ class ProxyFacade(
         scope.launch { refreshPreviewStateSafely() }
     }
 
-    private suspend fun refreshAllSafely(includeTraffic: Boolean = true) {
+    private suspend fun refreshAllSafely(
+        includeTraffic: Boolean = true,
+        coalesce: Boolean = false,
+    ) {
         if (
             runtimeSnapshot.value.phase != RuntimePhase.Running &&
                 runtimeSnapshot.value.phase != RuntimePhase.Starting
         ) {
             return
         }
-        runCatching { refreshAll(includeTraffic = includeTraffic) }
+        runCatching { refreshAll(includeTraffic = includeTraffic, coalesce = coalesce) }
             .onFailure { error -> Timber.d(error, "Refresh runtime data skipped") }
     }
 
@@ -1708,6 +1737,22 @@ class ProxyFacade(
             groupsEmpty = proxyGroups.value.isEmpty(),
             profileMissing = currentProfile.value == null,
         )
+    }
+
+    /**
+     * Returns true when a periodic caller may run a payload refresh, and records the attempt. See
+     * refreshProxyGroups for why this exists and why the window matches the snapshot TTL.
+     */
+    private fun beginCoalescedProxyGroupRefresh(): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        return synchronized(proxyGroupRefreshGateLock) {
+            if (now - lastCoalescedProxyGroupRefreshAt < PROXY_GROUP_REFRESH_COALESCE_MS) {
+                false
+            } else {
+                lastCoalescedProxyGroupRefreshAt = now
+                true
+            }
+        }
     }
 
     private suspend fun currentRootTunStatus(): RootTunStatus {
@@ -1934,10 +1979,7 @@ class ProxyFacade(
                 else -> return true
             }
         val staleMode =
-            ProxyFacadeOwnerPolicy.modeForOwner(
-                staleOwner,
-                networkSettingsStorage.proxyMode.value,
-            )
+            ProxyFacadeOwnerPolicy.modeForOwner(staleOwner, networkSettingsStorage.proxyMode.value)
         val serviceClass =
             if (staleOwner == RuntimeOwner.LocalTun) {
                 TunService::class.java
@@ -2236,24 +2278,54 @@ class ProxyFacade(
         return normalized ?: proxies
     }
 
-    private fun enrichProxyGroupsFromController(
-        groups: List<ProxyGroupInfo>,
+    /**
+     * Resolves the controller metadata (`hidden` / `icon` per group) that the runtime snapshot
+     * payload does not carry.
+     *
+     * The lookup is a full `GET /proxies` whose body covers every proxy of the configuration, so it
+     * must not run on every refresh: the answer only changes when the compiled configuration does.
+     * Results are therefore memoized under a key derived from the profile and the effective
+     * override fingerprint, with [PROXY_GROUP_METADATA_CACHE_TTL_MS] as a safety net so a provider
+     * update that is not visible in the fingerprint still refreshes eventually.
+     */
+    private suspend fun loadProxyGroupMetadata(
+        key: String,
         configuration: UiConfiguration,
-    ): List<ProxyGroupInfo> {
-        if (groups.isEmpty()) return groups
-        val metadataByName =
-            try {
-                fetchProxyGroupMetadata(configuration)
-            } catch (e: ControllerError) {
-                Timber.d(e, "Failed to query controller proxies metadata: ${e.message}")
-                return groups
-            } catch (e: Exception) {
-                Timber.d(e, "Failed to query controller proxies metadata")
-                return groups
+    ): Map<String, ProxyGroupMetadata>? =
+        proxyGroupMetadataMutex.withLock {
+            val now = SystemClock.elapsedRealtime()
+            val cached = proxyGroupMetadataCache
+            if (
+                cached != null &&
+                    cached.key == key &&
+                    now - cached.fetchedAt < PROXY_GROUP_METADATA_CACHE_TTL_MS
+            ) {
+                return@withLock cached.byName
             }
 
-        if (metadataByName.isEmpty()) return groups
+            val fetched =
+                try {
+                    fetchProxyGroupMetadata(configuration)
+                } catch (e: ControllerError) {
+                    Timber.d(e, "Failed to query controller proxies metadata: ${e.message}")
+                    null
+                } catch (e: Exception) {
+                    Timber.d(e, "Failed to query controller proxies metadata")
+                    null
+                }
 
+            if (fetched.isNullOrEmpty()) {
+                null
+            } else {
+                proxyGroupMetadataCache = ProxyGroupMetadataCacheEntry(key, now, fetched)
+                fetched
+            }
+        }
+
+    private fun applyProxyGroupMetadata(
+        groups: List<ProxyGroupInfo>,
+        metadataByName: Map<String, ProxyGroupMetadata>,
+    ): List<ProxyGroupInfo> {
         var enriched: MutableList<ProxyGroupInfo>? = null
         groups.forEachIndexed { index, group ->
             val metadata = metadataByName[group.name]
@@ -2285,10 +2357,14 @@ class ProxyFacade(
         baseGroups: List<ProxyGroupInfo>,
         configuration: UiConfiguration,
     ) {
+        if (baseGroups.isEmpty()) return
         val startSnapshot = runtimeSnapshot.value
         val profileAtStart = currentProfile.value
+        val metadataKey = proxyGroupMetadataKey(profileAtStart, startSnapshot)
         scope.launch(Dispatchers.IO) {
-            val enriched = enrichProxyGroupsFromController(baseGroups, configuration)
+            val metadataByName = loadProxyGroupMetadata(metadataKey, configuration) ?: return@launch
+            val enriched = applyProxyGroupMetadata(baseGroups, metadataByName)
+            if (enriched === baseGroups) return@launch
             val latestSnapshot = runtimeSnapshot.value
             if (
                 latestSnapshot.generation != startSnapshot.generation ||
@@ -2314,6 +2390,14 @@ class ProxyFacade(
         }
     }
 
+    private fun proxyGroupMetadataKey(profile: Profile?, snapshot: RuntimeSnapshot): String {
+        val fingerprint =
+            snapshot.effectiveFingerprint?.takeIf { it.isNotBlank() }
+                ?: rootTunStatus.value.overrideFingerprint?.takeIf { it.isNotBlank() }
+                ?: ""
+        return "${profile?.uuid}:${profile?.updatedAt}:$fingerprint"
+    }
+
     private fun fetchProxyGroupMetadata(
         configuration: UiConfiguration
     ): Map<String, ProxyGroupMetadata> {
@@ -2335,6 +2419,22 @@ class ProxyFacade(
         private const val BACKGROUND_POLL_MS = 60_000L
         private const val PAYLOAD_REFRESH_INTERVAL_MS = 4_000L
         private const val PROXY_PAGE_PAYLOAD_REFRESH_INTERVAL_MS = 2_000L
+        private const val HEALTH_CHECK_TRAILING_REFRESH_DELAY_MS = 300L
+
+        /**
+         * Safety-net expiry for the controller metadata cache (see loadProxyGroupMetadata). The
+         * cache key already covers configuration changes; the TTL only bounds how long a metadata
+         * change that is invisible in the fingerprint (for example an in-place provider update) can
+         * stay undetected.
+         */
+        private const val PROXY_GROUP_METADATA_CACHE_TTL_MS = 60_000L
+
+        /**
+         * Coalescing window for periodic proxy-group polling (see refreshProxyGroups). Kept equal
+         * to the runtime snapshot TTL so that collapsing redundant polls cannot make the data
+         * staler than the payload cache already does.
+         */
+        private const val PROXY_GROUP_REFRESH_COALESCE_MS = 1_000L
         private const val START_WAIT_RETRY_COUNT = 80
         private const val START_WAIT_RETRY_DELAY_MS = 125L
         private const val STOP_WAIT_RETRY_COUNT = 80

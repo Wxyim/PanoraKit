@@ -675,10 +675,7 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
 private val RejectTagColor = Color(0xFFE53935)
 
 @Composable
-private fun RequestChip(
-    text: String,
-    color: androidx.compose.ui.graphics.Color,
-) {
+private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color) {
     val spacing = AppTheme.spacing
     val pageMetrics = AppTheme.pageMetrics
     Text(

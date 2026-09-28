@@ -139,9 +139,9 @@ class RuntimeControlCoordinator(
      *   consent re-prompt, connection is never dropped);
      * - a running root TUN session is restarted because the package list / mode is baked into its
      *   config at build time;
-     * - an HTTP session (no per-app filtering) is left untouched.
-     * When the runtime is not running the change is only persisted and takes effect on the next
-     * start ([RuntimeMutationStatus.Deferred]).
+     * - an HTTP session (no per-app filtering) is left untouched. When the runtime is not running
+     *   the change is only persisted and takes effect on the next start
+     *   ([RuntimeMutationStatus.Deferred]).
      */
     suspend fun applyAccessControlChange(
         operation: String,

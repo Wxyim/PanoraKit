@@ -112,25 +112,25 @@ class SessionRuntime(
                 val previousSpec = currentSpec
                 val result =
                     runCatching {
-                        startupLog(spec, "session: reload begin")
-                        reloadInternal(spec)
-                        RuntimeOperationResult.ok()
-                    }
-                    .getOrElse { error ->
-                        val failure =
-                            error.toRuntimeFailure(
-                                fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
-                                fallbackMessage = "reload runtime failed",
+                            startupLog(spec, "session: reload begin")
+                            reloadInternal(spec)
+                            RuntimeOperationResult.ok()
+                        }
+                        .getOrElse { error ->
+                            val failure =
+                                error.toRuntimeFailure(
+                                    fallbackCode = RuntimeGatewayErrorCode.RUNTIME_RELOAD_FAILED,
+                                    fallbackMessage = "reload runtime failed",
+                                )
+                            Timber.e(
+                                error,
+                                "SessionRuntime reload failed: %s %s",
+                                failure.code,
+                                failure.message,
                             )
-                        Timber.e(
-                            error,
-                            "SessionRuntime reload failed: %s %s",
-                            failure.code,
-                            failure.message,
-                        )
-                        startupLog(spec, "failed=${failure.message}")
-                        RuntimeOperationResult.fail(failure)
-                    }
+                            startupLog(spec, "failed=${failure.message}")
+                            RuntimeOperationResult.fail(failure)
+                        }
 
                 if (result.success || previousSpec == null || previousSpec === spec) {
                     return@withLock result
@@ -145,9 +145,7 @@ class SessionRuntime(
                 startupLog(spec, "reload failed; restoring previous config")
                 val restored =
                     runCatching { reloadInternal(previousSpec) }
-                        .onSuccess {
-                            startupLog(spec, "reload failed; previous config restored")
-                        }
+                        .onSuccess { startupLog(spec, "reload failed; previous config restored") }
                         .onFailure { restoreError ->
                             startupLog(spec, "reload failed; previous config restore failed")
                             Timber.w(
@@ -578,9 +576,7 @@ class SessionRuntime(
                 measureStartupStep(spec, "runtime compile/load") { compileAndLoad(spec) }
             }
             val appMappingJob = async {
-                measureStartupStep(spec, "app mapping publish") {
-                    startInstalledAppsPublisher()
-                }
+                measureStartupStep(spec, "app mapping publish") { startInstalledAppsPublisher() }
             }
             prepareJob.await()
             compileJob.await()
@@ -1218,7 +1214,19 @@ class SessionRuntime(
         private const val MAX_BUFFERED_LOGS = 256
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
-        private const val RUNTIME_SNAPSHOT_CACHE_TTL_MS = 300L
+
+        /**
+         * Freshness window for the runtime payload (all proxy groups + providers + configuration).
+         *
+         * Rebuilding it costs a full Go-side JSON marshal, a JNI string copy and a Kotlin
+         * deserialization, all O(all proxies), so the window doubles as a rate limiter: a call that
+         * lands inside it reuses the snapshot instead of triggering another build. This cache backs
+         * the root-service query path; the in-process manager path (`ClashManager`) calls the
+         * native bridge directly and is bounded by the caller-side coalescing in `ProxyFacade`
+         * instead. Mutations refresh the snapshot directly (see patchSelector) rather than waiting
+         * for the window to lapse, so user-initiated changes stay immediate.
+         */
+        private const val RUNTIME_SNAPSHOT_CACHE_TTL_MS = 1_000L
         private const val CONNECTION_CACHE_TTL_MS = 100L
         private const val PROXY_GROUP_CACHE_TTL_MS = 500L
     }

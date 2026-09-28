@@ -162,9 +162,8 @@ class ProfileConfigEditState(val profileUuid: String) {
  *
  * The structured editor defers persistence until the editor is exited, so edits must survive
  * navigating into nested editors (rules, string lists, objects, ...). Those are separate
- * destinations that take the editor out of composition; a plain `remember` state would be
- * discarded and the sub-editor callback would update an orphaned instance, silently losing the
- * edit.
+ * destinations that take the editor out of composition; a plain `remember` state would be discarded
+ * and the sub-editor callback would update an orphaned instance, silently losing the edit.
  */
 object ProfileConfigEditSessionHolder {
     private val sessions = mutableMapOf<String, ProfileConfigEditState>()

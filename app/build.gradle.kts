@@ -31,6 +31,7 @@ plugins {
     id("org.jetbrains.compose")
     id("com.google.devtools.ksp")
     id("com.mikepenz.aboutlibraries.plugin.android")
+    id("androidx.baselineprofile")
 }
 
 val appAbiList =
@@ -144,6 +145,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        // Variant the :performance:baselineprofile generator drives. It mirrors release so the
+        // generated profile describes the shipped code shape, but it is signed with the debug key
+        // so CI can install it without release secrets.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
         }
     }
 
@@ -291,6 +301,56 @@ android {
         }
     }
 }
+
+baselineProfile {
+    // Keep the generated profile in the source tree so release builds consume it without having to
+    // re-run the generator on a device, and so profile updates arrive as reviewable diffs.
+    saveInSrc = true
+    mergeIntoMain = true
+}
+
+val baselineProfileDir = layout.projectDirectory.dir("src/main/baselineProfiles")
+
+// Guards the shipped baseline profile: a profile whose recorded journeys no longer match the real
+// startup path silently stops helping, and nothing else in the build notices. Runs on `check` in
+// warn-only mode (no profile yet) and in requiring mode from the baseline profile workflow.
+val verifyBaselineProfile =
+    tasks.register<BaselineProfileVerificationTask>("verifyBaselineProfile") {
+        profileDir.set(baselineProfileDir)
+        profileFiles.setFrom(
+            layout.files(baselineProfileDir.asFileTree.matching { include("*.txt") })
+        )
+        appPackage.set(providers.gradleProperty("project.namespace.base"))
+        launcherClass.set(
+            providers.gradleProperty("project.namespace.base").map { "$it.MainActivity" }
+        )
+        providers.gradleProperty("baselineProfile.baseline").orNull?.let { path ->
+            baselineProfile.set(layout.projectDirectory.file(path))
+        }
+        requireProfile.set(
+            providers.gradleProperty("baselineProfile.require").map(String::toBoolean).orElse(false)
+        )
+        minEntryRatio.set(
+            providers
+                .gradleProperty("baselineProfile.minEntryRatio")
+                .map(String::toDouble)
+                .orElse(0.9)
+        )
+        minClassRatio.set(
+            providers
+                .gradleProperty("baselineProfile.minClassRatio")
+                .map(String::toDouble)
+                .orElse(0.9)
+        )
+        reportFile.set(
+            rootProject.layout.buildDirectory.file("reports/baseline-profile/verification.txt")
+        )
+        summaryFile.set(
+            rootProject.layout.buildDirectory.file("reports/baseline-profile/summary.md")
+        )
+    }
+
+tasks.named("check") { dependsOn(verifyBaselineProfile) }
 
 val syncLegacyJniLibs =
     tasks.register<Sync>("syncLegacyJniLibs") {
@@ -454,6 +514,9 @@ dependencies {
 
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
+
+    // Drives :app:generateBaselineProfile; the generated profile is consumed by the release build.
+    baselineProfile(project(":performance:baselineprofile"))
 }
 
 aboutLibraries {

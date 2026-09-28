@@ -188,8 +188,8 @@ class VpnTunTransport(
      *
      * The fd is claimed from the tracker atomically (compareAndSet on [pendingDevice].fd): if a
      * concurrent teardown ([closeLeakedTunFd]) already closed it, the claim fails and this aborts
-     * instead of handing a closed descriptor to Go. On success the Go stack owns the fd
-     * exclusively (tracker cleared), so any later close is a no-op.
+     * instead of handing a closed descriptor to Go. On success the Go stack owns the fd exclusively
+     * (tracker cleared), so any later close is a no-op.
      */
     override fun start(spec: RuntimeSpec) {
         val device =
@@ -225,8 +225,8 @@ class VpnTunTransport(
     }
 
     /**
-     * Tears the transport down. A session established by [prepare] but never handed to Go is
-     * closed here via [closePendingDeviceLocked]; otherwise the Go stack owns the fd and
+     * Tears the transport down. A session established by [prepare] but never handed to Go is closed
+     * here via [closePendingDeviceLocked]; otherwise the Go stack owns the fd and
      * [com.github.nomadboxlab.monadbox.core.Clash.stopTun] releases it. Both paths are idempotent
      * and gated by the tracker, so concurrent teardowns cannot double-close.
      */
@@ -242,14 +242,13 @@ class VpnTunTransport(
      * Closes an established VPN fd that was never handed to the Go stack.
      *
      * [VpnService.establish] makes the Android VPN session live immediately, but
-     * [com.github.nomadboxlab.monadbox.core.Clash.stopTun] only closes the fd once
-     * startTun() actually ran (the Go rTun is nil otherwise). If the runtime is torn
-     * down between prepare() and start() - a START_STICKY restart interrupted by a
-     * toggle-off, a failed cold start after establish(), or a start/stop race - the
-     * established fd would otherwise leak and keep the VPN session alive behind an
-     * already-"off" toggle (the status-bar VPN icon persists, and the first traffic
-     * into the unread fd leaves a broken, zombie VPN). Must be called
-     * while holding deviceLock.
+     * [com.github.nomadboxlab.monadbox.core.Clash.stopTun] only closes the fd once startTun()
+     * actually ran (the Go rTun is nil otherwise). If the runtime is torn down between prepare()
+     * and start() - a START_STICKY restart interrupted by a toggle-off, a failed cold start after
+     * establish(), or a start/stop race - the established fd would otherwise leak and keep the VPN
+     * session alive behind an already-"off" toggle (the status-bar VPN icon persists, and the first
+     * traffic into the unread fd leaves a broken, zombie VPN). Must be called while holding
+     * deviceLock.
      */
     private fun closePendingDeviceLocked() {
         val device = pendingDevice ?: return
@@ -257,7 +256,7 @@ class VpnTunTransport(
         // Claim the fd atomically: if an external teardown (closeLeakedTunFd) already closed it,
         // the tracker no longer matches, so skip to avoid closing a reused fd number.
         if (leakedTunFd.compareAndSet(device.fd, -1)) {
-            runCatching { ParcelFileDescriptor.adoptFd(device.fd).use { } }
+            runCatching { ParcelFileDescriptor.adoptFd(device.fd).use {} }
         }
     }
 
@@ -423,7 +422,7 @@ class VpnTunTransport(
         fun closeLeakedTunFd() {
             val fd = leakedTunFd.getAndSet(-1)
             if (fd > 0) {
-                runCatching { ParcelFileDescriptor.adoptFd(fd).use { } }
+                runCatching { ParcelFileDescriptor.adoptFd(fd).use {} }
             }
         }
 

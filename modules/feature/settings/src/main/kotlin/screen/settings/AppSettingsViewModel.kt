@@ -74,8 +74,10 @@ class AppSettingsViewModel(
         // NetworkInfoService still rejects those URLs gracefully.
         val isUnchangedLegacyValue =
             normalized.isNotEmpty() && normalized == externalIpLookupUrl.value.trim()
-        if (normalized.isNotEmpty() && !isAllowedExternalIpLookupUrl(normalized) &&
-            !isUnchangedLegacyValue
+        if (
+            normalized.isNotEmpty() &&
+                !isAllowedExternalIpLookupUrl(normalized) &&
+                !isUnchangedLegacyValue
         ) {
             GlobalDialogPresenter.showError(MLang.AppSettings.Network.ExternalIpLookupUrlInvalid)
             return

@@ -56,6 +56,16 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         const val EXTERNAL_SELECTION_CONFIRM_MS = 1200L
         const val PROXY_GROUP_CACHE_TTL_MS = 500L
         const val CONNECTION_CACHE_TTL_MS = 100L
+
+        /**
+         * Freshness window for the aggregate runtime payload (all proxy groups + providers +
+         * configuration). Serving it costs a full Go-side JSON marshal, a JNI string copy and a
+         * Kotlin deserialization, all O(all proxies), so the window bounds how often callers can
+         * force that rebuild. Kept equal to the root-service `SessionRuntime` snapshot window so
+         * both ownership paths expose the same freshness, and mutations drop the entry outright
+         * (see invalidateRuntimePayloadCaches) so user-initiated changes stay immediate.
+         */
+        const val RUNTIME_DATA_CACHE_TTL_MS = 1_000L
     }
 
     private data class ProxyGroupCache(
@@ -63,6 +73,12 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         val excludeNotSelectable: Boolean,
         val createdAt: Long,
         val groups: List<ProxyGroup>,
+    )
+
+    private data class RuntimeDataCache(
+        val profile: String?,
+        val createdAt: Long,
+        val snapshot: RuntimeDataSnapshot,
     )
 
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -76,6 +92,8 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     private val externalCandidates = ConcurrentHashMap<String, ExternalSelectionCandidate>()
     private val proxyGroupCacheLock = Any()
     @Volatile private var proxyGroupCache: ProxyGroupCache? = null
+    private val runtimeDataCacheLock = Any()
+    @Volatile private var runtimeDataCache: RuntimeDataCache? = null
     private val connectionCacheLock = Any()
     private var connectionCacheAt = 0L
     private var connectionCache: ConnectionSnapshot? = null
@@ -101,16 +119,43 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
 
     override fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot {
         if (!StatusProvider.serviceRunning) return RuntimeDataSnapshot()
+        val profileUuid = store.activeProfile
+        val now = android.os.SystemClock.elapsedRealtime()
+        synchronized(runtimeDataCacheLock) {
+            runtimeDataCache
+                ?.takeIf {
+                    it.profile == profileUuid?.toString() &&
+                        now - it.createdAt < RUNTIME_DATA_CACHE_TTL_MS
+                }
+                ?.let {
+                    return it.snapshot
+                }
+        }
         val snapshot = Clash.queryRuntimeSnapshot()
-        val profileUuid = store.activeProfile ?: return snapshot
-        snapshot.proxyGroups.forEach { group -> syncSelectionSnapshotSafely(group.name, group) }
-        return snapshot.copy(
-            proxyGroups =
-                SelectionPresentation.apply(
-                    snapshot.proxyGroups,
-                    SelectionDao.querySelections(profileUuid),
+        val presented =
+            if (profileUuid == null) {
+                snapshot
+            } else {
+                snapshot.proxyGroups.forEach { group ->
+                    syncSelectionSnapshotSafely(group.name, group)
+                }
+                snapshot.copy(
+                    proxyGroups =
+                        SelectionPresentation.apply(
+                            snapshot.proxyGroups,
+                            SelectionDao.querySelections(profileUuid),
+                        )
                 )
-        )
+            }
+        synchronized(runtimeDataCacheLock) {
+            runtimeDataCache =
+                RuntimeDataCache(
+                    profile = profileUuid?.toString(),
+                    createdAt = android.os.SystemClock.elapsedRealtime(),
+                    snapshot = presented,
+                )
+        }
+        return presented
     }
 
     override fun queryConnections(): ConnectionSnapshot {
@@ -230,13 +275,13 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
             // bridge call cannot make a valid UI selection disappear.
             SelectionDao.setSelected(Selection(current, group, name))
             externalCandidates.remove(selectionKey(current.toString(), group))
-            invalidateProxyGroupCache()
+            invalidateRuntimePayloadCaches()
             runCatching { Clash.patchSelector(group, name) }
             return true
         }
 
         val ok = runCatching { Clash.patchSelector(group, name) }.getOrDefault(false)
-        invalidateProxyGroupCache()
+        invalidateRuntimePayloadCaches()
         if (current == null) return ok
 
         if (ok) {
@@ -253,13 +298,26 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         if (!StatusProvider.serviceRunning) return false
         val ok = runCatching { Clash.setMode(mode) }.getOrDefault(false)
         if (ok) {
-            invalidateProxyGroupCache()
+            invalidateRuntimePayloadCaches()
         }
         return ok
     }
 
     private fun invalidateProxyGroupCache() {
         synchronized(proxyGroupCacheLock) { proxyGroupCache = null }
+    }
+
+    private fun invalidateRuntimeDataCache() {
+        synchronized(runtimeDataCacheLock) { runtimeDataCache = null }
+    }
+
+    /**
+     * Drops every cached payload that mirrors the live runtime state. Called from the paths that
+     * mutate that state so a caller never reads a pre-mutation payload, regardless of TTL.
+     */
+    private fun invalidateRuntimePayloadCaches() {
+        invalidateProxyGroupCache()
+        invalidateRuntimeDataCache()
     }
 
     private fun invalidateConnectionCache() {
@@ -279,7 +337,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun requestStop() {
-        invalidateProxyGroupCache()
+        invalidateRuntimePayloadCaches()
         invalidateConnectionCache()
         runCatching { context.sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
     }
@@ -304,7 +362,9 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override suspend fun updateProvider(type: Provider.Type, name: String) {
-        return Clash.updateProvider(type, name).await()
+        Clash.updateProvider(type, name).await()
+        // A provider refresh can add, drop or rename proxies, so both payload caches are stale.
+        invalidateRuntimePayloadCaches()
     }
 
     private fun syncSelectionSnapshotSafely(group: String, proxyGroup: ProxyGroup) {
@@ -412,7 +472,7 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     override fun close() {
-        invalidateProxyGroupCache()
+        invalidateRuntimePayloadCaches()
         invalidateConnectionCache()
         synchronized(this) { clearLogObserverLocked() }
         managerScope.cancel()

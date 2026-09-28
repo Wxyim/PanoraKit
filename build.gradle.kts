@@ -33,6 +33,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -176,6 +177,19 @@ subprojects {
     layout.buildDirectory.set(rootProject.layout.buildDirectory.dir(moduleOutputPath))
 
     dependencyLocking { lockAllConfigurations() }
+
+    pluginManager.withPlugin("org.jetbrains.kotlin.plugin.compose") {
+        extensions.configure(ComposeCompilerGradlePluginExtension::class.java) {
+            // Opt-in Compose compiler diagnostics: run any build with
+            // `-PcomposeMetrics` to get per-module metrics (which composables are restartable /
+            // skippable) plus the class-stability report used to hunt avoidable recompositions.
+            // Off by default so ordinary builds do not pay for the extra output.
+            if (providers.gradleProperty("composeMetrics").isPresent) {
+                metricsDestination.set(layout.buildDirectory.dir("compose-metrics"))
+                reportsDestination.set(layout.buildDirectory.dir("compose-reports"))
+            }
+        }
+    }
 
     val androidCompileSdk = providers.gradleProperty("android.compileSdk").get().toInt()
     val androidMinSdk = providers.gradleProperty("android.minSdk").get().toInt()

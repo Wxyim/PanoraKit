@@ -1,6 +1,13 @@
 @file:Suppress("UnstableApiUsage")
 
-plugins { id("com.android.test") }
+plugins {
+    id("com.android.test")
+    // On a com.android.test module the baseline profile plugin takes its "producer" role: it
+    // registers the profile collection tasks and the consumable variant that the app resolves
+    // through `baselineProfile(project(":performance:baselineprofile"))`. Without it the app's
+    // per-build-type configuration has no matching variant and the task graph fails to resolve.
+    id("androidx.baselineprofile")
+}
 
 android {
     namespace = "${providers.gradleProperty("project.namespace.base").get()}.baselineprofile"

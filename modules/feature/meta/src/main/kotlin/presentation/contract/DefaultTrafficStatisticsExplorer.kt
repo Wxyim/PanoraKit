@@ -359,7 +359,9 @@ class DefaultTrafficStatisticsExplorer(
         /** Exit-node names that route the connection to a reject policy. */
         private val REJECT_NODE_NAMES = setOf("REJECT", "REJECT-DROP", "REJECTDROP", "拦截")
 
-        /** Built-in policies that are not proxy groups and should be skipped as a top-level group. */
+        /**
+         * Built-in policies that are not proxy groups and should be skipped as a top-level group.
+         */
         private val HARD_POLICY_NODE_NAMES = DIRECT_NODE_NAMES + REJECT_NODE_NAMES
 
         /** Maximum number of recent requests to surface in the UI. */
