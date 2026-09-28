@@ -134,6 +134,7 @@ fun AppActionBottomSheet(
     dragHandleColor: Color = Color.Unspecified,
     allowDismiss: Boolean = true,
     enableNestedScroll: Boolean = true,
+    renderInRootScaffold: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val resolvedBackgroundColor =
@@ -173,6 +174,7 @@ fun AppActionBottomSheet(
         dragHandleColor = resolvedDragHandleColor,
         allowDismiss = allowDismiss,
         enableNestedScroll = enableNestedScroll,
+        renderInRootScaffold = renderInRootScaffold,
         content = content,
     )
 }

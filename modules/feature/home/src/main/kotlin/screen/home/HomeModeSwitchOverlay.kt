@@ -119,7 +119,10 @@ fun HomeModeSwitchOverlay(
             if (shown) 1f else 0.92f
         }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Keep this overlay in its own layer: the dim fades and the panel scales on every frame while
+    // it is open, and without a layer of its own each of those frames would invalidate (and force
+    // a full re-record of) the page beneath it, including the blurred/glass backdrop.
+    Box(modifier = Modifier.fillMaxSize().graphicsLayer()) {
         Box(
             modifier =
                 Modifier.fillMaxSize()

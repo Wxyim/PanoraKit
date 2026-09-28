@@ -59,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -114,7 +115,6 @@ import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeSource
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.rememberLiquidState
 import kotlin.math.max
@@ -363,7 +363,6 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
         }
     }
     val pagerState = rememberPagerState(initialPage = restoredPage, pageCount = { 4 })
-    val hazeState = remember { HazeState() }
     val bottomBarLiquidState = if (useRailNavigation) null else rememberLiquidState()
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
@@ -458,7 +457,12 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
                 )
             val pagerModifier =
                 Modifier.fillMaxSize()
-                    .hazeSource(state = hazeState)
+                    // Cache the page subtree in its own layer. The haze sources used by the
+                    // screens and the liquid glass panes below record the whole backdrop into
+                    // offscreen layers, and without a layer of their own they are re-recorded on
+                    // every frame in which anything else in this window animates (dialogs,
+                    // sheets, the bottom bar).
+                    .graphicsLayer()
                     .then(
                         if (bottomBarLiquidState != null && bottomBarLiquidGlassEnabled) {
                             Modifier.liquefiable(bottomBarLiquidState)

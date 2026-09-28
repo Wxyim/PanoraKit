@@ -28,6 +28,11 @@ import android.os.Build
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
 
 @Composable
@@ -38,14 +43,23 @@ fun WindowBlurEffect(useBlur: Boolean, blurRadius: Int = 30) {
     val activity = view.context.findActivity() ?: return
     val window = activity.window
 
+    // Every assignment to `window.attributes` is a WindowManager transaction that makes the
+    // system re-composite and re-blur the whole window behind this one, so only push an update
+    // when the requested blur actually changes instead of on every recomposition.
+    var appliedEnabled by remember { mutableStateOf<Boolean?>(null) }
+    var appliedBlurRadius by remember { mutableIntStateOf(Int.MIN_VALUE) }
+
     SideEffect {
+        val targetRadius = if (useBlur) blurRadius else 0
+        if (appliedEnabled == useBlur && appliedBlurRadius == targetRadius) return@SideEffect
+        appliedEnabled = useBlur
+        appliedBlurRadius = targetRadius
         if (useBlur) {
             window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            window.attributes.blurBehindRadius = blurRadius
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            window.attributes.blurBehindRadius = 0
         }
+        window.attributes.blurBehindRadius = targetRadius
         window.attributes = window.attributes
     }
 }

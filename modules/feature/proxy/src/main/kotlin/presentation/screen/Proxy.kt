@@ -918,6 +918,9 @@ private fun FloatingGroupOverlay(
     Box(
         modifier =
             Modifier.fillMaxSize()
+                // Isolate the per-frame dim/panel movement in its own layer so it does not force
+                // the page below it (and the haze/liquid-glass backdrop) to re-record every frame.
+                .graphicsLayer()
                 .background(Color.Black.copy(alpha = overlayAlpha))
                 .clickable(
                     interactionSource = dismissInteraction,

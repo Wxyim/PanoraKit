@@ -23,7 +23,6 @@ package com.github.nomadboxlab.monadbox
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
@@ -48,6 +47,7 @@ import com.github.nomadboxlab.monadbox.presentation.util.WindowBlurEffect
 import com.github.nomadboxlab.monadbox.presentation.util.resolveAdaptiveProxyDisplayMode
 import com.github.nomadboxlab.monadbox.presentation.viewmodel.ProxyViewModel
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
@@ -56,6 +56,15 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val POPUP_ANIMATION_DURATION_MS = 320
+
+private const val POPUP_BLUR_RADIUS = 30
+
+/**
+ * Number of blur steps used while the sheet slides in or out. Every radius change forces the system
+ * to re-blur the whole window behind this translucent activity, so the blur is ramped in a few
+ * coarse steps instead of being animated on every frame.
+ */
+private const val POPUP_BLUR_STEP_COUNT = 3
 
 @Composable
 fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = koinViewModel()) {
@@ -77,13 +86,15 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     val showSheet = rememberSaveable { mutableStateOf(true) }
     val showSortPopup = rememberSaveable { mutableStateOf(false) }
     var selectedGroupName by rememberSaveable { mutableStateOf<String?>(null) }
-    val blurRadius by
-        animateIntAsState(
-            targetValue = if (showSheet.value) 30 else 0,
-            animationSpec =
-                tween(durationMillis = POPUP_ANIMATION_DURATION_MS, easing = AnimationSpecs.Legacy),
-            label = "notification_proxy_popup_blur",
-        )
+    val blurTarget = if (showSheet.value) POPUP_BLUR_RADIUS else 0
+    var blurRadius by remember { mutableIntStateOf(0) }
+    LaunchedEffect(blurTarget) {
+        val from = blurRadius
+        repeat(POPUP_BLUR_STEP_COUNT) { step ->
+            delay(POPUP_ANIMATION_DURATION_MS.toLong() / POPUP_BLUR_STEP_COUNT)
+            blurRadius = from + (blurTarget - from) * (step + 1) / POPUP_BLUR_STEP_COUNT
+        }
+    }
 
     val groupsByName = remember(proxyGroups) { proxyGroups.associateBy { it.name } }
     val selectedGroup by
