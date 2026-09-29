@@ -182,8 +182,14 @@ class TrafficStatisticsCollector(
             }
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload
-            lastSampleAt = collectedAt
         }
+
+        // Advance the observation cursor on every sample, not only when traffic was observed.
+        // The attribution window of the next delta has to span the real sampling interval: pinning
+        // it to the last traffic-bearing sample stretches it across the whole idle gap and smears
+        // the delta proportionally over that gap, which moves a large share of today's traffic onto
+        // earlier time slots and, when the gap crosses midnight, onto the previous day.
+        lastSampleAt = collectedAt
 
         if (shouldFlush(collectedAt)) {
             flushPending()

@@ -65,6 +65,13 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
     private val _profileUsages = MutableStateFlow<Map<String, ProfileTrafficUsage>>(emptyMap())
     val profileUsages: StateFlow<Map<String, ProfileTrafficUsage>> = _profileUsages.asStateFlow()
 
+    /**
+     * Last future-slot combination reported by [sanitizeTodaySummaryIfNeeded]. Sanitizing no longer
+     * rewrites the summary, so the condition stays true on every read until the clock catches up;
+     * this keeps the warning to one line per distinct combination instead of one per read.
+     */
+    @Volatile private var lastReportedFutureSlots: String? = null
+
     init {
         loadData()
     }
@@ -309,6 +316,16 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
             )
     }
 
+    /**
+     * Returns [summary] with every slot that is later than the current slot hidden from the caller.
+     *
+     * A stored slot can only sit ahead of the wall clock when the device clock or time zone moved
+     * backwards after those bytes were recorded (both are supported, the runtime is notified of
+     * time-zone changes), so the bytes are real. The filtered view is therefore never written back:
+     * rewriting the stored summary would permanently delete that traffic, whereas the slot becomes
+     * visible again by itself once the clock reaches it. The hourly chart already hides future
+     * slots, so this only keeps the reported daily total consistent with the chart.
+     */
     private fun sanitizeTodaySummaryIfNeeded(
         todayKey: Long,
         summary: DailyTrafficSummary,
@@ -318,31 +335,31 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         val calendar = Calendar.getInstance()
         val currentSlot = TimeSlot.fromHour(calendar.get(Calendar.HOUR_OF_DAY))
         val currentSlotIndex = currentSlot.ordinal
-        val sanitizedHourlyData = summary.hourlyData.filterKeys { it <= currentSlotIndex }
-        if (sanitizedHourlyData.size == summary.hourlyData.size) return summary
+        val visibleHourlyData = summary.hourlyData.filterKeys { it <= currentSlotIndex }
+        if (visibleHourlyData.size == summary.hourlyData.size) return summary
 
         val futureSlots =
             summary.hourlyData.keys
                 .filter { it > currentSlotIndex }
                 .sorted()
                 .mapNotNull { index -> TimeSlot.entries.getOrNull(index)?.label }
-        Log.w(
-            TAG,
-            "sanitizeTodaySummaryIfNeeded: now=${calendar.time} tz=${calendar.timeZone.id} " +
-                "currentSlot=${currentSlot.label} futureSlots=$futureSlots dayKey=$todayKey",
-        )
-
-        val sanitizedSummary =
-            summary.copy(
-                totalUpload = sanitizedHourlyData.values.sumOf(TrafficSlotData::upload),
-                totalDownload = sanitizedHourlyData.values.sumOf(TrafficSlotData::download),
-                hourlyData = sanitizedHourlyData,
+        val signature = "$todayKey:${currentSlotIndex}:$futureSlots"
+        if (lastReportedFutureSlots != signature) {
+            lastReportedFutureSlots = signature
+            Log.w(
+                TAG,
+                "sanitizeTodaySummaryIfNeeded: hiding future slots from the reported total " +
+                    "(stored bytes are kept). now=${calendar.time} " +
+                    "tz=${calendar.timeZone.id} currentSlot=${currentSlot.label} " +
+                    "futureSlots=$futureSlots dayKey=$todayKey",
             )
-        val updatedSummaries = _dailySummaries.value.toMutableMap()
-        updatedSummaries[todayKey] = sanitizedSummary
-        _dailySummaries.value = updatedSummaries
-        saveDailySummaries()
-        return sanitizedSummary
+        }
+
+        return summary.copy(
+            totalUpload = visibleHourlyData.values.sumOf(TrafficSlotData::upload),
+            totalDownload = visibleHourlyData.values.sumOf(TrafficSlotData::download),
+            hourlyData = visibleHourlyData,
+        )
     }
 
     private fun buildTrafficAttributionSegments(

@@ -16,6 +16,12 @@ import org.junit.Test
  * Regression covered: after the app process is recreated while the VPN service keeps running, the
  * collector must record the whole un-flushed traffic gap (including while the runtime profile is
  * still being resolved) instead of resetting the baseline and discarding it.
+ *
+ * Regression covered: after an idle stretch (screen off, no proxied traffic) the next burst must be
+ * attributed to the sampling interval in which it was observed. Pinning the observation cursor to
+ * the last traffic-bearing sample stretched the window across the whole idle gap, so the burst was
+ * smeared over every slot it spanned and, when the gap crossed midnight, most of it landed on the
+ * previous day.
  */
 class TrafficPipelineReplicaTest {
 
@@ -231,8 +237,10 @@ class TrafficPipelineReplicaTest {
                 pendingWindowEnd = collectedAt
                 lastTotalUpload = currentUpload
                 lastTotalDownload = currentDownload
-                lastSampleAt = collectedAt
             }
+            // Mirrors the production collector: the observation cursor advances on every sample so
+            // the next delta's window spans the real sampling interval instead of the idle gap.
+            lastSampleAt = collectedAt
             if (shouldFlush(collectedAt)) flush()
         }
 
@@ -330,5 +338,50 @@ class TrafficPipelineReplicaTest {
         assertEquals(2_000_000L, today.totalUpload)
         assertEquals(1_000_000L, today.totalDownload)
         assertTrue(store.getTodayHourlyData(t).any { it.total > 0L })
+    }
+
+    @Test
+    fun idleGapKeepsNextBurstOnItsOwnDayAndSlot() {
+        val store = StoreReplica()
+        val collector = CollectorReplica(store)
+        collector.start()
+
+        val calendar = Calendar.getInstance()
+        calendar.set(2026, Calendar.JUNE, 1, 0, 0, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val dayOne = calendar.timeInMillis
+        val dayTwo = dayOne + 24L * 3_600_000L
+        val baselineAt = dayOne + 3L * 3_600_000L
+        val burstAt = dayTwo + 9L * 3_600_000L
+
+        // Baseline at 03:00, then the VPN stays up with nothing proxied until 09:00 the next day.
+        collector.sample(1_000_000L, 1_000_000L, "P", baselineAt)
+        var t = baselineAt
+        while (t + 5_000L < burstAt) {
+            t += 5_000L
+            collector.sample(1_000_000L, 1_000_000L, "P", t)
+        }
+
+        // A 110 MB burst is observed in the first sample after the idle stretch.
+        val burstSampleAt = t + 5_000L
+        collector.sample(1_000_000L + 100_000_000L, 1_000_000L + 10_000_000L, "P", burstSampleAt)
+        collector.flush()
+
+        assertEquals(0L, store.summaries()[dayStart(dayOne)]?.total ?: 0L)
+        assertEquals(110_000_000L, store.summaries()[dayStart(dayTwo)]?.total ?: 0L)
+        val hourly = store.getTodayHourlyData(burstSampleAt)
+        assertEquals(110_000_000L, hourly[TimeSlot.SLOT_8_12.ordinal].total)
+        assertEquals(0L, hourly[TimeSlot.SLOT_0_4.ordinal].total)
+        assertEquals(0L, hourly[TimeSlot.SLOT_4_8.ordinal].total)
+    }
+
+    private fun dayStart(millis: Long): Long {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = millis
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
     }
 }
