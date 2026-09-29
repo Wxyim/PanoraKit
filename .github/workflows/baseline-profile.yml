@@ -80,12 +80,14 @@ jobs:
           echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
 
       - name: Setup Go
+        # One cache owner per path: the two explicit `Cache Go ...` steps below own ~/go/pkg/mod and
+        # ~/.cache/go-build, exactly as in check-kernel-manually.yml. setup-go's built-in cache would
+        # be a second owner of the same directories, and a second restore of a read-only module tree
+        # makes tar abort with "Cannot open: File exists".
         uses: actions/setup-go@v7
         with:
           go-version: "1.27"
-          cache: true
-          cache-dependency-path: |
-            **/go.sum
+          cache: false
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6.3.0
@@ -113,23 +115,52 @@ jobs:
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
 
+      - name: Resolve kernel revision
+        id: kernel
+        # `--print-state` only runs `git ls-remote`: no clone, no Go module downloads. That is what
+        # lets the cache below be keyed by the resolved revision and still run before anything
+        # writes into the directories it restores.
+        run: |
+          set -euo pipefail
+          state="$(sh scripts/sync-kernel.sh alpha --print-state)"
+          revision="${state##*|}"
+          if ! printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Could not resolve the mihomo/alpha revision (got '${state}')"
+            exit 1
+          fi
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "::notice::mihomo/alpha @ ${revision}"
+
+      # Two archives instead of one: a failed extraction in either namespace no longer throws the
+      # other away, and the revision-independent module download stays reusable on its own. Both must
+      # be restored before `Sync kernel`, whose `go mod tidy` writes the module cache read-only — tar
+      # cannot extract on top of a read-only module tree, it aborts with
+      # "Cannot open: File exists" (exit code 2) and discards the archive.
+      - name: Cache Go module download
+        # Keyed by the resolved revision alone: module contents are content-addressed and independent
+        # of the target ABI, so restore-keys also carry them across alpha revisions.
+        uses: actions/cache@v6
+        with:
+          path: ~/go/pkg/mod
+          key: native-go-mod-${{ steps.kernel.outputs.revision }}
+          restore-keys: |
+            native-go-mod-
+
+      - name: Cache Go build output
+        # Keyed by revision *and* ABI: this archive holds the compiled kernel packages for the
+        # emulator architecture.
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/go-build
+          key: native-go-build-${{ env.PROFILE_ABI }}-${{ steps.kernel.outputs.revision }}
+          restore-keys: |
+            native-go-build-${{ env.PROFILE_ABI }}-
+
       - name: Sync kernel
         run: |
           set -euo pipefail
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh alpha
-
-      - name: Cache Go build output
-        # Runs after the sync so the key can hash the resolved kernel revision; the compile of the
-        # mihomo kernel dominates this job's runtime.
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: native-go-${{ env.PROFILE_ABI }}-${{ hashFiles('config/kernel.properties') }}-${{ hashFiles('lib/mihomo/mihomo/go.sum') }}
-          restore-keys: |
-            native-go-${{ env.PROFILE_ABI }}-
 
       - name: Update CA certificates
         run: |

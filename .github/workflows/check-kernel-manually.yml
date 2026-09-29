@@ -134,12 +134,13 @@ jobs:
           test "$(readlink -f "$(which kotlin)")" = "/opt/kotlinc/bin/kotlin"
 
       - name: Setup Go
+        # One cache owner per path: the two explicit `Cache Go ...` steps below own ~/go/pkg/mod and
+        # ~/.cache/go-build, exactly as in baseline-profile.yml. setup-go's built-in cache would be a
+        # second owner of the same directories.
         uses: actions/setup-go@v7
         with:
           go-version: "1.27"
-          cache: true
-          cache-dependency-path: |
-            **/go.sum
+          cache: false
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6.3.0
@@ -163,6 +164,31 @@ jobs:
       - name: Configure local.properties
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+
+      # Two archives instead of one: a failed extraction in either namespace no longer throws the
+      # other away, and the revision-independent module download stays reusable on its own. Both must
+      # be restored before `Sync kernel`, whose `go mod tidy` writes the module cache read-only — tar
+      # cannot extract on top of a read-only module tree, it aborts with
+      # "Cannot open: File exists" (exit code 2) and discards the archive.
+      - name: Cache Go module download
+        # Keyed by the revision the resolve job picked: module contents are content-addressed and
+        # independent of the target ABI, so restore-keys also carry them across alpha revisions and
+        # baseline-profile.yml shares this namespace.
+        uses: actions/cache@v6
+        with:
+          path: ~/go/pkg/mod
+          key: native-go-mod-${{ needs.resolve.outputs.new_sha }}
+          restore-keys: |
+            native-go-mod-
+
+      - name: Cache Go build output
+        # Keyed by revision *and* ABI: this archive holds the compiled kernel packages for arm64-v8a.
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/go-build
+          key: native-go-build-arm64-v8a-${{ needs.resolve.outputs.new_sha }}
+          restore-keys: |
+            native-go-build-arm64-v8a-
 
       - name: Sync kernel
         run: |
