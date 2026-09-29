@@ -63,6 +63,14 @@ class SessionRuntime(
     private var networkObserver: ServiceNetworkObserver? = null
     private var installedAppsPublisher: RuntimeInstalledAppsPublisher? = null
     private var logJob: Job? = null
+    private var logStreamIdleJob: Job? = null
+
+    /**
+     * Monotonic timestamp of the last log-stream demand. Read by the idle watchdog only; the stream
+     * itself is opened and closed on the session scope.
+     */
+    @Volatile private var logStreamDemandAt = 0L
+
     private var selectionRestoreJob: Job? = null
 
     private var runtimeSnapshot: RuntimeQuerySnapshot = RuntimeQuerySnapshot()
@@ -72,6 +80,22 @@ class SessionRuntime(
     private val connectionCacheLock = Any()
     private var cachedConnectionsAt = 0L
     private var cachedConnections: ConnectionSnapshot? = null
+
+    // ── Runtime payload memo ─────────────────────────────────────
+    //
+    // The payload (all proxy groups + providers + configuration) is asked for on every refresh
+    // tick.
+    // Building the presentation and re-encoding it are both O(all proxies), so both are memoized:
+    // the cached snapshot instance from ensureRuntimeSnapshot() plus the persisted selections form
+    // the key, which keeps a selection change visible immediately while an unchanged payload is
+    // never rebuilt.
+    private val runtimeDataMemoLock = Any()
+    private var runtimeDataMemoSource: RuntimeQuerySnapshot? = null
+    private var runtimeDataMemoSelections: List<Selection> = emptyList()
+    private var runtimeDataMemoSnapshot: RuntimeDataSnapshot = RuntimeDataSnapshot()
+    private var runtimeDataMemoJsonSource: RuntimeDataSnapshot? = null
+    private var runtimeDataMemoJson: String? = null
+
     private val logSeq = AtomicLong(0L)
     private val recentLogs = ArrayDeque<Pair<Long, String>>()
     private val recentLogsLock = Any()
@@ -284,9 +308,6 @@ class SessionRuntime(
     fun queryTrafficNow(): Long {
         return if (currentSnapshot.phase == RuntimePhase.Running) {
             Clash.queryTrafficNow().also {
-                synchronized(runtimeSnapshotLock) {
-                    runtimeSnapshot = runtimeSnapshot.copy(trafficNow = it)
-                }
                 publishSnapshot(currentSnapshot.copy(trafficReady = true))
             }
         } else {
@@ -297,9 +318,6 @@ class SessionRuntime(
     fun queryTrafficTotal(): Long {
         return if (currentSnapshot.phase == RuntimePhase.Running) {
             Clash.queryTrafficTotal().also {
-                synchronized(runtimeSnapshotLock) {
-                    runtimeSnapshot = runtimeSnapshot.copy(trafficTotal = it)
-                }
                 publishSnapshot(currentSnapshot.copy(trafficReady = true))
             }
         } else {
@@ -309,25 +327,61 @@ class SessionRuntime(
 
     fun queryTrafficSnapshot(): TrafficSnapshot {
         if (currentSnapshot.phase != RuntimePhase.Running) return TrafficSnapshot(0L, 0L)
-        return Clash.queryTrafficSnapshot().also { traffic ->
-            synchronized(runtimeSnapshotLock) {
-                runtimeSnapshot =
-                    runtimeSnapshot.copy(trafficNow = traffic.now, trafficTotal = traffic.total)
-            }
+        return Clash.queryTrafficSnapshot().also {
             publishSnapshot(currentSnapshot.copy(trafficReady = true))
         }
     }
 
     fun queryRuntimeDataSnapshot(): RuntimeDataSnapshot {
         if (currentSnapshot.phase != RuntimePhase.Running) return RuntimeDataSnapshot()
+        return presentedRuntimeDataSnapshot()
+    }
+
+    /**
+     * The payload of [queryRuntimeDataSnapshot], already serialized for the root-service binder.
+     *
+     * Serializing the presentation is a full pass over every proxy group, so the encoded form is
+     * memoized next to the presentation it came from: an unchanged payload crosses the binder as
+     * the same text instead of being rebuilt and re-encoded on every poll.
+     */
+    fun queryRuntimeDataSnapshotJson(): String {
+        val presented = queryRuntimeDataSnapshot()
+        synchronized(runtimeDataMemoLock) {
+            val cached = runtimeDataMemoJson
+            if (cached != null && runtimeDataMemoJsonSource === presented) return cached
+            val encoded = com.github.nomadboxlab.monadbox.service.root.RootTunJson.encode(presented)
+            runtimeDataMemoJsonSource = presented
+            runtimeDataMemoJson = encoded
+            return encoded
+        }
+    }
+
+    /**
+     * Builds (or reuses) the presented runtime payload.
+     *
+     * [ensureRuntimeSnapshot] hands back the same instance while its TTL holds, and the
+     * presentation only depends on that instance plus the persisted selections, so both act as the
+     * memo key. A selection change therefore still shows up on the next query without waiting for
+     * the TTL.
+     */
+    private fun presentedRuntimeDataSnapshot(): RuntimeDataSnapshot {
         val snapshot = ensureRuntimeSnapshot()
-        return RuntimeDataSnapshot(
-            configuration = snapshot.configuration,
-            providers = snapshot.providers,
-            proxyGroups = SelectionPresentation.apply(snapshot.proxyGroups, persistedSelections()),
-            trafficNow = snapshot.trafficNow,
-            trafficTotal = snapshot.trafficTotal,
-        )
+        val selections = persistedSelections()
+        synchronized(runtimeDataMemoLock) {
+            if (runtimeDataMemoSource === snapshot && runtimeDataMemoSelections == selections) {
+                return runtimeDataMemoSnapshot
+            }
+            val presented =
+                RuntimeDataSnapshot(
+                    configuration = snapshot.configuration,
+                    providers = snapshot.providers,
+                    proxyGroups = SelectionPresentation.apply(snapshot.proxyGroups, selections),
+                )
+            runtimeDataMemoSource = snapshot
+            runtimeDataMemoSelections = selections
+            runtimeDataMemoSnapshot = presented
+            return presented
+        }
     }
 
     fun queryConnections(): ConnectionSnapshot {
@@ -522,9 +576,12 @@ class SessionRuntime(
 
     fun setLogObserver(observer: ((LogMessage) -> Unit)?) {
         localLogObserver = observer
+        if (observer != null) demandLogStream()
     }
 
     fun queryRecentLogsJson(sinceSeq: Long): RuntimeLogChunk {
+        // Each poll is a demand signal: the app only calls this while a recording is running.
+        demandLogStream()
         synchronized(recentLogsLock) {
             val items = recentLogs.filter { it.first > sinceSeq }.map { it.second }
             return RuntimeLogChunk(nextSeq = logSeq.get(), items = items)
@@ -629,11 +686,9 @@ class SessionRuntime(
         // The first packet and the UI do not need proxy-group validation to
         // finish, so publish profile-loaded at the transport/config boundary.
         host.onProfileLoaded(spec.profileUuid)
-        // Log collection is ancillary to transport/config readiness. Start it
-        // only after the profile-loaded boundary so log subscription setup can
-        // never delay the VPN start receipt. logReady remains false until the
-        // log collector has actually subscribed.
-        measureStartupStep(spec, "runtime log stream dispatch") { startLogStream() }
+        // Log collection is ancillary to transport/config readiness and is opened on demand: the
+        // stream serializes every core log line into the ring buffer, and nothing reads those lines
+        // until a log consumer (recording) asks for them. logReady stays false until it is opened.
         startupLog(
             spec,
             "runtime ready totalCost=${SystemClock.elapsedRealtime() - startupElapsedAt}ms; " +
@@ -1073,8 +1128,6 @@ class SessionRuntime(
                     configuration = data.configuration,
                     providers = data.providers,
                     proxyGroups = data.proxyGroups,
-                    trafficNow = data.trafficNow,
-                    trafficTotal = data.trafficTotal,
                 )
             val now = SystemClock.elapsedRealtime()
             runtimeSnapshotCachedAt = now
@@ -1129,6 +1182,42 @@ class SessionRuntime(
                     receiver.cancel()
                     host.onLogReady(false)
                     publishSnapshot(currentSnapshot.copy(logReady = false))
+                }
+            }
+    }
+
+    /**
+     * Opens the core log stream on demand.
+     *
+     * Every line the stream receives costs a Go-side JSON marshal, a JNI call, a Kotlin decode and
+     * a copy into the ring buffer, and nothing in this process reads them until a log consumer asks
+     * (the recording path polls [queryRecentLogsJson]). Keeping the stream open for the whole
+     * runtime lifetime therefore burned CPU for every log line the core produced, including on the
+     * local runtimes where no consumer ever exists. The stream closes itself again once
+     * [LOG_STREAM_IDLE_TIMEOUT_MS] pass without a request.
+     */
+    private fun demandLogStream() {
+        logStreamDemandAt = SystemClock.elapsedRealtime()
+        if (logJob?.isActive != true && currentSnapshot.phase == RuntimePhase.Running) {
+            startLogStream()
+        }
+        if (logStreamIdleJob?.isActive == true) return
+        logStreamIdleJob =
+            scope.launch {
+                while (isActive) {
+                    delay(LOG_STREAM_IDLE_CHECK_MS)
+                    if (localLogObserver != null) {
+                        logStreamDemandAt = SystemClock.elapsedRealtime()
+                        continue
+                    }
+                    if (logJob == null) return@launch
+                    if (
+                        SystemClock.elapsedRealtime() - logStreamDemandAt >=
+                            LOG_STREAM_IDLE_TIMEOUT_MS
+                    ) {
+                        stopLogStream()
+                        return@launch
+                    }
                 }
             }
     }
@@ -1206,12 +1295,20 @@ class SessionRuntime(
         val proxyGroups: List<ProxyGroup> = emptyList(),
         val configuration: UiConfiguration = UiConfiguration(),
         val providers: List<Provider> = emptyList(),
-        val trafficNow: Long = 0L,
-        val trafficTotal: Long = 0L,
     )
 
     private companion object {
         private const val MAX_BUFFERED_LOGS = 256
+
+        /**
+         * How long the on-demand log stream stays open after the last request, and how often the
+         * idle watchdog re-checks it. A recording polls [SessionRuntime.queryRecentLogsJson] every
+         * couple of seconds, so the window only has to cover the gap between two polls rather than
+         * the whole session.
+         */
+        private const val LOG_STREAM_IDLE_TIMEOUT_MS = 20_000L
+        private const val LOG_STREAM_IDLE_CHECK_MS = 5_000L
+
         private const val PROXY_GROUP_READY_RETRY_COUNT = 10
         private const val PROXY_GROUP_READY_RETRY_DELAY_MS = 200L
 

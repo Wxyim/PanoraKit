@@ -393,13 +393,19 @@ object Clash {
                 Bridge.nativeSubscribeLogcat(
                     object : LogcatInterface {
                         override fun received(jsonPayload: String) {
+                            // A subscriber that is on its way out can still be handed a line, so
+                            // the fan-out list is checked before the payload is parsed: decoding
+                            // JSON nobody can read is pure waste.
+                            val channels: List<Channel<LogMessage>>
+                            synchronized(logcatChannels) {
+                                if (logcatChannels.isEmpty()) return
+                                channels = logcatChannels.toList()
+                            }
                             val log =
                                 runCatching {
                                         Json.decodeFromString(LogMessage.serializer(), jsonPayload)
                                     }
                                     .getOrNull() ?: return
-                            val channels: List<Channel<LogMessage>>
-                            synchronized(logcatChannels) { channels = logcatChannels.toList() }
                             channels.forEach { it.trySend(log) }
                         }
                     }
@@ -412,6 +418,12 @@ object Clash {
                 logcatChannels.remove(channel)
                 if (logcatChannels.isEmpty()) {
                     nativeLogcatRegistered = false
+                    // Hand the native subscriber back: leaving it registered kept the Go goroutine
+                    // (and its global reference to the callback above) alive for the rest of the
+                    // process lifetime. Done under the fan-out lock so a concurrent subscribe()
+                    // cannot slip a fresh registration between the "last channel closed" decision
+                    // and the detach, which would tear down the new subscription right away.
+                    runCatching { Bridge.nativeUnsubscribeLogcat() }
                 }
             }
         }

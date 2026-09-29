@@ -143,8 +143,15 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
   （`mihomo/log/log.go: newLog` 不看 level）。MonadBox 运行时订阅了 logcat，每条日志（含每 DNS 劫持的
   Debugln）都会经 Go channel → C 回调 → JNI → Kotlin `Channel(32)` → UI，跨一次完整边界。
   - 风险 A：日志量大时数据面 goroutine（DNS/连接路径）被日志派发拖慢。
-  - 风险 B：若运行中无人订阅，`logCh <- event` 会让日志调用方 goroutine 阻塞——这在
-    `subscribeLogcat` 尚未完成、但数据面已起来的时间窗内是潜在卡点。
+  - 风险 B：若运行中无人订阅，`logCh <- event` 会让日志调用方 goroutine 阻塞——这已由 `log.go` `init()`
+    里的常驻 drainer 兜住（它无条件排空 `logCh`，与是否有 JNI 订阅者无关）。
+  - **本轮修复（订阅泄漏）**：`subscribeLogcat()` 过去从不退订，Go 侧订阅 goroutine 与其 JNI 全局引用会随
+    每次启停代理 / 开关录制累积，每条核心日志被 marshal + JNI + decode k 次并向所有仍打开的 channel
+    fan-out（表现为日志页/录制文件重复行 + 后台持续 CPU）。现在最后一个 Kotlin channel 关闭时会调用
+    `unsubscribeLogcat()`（Go `native/log.go` → C++ `main.cpp` → `Bridge.nativeUnsubscribeLogcat`）释放订阅。
+  - **本轮修复（转发按需）**：常驻 drainer 只负责排空 `logCh`；没有订阅者时不写 logcat（ERROR/WARNING
+    例外，便于 `adb logcat` 直接排障），也不再有 Kotlin 侧的无用 JSON 解码。运行期日志流本身也改为
+    「有人取日志才打开、空闲 20 秒自停」，因此本地运行时在没人看日志时不产生任何日志侧开销。
   - 建议：生产保持 `log-level: info`；诊断完毕关闭日志界面订阅；必要时在 Go 侧对 Debug 日志做级别过滤
     （mihomo 上游多数 `Debugln` 已由 `log.IsDebug()` 包住，但 `sing_tun/dns.go` 的 DNS 劫持日志没有）。
 
@@ -169,7 +176,10 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
   概率捕获（约 `L/20ms`）。模拟实测（20ms 间隔，0~99ms 均匀分布）：总体捕获率 **89.1%**，分段为 0~10ms 22.3%、
   10~20ms 72.2%、20ms 及以上 **100%**（50ms 间隔时分别为 73.7% / 8.8% / 28.3% / 48.1% / 78.6%）。
 - `queryTrafficSnapshot` 前台 2s、后台 60s 轮询，成本低（`down_scale_traffic` 已压成 30bit 计数）。
-- `queryRuntimeDataSnapshot` 300ms TTL；代理组 500ms TTL。均在 UI 订阅时才会被调用（`WhileSubscribed`）。
+- `queryRuntimeDataSnapshot`：服务侧 1s TTL，并把「快照实例 + 已持久化选择」与序列化结果都做记忆化——
+  载荷（全部代理组 + providers + 配置）在无人操作时不再每 tick 重建/重编码；载荷里已移除每 tick 必变的
+  `trafficNow/trafficTotal`，流量走 `queryTrafficSnapshot`。代理组 500ms TTL。均在 UI 订阅时才会被调用
+  （`WhileSubscribed`）。
 
 建议：
 
@@ -187,7 +197,8 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | P0 ✅ | UID 缓存：正缓存 15s、预热后负缓存 5s、按 TTL 淘汰、容量 2048 | `VpnTunTransport.queryUid`/`cacheUid` | 降低短连接与 miss 场景下的 JNI+Binder+procfs 频率 | 已实现 |
 | P0 ✅ | 日志：`init()` 常驻订阅者加级别过滤（对齐 `subscribeLogcat`） | `lib/native/go/native/log.go` | 消除每 DNS 劫持的 logcat 写入；常驻订阅者保证 logCh 不阻塞 | 已实现 |
 | P1 ✅ | `querySocketUid` 字符串→地址解析改手写快速解析（去 `URL()`+`getByName`，规避中括号 IPv6 平台差异） | `core/util/Net.kt` | 减少每次 miss 的 URL 分配与解析成本 | 已实现 |
-| P1 ✅ | 日志：运行期始终有订阅（常驻 drainer + 级别过滤已实现，真机复验待办） | `lib/native/go/native/log.go` | 消除每 DNS 劫持 JNI 开销与潜在阻塞 | 已实现 |
+| P1 ✅ | 日志：常驻 drainer 无条件排空 `logCh`；JNI 侧改为按需订阅并可退订（最后一个 channel 关闭时 `unsubscribeLogcat()`），无订阅者时不转发 info/debug 到 logcat | `lib/native/go/native/log.go`、`core/Clash.kt`、`cpp/main.cpp` | 消除每 DNS 劫持 JNI 开销、订阅泄漏导致的重复 fan-out 与后台 CPU | 已实现 |
+| P1 ✅ | 载荷：移除 `trafficNow/trafficTotal` 字段，服务侧对「快照 + 选择」及 JSON 编码做记忆化 | `SessionRuntime.kt`、`native/tunnel.go` | 代理页停留期间不再每 tick 全量重算/重编码 | 已实现 |
 | P1 ✅ | MTU 统一对齐 1500（本地 TUN + RootTun + 模型默认 + 编辑器占位符） | `VpnTunTransport`/`tun/tun.go`/`RootTunConfig`/`Editors.kt` | 消除两种模式的 MTU 漂移与 PMTU 兼容性风险 | 已实现 |
 | P1 ✅ | GSO 不启用：本地/root 的 `LC.Tun.GSO` 均保持 false，Go 侧强制 `tun.enable=false` 使 profile 覆盖无法开启 | `tun/tun.go`/`tun/root.go`/`config/override.go` | 保持稳定分段行为，避免未经验证的吞吐风险 | 已确认 |
 | P2 ✅ | 启动并行化：App→UID 发布并入三路 async，与 transport.prepare/compileAndLoad 并行；GLOBAL selection 因 patchSelector 改核心保持串行 | `SessionRuntime.startInternal` | 冷启动再省一段 | 已实现 |

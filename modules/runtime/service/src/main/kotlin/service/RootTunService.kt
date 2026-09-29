@@ -25,8 +25,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
@@ -54,6 +56,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
+import timber.log.Timber
 
 class RootTunService : BaseService() {
     private val stateStore by lazy { RootTunStateStore(appContextOrSelf) }
@@ -64,9 +67,28 @@ class RootTunService : BaseService() {
     @Volatile private var lastPostedTitle: String? = null
     @Volatile private var lastPostedContent: String? = null
 
+    /**
+     * Conflated "the screen just came back on" signal used by [awaitNotificationTick].
+     *
+     * While the screen is off the status line is not rendered at all and the loop waits
+     * [SCREEN_OFF_NOTIFICATION_DELAY_MS], so the first tick after unlocking has to be pulled
+     * forward instead of leaving a stale traffic line on screen for up to half a minute.
+     */
+    private val screenOnSignals = Channel<Unit>(Channel.CONFLATED)
+
+    @Volatile private var screenReceiverRegistered = false
+
+    private val screenReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_SCREEN_ON) screenOnSignals.trySend(Unit)
+            }
+        }
+
     override fun onCreate() {
         super.onCreate()
         createChannel()
+        registerScreenReceiver()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -169,7 +191,7 @@ class RootTunService : BaseService() {
                                         stopSelf()
                                         break
                                     }
-                                    delay(resolveNotificationDelay())
+                                    awaitNotificationTick()
                                     continue
                                 }
 
@@ -212,7 +234,7 @@ class RootTunService : BaseService() {
                                         }
                                     postNotification(profileName, content)
                                 }
-                                delay(resolveNotificationDelay())
+                                awaitNotificationTick()
                             }
                         }
                 }
@@ -229,6 +251,7 @@ class RootTunService : BaseService() {
     override fun onDestroy() {
         notificationJob?.cancel()
         notificationJob = null
+        unregisterScreenReceiver()
 
         val snapshot = stateStore.snapshot()
         if (!snapshot.state.isActive) {
@@ -338,8 +361,38 @@ class RootTunService : BaseService() {
             PackageManager.PERMISSION_GRANTED
     }
 
-    private fun resolveNotificationDelay(): Long {
-        return if (powerManager.isInteractive) 4000L else 8000L
+    private fun resolveNotificationDelay(): Long =
+        if (powerManager.isInteractive) SCREEN_ON_NOTIFICATION_DELAY_MS
+        else SCREEN_OFF_NOTIFICATION_DELAY_MS
+
+    /**
+     * Waits for the next status tick, but lets a screen-on broadcast end the wait early.
+     *
+     * While the screen is on this is a plain [delay]. While the screen is off the wait is stretched
+     * to [SCREEN_OFF_NOTIFICATION_DELAY_MS] because the content is neither rebuilt nor re-posted in
+     * that state (see the `isInteractive` check in the loop); the loop is still needed to notice
+     * the runtime stopping, and reporting that up to half a minute late is cheaper than waking the
+     * CPU every few seconds for a line the user cannot see.
+     */
+    private suspend fun awaitNotificationTick() {
+        withTimeoutOrNull(resolveNotificationDelay()) { screenOnSignals.receive() }
+    }
+
+    private fun registerScreenReceiver() {
+        if (screenReceiverRegistered) return
+        runCatching {
+                // Same registration shape as ServiceNotificationManager's screen receiver: a
+                // protected system broadcast, so no export flag is required on API 34+.
+                registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_ON))
+            }
+            .onSuccess { screenReceiverRegistered = true }
+            .onFailure { error -> Timber.tag(TAG).w(error, "Screen receiver registration failed") }
+    }
+
+    private fun unregisterScreenReceiver() {
+        if (!screenReceiverRegistered) return
+        runCatching { unregisterReceiver(screenReceiver) }
+        screenReceiverRegistered = false
     }
 
     private fun syncStatus(status: RootTunStatus) {
@@ -361,11 +414,14 @@ class RootTunService : BaseService() {
     }
 
     companion object {
+        private const val TAG = "RootTunService"
         private const val ACTION_START = "com.github.nomadboxlab.monadbox.ROOT_TUN_SERVICE_START"
         private const val ACTION_STOP = "com.github.nomadboxlab.monadbox.ROOT_TUN_SERVICE_STOP"
         private const val NOTIFICATION_ID = 1003
         private const val CHANNEL_ID = "clash_root_tun_service"
         private const val CHANNEL_NAME = "Clash RootTun Service"
+        private const val SCREEN_ON_NOTIFICATION_DELAY_MS = 4000L
+        private const val SCREEN_OFF_NOTIFICATION_DELAY_MS = 30_000L
 
         fun start(context: Context) {
             val intent = Intent(context, RootTunService::class.java).setAction(ACTION_START)

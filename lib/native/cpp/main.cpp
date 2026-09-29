@@ -437,6 +437,18 @@ JNIEXPORT void JNICALL Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_n
   subscribeLogcat(_callback);
 }
 
+// Detaches every log subscriber registered through nativeSubscribeLogcat. Kotlin
+// calls this once the last log channel is closed, so an abandoned subscription
+// cannot keep marshalling and decoding every core log line for the lifetime of
+// the process.
+JNIEXPORT void JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeUnsubscribeLogcat(JNIEnv* env,
+                                                                               jobject thiz) {
+  TRACE_METHOD();
+
+  unsubscribeLogcat();
+}
+
 static jmethodID m_tun_interface_mark_socket;
 static jmethodID m_tun_interface_query_socket_uid;
 static jmethodID m_tun_interface_query_package_name;

@@ -47,7 +47,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 @Composable
 fun HomePager(
     mainInnerPadding: PaddingValues,
-    trafficNow: TrafficData,
+    // Deferred on purpose: the speed changes on every runtime poll, and reading it here would
+    // recompose this whole page. `TrafficDisplay` reads it, so only that card is rebuilt.
+    trafficNow: () -> TrafficData,
     runtimeVisualState: HomeRuntimeVisualState,
     displayRunning: Boolean,
     isToggling: Boolean,
@@ -150,7 +152,9 @@ fun HomePager(
                                 )
                             }
                         val useWideLayout = availableAdaptiveInfo.prefersTwoPaneContent
-                        val visibleTraffic = if (displayRunning) trafficNow else TrafficData.ZERO
+                        val visibleTraffic = {
+                            if (displayRunning) trafficNow() else TrafficData.ZERO
+                        }
 
                         if (useWideLayout) {
                             Column(

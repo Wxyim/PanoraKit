@@ -91,55 +91,18 @@ func queryTrafficSnapshot(nowUpload, nowDownload, totalUpload, totalDownload *C.
 
 //export queryRuntimeSnapshot
 func queryRuntimeSnapshot() *C.char {
-	nowUpload, nowDownload := tunnel.Now()
-	totalUpload, totalDownload := tunnel.Total()
-
+	// Traffic is deliberately not part of this payload: it changes on every call, which would stop
+	// the (otherwise stable) proxy-group payload from being memoized end to end. The client reads
+	// traffic through the dedicated queryTrafficSnapshot call instead.
 	return marshalJson(&struct {
 		Configuration config.RuntimeUiConfiguration `json:"configuration"`
 		Providers     []*tunnel.Provider            `json:"providers"`
 		ProxyGroups   []*tunnel.ProxyGroup          `json:"proxyGroups"`
-		TrafficNow    int64                         `json:"trafficNow"`
-		TrafficTotal  int64                         `json:"trafficTotal"`
 	}{
 		Configuration: config.QueryUiConfiguration(),
 		Providers:     tunnel.QueryProviders(),
 		ProxyGroups:   queryProxyGroups(false, tunnel.Default),
-		TrafficNow:    packTraffic(nowUpload, nowDownload),
-		TrafficTotal:  packTraffic(totalUpload, totalDownload),
 	})
-}
-
-func packTraffic(upload, download int64) int64 {
-	return int64(downScaleTraffic(nonNegativeTraffic(upload))<<32 |
-		downScaleTraffic(nonNegativeTraffic(download)))
-}
-
-func nonNegativeTraffic(value int64) uint64 {
-	if value <= 0 {
-		return 0
-	}
-	return uint64(value)
-}
-
-func downScaleTraffic(value uint64) uint64 {
-	const (
-		gbThresh  = 1024 * 1024 * 1024
-		mbThresh  = 1024 * 1024
-		kbThresh  = 1024
-		scale     = 100
-		valueMask = 0x3FFFFFFF
-	)
-
-	switch {
-	case value > gbThresh:
-		return ((value * scale / 1024 / 1024 / 1024) & valueMask) | (3 << 30)
-	case value > mbThresh:
-		return ((value * scale / 1024 / 1024) & valueMask) | (2 << 30)
-	case value > kbThresh:
-		return ((value * scale / 1024) & valueMask) | (1 << 30)
-	default:
-		return value & valueMask
-	}
 }
 
 //export queryConnections

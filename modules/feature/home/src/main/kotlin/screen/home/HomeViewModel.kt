@@ -109,7 +109,6 @@ data class HomeChromeState(
 @Stable
 private data class RuntimeUiSnapshot(
     val ipState: IpMonitoringState,
-    val trafficNow: Long,
     val externalIpEnabled: Boolean,
     val externalIpQuerying: Boolean,
 )
@@ -129,7 +128,6 @@ data class HomeScreenState(
     val ipMonitoringState: IpMonitoringState = IpMonitoringState.Loading,
     val isExternalIpLookupEnabled: Boolean = false,
     val isExternalIpQuerying: Boolean = false,
-    val trafficNow: Long = 0L,
 )
 
 private object HomeProxySelectionResolver {
@@ -241,6 +239,13 @@ class HomeViewModel(
 
     val runtimeSnapshot = proxyFacade.runtimeSnapshot
     val currentProfile = proxyFacade.currentProfile
+
+    /**
+     * Live traffic speed. Deliberately kept out of [screenState]: the runtime publishes it on every
+     * poll (~2s), and folding it into the screen state made that tick recompose the whole home
+     * page. Consumers read it at the leaf that renders the number instead (`HomeRoute` forwards a
+     * deferred provider to `TrafficDisplay`).
+     */
     val trafficNow = proxyFacade.trafficNow
     val proxyGroups = proxyFacade.proxyGroups
     private val confirmedCurrentProfile: StateFlow<Profile?> =
@@ -400,15 +405,12 @@ class HomeViewModel(
                     runtimeReady ->
                     currentProfile to selectedServer.takeIf { runtimeReady }
                 },
-                combine(
-                    ipMonitoringState,
-                    trafficNow,
-                    isExternalIpLookupEnabled,
-                    isExternalIpQuerying,
-                ) { ipState, tn, externalIpEnabled, externalIpQuerying ->
+                combine(ipMonitoringState, isExternalIpLookupEnabled, isExternalIpQuerying) {
+                    ipState,
+                    externalIpEnabled,
+                    externalIpQuerying ->
                     RuntimeUiSnapshot(
                         ipState = ipState,
-                        trafficNow = tn,
                         externalIpEnabled = externalIpEnabled,
                         externalIpQuerying = externalIpQuerying,
                     )
@@ -436,7 +438,6 @@ class HomeViewModel(
                     ipMonitoringState = runtimeUi.ipState,
                     isExternalIpLookupEnabled = runtimeUi.externalIpEnabled,
                     isExternalIpQuerying = runtimeUi.externalIpQuerying,
-                    trafficNow = runtimeUi.trafficNow,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, HomeScreenState())

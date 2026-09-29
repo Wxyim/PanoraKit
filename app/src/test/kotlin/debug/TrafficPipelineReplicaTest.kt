@@ -22,6 +22,10 @@ import org.junit.Test
  * the last traffic-bearing sample stretched the window across the whole idle gap, so the burst was
  * smeared over every slot it spanned and, when the gap crossed midnight, most of it landed on the
  * previous day.
+ *
+ * The collector samples every 5s while the app is active and every 30s otherwise; that only changes
+ * how wide the attribution window is (the bursts above deliberately span multi-minute idle gaps),
+ * so the math mirrored here is unaffected by the cadence.
  */
 class TrafficPipelineReplicaTest {
 

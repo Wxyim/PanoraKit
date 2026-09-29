@@ -87,7 +87,8 @@ private enum class HomeControlTone {
 
 @Composable
 fun TrafficDisplay(
-    trafficNow: TrafficData,
+    // Deferred so that only this card recomposes when the runtime publishes a new speed.
+    trafficNow: () -> TrafficData,
     profileName: String?,
     tunnelMode: TunnelState.Mode?,
     runtimeVisualState: HomeRuntimeVisualState,
@@ -99,6 +100,7 @@ fun TrafficDisplay(
     onModeBadgeBoundsChanged: (Rect) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val traffic = trafficNow()
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val availableAdaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth)
         val metrics = rememberHomeTrafficMetrics(maxWidth)
@@ -153,11 +155,11 @@ fun TrafficDisplay(
                     verticalArrangement = Arrangement.spacedBy(metrics.sectionSpacing),
                 ) {
                     DownloadSection(
-                        downloadSpeed = trafficNow.download,
+                        downloadSpeed = traffic.download,
                         metrics = metrics,
                         compact = compact,
                     )
-                    UploadSection(uploadSpeed = trafficNow.upload, metrics = metrics)
+                    UploadSection(uploadSpeed = traffic.upload, metrics = metrics)
                 }
 
                 Column(

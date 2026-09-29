@@ -36,6 +36,16 @@ class TrafficStatisticsCollector(
         private const val COLLECTION_INTERVAL_MS = 5000L
 
         /**
+         * Sample interval used while [RuntimeStateReader.isAppActive] is false (app backgrounded or
+         * screen off). Nothing renders the statistics in that state, and the totals are pushed by
+         * the runtime rather than polled, so a slower sample only coarsens how finely a delta is
+         * spread across the sampling window: every delta is still attributed over its real
+         * `windowStartMillis`..`windowEndMillis`, so daily totals stay exact. In exchange the
+         * collector wakes the CPU six times less often while the user is not looking at it.
+         */
+        private const val INACTIVE_COLLECTION_INTERVAL_MS = 30_000L
+
+        /**
          * Sentinel for "no traffic baseline persisted yet". A real runtime total can legitimately
          * be 0, so 0 cannot be used as the no-baseline marker (it would reset the baseline on the
          * next sample and discard the first delta).
@@ -112,18 +122,22 @@ class TrafficStatisticsCollector(
             while (isActive && runtimeStateReader.isRuntimeRunning.value) {
                 runCatching {
                         collectTrafficData()
-                        delay(COLLECTION_INTERVAL_MS)
+                        delay(collectionIntervalMs())
                     }
                     .onFailure { e ->
                         if (e is CancellationException) throw e
                         Timber.tag(TAG).e(e, "Traffic collection failed")
-                        delay(COLLECTION_INTERVAL_MS)
+                        delay(collectionIntervalMs())
                     }
             }
             // Runtime stopped (or the job was cancelled): persist any buffered deltas.
             flushPending()
         }
     }
+
+    private fun collectionIntervalMs(): Long =
+        if (runtimeStateReader.isAppActive.value) COLLECTION_INTERVAL_MS
+        else INACTIVE_COLLECTION_INTERVAL_MS
 
     private fun collectTrafficData() {
         val collectedAt = System.currentTimeMillis()

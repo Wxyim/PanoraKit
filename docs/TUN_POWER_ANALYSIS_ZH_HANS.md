@@ -65,12 +65,14 @@
 | 流量（ProxyFacade） | 2s / 后台 60s | 前台 + 亮屏 + 运行中；否则 60s 空转 | 中 | 未动 |
 | 显示模式同步 | 1.5s / 后台 10s | 前台 + 亮屏 + 运行中；否则不查询核心 | 低 | 已门控 |
 | 连接列表（ConnectionActivityRepository） | 1s | 前台 + 亮屏 + 运行中；否则挂起 | 中 | 已门控 |
-| 运行状态快照 | 1s TTL 缓存 | 有订阅者 | 低 | 未动 |
-| 代理组 | 1s 合并窗 / 500ms TTL 缓存 | 有订阅者 | 低 | 未动 |
+| 运行状态快照 | 1s TTL 缓存 + 「快照实例 + 选择」记忆化 | 有订阅者 | 低 | 已加记忆化 |
+| 代理组 | 1s 合并窗 / 500ms TTL 缓存 | 有订阅者 | 低 | 已加记忆化 |
+| 代理组（延迟测试期） | 请求 500ms / 真正重建 1s | 代理页可见 + 测试进行中 | 低 | 已降频 |
 | 本地 Tun 流量通知 | 2s | 亮屏 + 开启流量通知；否则自停；文本未变则跳过重建 | 中 | 已降耗 |
-| RootTun 通知 | 4s / 熄屏 8s | RootTun 运行；文本未变则跳过重建 | 中 | 已降耗 |
-| 流量统计落盘 | 5s 采样 / 30s 批量写 MMKV | 运行中 | 低 | 未动 |
+| RootTun 通知 | 4s / 熄屏 30s（亮屏广播提前唤醒） | RootTun 运行；文本未变则跳过重建 | 中 | 已降耗 |
+| 流量统计落盘 | 5s 采样 / 30s 批量写 MMKV | 运行中；非前台或熄屏降为 30s 采样 | 低 | 已降耗 |
 | Root 日志记录 | 2s | Root 模式 + 日志开启 | 中 | 未动 |
+| 核心日志流 | 无消费者时不打开；空闲 20s 自停 | 有人取日志（日志页 / 录制） | 中 | 已按需 |
 | 最近请求历史 | 1s 取连接快照 | 前台 + 亮屏 + 运行中 | 中 | native 采样器降耗 + 已门控 |
 
 所有高频轮询均已按亮屏/前台/订阅门控：显示模式同步与连接列表现在跟随「前台 + 亮屏」起停，
@@ -80,6 +82,10 @@
 
 | 改动 | 位置 | 电量收益 |
 | --- | --- | --- |
+| 日志流按需订阅 + 退订 | `native/log.go`、`Clash.kt`、`main.cpp` | 无人看日志时每条核心日志的 marshal/JNI/decode 与 logcat 转发 → 0；不再重复 fan-out |
+| 载荷记忆化 + 去掉流量字段 | `SessionRuntime.kt`、`native/tunnel.go` | 代理页停留期间不再每 tick 全量重算/重编码（命中缓存时零重建） |
+| 流量统计采样分级 | `TrafficStatisticsCollector.kt` | 后台/熄屏唤醒 12/min→2/min |
+| RootTun 熄屏轮询放宽 | `RootTunService.kt` | 熄屏状态 IPC 7.5/min→2/min，亮屏立即补刷 |
 | 采样器：Range 替代 Snapshot + 空闲退避 | `tunnel/conn.go` | 空闲 `/proc` 20/s→0；唤醒 20/s→4/s；空闲 tick 近零 |
 | 采样器：50ms→20ms（活跃） | `tunnel/conn.go` | 捕获提升；活跃期增量可忽略 |
 | 日志级别过滤 | `native/log.go` | 每 DNS 劫持不再写 logcat |
@@ -93,6 +99,7 @@
 | 通知文本去重 | `ServiceNotificationManager.kt`、`RootTunService.kt` | 空闲时不再重建 builder/PendingIntent/notify |
 | 磁贴更新去重 + IO 读取 | `ProxyTileService.kt` | 面板可见期间只在状态变化时更新 |
 | 配置/选择反序列化缓存 | `ProfileStore.kt`、`ProfileManager.kt` | 每次快照刷新少 2~3 次全量 JSON 解析 |
+| 首页流量重组下沉 + 旋转层化 | `HomeViewModel.kt`、`HomePager.kt`、`TrafficDisplay.kt`、`NodeCard.kt` | 2s 流量更新不再重组整页；空闲卡片不再跑旋转动画 |
 
 净结论：**数据面/客户端轮询电量不变或改善，native 空闲常驻成本显著下降**——TUN 无流量时的后台电耗是
 本次优化的主要受益场景。

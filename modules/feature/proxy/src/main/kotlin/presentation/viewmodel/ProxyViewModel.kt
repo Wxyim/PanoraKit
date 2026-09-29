@@ -63,7 +63,12 @@ class ProxyViewModel(
         // Idle poll cadence while the proxy page is on screen. It is kept above the runtime
         // snapshot TTL (RUNTIME_SNAPSHOT_CACHE_TTL_MS) so that a page left open does not rebuild
         // the O(all proxies) payload on every tick.
-        const val PROXY_REFRESH_IDLE_MS = 2_000L
+        const val PROXY_REFRESH_IDLE_MS = 3_000L
+
+        // Cadence while a latency test is running. The tick only *asks* for a refresh: the facade
+        // coalesces periodic callers into one payload rebuild per second (which is also the runtime
+        // snapshot TTL), so ticking faster than that buys nothing but coroutine wakeups.
+        const val PROXY_REFRESH_TESTING_MS = 500L
         const val PROXY_REFRESH_PREVIEW_MS = 10_000L
         const val PROXY_TESTING_SORT_HOLD_MS = 2200L
     }
@@ -454,7 +459,7 @@ class ProxyViewModel(
                     val delayMillis =
                         when {
                             !proxyFacade.isRunning.value -> PROXY_REFRESH_PREVIEW_MS
-                            _testingGroupNames.value.isNotEmpty() -> 250
+                            _testingGroupNames.value.isNotEmpty() -> PROXY_REFRESH_TESTING_MS
                             else -> PROXY_REFRESH_IDLE_MS
                         }
                     delay(delayMillis.milliseconds)

@@ -212,7 +212,7 @@ class RootTunRootService : RootService() {
             }
 
             override fun queryRuntimeSnapshotJson(): String {
-                return RootTunJson.encode(runtime.queryRuntimeDataSnapshot())
+                return runtime.queryRuntimeDataSnapshotJson()
             }
 
             override fun queryConnectionsJson(): String {

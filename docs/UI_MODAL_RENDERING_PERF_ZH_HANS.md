@@ -41,7 +41,8 @@ View 的 display list 就会重录，**没有被包进自身 layer 的子树会�
 
 - Miuix 遮罩：`drawBehind + drawRect`（颜色 alpha 逐帧变化），不是整屏离屏 alpha 合成。
 - 半窗模糊：`WindowBlurEffect` 现在只在半径真正变化时提交 WindowManager 事务；
-  `ProxySheetContent` 的模糊按 `POPUP_BLUR_STEP_COUNT` 档位渐变，不再逐帧提交。
+  `ProxySheetContent` 的模糊按 `POPUP_BLUR_STEP_COUNT` 档位渐变，不再逐帧提交；
+  半径为 0（半窗关闭 / 动画收敛后）时窗口不再挂 `FLAG_BLUR_BEHIND`，避免零半径仍让系统保留模糊区域。
 - 弹窗内容列表：dialog / sheet 内的长列表均已使用 Lazy 容器，不存在首帧全量组合。
 
 ## 5. 验证方法

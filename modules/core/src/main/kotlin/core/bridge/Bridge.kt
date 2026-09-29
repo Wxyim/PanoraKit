@@ -120,6 +120,15 @@ object Bridge {
 
     external fun nativeSubscribeLogcat(callback: LogcatInterface)
 
+    /**
+     * Detaches every log subscriber that [nativeSubscribeLogcat] registered.
+     *
+     * The native side keeps the callback alive until it is told to detach, so closing the Kotlin
+     * channel alone used to leave a native subscriber behind that kept decoding every core log line
+     * and delivered a duplicate copy of each line to the channels that were still open.
+     */
+    external fun nativeUnsubscribeLogcat()
+
     external fun nativeFetchAndValid(
         completable: FetchCallback,
         path: String,

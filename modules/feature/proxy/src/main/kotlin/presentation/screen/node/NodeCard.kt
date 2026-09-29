@@ -30,13 +30,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,21 +100,33 @@ internal fun RotatingCircleGauge(
     tint: Color = MiuixTheme.colorScheme.primary,
     contentDescription: String? = MLang.Proxy.Action.Test,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "circle_gauge_rotation")
-    val rotation by
-        infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec =
-                infiniteRepeatable(animation = tween(durationMillis = 1000, easing = LinearEasing)),
-            label = "circle_gauge_rotation_value",
-        )
+    // Only spin while this node is actually being tested: an always-on infinite transition keeps a
+    // frame callback alive on every idle card in the list.
+    val rotation =
+        if (isRotating) {
+            val infiniteTransition = rememberInfiniteTransition(label = "circle_gauge_rotation")
+            infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 1000, easing = LinearEasing)
+                    ),
+                label = "circle_gauge_rotation_value",
+            )
+        } else {
+            null
+        }
 
     Icon(
         imageVector = MonadIcons.CircleGauge,
         contentDescription = contentDescription,
         tint = tint,
-        modifier = if (isRotating) modifier.rotate(rotation) else modifier,
+        // The angle is read in the layer block, so a rotating frame updates the GPU transform
+        // instead of recomposing the card.
+        modifier =
+            if (rotation != null) modifier.graphicsLayer { rotationZ = rotation.value }
+            else modifier,
     )
 }
 

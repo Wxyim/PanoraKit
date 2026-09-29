@@ -63,6 +63,9 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     val proxyModeController = koinInject<ProxyModeController>()
 
     val screenState by homeViewModel.screenState.collectAsStateWithLifecycle()
+    // Only *read* inside the traffic card's deferred provider below, so a speed update recomposes
+    // that card instead of every composable this route owns.
+    val trafficNow by homeViewModel.trafficNow.collectAsStateWithLifecycle()
     val proxyUiState by proxyModeController.uiState.collectAsStateWithLifecycle()
     val currentTunnelMode by proxyModeController.currentMode.collectAsStateWithLifecycle()
 
@@ -123,7 +126,7 @@ fun HomeRoute(mainInnerPadding: PaddingValues, isActive: Boolean) {
     Box(modifier = Modifier.fillMaxSize()) {
         HomePager(
             mainInnerPadding = mainInnerPadding,
-            trafficNow = TrafficData.from(screenState.trafficNow),
+            trafficNow = { TrafficData.from(trafficNow) },
             runtimeVisualState = screenState.runtimeVisualState,
             displayRunning = screenState.displayRunning,
             isToggling = screenState.isToggling,

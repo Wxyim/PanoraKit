@@ -49,7 +49,7 @@ class CriticalPageSemanticsInstrumentedTest {
         compose.setContent {
             MonadTheme(themeMode = ThemeMode.Light) {
                 TrafficDisplay(
-                    trafficNow = TrafficData(upload = 2_048, download = 4_096),
+                    trafficNow = { TrafficData(upload = 2_048, download = 4_096) },
                     profileName = "Demo Profile",
                     tunnelMode = TunnelState.Mode.Rule,
                     runtimeVisualState = HomeRuntimeVisualState.Running,

@@ -144,7 +144,9 @@ fun ProxySheetContent(onDismiss: () -> Unit, proxyViewModel: ProxyViewModel = ko
     // animation, which looks like a full-screen flicker for a half-sheet.
     BackHandler(enabled = showSheet.value) { dismissSheet() }
 
-    WindowBlurEffect(useBlur = true, blurRadius = blurRadius)
+    // While the radius is 0 (sheet closed / animation finished) the window stays flag-free instead
+    // of carrying FLAG_BLUR_BEHIND with a zero radius, which still costs the system a blur region.
+    WindowBlurEffect(useBlur = blurRadius > 0, blurRadius = blurRadius)
 
     WindowBottomSheet(
         show = showSheet.value,
