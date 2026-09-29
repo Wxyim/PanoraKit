@@ -145,10 +145,13 @@ object Clash {
                 RuntimeDataSnapshot.serializer(),
                 Bridge.nativeQueryRuntimeSnapshot(),
             )
+        // Taken before the lock on purpose: the native pass is O(all proxies) and must not be run
+        // while another caller waits on the monitor.
+        val confirmed = Bridge.nativeQueryRuntimeSnapshotStamp()
         synchronized(runtimeSnapshotLock) {
             // Only remember the payload while the content stamp still describes it: a change that
             // lands between the two calls must not be cached under the older stamp.
-            if (Bridge.nativeQueryRuntimeSnapshotStamp() == stamp) {
+            if (confirmed == stamp) {
                 runtimeSnapshotStamp = stamp
                 runtimeSnapshotCache = snapshot
                 runtimeSnapshotCachedAt = SystemClock.elapsedRealtime()

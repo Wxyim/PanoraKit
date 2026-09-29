@@ -77,7 +77,7 @@
 
 | 项 | 问题 | 改动 |
 | --- | --- | --- |
-| 本地模式载荷往返 | RootTun 模式已有「载荷戳」，本地 Tun/HTTP 模式（客户端与核心同进程）仍是每次刷新都全量 marshal + 跨 JNI 复制成 UTF-16 字符串 + 全量反序列化，代理页每 2 秒、其它前台每 4 秒各一次，成本 O(全部节点) | Go 侧新增 `queryRuntimeSnapshotStamp()`：对 `queryRuntimeSnapshot` 序列化的每个字段（配置 / providers / 代理组 / 节点）做零分配 FNV-1a 内容哈希；`Clash.queryRuntimeSnapshot()` 先比戳，命中即复用已解码副本，并带 30 秒兜底 TTL（将来给载荷加字段却漏进哈希时，最多晚 30 秒而不是永久不刷新） |
+| 本地模式载荷往返 | RootTun 模式已有「载荷戳」，本地 Tun/HTTP 模式（客户端与核心同进程）仍是每次刷新都全量 marshal + 跨 JNI 复制成 UTF-16 字符串 + 全量反序列化，代理页每 2 秒、其它前台每 4 秒各一次，成本 O(全部节点) | Go 侧新增 `queryRuntimeSnapshotStamp()`：对 `queryRuntimeSnapshot` 序列化的每个字段（配置 / providers / 代理组 / 节点）做零分配 FNV-1a 内容哈希；`Clash.queryRuntimeSnapshot()` 先比戳，命中即复用已解码副本，并带 30 秒兜底 TTL（将来给载荷加字段却漏进哈希时，最多晚 30 秒而不是永久不刷新）；「取载荷 → 复查戳」的复查在锁外取值，避免 O(全部节点) 的 native 遍历占着 `runtimeSnapshotLock` 让其它调用者陪跑 |
 | 最近请求列表重建 | 统计页可见时每秒重建一次：`sortedByDescending { parseConnectionStartMillis(...) }` 在比较器里解析 ISO-8601（每次比较一次解析，O(n log n) 次），且「全部活跃连接 + 最多 300 条已关闭连接」都先构建完整行对象才截断到 100 行；每个行对象还会查询一次 `PackageManager` 解析源应用、并对 chains 做 3 次 map/filter | `DefaultTrafficStatisticsExplorer` 改为先按起始时间排序（每条连接只解析一次）→ 无搜索词时先截断到 100 行再建行；`AppIdentityResolver.findInstalledPackage` 增加正向缓存；行内链解析合并为一次 |
 
 ## 真机验证方法

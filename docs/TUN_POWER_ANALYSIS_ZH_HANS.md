@@ -87,7 +87,7 @@
 | --- | --- | --- |
 | 日志流按需订阅 + 退订 | `native/log.go`、`Clash.kt`、`main.cpp` | 无人看日志时每条核心日志的 marshal/JNI/decode 与 logcat 转发 → 0；不再重复 fan-out |
 | 载荷记忆化 + 去掉流量字段 | `SessionRuntime.kt`、`native/tunnel.go` | 代理页停留期间不再每 tick 全量重算/重编码（命中缓存时零重建） |
-| 本地模式运行载荷戳 | `native/tunnel.go`、`Clash.kt` | 载荷未变时代理页 2 秒的 marshal + JNI 字符串 + 反序列化 → 一次 64 位调用（O(全部节点)→O(1)） |
+| 本地模式运行载荷戳 | `native/tunnel.go`、`Clash.kt` | 载荷未变时代理页 2 秒的 marshal + JNI 字符串 + 反序列化 → 一次 64 位调用（O(全部节点)→O(1)）；复查戳在锁外取值，native 遍历不占锁 |
 | 最近请求列表重建 | `DefaultTrafficStatisticsExplorer.kt`、`AppIdentityResolver.kt` | 统计页每秒 ISO-8601 解析 O(n log n)→O(n)；建行 O(n)→≤100；`PackageManager` 查询按包缓存 |
 | 流量统计采样分级 | `TrafficStatisticsCollector.kt` | 后台/熄屏唤醒 12/min→2/min |
 | RootTun 熄屏轮询放宽 | `RootTunService.kt` | 熄屏状态 IPC 7.5/min→2/min，亮屏立即补刷 |

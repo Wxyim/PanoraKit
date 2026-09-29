@@ -187,6 +187,8 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
   `queryRuntimeSnapshot` 序列化的每个字段（配置 / providers / 代理组 / 节点）做零分配 FNV-1a 内容哈希——
   Kotlin `Clash.queryRuntimeSnapshot()` 先比戳，命中即复用已解码副本（另有 30 秒兜底 TTL，避免将来给载荷
   加字段却漏进哈希时永久不刷新）。代理页 2 秒 / 其它前台 4 秒的刷新在载荷未变时只剩一次 64 位调用。
+  「取载荷 → 复查戳」之间的那次复查在**锁外**进行：它同样是 O(全部节点) 的 native 遍历，若在
+  `runtimeSnapshotLock` 内执行，会让其它正在等锁的调用者陪跑一次全量遍历。
 - **本地呈现结果记忆化**：本地归属的 `ClashManager` 把「核心载荷实例 + 已生效选择」当作呈现结果的记忆键。
   载荷与选择都没动时不再重跑 `SelectionPresentation.apply`（它会为每个组校验记忆节点是否在节点列表里，
   即一次 O(全部节点) 的 `trim` 分配）与整份 `copy`；每 tick 仍保留的选择同步循环不变，它才是发现
