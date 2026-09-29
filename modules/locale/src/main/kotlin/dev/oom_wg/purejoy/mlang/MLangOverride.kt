@@ -418,34 +418,6 @@ object MLangOverride {
         fun `JsonEditHint`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_edit_json_edit_hint, *args)
 
-        val `StructuredObjectListHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_edit_structured_object_list_hint)
-
-        @Composable
-        fun `StructuredObjectListHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_edit_structured_object_list_hint, *args)
-
-        val `StructuredProviderDictHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_edit_structured_provider_dict_hint)
-
-        @Composable
-        fun `StructuredProviderDictHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_edit_structured_provider_dict_hint, *args)
-
-        val `SubRuleGroupHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_edit_sub_rule_group_hint)
-
-        @Composable
-        fun `SubRuleGroupHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_edit_sub_rule_group_hint, *args)
-
-        val `JsonKeyValueHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_edit_json_key_value_hint)
-
-        @Composable
-        fun `JsonKeyValueHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_edit_json_key_value_hint, *args)
-
         val `OneProviderPerLineHint`: String
             get() = LocaleBootstrap.getString(R.string.override_edit_one_provider_per_line_hint)
 
@@ -893,13 +865,6 @@ object MLangOverride {
                 LocaleBootstrap.getString(R.string.override_editor_clear_dialog_summary, *args)
         }
 
-        val `New`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_new)
-
-        @Composable
-        fun `New`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_new, *args)
-
         val `AddNamedItem`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_add_named_item)
 
@@ -1068,13 +1033,6 @@ object MLangOverride {
         fun `Confirm`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_confirm, *args)
 
-        val `OneItemPerLine`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_one_item_per_line)
-
-        @Composable
-        fun `OneItemPerLine`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_one_item_per_line, *args)
-
         val `AddItem`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_add_item)
 
@@ -1088,76 +1046,6 @@ object MLangOverride {
         @Composable
         fun `DeleteLastItem`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_editor_delete_last_item, *args)
-
-        val `Copy`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_copy)
-
-        @Composable
-        fun `Copy`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_copy, *args)
-
-        val `Delete`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_delete)
-
-        @Composable
-        fun `Delete`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_delete, *args)
-
-        val `MoveUp`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_move_up)
-
-        @Composable
-        fun `MoveUp`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_move_up, *args)
-
-        val `MoveDown`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_move_down)
-
-        @Composable
-        fun `MoveDown`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_move_down, *args)
-
-        val `AddObject`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_add_object)
-
-        @Composable
-        fun `AddObject`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_add_object, *args)
-
-        val `SubRuleName`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_sub_rule_name)
-
-        @Composable
-        fun `SubRuleName`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_sub_rule_name, *args)
-
-        val `NoRules`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_no_rules)
-
-        @Composable
-        fun `NoRules`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_no_rules, *args)
-
-        val `RulesConfiguredInline`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_rules_configured_inline)
-
-        @Composable
-        fun `RulesConfiguredInline`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_rules_configured_inline, *args)
-
-        val `AddSubRuleGroup`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_add_sub_rule_group)
-
-        @Composable
-        fun `AddSubRuleGroup`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_add_sub_rule_group, *args)
-
-        val `EditSubRule`: String
-            get() = LocaleBootstrap.getString(R.string.override_editor_edit_sub_rule)
-
-        @Composable
-        fun `EditSubRule`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_editor_edit_sub_rule, *args)
 
         val `KeyName`: String
             get() = LocaleBootstrap.getString(R.string.override_editor_key_name)
@@ -1988,19 +1876,6 @@ object MLangOverride {
     }
 
     object `Form` {
-        val `RuleChain`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_rule_chain)
-
-        @Composable
-        fun `RuleChain`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_rule_chain, *args)
-
-        val `RuleChainNotSet`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_rule_chain_not_set)
-
-        @Composable
-        fun `RuleChainNotSet`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_rule_chain_not_set, *args)
 
         val `SubRules`: String
             get() = LocaleBootstrap.getString(R.string.override_form_sub_rules)
@@ -2009,40 +1884,12 @@ object MLangOverride {
         fun `SubRules`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_sub_rules, *args)
 
-        val `SubRulesHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sub_rules_hint)
-
-        @Composable
-        fun `SubRulesHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sub_rules_hint, *args)
-
-        val `SubRulesAdvanced`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_sub_rules_advanced)
-
-        @Composable
-        fun `SubRulesAdvanced`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_sub_rules_advanced, *args)
-
         val `RuleProviders`: String
             get() = LocaleBootstrap.getString(R.string.override_form_rule_providers)
 
         @Composable
         fun `RuleProviders`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_rule_providers, *args)
-
-        val `RuleProvidersHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_rule_providers_hint)
-
-        @Composable
-        fun `RuleProvidersHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_rule_providers_hint, *args)
-
-        val `RuleProvidersAdvanced`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_rule_providers_advanced)
-
-        @Composable
-        fun `RuleProvidersAdvanced`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_rule_providers_advanced, *args)
 
         val `ProxyNodes`: String
             get() = LocaleBootstrap.getString(R.string.override_form_proxy_nodes)
@@ -2051,13 +1898,6 @@ object MLangOverride {
         fun `ProxyNodes`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_proxy_nodes, *args)
 
-        val `ProxyNodesHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_proxy_nodes_hint)
-
-        @Composable
-        fun `ProxyNodesHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_proxy_nodes_hint, *args)
-
         val `ProxyProviders`: String
             get() = LocaleBootstrap.getString(R.string.override_form_proxy_providers)
 
@@ -2065,61 +1905,12 @@ object MLangOverride {
         fun `ProxyProviders`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_proxy_providers, *args)
 
-        val `ProxyProvidersHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_proxy_providers_hint)
-
-        @Composable
-        fun `ProxyProvidersHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_proxy_providers_hint, *args)
-
-        val `ProxyProvidersAdvanced`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_proxy_providers_advanced)
-
-        @Composable
-        fun `ProxyProvidersAdvanced`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_proxy_providers_advanced, *args)
-
         val `ProxyGroups`: String
             get() = LocaleBootstrap.getString(R.string.override_form_proxy_groups)
 
         @Composable
         fun `ProxyGroups`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_proxy_groups, *args)
-
-        val `ProxyGroupsHint`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_proxy_groups_hint)
-
-        @Composable
-        fun `ProxyGroupsHint`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_proxy_groups_hint, *args)
-
-        val `StructuredEdit`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_structured_edit)
-
-        @Composable
-        fun `StructuredEdit`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_structured_edit, *args)
-
-        val `AdvancedJson`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_advanced_json)
-
-        @Composable
-        fun `AdvancedJson`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_advanced_json, *args)
-
-        val `OpenAdvancedEdit`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_open_advanced_edit)
-
-        @Composable
-        fun `OpenAdvancedEdit`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_open_advanced_edit, *args)
-
-        val `OpenAdvancedEditSummary`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_open_advanced_edit_summary)
-
-        @Composable
-        fun `OpenAdvancedEditSummary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_open_advanced_edit_summary, *args)
 
         val `ItemsConfigured`: String
             get() = LocaleBootstrap.getString(R.string.override_form_items_configured)
@@ -2148,13 +1939,6 @@ object MLangOverride {
         @Composable
         fun `ProcessMode`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_form_process_mode, *args)
-
-        val `NotModify`: String
-            get() = LocaleBootstrap.getString(R.string.override_form_not_modify)
-
-        @Composable
-        fun `NotModify`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_form_not_modify, *args)
 
         val `UnifiedDelay`: String
             get() = LocaleBootstrap.getString(R.string.override_form_unified_delay)
@@ -3225,13 +3009,6 @@ object MLangOverride {
         @Composable
         fun `RespectRules`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.override_label_respect_rules, *args)
-
-        val `RulesReplace`: String
-            get() = LocaleBootstrap.getString(R.string.override_label_rules_replace)
-
-        @Composable
-        fun `RulesReplace`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.override_label_rules_replace, *args)
 
         val `SkipDomain`: String
             get() = LocaleBootstrap.getString(R.string.override_label_skip_domain)

@@ -126,27 +126,6 @@ object MLangComponent {
         @Composable
         fun `Expired`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_profile_card_expired, *args)
-
-        val `JustNow`: String
-            get() = LocaleBootstrap.getString(R.string.component_profile_card_just_now)
-
-        @Composable
-        fun `JustNow`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_profile_card_just_now, *args)
-
-        val `MinutesAgo`: String
-            get() = LocaleBootstrap.getString(R.string.component_profile_card_minutes_ago)
-
-        @Composable
-        fun `MinutesAgo`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_profile_card_minutes_ago, *args)
-
-        val `HoursAgo`: String
-            get() = LocaleBootstrap.getString(R.string.component_profile_card_hours_ago)
-
-        @Composable
-        fun `HoursAgo`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_profile_card_hours_ago, *args)
     }
 
     object `Selector` {
@@ -215,27 +194,6 @@ object MLangComponent {
         fun `Back`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_navigation_back, *args)
 
-        val `Refresh`: String
-            get() = LocaleBootstrap.getString(R.string.component_navigation_refresh)
-
-        @Composable
-        fun `Refresh`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_navigation_refresh, *args)
-
-        val `Search`: String
-            get() = LocaleBootstrap.getString(R.string.component_navigation_search)
-
-        @Composable
-        fun `Search`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_navigation_search, *args)
-
-        val `Sort`: String
-            get() = LocaleBootstrap.getString(R.string.component_navigation_sort)
-
-        @Composable
-        fun `Sort`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_navigation_sort, *args)
-
         val `Settings`: String
             get() = LocaleBootstrap.getString(R.string.component_navigation_settings)
 
@@ -245,12 +203,6 @@ object MLangComponent {
     }
 
     object `Message` {
-        val `Confirm`: String
-            get() = LocaleBootstrap.getString(R.string.component_message_confirm)
-
-        @Composable
-        fun `Confirm`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_message_confirm, *args)
 
         val `Hint`: String
             get() = LocaleBootstrap.getString(R.string.component_message_hint)
@@ -265,13 +217,6 @@ object MLangComponent {
         @Composable
         fun `Error`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.component_message_error, *args)
-
-        val `Success`: String
-            get() = LocaleBootstrap.getString(R.string.component_message_success)
-
-        @Composable
-        fun `Success`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_message_success, *args)
     }
 
     object `Button` {
@@ -320,82 +265,6 @@ object MLangComponent {
             LocaleBootstrap.getString(R.string.component_loading_starting, *args)
     }
 
-    object `Update` {
-        object `Title` {
-            val `Available`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_title_available)
-
-            @Composable
-            fun `Available`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_title_available, *args)
-
-            val `Install`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_title_install)
-
-            @Composable
-            fun `Install`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_title_install, *args)
-        }
-
-        object `Message` {
-            val `Available`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_available)
-
-            @Composable
-            fun `Available`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_available, *args)
-
-            val `Updating`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_updating)
-
-            @Composable
-            fun `Updating`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_updating, *args)
-
-            val `Preparing`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_preparing)
-
-            @Composable
-            fun `Preparing`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_preparing, *args)
-
-            val `Verifying`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_verifying)
-
-            @Composable
-            fun `Verifying`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_verifying, *args)
-
-            val `Downloading`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_downloading)
-
-            @Composable
-            fun `Downloading`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_downloading, *args)
-
-            val `Error`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_error)
-
-            @Composable
-            fun `Error`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_error, *args)
-
-            val `Close`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_close)
-
-            @Composable
-            fun `Close`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_close, *args)
-
-            val `Waiting`: String
-                get() = LocaleBootstrap.getString(R.string.component_update_message_waiting)
-
-            @Composable
-            fun `Waiting`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_update_message_waiting, *args)
-        }
-    }
-
     object `ConfigInput` {
         val `PortLabel`: String
             get() = LocaleBootstrap.getString(R.string.component_config_input_port_label)
@@ -433,8 +302,6 @@ object MLangComponent {
             LocaleBootstrap.getString(R.string.component_config_input_merge_notice, *args)
     }
 
-    object `Accessibility` {}
-
     object `BottomBar` {
         val `Home`: String
             get() = LocaleBootstrap.getString(R.string.component_bottom_bar_home)
@@ -466,27 +333,8 @@ object MLangComponent {
     }
 
     object `Editor` {
-        val `CountItems`: String
-            get() = LocaleBootstrap.getString(R.string.component_editor_count_items)
-
-        @Composable
-        fun `CountItems`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.component_editor_count_items, *args)
 
         object `Action` {
-            val `Reset`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_action_reset)
-
-            @Composable
-            fun `Reset`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_action_reset, *args)
-
-            val `Add`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_action_add)
-
-            @Composable
-            fun `Add`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_action_add, *args)
 
             val `Delete`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_action_delete)
@@ -501,13 +349,6 @@ object MLangComponent {
             @Composable
             fun `Undo`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_action_undo, *args)
-
-            val `Redo`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_action_redo)
-
-            @Composable
-            fun `Redo`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_action_redo, *args)
 
             val `Format`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_action_format)
@@ -537,13 +378,6 @@ object MLangComponent {
             fun `SaveAndStop`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_action_save_and_stop, *args)
 
-            val `ContinueEditing`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_action_continue_editing)
-
-            @Composable
-            fun `ContinueEditing`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_action_continue_editing, *args)
-
             val `Discard`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_action_discard)
 
@@ -560,33 +394,6 @@ object MLangComponent {
         }
 
         object `Dialog` {
-            val `AddTitle`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_dialog_add_title)
-
-            @Composable
-            fun `AddTitle`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_dialog_add_title, *args)
-
-            val `EditTitle`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_dialog_edit_title)
-
-            @Composable
-            fun `EditTitle`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_dialog_edit_title, *args)
-
-            val `ResetTitle`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_dialog_reset_title)
-
-            @Composable
-            fun `ResetTitle`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_dialog_reset_title, *args)
-
-            val `ResetMessage`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_dialog_reset_message)
-
-            @Composable
-            fun `ResetMessage`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_dialog_reset_message, *args)
 
             val `DiscardTitle`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_dialog_discard_title)
@@ -703,22 +510,6 @@ object MLangComponent {
                 )
         }
 
-        object `Empty` {
-            val `Title`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_empty_title)
-
-            @Composable
-            fun `Title`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_empty_title, *args)
-
-            val `Hint`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_empty_hint)
-
-            @Composable
-            fun `Hint`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_empty_hint, *args)
-        }
-
         object `Error` {
             val `KeyEmpty`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_error_key_empty)
@@ -726,13 +517,6 @@ object MLangComponent {
             @Composable
             fun `KeyEmpty`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_error_key_empty, *args)
-
-            val `KeyExists`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_error_key_exists)
-
-            @Composable
-            fun `KeyExists`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_error_key_exists, *args)
 
             val `SaveFailed`: String
                 get() = LocaleBootstrap.getString(R.string.component_editor_error_save_failed)
@@ -804,75 +588,6 @@ object MLangComponent {
             @Composable
             fun `DuplicateKey`(vararg args: Any): String =
                 LocaleBootstrap.getString(R.string.component_editor_error_duplicate_key, *args)
-        }
-
-        object `Rule` {
-            val `Type`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_type)
-
-            @Composable
-            fun `Type`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_type, *args)
-
-            val `Target`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_target)
-
-            @Composable
-            fun `Target`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_target, *args)
-
-            val `Content`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_content)
-
-            @Composable
-            fun `Content`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_content, *args)
-
-            val `Src`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_src)
-
-            @Composable
-            fun `Src`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_src, *args)
-
-            val `NoResolve`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_no_resolve)
-
-            @Composable
-            fun `NoResolve`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_no_resolve, *args)
-
-            val `TargetReject`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_target_reject)
-
-            @Composable
-            fun `TargetReject`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_target_reject, *args)
-
-            val `TargetDirect`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_target_direct)
-
-            @Composable
-            fun `TargetDirect`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_target_direct, *args)
-
-            val `TargetMatch`: String
-                get() = LocaleBootstrap.getString(R.string.component_editor_rule_target_match)
-
-            @Composable
-            fun `TargetMatch`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.component_editor_rule_target_match, *args)
-
-            val `ErrorContentRequired`: String
-                get() =
-                    LocaleBootstrap.getString(R.string.component_editor_rule_error_content_required)
-
-            @Composable
-            fun `ErrorContentRequired`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.component_editor_rule_error_content_required,
-                    *args,
-                )
         }
     }
 }

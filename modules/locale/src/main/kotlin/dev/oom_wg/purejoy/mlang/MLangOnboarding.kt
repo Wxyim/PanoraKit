@@ -43,13 +43,6 @@ object MLangOnboarding {
         fun `Next`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.onboarding_navigation_next, *args)
 
-        val `Start`: String
-            get() = LocaleBootstrap.getString(R.string.onboarding_navigation_start)
-
-        @Composable
-        fun `Start`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.onboarding_navigation_start, *args)
-
         val `Enter`: String
             get() = LocaleBootstrap.getString(R.string.onboarding_navigation_enter)
 
@@ -135,19 +128,6 @@ object MLangOnboarding {
                     R.string.onboarding_permission_app_list_summary_need,
                     *args,
                 )
-
-            val `SummaryNotRequired`: String
-                get() =
-                    LocaleBootstrap.getString(
-                        R.string.onboarding_permission_app_list_summary_not_required
-                    )
-
-            @Composable
-            fun `SummaryNotRequired`(vararg args: Any): String =
-                LocaleBootstrap.getString(
-                    R.string.onboarding_permission_app_list_summary_not_required,
-                    *args,
-                )
         }
     }
 
@@ -193,15 +173,6 @@ object MLangOnboarding {
         @Composable
         fun `PolicyLink`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.onboarding_privacy_policy_link, *args)
-
-        object `Privacy` {
-            val `Title`: String
-                get() = LocaleBootstrap.getString(R.string.onboarding_privacy_privacy_title)
-
-            @Composable
-            fun `Title`(vararg args: Any): String =
-                LocaleBootstrap.getString(R.string.onboarding_privacy_privacy_title, *args)
-        }
 
         object `Accept` {
             val `Title`: String

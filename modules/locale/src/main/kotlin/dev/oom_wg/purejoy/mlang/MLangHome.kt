@@ -174,22 +174,6 @@ object MLangHome {
             LocaleBootstrap.getString(R.string.home_message_external_ip_lookup_failed, *args)
     }
 
-    object `Control` {
-        val `HintAddProfile`: String
-            get() = LocaleBootstrap.getString(R.string.home_control_hint_add_profile)
-
-        @Composable
-        fun `HintAddProfile`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.home_control_hint_add_profile, *args)
-
-        val `HintEnableProfile`: String
-            get() = LocaleBootstrap.getString(R.string.home_control_hint_enable_profile)
-
-        @Composable
-        fun `HintEnableProfile`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.home_control_hint_enable_profile, *args)
-    }
-
     object `Profile` {
         val `NoProfile`: String
             get() = LocaleBootstrap.getString(R.string.home_profile_no_profile)

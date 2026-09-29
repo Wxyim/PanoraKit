@@ -125,26 +125,13 @@ object `MLang` {
         val `Loading`
             get() = MLangComponent.`Loading`
 
-        object `Update` {
-            val `Title`
-                get() = MLangComponent.`Update`.`Title`
-
-            val `Message`
-                get() = MLangComponent.`Update`.`Message`
-        }
-
         val `ConfigInput`
             get() = MLangComponent.`ConfigInput`
-
-        val `Accessibility`
-            get() = MLangComponent.`Accessibility`
 
         val `BottomBar`
             get() = MLangComponent.`BottomBar`
 
         object `Editor` {
-            val `CountItems`
-                get() = MLangComponent.`Editor`.`CountItems`
 
             val `Action`
                 get() = MLangComponent.`Editor`.`Action`
@@ -152,14 +139,8 @@ object `MLang` {
             val `Dialog`
                 get() = MLangComponent.`Editor`.`Dialog`
 
-            val `Empty`
-                get() = MLangComponent.`Editor`.`Empty`
-
             val `Error`
                 get() = MLangComponent.`Editor`.`Error`
-
-            val `Rule`
-                get() = MLangComponent.`Editor`.`Rule`
         }
     }
 
@@ -174,9 +155,6 @@ object `MLang` {
 
         val `Message`
             get() = MLangHome.`Message`
-
-        val `Control`
-            get() = MLangHome.`Control`
 
         val `Profile`
             get() = MLangHome.`Profile`
@@ -214,9 +192,6 @@ object `MLang` {
     object `MetaFeature` {
         val `Title`
             get() = MLangMetaFeature.`Title`
-
-        val `RecentRequests`
-            get() = MLangMetaFeature.`RecentRequests`
 
         val `RuntimeConfig`
             get() = MLangMetaFeature.`RuntimeConfig`
@@ -293,9 +268,6 @@ object `MLang` {
 
             val `PolicyLink`
                 get() = MLangOnboarding.`Privacy`.`PolicyLink`
-
-            val `Privacy`
-                get() = MLangOnboarding.`Privacy`.`Privacy`
 
             val `Accept`
                 get() = MLangOnboarding.`Privacy`.`Accept`
@@ -417,18 +389,6 @@ object `MLang` {
             val `JsonEditHint`
                 get() = MLangOverride.`Edit`.`JsonEditHint`
 
-            val `StructuredObjectListHint`
-                get() = MLangOverride.`Edit`.`StructuredObjectListHint`
-
-            val `StructuredProviderDictHint`
-                get() = MLangOverride.`Edit`.`StructuredProviderDictHint`
-
-            val `SubRuleGroupHint`
-                get() = MLangOverride.`Edit`.`SubRuleGroupHint`
-
-            val `JsonKeyValueHint`
-                get() = MLangOverride.`Edit`.`JsonKeyValueHint`
-
             val `OneProviderPerLineHint`
                 get() = MLangOverride.`Edit`.`OneProviderPerLineHint`
 
@@ -501,8 +461,6 @@ object `MLang` {
         }
 
         object `Editor` {
-            val `New`
-                get() = MLangOverride.`Editor`.`New`
 
             val `AddNamedItem`
                 get() = MLangOverride.`Editor`.`AddNamedItem`
@@ -576,44 +534,11 @@ object `MLang` {
             val `Confirm`
                 get() = MLangOverride.`Editor`.`Confirm`
 
-            val `OneItemPerLine`
-                get() = MLangOverride.`Editor`.`OneItemPerLine`
-
             val `AddItem`
                 get() = MLangOverride.`Editor`.`AddItem`
 
             val `DeleteLastItem`
                 get() = MLangOverride.`Editor`.`DeleteLastItem`
-
-            val `Copy`
-                get() = MLangOverride.`Editor`.`Copy`
-
-            val `Delete`
-                get() = MLangOverride.`Editor`.`Delete`
-
-            val `MoveUp`
-                get() = MLangOverride.`Editor`.`MoveUp`
-
-            val `MoveDown`
-                get() = MLangOverride.`Editor`.`MoveDown`
-
-            val `AddObject`
-                get() = MLangOverride.`Editor`.`AddObject`
-
-            val `SubRuleName`
-                get() = MLangOverride.`Editor`.`SubRuleName`
-
-            val `NoRules`
-                get() = MLangOverride.`Editor`.`NoRules`
-
-            val `RulesConfiguredInline`
-                get() = MLangOverride.`Editor`.`RulesConfiguredInline`
-
-            val `AddSubRuleGroup`
-                get() = MLangOverride.`Editor`.`AddSubRuleGroup`
-
-            val `EditSubRule`
-                get() = MLangOverride.`Editor`.`EditSubRule`
 
             val `KeyName`
                 get() = MLangOverride.`Editor`.`KeyName`
@@ -806,47 +731,6 @@ object `MLang` {
 
         val `DeleteDialog`
             get() = MLangProfilesPage.`DeleteDialog`
-
-        val `EditDialog`
-            get() = MLangProfilesPage.`EditDialog`
-
-        object `LinkSettings` {
-            val `Title`
-                get() = MLangProfilesPage.`LinkSettings`.`Title`
-
-            val `OpenMode`
-                get() = MLangProfilesPage.`LinkSettings`.`OpenMode`
-
-            val `OpenModeInApp`
-                get() = MLangProfilesPage.`LinkSettings`.`OpenModeInApp`
-
-            val `OpenModeExternal`
-                get() = MLangProfilesPage.`LinkSettings`.`OpenModeExternal`
-
-            val `DefaultLink`
-                get() = MLangProfilesPage.`LinkSettings`.`DefaultLink`
-
-            val `DefaultLinkSummary`
-                get() = MLangProfilesPage.`LinkSettings`.`DefaultLinkSummary`
-
-            val `AddLink`
-                get() = MLangProfilesPage.`LinkSettings`.`AddLink`
-
-            val `EditLink`
-                get() = MLangProfilesPage.`LinkSettings`.`EditLink`
-
-            val `Name`
-                get() = MLangProfilesPage.`LinkSettings`.`Name`
-
-            val `Url`
-                get() = MLangProfilesPage.`LinkSettings`.`Url`
-
-            val `Close`
-                get() = MLangProfilesPage.`LinkSettings`.`Close`
-
-            val `Validation`
-                get() = MLangProfilesPage.`LinkSettings`.`Validation`
-        }
 
         val `ShareDialog`
             get() = MLangProfilesPage.`ShareDialog`

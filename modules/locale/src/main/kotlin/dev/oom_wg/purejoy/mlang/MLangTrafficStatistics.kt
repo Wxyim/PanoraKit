@@ -50,13 +50,6 @@ object MLangTrafficStatistics {
         fun `Title`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_title, *args)
 
-        val `Summary`: String
-            get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_summary)
-
-        @Composable
-        fun `Summary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_summary, *args)
-
         val `Empty`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_empty)
 

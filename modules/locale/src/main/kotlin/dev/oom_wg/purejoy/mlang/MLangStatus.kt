@@ -49,9 +49,6 @@ object MLangStatus {
         val `Attention`: String
             get() = LocaleBootstrap.getString(R.string.status_common_attention)
 
-        val `Failed`: String
-            get() = LocaleBootstrap.getString(R.string.status_common_failed)
-
         val `Applied`: String
             get() = LocaleBootstrap.getString(R.string.status_common_applied)
     }

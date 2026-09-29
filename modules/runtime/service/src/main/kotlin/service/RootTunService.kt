@@ -56,6 +56,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import timber.log.Timber
 
 class RootTunService : BaseService() {

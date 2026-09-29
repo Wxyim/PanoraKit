@@ -35,22 +35,6 @@ object MLangMetaFeature {
     fun `Title`(vararg args: Any): String =
         LocaleBootstrap.getString(R.string.meta_feature_title, *args)
 
-    object `RecentRequests` {
-        val `Title`: String
-            get() = LocaleBootstrap.getString(R.string.meta_feature_recent_requests_title)
-
-        @Composable
-        fun `Title`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.meta_feature_recent_requests_title, *args)
-
-        val `Summary`: String
-            get() = LocaleBootstrap.getString(R.string.meta_feature_recent_requests_summary)
-
-        @Composable
-        fun `Summary`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.meta_feature_recent_requests_summary, *args)
-    }
-
     object `RuntimeConfig` {
         val `Title`: String
             get() = LocaleBootstrap.getString(R.string.meta_feature_runtime_config_title)

@@ -36,13 +36,6 @@ object MLangLog {
 
     object `Action` {
 
-        val `Save`: String
-            get() = LocaleBootstrap.getString(R.string.log_action_save)
-
-        @Composable
-        fun `Save`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_action_save, *args)
-
         val `Cleanup`: String
             get() = LocaleBootstrap.getString(R.string.log_action_cleanup)
 
@@ -177,13 +170,6 @@ object MLangLog {
         @Composable
         fun `Title`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.log_startup_title, *args)
-
-        val `LiveSection`: String
-            get() = LocaleBootstrap.getString(R.string.log_startup_live_section)
-
-        @Composable
-        fun `LiveSection`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.log_startup_live_section, *args)
 
         val `ItemSummary`: String
             get() = LocaleBootstrap.getString(R.string.log_startup_item_summary)

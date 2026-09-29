@@ -72,13 +72,6 @@ object MLangAbout {
         fun `Credits`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.about_section_credits, *args)
 
-        val `More`: String
-            get() = LocaleBootstrap.getString(R.string.about_section_more)
-
-        @Composable
-        fun `More`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.about_section_more, *args)
-
         val `License`: String
             get() = LocaleBootstrap.getString(R.string.about_section_license)
 

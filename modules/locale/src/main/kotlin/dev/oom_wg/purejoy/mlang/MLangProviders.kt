@@ -49,13 +49,6 @@ object MLangProviders {
         @Composable
         fun `Update`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.providers_action_update, *args)
-
-        val `Upload`: String
-            get() = LocaleBootstrap.getString(R.string.providers_action_upload)
-
-        @Composable
-        fun `Upload`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.providers_action_upload, *args)
     }
 
     object `Empty` {

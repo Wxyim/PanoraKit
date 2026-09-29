@@ -163,20 +163,6 @@ object MLangProxy {
         @Composable
         fun `SortModeSummary`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_action_sort_mode_summary, *args)
-
-        val `AddProfile`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_add_profile)
-
-        @Composable
-        fun `AddProfile`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_add_profile, *args)
-
-        val `AddProvider`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_action_add_provider)
-
-        @Composable
-        fun `AddProvider`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_action_add_provider, *args)
     }
 
     object `Empty` {
@@ -212,13 +198,6 @@ object MLangProxy {
         fun `Group`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.proxy_testing_group, *args)
 
-        val `All`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_testing_all)
-
-        @Composable
-        fun `All`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_testing_all, *args)
-
         val `Failed`: String
             get() = LocaleBootstrap.getString(R.string.proxy_testing_failed)
 
@@ -235,12 +214,6 @@ object MLangProxy {
     }
 
     object `Selection` {
-        val `Switched`: String
-            get() = LocaleBootstrap.getString(R.string.proxy_selection_switched)
-
-        @Composable
-        fun `Switched`(vararg args: Any): String =
-            LocaleBootstrap.getString(R.string.proxy_selection_switched, *args)
 
         val `Failed`: String
             get() = LocaleBootstrap.getString(R.string.proxy_selection_failed)
