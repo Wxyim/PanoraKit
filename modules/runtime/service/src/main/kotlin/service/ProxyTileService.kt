@@ -67,6 +67,15 @@ internal fun isTileTransitioning(phase: RuntimePhase): Boolean {
 @SuppressLint("NewApi", "StartActivityAndCollapseDeprecated")
 class ProxyTileService : TileService() {
 
+    private companion object {
+        /**
+         * Tile state refresh cadence while the panel is listening. The panel is only open for a
+         * short time and the tile mostly sits in a steady state, so ticks that render the same
+         * state/subtitle are dropped by [renderTile] instead of re-pushing the tile.
+         */
+        private const val TILE_POLL_INTERVAL_MS = 1000L
+    }
+
     private val profileManagerHolder =
         lazy(LazyThreadSafetyMode.NONE) { ProfileManager(applicationContext) }
     private val clashManagerHolder =
@@ -82,6 +91,13 @@ class ProxyTileService : TileService() {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var updateJob: Job? = null
     private var toggleJob: Job? = null
+
+    /**
+     * Last render actually pushed to the system tile, so a tick that would produce the same visual
+     * state skips `updateTile()`. The tile holds a live MMKV/state read per tick, but only the
+     * resulting state/subtitle pair matters to the panel.
+     */
+    private var lastTileRender: TileRender? = null
 
     private val profileManager: ProfileManager
         get() = profileManagerHolder.value
@@ -99,12 +115,17 @@ class ProxyTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
+        // A fresh listening session always re-applies the state, so the diff baseline starts empty.
+        lastTileRender = null
         updateJob?.cancel()
         updateJob =
             scope.launch {
                 while (isActive) {
-                    updateTileState(currentSnapshot())
-                    delay(1000)
+                    // The snapshot reads MMKV and the root-tun state store; keep that off the main
+                    // thread, which is also where the panel's binding threads live.
+                    val snapshot = withContext(Dispatchers.IO) { currentSnapshot() }
+                    updateTileState(snapshot)
+                    delay(TILE_POLL_INTERVAL_MS)
                 }
             }
     }
@@ -112,6 +133,7 @@ class ProxyTileService : TileService() {
     override fun onStopListening() {
         super.onStopListening()
         updateJob?.cancel()
+        lastTileRender = null
     }
 
     override fun onClick() {
@@ -299,51 +321,47 @@ class ProxyTileService : TileService() {
         }
     }
 
+    /**
+     * The only tile fields that vary; label and icon are constant. `subtitle` is narrowed to
+     * [String] so the equality check compares text rather than object identity.
+     */
+    private data class TileRender(val state: Int, val subtitle: String?)
+
     private fun updateTileSteadyState(isRunning: Boolean) {
-        val tile = qsTile ?: return
-        tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
+        renderTile(
+            state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE,
+            subtitle =
                 if (isRunning) {
                     MLang.Service.Tile.ClickToStopProxy
                 } else {
                     MLang.Service.Tile.ClickToStartProxy
-                }
-        }
-
-        tile.icon =
-            Icon.createWithResource(
-                this,
-                if (isRunning) R.drawable.ic_logo_service else R.drawable.ic_logo_service,
-            )
-
-        tile.updateTile()
+                },
+        )
     }
 
     private fun updateTilePendingState(isStarting: Boolean) {
-        val tile = qsTile ?: return
-        tile.state = if (isStarting) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-        tile.label = tileLabelText
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle =
+        renderTile(
+            state = if (isStarting) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE,
+            subtitle =
                 if (isStarting) {
                     MLang.Service.Tile.Connecting
                 } else {
                     MLang.Service.Tile.Disconnecting
-                }
-        }
-
-        tile.icon = Icon.createWithResource(this, R.drawable.ic_logo_service)
-        tile.updateTile()
+                },
+        )
     }
 
     private fun updateTileInactiveState(subtitle: String) {
+        renderTile(state = Tile.STATE_INACTIVE, subtitle = subtitle)
+    }
+
+    private fun renderTile(state: Int, subtitle: CharSequence?) {
         val tile = qsTile ?: return
-        tile.state = Tile.STATE_INACTIVE
+        val render = TileRender(state = state, subtitle = subtitle?.toString())
+        if (render == lastTileRender) return
+        lastTileRender = render
+
+        tile.state = state
         tile.label = tileLabelText
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

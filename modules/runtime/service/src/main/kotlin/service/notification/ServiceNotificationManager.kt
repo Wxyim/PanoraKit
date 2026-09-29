@@ -68,6 +68,9 @@ class ServiceNotificationManager(private val service: Service, private val confi
     private var updateJob: Job? = null
     private var hostScope: CoroutineScope? = null
 
+    /** Last text that actually reached the notification manager, so identical ticks are skipped. */
+    @Volatile private var lastPostedText: RunningNotificationText? = null
+
     /**
      * Receives screen-on/off broadcasts so we can suspend traffic-speed polling while the screen is
      * off and resume it when the user turns the screen back on.
@@ -124,14 +127,7 @@ class ServiceNotificationManager(private val service: Service, private val confi
         val job =
             scope.launch(Dispatchers.Default) {
                 while (isActive) {
-                    if (canPostNotifications()) {
-                        runCatching {
-                            notificationManager.notify(
-                                config.notificationId,
-                                buildRunningNotification(),
-                            )
-                        }
-                    }
+                    maybePostRunningNotification()
                     // Re-check conditions each cycle so we stop promptly when
                     // traffic display is toggled off while the screen stays on.
                     if (!shouldShowTrafficNotification()) {
@@ -191,10 +187,49 @@ class ServiceNotificationManager(private val service: Service, private val confi
             PackageManager.PERMISSION_GRANTED
     }
 
+    /**
+     * Title/content pair of the running notification, used both to build and to diff it. Both are
+     * narrowed to [String] so the equality check compares text rather than object identity.
+     */
+    private data class RunningNotificationText(val title: String, val content: String)
+
+    /**
+     * Re-posts the running notification only when its text actually changed.
+     *
+     * The loop ticks every [ACTIVE_POLL_MS], but while idle the speed and total are identical tick
+     * after tick; rebuilding the notification and calling [NotificationManagerCompat.notify] with
+     * the same content is pure waste (`setOnlyAlertOnce` only suppresses the alert, not the
+     * rebuild). The permission check runs first so a denied permission costs nothing more than the
+     * check, and the last posted text is recorded only after a successful post, so posting resumes
+     * as soon as the permission is granted.
+     */
+    private fun maybePostRunningNotification() {
+        if (!canPostNotifications()) return
+        val text = resolveRunningNotificationText()
+        if (text == lastPostedText) return
+        val posted =
+            runCatching {
+                    notificationManager.notify(
+                        config.notificationId,
+                        buildNotification(text.title, text.content),
+                    )
+                }
+                .isSuccess
+        if (posted) {
+            lastPostedText = text
+        }
+    }
+
     private fun buildRunningNotification(): Notification {
+        val text = resolveRunningNotificationText()
+        lastPostedText = text
+        return buildNotification(text.title, text.content)
+    }
+
+    private fun resolveRunningNotificationText(): RunningNotificationText {
         val profileName = resolveProfileName()
         if (!shouldShowTrafficNotification()) {
-            return buildNotification(profileName, MLang.Service.Notification.Running)
+            return RunningNotificationText(profileName, MLang.Service.Notification.Running)
         }
 
         val traffic =
@@ -210,7 +245,7 @@ class ServiceNotificationManager(private val service: Service, private val confi
         val speedStr = "↓ ${formatSpeed(downNow)} ↑ ${formatSpeed(upNow)}"
         val totalStr =
             MLang.Service.Notification.TrafficFormat.format(formatBytes(upTotal + downTotal))
-        return buildNotification(profileName, "$speedStr | $totalStr")
+        return RunningNotificationText(profileName, "$speedStr | $totalStr")
     }
 
     private fun buildNotification(title: CharSequence, content: CharSequence): Notification {

@@ -91,7 +91,13 @@ class LogViewModel(
         _isRecording.value = false
     }
 
-    fun startAutoRefresh(intervalMillis: Long = 500L) {
+    /**
+     * Periodically re-reads the log browser state while the log screen is visible.
+     *
+     * Each pass lists the log directory and re-parses up to 2000 lines of the live buffer, so the
+     * default cadence is 1s: fast enough to look live, half the CPU/IO of the previous 500ms.
+     */
+    fun startAutoRefresh(intervalMillis: Long = 1000L) {
         if (autoRefreshJob?.isActive == true) return
         autoRefreshJob =
             viewModelScope.launch {

@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -47,6 +48,12 @@ class ConnectionActivityRepository(
         /**
          * Snapshot connections every second so short-lived DNS / TCP handshake sockets are captured
          * before they disappear from the Go core.
+         *
+         * Polling only runs while the app is foregrounded with the screen on
+         * ([RuntimeStateReader.isAppActive]); a backgrounded app has nothing that renders this
+         * list, so it would otherwise pay a full connection-JSON query every second for no visible
+         * result. The tradeoff is that connections that open and close entirely while the app is
+         * not visible are not recorded in the recent-request history.
          */
         private const val POLL_INTERVAL_MS = 1000L
     }
@@ -99,6 +106,13 @@ class ConnectionActivityRepository(
                     }
 
                     while (runtimeStateReader.isRuntimeRunning.value) {
+                        if (!runtimeStateReader.isAppActive.value) {
+                            // Nobody can see the recent-request list while the app is backgrounded
+                            // or the screen is off, so stop querying the core. The outer
+                            // collectLatest cancels this wait as soon as the runtime stops, and the
+                            // first tick after the app returns re-seeds the history.
+                            runtimeStateReader.isAppActive.first { it }
+                        }
                         runCatching {
                                 val connections = runtimeConnectionReader.queryConnections()
                                 ConnectionHistoryManager.updateConnections(connections)

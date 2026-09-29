@@ -36,6 +36,15 @@ interface RuntimeOverrideChangeNotifier {
 
 interface RuntimeStateReader {
     val isRuntimeRunning: StateFlow<Boolean>
+
+    /**
+     * True while the app has a started activity and the screen is on.
+     *
+     * Consumers use this to gate polling that only feeds the UI, so a backgrounded or screen-off
+     * app does not keep querying the core.
+     */
+    val isAppActive: StateFlow<Boolean>
+
     val runtimeTrafficTotal: StateFlow<Long>
     val currentRuntimeProfile: StateFlow<RuntimeProfileRef?>
 }

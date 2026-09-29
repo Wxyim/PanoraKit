@@ -148,12 +148,14 @@ class ProfileManager(private val context: Context) : IProfileManager {
     override suspend fun queryActive(): Profile? {
         val active = store.activeProfile ?: return null
 
-        return if (ImportedDao.exists(active)) {
-            resolveProfile(active)
-        } else {
+        // Single lookup instead of exists() + queryByUUID(): each of those used to re-read and
+        // re-parse the whole imported list, and this runs on every payload refresh tick.
+        val imported = ImportedDao.queryByUUID(active)
+        if (imported == null) {
             store.activeProfile = null
-            null
+            return null
         }
+        return toProfile(imported, active)
     }
 
     override suspend fun setActive(profile: Profile) {
@@ -177,12 +179,14 @@ class ProfileManager(private val context: Context) : IProfileManager {
 
     private suspend fun resolveProfile(uuid: UUID): Profile? {
         val imported = ImportedDao.queryByUUID(uuid) ?: return null
+        return toProfile(imported, store.activeProfile)
+    }
 
-        val active = store.activeProfile
+    private fun toProfile(imported: Imported, active: UUID?): Profile {
         val name = ProfileNameUtils.resolveDisplayName(imported.name, imported.source)
 
         return Profile(
-            uuid,
+            imported.uuid,
             name,
             imported.type,
             imported.source,
@@ -192,7 +196,7 @@ class ProfileManager(private val context: Context) : IProfileManager {
             imported.download,
             imported.total,
             imported.expire,
-            resolveUpdatedAt(uuid),
+            resolveUpdatedAt(imported.uuid),
         )
     }
 

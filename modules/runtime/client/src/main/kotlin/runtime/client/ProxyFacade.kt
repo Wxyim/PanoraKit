@@ -229,15 +229,44 @@ private class AppForegroundObserver(
     private val onWakeRequested: () -> Unit = {},
 ) {
     private val startedActivityCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * Set when the observer is installed after an activity has already received `onActivityStarted`
+     * (ProxyFacade is created lazily by Koin, so the very first start event can be missed). Cleared
+     * by the first `onActivityStopped`, after which [startedActivityCount] is authoritative again.
+     */
+    @Volatile private var unobservedStartedActivity = false
+
+    private val activityManager by lazy {
+        context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+    }
+    private val powerManager by lazy {
+        context.applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+    }
+
+    /**
+     * True only while the app has a started activity *and* the screen is on.
+     *
+     * This is the "is anyone looking at the UI" signal used to gate periodic polling that has no
+     * user-visible effect while backgrounded or screen-off (mode sync, connection snapshots).
+     */
+    private val _active = MutableStateFlow(false)
+    val active: StateFlow<Boolean> = _active.asStateFlow()
+
     private val callback =
         object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 startedActivityCount.incrementAndGet()
+                refreshActive()
                 onWakeRequested()
             }
 
             override fun onActivityStopped(activity: Activity) {
-                startedActivityCount.decrementAndGet()
+                // Clamped at zero: if the matching onActivityStarted was missed the counter would
+                // otherwise stay pinned below the foreground threshold for the rest of the session.
+                startedActivityCount.updateAndGet { count -> (count - 1).coerceAtLeast(0) }
+                unobservedStartedActivity = false
+                refreshActive()
             }
 
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
@@ -255,14 +284,43 @@ private class AppForegroundObserver(
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
-                    Intent.ACTION_SCREEN_ON -> onWakeRequested()
-                    Intent.ACTION_SCREEN_OFF -> Unit
+                    Intent.ACTION_SCREEN_ON -> {
+                        refreshActive()
+                        onWakeRequested()
+                    }
+                    // Screen-off always means inactive. Do not consult PowerManager here: its value
+                    // may not have flipped yet when the broadcast is delivered, and reading it
+                    // would leave periodic pollers running on a dark screen.
+                    Intent.ACTION_SCREEN_OFF -> _active.value = false
                 }
             }
         }
 
     val isForeground: Boolean
-        get() = startedActivityCount.get() > 0
+        get() = startedActivityCount.get() > 0 || unobservedStartedActivity
+
+    /**
+     * True only while an activity of this process is on screen.
+     *
+     * `getRunningAppProcesses()` reports just the caller's own process (API 30+), and a running
+     * foreground *service* reports `IMPORTANCE_FOREGROUND_SERVICE`, which must not count as
+     * "someone is looking at the UI".
+     */
+    private fun isProcessForeground(): Boolean {
+        val manager = activityManager ?: return false
+        return runCatching {
+                manager.runningAppProcesses.orEmpty().any { running ->
+                    running.pid == android.os.Process.myPid() &&
+                        running.importance <=
+                            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                }
+            }
+            .getOrDefault(false)
+    }
+
+    private fun refreshActive() {
+        _active.value = isForeground && powerManager.isInteractive
+    }
 
     fun start() {
         (context.applicationContext as? Application)?.registerActivityLifecycleCallbacks(callback)
@@ -283,11 +341,18 @@ private class AppForegroundObserver(
                 }
             }
             .onFailure { error -> Timber.w(error, "Failed to register screen receiver") }
+        // The observer can be installed after MainActivity was already started, so the lifecycle
+        // callback never sees that first onActivityStarted. Recover the initial foreground state
+        // once instead of keeping every foreground-only poller idle until the next resume.
+        unobservedStartedActivity = startedActivityCount.get() == 0 && isProcessForeground()
+        refreshActive()
     }
 
     fun stop() {
         (context.applicationContext as? Application)?.unregisterActivityLifecycleCallbacks(callback)
         runCatching { context.applicationContext.unregisterReceiver(screenReceiver) }
+        unobservedStartedActivity = false
+        _active.value = false
     }
 }
 
@@ -478,6 +543,15 @@ class ProxyFacade(
     }
     private val appForegroundObserver =
         AppForegroundObserver(appContext, onWakeRequested = { kickTrafficPoller() })
+
+    /**
+     * True while the app has a started activity and the screen is on.
+     *
+     * Periodic pollers whose only product is UI-visible data use this to idle instead of querying
+     * the core while the app is backgrounded or the screen is off.
+     */
+    val isAppActive: StateFlow<Boolean> = appForegroundObserver.active
+
     @Volatile private var lastPayloadRefreshAt = 0L
     private val proxyGroupRefreshGateLock = Any()
     private var lastCoalescedProxyGroupRefreshAt = 0L

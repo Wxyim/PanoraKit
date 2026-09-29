@@ -40,6 +40,17 @@ import timber.log.Timber
 
 class RuntimeClashManager(context: Context, private val local: IClashManager) :
     IClashManager, Closeable {
+
+    private companion object {
+        /**
+         * Root-runtime log polling cadence. Matches `LogRecordService.ROOT_LOG_POLL_INTERVAL_MS`:
+         * each tick is a cross-process binder call into the root process, so it must not run at a
+         * UI-ish rate. (`LogRecordService` owns the recording path and polls the root log itself;
+         * this job only serves an observer attached to this in-process manager.)
+         */
+        private const val ROOT_LOG_POLL_INTERVAL_MS = 2_000L
+    }
+
     private val appContext = context.appContextOrSelf
     private val rootTunStateStore by lazy { RootTunStateStore(appContext) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -256,7 +267,7 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) :
                             .onFailure { error ->
                                 Timber.d(error, "Root runtime log polling skipped")
                             }
-                        delay(300.milliseconds)
+                        delay(ROOT_LOG_POLL_INTERVAL_MS.milliseconds)
                     }
                 }
         } else {

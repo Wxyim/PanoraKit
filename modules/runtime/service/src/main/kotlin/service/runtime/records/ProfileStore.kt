@@ -54,31 +54,77 @@ object ProfileStore {
         encodeDefaults = true
     }
 
+    // ── Decode caches ────────────────────────────────────────────
+    //
+    // Both lists are read far more often than they are written: the runtime asks for the active
+    // profile on every payload refresh, and the service notification resolves the profile name on
+    // every 2s tick. Decoding the whole list each time is pure waste while nothing changed, so the
+    // raw MMKV payload is kept as the cache key (same trick as RootTunStateStore.snapshot()) and
+    // the parse only reruns when the stored string actually differs. A cross-process write always
+    // changes the string, so the cache can never serve stale data.
+    private val importedCacheLock = Any()
+    private var importedCacheKey: String? = null
+    private var importedCache: List<Imported> = emptyList()
+
+    private val selectionsCacheLock = Any()
+    private var selectionsCacheKey: String? = null
+    private var selectionsCache: List<Selection> = emptyList()
+
     fun saveImported(list: List<Imported>) {
         val jsonString = json.encodeToString(ListSerializer(Imported.serializer()), list)
-        mmkv.encode("imported", jsonString)
+        mmkv.encode(IMPORTED_KEY, jsonString)
+        synchronized(importedCacheLock) {
+            importedCacheKey = jsonString
+            importedCache = list
+        }
     }
 
+    /**
+     * Returns the imported-profile list. The returned list is the cached instance and must be
+     * treated as read-only — copy it before mutating (see [ImportedDao]).
+     */
     fun loadImported(): List<Imported> {
         val jsonString = mmkv.decodeString(IMPORTED_KEY) ?: return emptyList()
-        return try {
-            json.decodeFromString(ListSerializer(Imported.serializer()), jsonString)
-        } catch (e: Exception) {
-            emptyList()
+        synchronized(importedCacheLock) {
+            if (importedCacheKey == jsonString) return importedCache
+            val decoded =
+                try {
+                    json.decodeFromString(ListSerializer(Imported.serializer()), jsonString)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            importedCacheKey = jsonString
+            importedCache = decoded
+            return decoded
         }
     }
 
     fun saveSelections(list: List<Selection>) {
         val jsonString = json.encodeToString(ListSerializer(Selection.serializer()), list)
-        mmkv.encode("selections", jsonString)
+        mmkv.encode(SELECTIONS_KEY, jsonString)
+        synchronized(selectionsCacheLock) {
+            selectionsCacheKey = jsonString
+            selectionsCache = list
+        }
     }
 
+    /**
+     * Returns the selection list. The returned list is the cached instance and must be treated as
+     * read-only — copy it before mutating (see [SelectionDao]).
+     */
     fun loadSelections(): List<Selection> {
         val jsonString = mmkv.decodeString(SELECTIONS_KEY) ?: return emptyList()
-        return try {
-            json.decodeFromString(ListSerializer(Selection.serializer()), jsonString)
-        } catch (e: Exception) {
-            emptyList()
+        synchronized(selectionsCacheLock) {
+            if (selectionsCacheKey == jsonString) return selectionsCache
+            val decoded =
+                try {
+                    json.decodeFromString(ListSerializer(Selection.serializer()), jsonString)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            selectionsCacheKey = jsonString
+            selectionsCache = decoded
+            return decoded
         }
     }
 
@@ -129,5 +175,13 @@ object ProfileStore {
 
     fun clear() {
         mmkv.clearAll()
+        synchronized(importedCacheLock) {
+            importedCacheKey = null
+            importedCache = emptyList()
+        }
+        synchronized(selectionsCacheLock) {
+            selectionsCacheKey = null
+            selectionsCache = emptyList()
+        }
     }
 }

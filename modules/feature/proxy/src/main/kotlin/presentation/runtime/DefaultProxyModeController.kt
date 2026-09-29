@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -109,11 +110,23 @@ class DefaultProxyModeController(
         // Refresh immediately when the runtime starts or stops.
         scope.launch { proxyFacade.isRunning.collect { refreshCurrentTunnelMode() } }
 
-        // Keep the displayed mode in sync with the actual runtime mode while
-        // running; fall back to the configured mode when the runtime is stopped.
+        // Refresh as soon as the app becomes visible again so the first frame shows
+        // the current mode instead of waiting for the next idle tick.
+        scope.launch {
+            proxyFacade.isAppActive
+                .filter { it }
+                .collect { if (proxyFacade.isRunning.value) refreshCurrentTunnelMode() }
+        }
+
+        // Keep the displayed mode in sync with the actual runtime mode while running and the UI is
+        // visible; fall back to the configured mode when the runtime is stopped. The core query is
+        // skipped entirely while the app is backgrounded or the screen is off, because the value it
+        // produces is only ever rendered on screen.
         scope.launch {
             while (true) {
-                if (proxyFacade.isRunning.value) {
+                val running = proxyFacade.isRunning.value
+                val active = running && proxyFacade.isAppActive.value
+                if (active) {
                     val actual = runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
                     if (actual != null) {
                         if (_currentMode.value != actual) {
@@ -126,14 +139,14 @@ class DefaultProxyModeController(
                             proxyDisplaySettingsStore.proxyMode.set(actual)
                         }
                     }
-                } else {
+                } else if (!running) {
                     val configured = proxyDisplaySettingsStore.proxyMode.value
                     if (_currentMode.value != configured) {
                         _currentMode.value = configured
                     }
                 }
                 delay(
-                    if (proxyFacade.isRunning.value) {
+                    if (active) {
                         MODE_REFRESH_RUNNING_MS.milliseconds
                     } else {
                         MODE_REFRESH_IDLE_MS.milliseconds

@@ -38,6 +38,8 @@ class ProxyFacadeRuntimeStateReader(proxyFacade: ProxyFacade, scope: CoroutineSc
     RuntimeStateReader {
     override val isRuntimeRunning: StateFlow<Boolean> = proxyFacade.isRunning
 
+    override val isAppActive: StateFlow<Boolean> = proxyFacade.isAppActive
+
     override val runtimeTrafficTotal: StateFlow<Long> = proxyFacade.trafficTotal
 
     override val currentRuntimeProfile: StateFlow<RuntimeProfileRef?> =

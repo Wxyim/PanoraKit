@@ -60,6 +60,9 @@ class RootTunService : BaseService() {
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
     private val powerManager by lazy { getSystemService(PowerManager::class.java) }
     private var notificationJob: Job? = null
+    // Narrowed to String so the "did the text change" check compares text, not identity.
+    @Volatile private var lastPostedTitle: String? = null
+    @Volatile private var lastPostedContent: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -85,11 +88,14 @@ class RootTunService : BaseService() {
                     return START_NOT_STICKY
                 }
 
-                val notification =
-                    buildNotification(
-                        cachedStatus.profileName ?: MLang.Service.Notification.UnknownProfile,
-                        describeStatus(cachedStatus),
-                    )
+                val initialTitle =
+                    cachedStatus.profileName ?: MLang.Service.Notification.UnknownProfile
+                val initialContent = describeStatus(cachedStatus)
+                val notification = buildNotification(initialTitle, initialContent)
+                // The foreground notification is posted by the system, not through
+                // postNotification, so seed the diff baseline here; otherwise the first loop tick
+                // would rebuild and re-post the exact same notification.
+                rememberPostedNotification(initialTitle, initialContent)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     startForeground(
                         NOTIFICATION_ID,
@@ -191,17 +197,19 @@ class RootTunService : BaseService() {
                                     break
                                 }
 
-                                val profileName =
-                                    snapshot.profileName
-                                        ?: MLang.Service.Notification.UnknownProfile
-                                val content =
-                                    if (snapshot.state == RootTunState.Running) {
-                                        buildTrafficContent()
-                                    } else {
-                                        describeStatus(snapshot)
-                                    }
-                                // Skip traffic notification updates when screen is off
                                 if (powerManager.isInteractive) {
+                                    // The screen is the only consumer of this line, and building it
+                                    // costs a cross-process traffic query into the root runtime, so
+                                    // skip both while the screen is off.
+                                    val profileName =
+                                        snapshot.profileName
+                                            ?: MLang.Service.Notification.UnknownProfile
+                                    val content =
+                                        if (snapshot.state == RootTunState.Running) {
+                                            buildTrafficContent()
+                                        } else {
+                                            describeStatus(snapshot)
+                                        }
                                     postNotification(profileName, content)
                                 }
                                 delay(resolveNotificationDelay())
@@ -299,9 +307,29 @@ class RootTunService : BaseService() {
     @SuppressLint("MissingPermission")
     private fun postNotification(title: CharSequence, content: CharSequence) {
         if (!canPostNotifications()) return
-        runCatching {
-            notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content))
+        val titleText = title.toString()
+        val contentText = content.toString()
+        if (titleText == lastPostedTitle && contentText == lastPostedContent) return
+        val posted =
+            runCatching {
+                    notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content))
+                }
+                .isSuccess
+        if (posted) {
+            rememberPostedNotification(titleText, contentText)
         }
+    }
+
+    /**
+     * Records the notification text that last reached the notification manager.
+     *
+     * The status loop re-renders the notification every few seconds; when the profile name and the
+     * rendered traffic/status line are unchanged, rebuilding the builder, both [PendingIntent]s and
+     * calling `notify()` is pure waste.
+     */
+    private fun rememberPostedNotification(title: String, content: String) {
+        lastPostedTitle = title
+        lastPostedContent = content
     }
 
     private fun canPostNotifications(): Boolean {
