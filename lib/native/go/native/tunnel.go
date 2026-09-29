@@ -105,6 +105,103 @@ func queryRuntimeSnapshot() *C.char {
 	})
 }
 
+//export queryRuntimeSnapshotStamp
+func queryRuntimeSnapshotStamp() C.uint64_t {
+	return C.uint64_t(runtimePayloadRevision())
+}
+
+// runtimePayloadRevision hashes exactly what queryRuntimeSnapshot serializes.
+//
+// The client polls that payload every couple of seconds and, in local (in-process) mode, used to
+// pay for a full Go-side marshal, a UTF-8 -> UTF-16 conversion across the JNI boundary and a full
+// Kotlin deserialization on every tick, all of it linear in the number of proxies. The payload is
+// dominated by state that only moves when the user acts or when the core finishes a latency test,
+// so the client compares this hash first and keeps its decoded copy while the hash stands.
+//
+// An equal hash therefore has to mean an equal payload: every field of every structure that
+// queryRuntimeSnapshot marshals is hashed below. When a field is added to RuntimeUiConfiguration
+// (lib/native/go/native/config/load.go), Provider (tunnel/providers.go), ProxyGroup or Proxy
+// (tunnel/proxies.go), it must be hashed here as well. The client additionally expires its copy on
+// a short TTL (see Clash.queryRuntimeSnapshot), so a field missed here can only delay an update
+// instead of freezing it.
+func runtimePayloadRevision() uint64 {
+	ui := config.QueryUiConfiguration()
+
+	h := uint64(fnvOffset64)
+	h = hashString(h, ui.ExternalController)
+	h = hashString(h, ui.ExternalControllerTLS)
+	h = hashString(h, ui.Secret)
+	h = hashString(h, ui.ConfigSource)
+	h = hashString(h, ui.ConfigPath)
+
+	providers := tunnel.QueryProviders()
+	h = hashUint64(h, uint64(len(providers)))
+	for _, p := range providers {
+		h = hashString(h, p.Name)
+		h = hashString(h, p.VehicleType)
+		h = hashString(h, p.Type)
+		h = hashUint64(h, uint64(p.UpdatedAt))
+		h = hashString(h, p.Path)
+		h = hashUint64(h, uint64(p.Count))
+	}
+
+	groups := queryProxyGroups(false, tunnel.Default)
+	h = hashUint64(h, uint64(len(groups)))
+	for _, g := range groups {
+		h = hashString(h, g.Name)
+		h = hashString(h, g.Type)
+		h = hashString(h, g.Now)
+		h = hashBool(h, g.Hidden)
+		h = hashString(h, g.Icon)
+		h = hashUint64(h, uint64(len(g.Proxies)))
+		for _, p := range g.Proxies {
+			h = hashString(h, p.Name)
+			h = hashString(h, p.Title)
+			h = hashString(h, p.Subtitle)
+			h = hashString(h, p.Type)
+			h = hashUint64(h, uint64(int64(p.Delay)))
+			h = hashBool(h, p.Hidden)
+			h = hashString(h, p.Icon)
+		}
+	}
+
+	return h
+}
+
+// fnvOffset64/fnvPrime64 are the FNV-1a constants. The hashing helpers are hand-rolled over
+// strings and integers so that a revision pass allocates nothing and never builds an intermediate
+// representation of the payload it is stamping.
+const (
+	fnvOffset64 = 14695981039346656037
+	fnvPrime64  = 1099511628211
+)
+
+func hashString(h uint64, value string) uint64 {
+	// Length-prefix each field so that neighbouring fields cannot be shifted into each other.
+	h = hashUint64(h, uint64(len(value)))
+	for i := 0; i < len(value); i++ {
+		h ^= uint64(value[i])
+		h *= fnvPrime64
+	}
+	return h
+}
+
+func hashBool(h uint64, value bool) uint64 {
+	if value {
+		return hashUint64(h, 1)
+	}
+	return hashUint64(h, 0)
+}
+
+func hashUint64(h uint64, value uint64) uint64 {
+	for i := 0; i < 8; i++ {
+		h ^= value & 0xff
+		h *= fnvPrime64
+		value >>= 8
+	}
+	return h
+}
+
 //export queryConnections
 func queryConnections() *C.char {
 	return marshalJson(tunnel.QueryConnections())

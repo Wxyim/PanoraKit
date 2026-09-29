@@ -182,6 +182,20 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
   载荷里已移除每 tick 必变的 `trafficNow/trafficTotal`，流量走 `queryTrafficSnapshot`。代理组 500ms TTL。
   均在 UI 订阅时才会被调用（`WhileSubscribed`）。编码结果 ≥512 KiB 时打印告警，`TransactionTooLargeException`
   单独报因（不混入「IPC 断开」）。
+- **本地（同进程）载荷戳**：本地 Tun/HTTP 模式下客户端与核心同进程，载荷不跨 binder，但每次刷新仍要全量
+  marshal、跨 JNI 复制成 UTF-16 字符串并全量反序列化。Go 侧新增 `queryRuntimeSnapshotStamp()`——对
+  `queryRuntimeSnapshot` 序列化的每个字段（配置 / providers / 代理组 / 节点）做零分配 FNV-1a 内容哈希——
+  Kotlin `Clash.queryRuntimeSnapshot()` 先比戳，命中即复用已解码副本（另有 30 秒兜底 TTL，避免将来给载荷
+  加字段却漏进哈希时永久不刷新）。代理页 2 秒 / 其它前台 4 秒的刷新在载荷未变时只剩一次 64 位调用。
+- **本地呈现结果记忆化**：本地归属的 `ClashManager` 把「核心载荷实例 + 已生效选择」当作呈现结果的记忆键。
+  载荷与选择都没动时不再重跑 `SelectionPresentation.apply`（它会为每个组校验记忆节点是否在节点列表里，
+  即一次 O(全部节点) 的 `trim` 分配）与整份 `copy`；每 tick 仍保留的选择同步循环不变，它才是发现
+  「App 之外的选择变更」的地方。`invalidateRuntimeDataCache()` 一并清掉该记忆，用户操作后的语义与加记忆前一致。
+- **最近请求列表**：流量统计页可见时随连接快照每秒重建。原先对「全部活跃连接 + 最多 300 条已关闭连接」
+  都在排序比较器里解析一次起始时间（`sortedByDescending { parseConnectionStartMillis(...) }`，即 O(n log n)
+  次 ISO-8601 解析），并且先构建完整行对象才截断到 100 行；每个行对象还会查询一次 `PackageManager` 解析源应用，
+  对 `chains` 做 3 次 map/filter。现在每条连接只解析一次起始时间，无搜索词时先截断到 100 行再建行，
+  `PackageManager` 查询走正向缓存，链解析合并为一次。
 
 建议：
 
@@ -211,6 +225,8 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | P2 ✅ | root 载荷戳（实例锚点 + 版本）：客户端持同一戳时跳过整份载荷的 binder 传输与 JSON 反序列化 | `SessionRuntime.kt`、`IRootTunService.aidl`、`RootTunRootService.kt`、`RootTunRemoteClient.kt`、`RootTunPayloadCache.kt`、`RootTunController.kt` | RootTun 模式下载荷未变时零传输零 decode（随节点数线性） | 已实现 |
 | P3 ✅ | 运行快照的持久化选择查找按组索引一次；首个快照的选择写入合并为一次落盘 | `ClashManager.kt`、`SelectionLookup.kt`、`SelectionDao.kt` | 每次快照 2N+1 次 MMKV 读 → 1~2 次；首批写入 O(n²) 编码 → 一次 | 已实现 |
 | P3 ✅ | 代理页/节点网格的行分块与行 key 改为 `remember` 记忆化 | `NodeGrid.kt`、`NodeGroups.kt`、`NodeContent.kt`、`Proxy.kt` | 负载刷新时不再每次重组重算 O(行数) 分配与 key 字符串 | 已实现 |
+| P2 ✅ | 本地模式运行载荷戳：对载荷序列化的每个字段做零分配内容哈希，未变时客户端复用已解码副本（含 30s 兜底 TTL） | `native/tunnel.go`、`cpp/main.cpp`、`Bridge.kt`、`Clash.kt` | 本地模式下代理页 2 秒的刷新由 O(全部节点) 的 marshal + JNI 字符串 + 反序列化降到一次 64 位调用 | 已实现（native 侧需 CI 验证） |
+| P3 ✅ | 最近请求管线：先按起始时间排序（每条连接只解析一次）→ 无搜索词时先截断再建行；源应用解析加正向缓存；链解析合并 | `DefaultTrafficStatisticsExplorer.kt`、`AppIdentityResolver.kt` | 统计页每秒的 ISO-8601 解析 O(n log n)→O(n)、建行 O(n)→≤100、`PackageManager` 查询按包缓存 | 已实现 |
 | P2 | 连接列表分页/增量 | `SessionRuntime.queryConnections` | UI 常开时 CPU | 中 |
 | P2 ✅ | `GOGC` 调优：`debug.SetGCPercent(200)` 配合硬内存上限 | `native/main.go` | 高吞吐下 GC 抖动 | 已实现 |
 | P3 | `querySocketUid` 字符串跨 JNI 改整型编码（Go/C++/Kotlin ABI 变更，本仓库离线无法验证，收益受缓存稀释） | `tun.go`+`main.cpp`+`TunInterface` | 再省 ~10~20% miss 路径 | 暂缓 |

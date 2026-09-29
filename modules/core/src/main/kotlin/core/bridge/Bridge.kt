@@ -90,6 +90,16 @@ object Bridge {
 
     external fun nativeQueryRuntimeSnapshot(): String
 
+    /**
+     * Content hash of the payload [nativeQueryRuntimeSnapshot] would return.
+     *
+     * The payload is every proxy group plus providers and configuration, and the client polls it
+     * every couple of seconds. An unchanged hash means unchanged payload text, so the caller can
+     * keep the snapshot it already decoded instead of paying for the marshal, the JNI string copy
+     * and the deserialization again.
+     */
+    external fun nativeQueryRuntimeSnapshotStamp(): Long
+
     external fun nativeQueryConnections(): String
 
     external fun nativeNotifyDnsChanged(dnsList: String)

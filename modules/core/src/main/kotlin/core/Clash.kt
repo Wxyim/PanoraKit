@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.core
 
+import android.os.SystemClock
 import com.github.nomadboxlab.monadbox.core.bridge.*
 import com.github.nomadboxlab.monadbox.core.model.*
 import com.github.nomadboxlab.monadbox.core.util.parseInetSocketAddress
@@ -58,6 +59,22 @@ object Clash {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+    /**
+     * Freshness upper bound for the decoded runtime payload.
+     *
+     * The content stamp below describes the payload exactly, so this is only a safety net: if a
+     * future payload field were ever left out of the native stamp, a change to it could be late by
+     * this window instead of sticking until the next unrelated update. Both poll cadences that read
+     * the payload (2 s on the proxy page, 4 s elsewhere) are far shorter than the bound, so it
+     * costs one extra rebuild per window at most.
+     */
+    private const val RUNTIME_SNAPSHOT_TTL_MS = 30_000L
+
+    private val runtimeSnapshotLock = Any()
+    private var runtimeSnapshotStamp: Long? = null
+    private var runtimeSnapshotCache: RuntimeDataSnapshot? = null
+    private var runtimeSnapshotCachedAt = 0L
 
     fun compilePreview(request: CompileRequest): CompileResult {
         val payload =
@@ -102,11 +119,42 @@ object Clash {
         return TrafficSnapshot(now = values[0], total = values[1])
     }
 
+    /**
+     * The runtime payload: every proxy group, every provider and the active configuration.
+     *
+     * Building it is a full pass over all proxies on the native side (marshal, JNI string copy)
+     * plus a full deserialization here, and the client asks for it every couple of seconds while
+     * the proxy UI is open. The native side therefore reports a content hash first and the decoded
+     * copy is reused while it still matches what the core holds.
+     */
     fun queryRuntimeSnapshot(): RuntimeDataSnapshot {
-        return Json.decodeFromString(
-            RuntimeDataSnapshot.serializer(),
-            Bridge.nativeQueryRuntimeSnapshot(),
-        )
+        val stamp = Bridge.nativeQueryRuntimeSnapshotStamp()
+        synchronized(runtimeSnapshotLock) {
+            val cached = runtimeSnapshotCache
+            if (
+                cached != null &&
+                    runtimeSnapshotStamp == stamp &&
+                    SystemClock.elapsedRealtime() - runtimeSnapshotCachedAt <
+                        RUNTIME_SNAPSHOT_TTL_MS
+            ) {
+                return cached
+            }
+        }
+        val snapshot =
+            Json.decodeFromString(
+                RuntimeDataSnapshot.serializer(),
+                Bridge.nativeQueryRuntimeSnapshot(),
+            )
+        synchronized(runtimeSnapshotLock) {
+            // Only remember the payload while the content stamp still describes it: a change that
+            // lands between the two calls must not be cached under the older stamp.
+            if (Bridge.nativeQueryRuntimeSnapshotStamp() == stamp) {
+                runtimeSnapshotStamp = stamp
+                runtimeSnapshotCache = snapshot
+                runtimeSnapshotCachedAt = SystemClock.elapsedRealtime()
+            }
+        }
+        return snapshot
     }
 
     fun queryConnections(): ConnectionSnapshot {

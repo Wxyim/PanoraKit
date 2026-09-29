@@ -95,6 +95,20 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     @Volatile private var proxyGroupCache: ProxyGroupCache? = null
     private val runtimeDataCacheLock = Any()
     @Volatile private var runtimeDataCache: RuntimeDataCache? = null
+
+    /**
+     * Memo for the presented payload (core snapshot + remembered selections applied).
+     *
+     * Presenting walks every group's node list while it validates the remembered node, and then
+     * copies the whole payload — a pass over all nodes on a path that runs about once per second.
+     * The core payload instance and the persisted selection list are its only inputs, so an
+     * unchanged pair can be handed back as is. Guarded by [runtimeDataCacheLock], and dropped
+     * together with [runtimeDataCache] whenever the runtime state is known to have moved.
+     */
+    private var runtimeDataMemoSource: RuntimeDataSnapshot? = null
+    private var runtimeDataMemoSelections: List<Selection> = emptyList()
+    private var runtimeDataMemoSnapshot: RuntimeDataSnapshot = RuntimeDataSnapshot()
+
     private val connectionCacheLock = Any()
     private var connectionCacheAt = 0L
     private var connectionCache: ConnectionSnapshot? = null
@@ -155,10 +169,38 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 val effectiveSelections =
                     if (pendingSelections.isEmpty()) selections
                     else SelectionDao.setSelectedAll(pendingSelections)
-                snapshot.copy(
-                    proxyGroups =
-                        SelectionPresentation.apply(snapshot.proxyGroups, effectiveSelections)
-                )
+                // The sync loop above still runs on every query (it is what observes selections
+                // made outside the app), but the presentation below only depends on the core
+                // payload instance and the effective selection list, so an unchanged pair reuses
+                // the previous result instead of walking every node again.
+                val memoized =
+                    synchronized(runtimeDataCacheLock) {
+                        if (
+                            runtimeDataMemoSource === snapshot &&
+                                runtimeDataMemoSelections == effectiveSelections
+                        ) {
+                            runtimeDataMemoSnapshot
+                        } else {
+                            null
+                        }
+                    }
+                memoized
+                    ?: run {
+                        val built =
+                            snapshot.copy(
+                                proxyGroups =
+                                    SelectionPresentation.apply(
+                                        snapshot.proxyGroups,
+                                        effectiveSelections,
+                                    )
+                            )
+                        synchronized(runtimeDataCacheLock) {
+                            runtimeDataMemoSource = snapshot
+                            runtimeDataMemoSelections = effectiveSelections
+                            runtimeDataMemoSnapshot = built
+                        }
+                        built
+                    }
             }
         synchronized(runtimeDataCacheLock) {
             runtimeDataCache =
@@ -341,7 +383,11 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     }
 
     private fun invalidateRuntimeDataCache() {
-        synchronized(runtimeDataCacheLock) { runtimeDataCache = null }
+        synchronized(runtimeDataCacheLock) {
+            runtimeDataCache = null
+            runtimeDataMemoSource = null
+            runtimeDataMemoSelections = emptyList()
+        }
     }
 
     /**

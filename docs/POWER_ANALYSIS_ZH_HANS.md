@@ -33,8 +33,10 @@
 - 存储清理：WorkManager 每 15 分钟周期任务（`NOT_REQUIRED` 网络、系统机会式批处理），冷启动时顺带清理一次
 - 统计页时钟、最近请求、今日汇总等均为 `WhileSubscribed` 订阅流：无 UI 订阅者时自动停止（约 5 秒延迟停）
 - 日志页浏览：仅在日志页可见时自动刷新，间隔 1 秒（重新列出日志目录）；实时缓冲改为按「写入代次」判定，没有新日志行时直接复用上次解析结果，不再重复解析最多 2000 行
-- 运行载荷（全部代理组 + providers + 配置）：服务侧按「快照实例 + 已持久化选择」做记忆化，JSON 编码同样复用；快照 TTL 到期后重建的载荷若与上一次内容相等，则直接复用上一次的实例（连同已编码字符串），所以无人操作时既不会重算也不会重编码 O(全部节点)；载荷里已不含每次必变的流量字段
+- 运行载荷（全部代理组 + providers + 配置）：服务侧按「快照实例 + 已持久化选择」做记忆化，JSON 编码同样复用；快照 TTL 到期后重建的载荷若与上一次内容相等，则直接复用上一次的实例（连同已编码字符串），所以无人操作时既不会重算也不会重编码 O(全部节点)；载荷里已不含每次必变的流量字段。本地归属路径（`ClashManager`，本地 Tun/HTTP 模式）对「核心载荷实例 + 已生效选择」再加一层呈现结果记忆化：两者都没动时连 `SelectionPresentation.apply` 的 O(全部节点) 校验与整份 copy 也一起省掉（与 root 归属的 `SessionRuntime` 同一套做法）
 - root 运行时的载荷另带一个「实例锚点 + 版本」戳：客户端拿到同一戳时直接复用自己的副本，连跨 binder 传输与 JSON 反序列化都省掉（仅 RootTun 模式；锚点取自单调时钟，root 进程重启后必然不相等）
+- 本地运行载荷的内容戳：本地 Tun/HTTP 模式下客户端与核心同进程，载荷不跨 binder，但每次刷新仍要全量 marshal、跨 JNI 复制成 UTF-16 字符串并全量反序列化。Go 侧新增 `queryRuntimeSnapshotStamp()`——对载荷序列化的每一个字段做零分配 FNV-1a 内容哈希——命中时客户端直接复用已解码副本（30 秒兜底 TTL），代理页 2 秒 / 其它前台 4 秒的刷新在载荷未变时只剩一次 64 位调用
+- 最近请求列表：统计页可见时随连接快照每秒重建。原先对「全部活跃连接 + 最多 300 条已关闭连接」都在排序比较器里解析一次起始时间（O(n log n) 次 ISO-8601 解析）并构建完整行对象后才截断到 100 行；现在每条连接只解析一次、无搜索词时先截断到 100 行再建行，源应用解析走 `PackageManager` 正向缓存（原先每条连接每次重建都要查询一次），行内链解析由 3 次 map/filter 合并为 1 次
 - 日志流按需打开：没有日志消费者时不订阅核心日志（无 marshal/JNI/decode，也不向 logcat 转发 info/debug 行），最后一个消费者离开 20 秒后自动停止；ERROR/WARNING 仍保留在 logcat 便于快速排障
 
 ## 本轮修复（日志 / 载荷 / 采样 / 重组）
@@ -70,6 +72,13 @@
 | 快照选择查找 | 每次运行快照（约 1 秒一次）为每个代理组各读一次持久化选择（`mmkv.decodeString` + `filter`），N 个组即 2N+1 次读取与 2N 次列表分配 | `SelectionLookup` 按组名一次索引（`ClashManager` 快照/全部组/单组三条路径共用）；等价性由 `SelectionLookupTest` 锁定 |
 | 首批选择写入 | 新装/换配置后的首个快照会逐组 `setSelected`，每次都全量 JSON 编码 + 写 MMKV（O(n²) 编码 + N 次写） | 新增 `SelectionDao.setSelectedAll`，快照内收集后一次合并落盘（语义与逐条调用一致） |
 | 列表行分块与 key | 代理页/节点网格的行分块与行 key 在 `LazyListScope` 扩展里现算，每次重组都重新 `chunked` 并拼接 O(行数) 个 key 字符串，而负载刷新常见为 1~2 秒一次 | 新增 `rememberLazyRows`：按「列表 + 列数」记忆化行分块与 key，只在真正变化时重算（key 形状不变，重名节点仍安全） |
+
+## 本轮修复（本地载荷戳 / 最近请求管线）
+
+| 项 | 问题 | 改动 |
+| --- | --- | --- |
+| 本地模式载荷往返 | RootTun 模式已有「载荷戳」，本地 Tun/HTTP 模式（客户端与核心同进程）仍是每次刷新都全量 marshal + 跨 JNI 复制成 UTF-16 字符串 + 全量反序列化，代理页每 2 秒、其它前台每 4 秒各一次，成本 O(全部节点) | Go 侧新增 `queryRuntimeSnapshotStamp()`：对 `queryRuntimeSnapshot` 序列化的每个字段（配置 / providers / 代理组 / 节点）做零分配 FNV-1a 内容哈希；`Clash.queryRuntimeSnapshot()` 先比戳，命中即复用已解码副本，并带 30 秒兜底 TTL（将来给载荷加字段却漏进哈希时，最多晚 30 秒而不是永久不刷新） |
+| 最近请求列表重建 | 统计页可见时每秒重建一次：`sortedByDescending { parseConnectionStartMillis(...) }` 在比较器里解析 ISO-8601（每次比较一次解析，O(n log n) 次），且「全部活跃连接 + 最多 300 条已关闭连接」都先构建完整行对象才截断到 100 行；每个行对象还会查询一次 `PackageManager` 解析源应用、并对 chains 做 3 次 map/filter | `DefaultTrafficStatisticsExplorer` 改为先按起始时间排序（每条连接只解析一次）→ 无搜索词时先截断到 100 行再建行；`AppIdentityResolver.findInstalledPackage` 增加正向缓存；行内链解析合并为一次 |
 
 ## 真机验证方法
 

@@ -140,6 +140,17 @@ Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryRuntimeSnapsh
   return new_string(response);
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryRuntimeSnapshotStamp(
+    JNIEnv* env, jobject thiz) {
+  TRACE_METHOD();
+
+  // A content hash of the payload nativeQueryRuntimeSnapshot would return. The Kotlin side keeps
+  // its decoded copy while the hash stands, so an unchanged payload skips the marshal, the JNI
+  // string conversion and the deserialization on every poll tick.
+  return (jlong)queryRuntimeSnapshotStamp();
+}
+
 JNIEXPORT jstring JNICALL
 Java_com_github_nomadboxlab_monadbox_core_bridge_Bridge_nativeQueryConnections(JNIEnv* env,
                                                                            jobject thiz) {

@@ -37,6 +37,7 @@ class AppIdentityResolver(context: Context) {
     private val packageCache = ConcurrentHashMap<String, AppIdentity>()
     private val labelCache = ConcurrentHashMap<String, String>()
     private val uidCache = ConcurrentHashMap<Int, String?>()
+    private val installedPackageCache = ConcurrentHashMap<String, String>()
 
     fun resolve(metadata: JsonObject): AppIdentity {
         val explicitPackageName =
@@ -201,11 +202,19 @@ class AppIdentityResolver(context: Context) {
 
     private fun findInstalledPackage(packageName: String): String? {
         if (packageName.isBlank()) return null
+        // Cache the positive answers: the recent-request list resolves the source app of every
+        // connection in its (roughly one per second) rebuild, and this used to ask PackageManager
+        // for the same handful of packages once per connection per rebuild. Negative answers are
+        // not cached, so a package that is only just becoming visible is still picked up later.
+        installedPackageCache[packageName]?.let {
+            return it
+        }
         return runCatching {
                 packageManager.getApplicationInfo(packageName, 0)
                 packageName
             }
             .getOrNull()
+            ?.also { installedPackageCache[packageName] = it }
     }
 
     private fun resolveLabel(packageName: String): String {

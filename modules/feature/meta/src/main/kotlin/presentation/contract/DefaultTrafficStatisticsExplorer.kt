@@ -53,6 +53,19 @@ private data class StatisticsClockSnapshot(
     val timeZoneId: String,
 )
 
+/**
+ * A connection from the active or the closed snapshot, paired with the sort key used to pick the
+ * rows to show and with the flag the built row needs.
+ *
+ * The start timestamp is parsed once per connection here instead of inside the sort comparator,
+ * which used to run one ISO-8601 parse per comparison.
+ */
+private data class RankedConnection(
+    val connection: ConnectionInfo,
+    val isActive: Boolean,
+    val startMillis: Long,
+)
+
 private val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
     get() = this as? JsonPrimitive
 
@@ -144,22 +157,38 @@ class DefaultTrafficStatisticsExplorer(
             ) { activeConnections, closedConnections, searchQuery ->
                 val activeIds = activeConnections.asSequence().map(ConnectionInfo::id).toSet()
                 val needle = searchQuery.trim()
-                val closedRequests =
-                    closedConnections
-                        .asSequence()
-                        .filterNot { it.id in activeIds }
-                        .map { connection -> buildRecord(connection, isActive = false) }
-                        .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
-                val activeRequests =
-                    activeConnections
-                        .asSequence()
-                        .map { connection -> buildRecord(connection, isActive = true) }
-                        .filter { record -> needle.isEmpty() || record.matchesQuery(needle) }
+                // Rank the raw connections first: the ordering used to parse the start timestamp
+                // inside the comparator (one ISO-8601 parse per comparison) and to build a row for
+                // every candidate — the active snapshot plus up to 300 closed ones, once a second —
+                // even though only MAX_RECENT_REQUESTS rows survive the cut.
+                val ranked =
+                    sequence {
+                            activeConnections.forEach { connection ->
+                                yield(rankConnection(connection, isActive = true))
+                            }
+                            closedConnections.forEach { connection ->
+                                if (connection.id !in activeIds) {
+                                    yield(rankConnection(connection, isActive = false))
+                                }
+                            }
+                        }
+                        .sortedByDescending(RankedConnection::startMillis)
 
-                (activeRequests + closedRequests)
-                    .sortedByDescending { parseConnectionStartMillis(it.connection.start) }
-                    .take(MAX_RECENT_REQUESTS)
-                    .toList()
+                if (needle.isEmpty()) {
+                    // Every row matches an empty query, so the cut can happen before the rows
+                    // (app identity, routing chain, reject flag) are built.
+                    ranked
+                        .take(MAX_RECENT_REQUESTS)
+                        .map { buildRecord(it.connection, it.isActive) }
+                        .toList()
+                } else {
+                    // A hit depends on the built row, so the filter has to see all of them.
+                    ranked
+                        .map { buildRecord(it.connection, it.isActive) }
+                        .filter { record -> record.matchesQuery(needle) }
+                        .take(MAX_RECENT_REQUESTS)
+                        .toList()
+                }
             }
             .sample(SAMPLE_INTERVAL_MS)
             .stateIn(scope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -284,6 +313,13 @@ class DefaultTrafficStatisticsExplorer(
             .getOrDefault(Long.MIN_VALUE)
     }
 
+    private fun rankConnection(connection: ConnectionInfo, isActive: Boolean) =
+        RankedConnection(
+            connection = connection,
+            isActive = isActive,
+            startMillis = parseConnectionStartMillis(connection.start),
+        )
+
     /**
      * Extract the top-level proxy group name from the connection's recorded
      * [ConnectionInfo.chains]. Uses the original chain data — independent of the current proxy
@@ -294,8 +330,7 @@ class DefaultTrafficStatisticsExplorer(
      * (DIRECT / REJECT) are skipped; the "GLOBAL" pseudo-group is kept since it is the actual
      * routing group in global mode.
      */
-    private fun resolveTopLevelGroupName(connection: ConnectionInfo): String? {
-        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
+    private fun resolveTopLevelGroupName(chains: List<String>): String? {
         if (chains.isEmpty()) return null
         return chains.last().takeIf { it.uppercase(Locale.ROOT) !in HARD_POLICY_NODE_NAMES }
     }
@@ -305,8 +340,7 @@ class DefaultTrafficStatisticsExplorer(
      * mihomo reports chains innermost-first, so the first chain element is the actual exit node
      * that handled the connection.
      */
-    private fun resolveBottomNodeName(connection: ConnectionInfo): String? {
-        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
+    private fun resolveBottomNodeName(chains: List<String>): String? {
         if (chains.isEmpty()) return localizeBuiltInProxyName("DIRECT")
         return localizeBuiltInProxyName(chains.first())
     }
@@ -315,8 +349,7 @@ class DefaultTrafficStatisticsExplorer(
      * True when the connection exited through a reject policy. mihomo reports chains
      * innermost-first, so the first element is the actual exit node.
      */
-    private fun isRejectedConnection(connection: ConnectionInfo): Boolean {
-        val chains = connection.chains.map(String::trim).filter(String::isNotEmpty)
+    private fun isRejectedConnection(chains: List<String>): Boolean {
         if (chains.isEmpty()) return false
         return chains.first().uppercase(Locale.ROOT) in REJECT_NODE_NAMES
     }
@@ -341,16 +374,26 @@ class DefaultTrafficStatisticsExplorer(
 
     private fun buildRecord(connection: ConnectionInfo, isActive: Boolean): RecentRequestRecord {
         val (appName, packageName) = resolveAppIdentity(connection)
+        val chains = normalizeChains(connection)
         return RecentRequestRecord(
             connection = connection,
             isActive = isActive,
-            topLevelGroupName = resolveTopLevelGroupName(connection),
-            bottomNodeName = resolveBottomNodeName(connection),
+            topLevelGroupName = resolveTopLevelGroupName(chains),
+            bottomNodeName = resolveBottomNodeName(chains),
             sourceAppName = appName,
             sourcePackageName = packageName,
-            isRejected = isRejectedConnection(connection),
+            isRejected = isRejectedConnection(chains),
         )
     }
+
+    /**
+     * The connection's chains, trimmed and without empties.
+     *
+     * The three chain-derived fields of a row each used to re-map and re-filter the same list, so
+     * every built row allocated six lists; they now share one.
+     */
+    private fun normalizeChains(connection: ConnectionInfo): List<String> =
+        connection.chains.map(String::trim).filter(String::isNotEmpty)
 
     companion object {
         /** Names of the DIRECT built-in policy (with Chinese alias). */
