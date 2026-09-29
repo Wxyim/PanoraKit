@@ -28,6 +28,7 @@ import android.content.ServiceConnection
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import com.github.nomadboxlab.monadbox.core.model.RuntimeDataSnapshot
 import com.github.nomadboxlab.monadbox.service.common.util.appContextOrSelf
 import com.topjohnwu.superuser.ipc.RootService
 import kotlin.coroutines.resume
@@ -45,6 +46,14 @@ object RootTunRemoteClient {
     @Volatile private var binder: IRootTunService? = null
 
     @Volatile private var connection: ServiceConnection? = null
+
+    private val payloadCache = RootTunPayloadCache()
+
+    fun cachedRuntimeDataSnapshot(stamp: LongArray): RuntimeDataSnapshot? = payloadCache.get(stamp)
+
+    fun rememberRuntimeDataSnapshot(stamp: LongArray, snapshot: RuntimeDataSnapshot) {
+        payloadCache.put(stamp, snapshot)
+    }
 
     suspend fun <T> remoteCall(
         context: Context,
@@ -171,6 +180,7 @@ object RootTunRemoteClient {
             withContext(Dispatchers.Main) { runCatching { RootService.unbind(current) } }
             connection = null
             binder = null
+            payloadCache.clear()
         }
     }
 
@@ -199,6 +209,7 @@ object RootTunRemoteClient {
     private fun invalidateConnection(context: Context, reason: String?) {
         binder = null
         connection = null
+        payloadCache.clear()
         RootTunRuntimeRecovery.handleBinderGone(context, reason)
     }
 

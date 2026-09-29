@@ -63,9 +63,10 @@
 | 轮询 | 周期 | 触发条件 | 电量等级 | 本次 |
 | --- | --- | --- | --- | --- |
 | 流量（ProxyFacade） | 2s / 后台 60s | 前台 + 亮屏 + 运行中；否则 60s 空转 | 中 | 未动 |
-| 显示模式同步 | 1.5s / 后台 10s | 前台 + 亮屏 + 运行中；否则不查询核心 | 低 | 已门控 |
-| 连接列表（ConnectionActivityRepository） | 1s | 前台 + 亮屏 + 运行中；否则挂起 | 中 | 已门控 |
-| 运行状态快照 | 1s TTL 缓存 + 「快照实例 + 选择」记忆化 | 有订阅者 | 低 | 已加记忆化 |
+| 显示模式同步 | 5s / 后台 10s | 前台 + 亮屏 + 运行中；否则不查询核心 | 低 | 已降频 |
+| 连接列表（ConnectionActivityRepository） | 有订阅者 1s / 无订阅者 5s | 前台 + 亮屏 + 运行中；否则挂起 | 中 | 已按订阅门控 |
+| 运行状态快照 | 1s TTL 缓存 + 「快照实例 + 选择」记忆化 + 重建后内容相等即复用 | 有订阅者 | 低 | 已加记忆化 + 内容复用 |
+| 运行状态快照（RootTun 跨进程） | 每次刷新都被服务端戳挡在「载荷未变」之外：不传输、不反序列化 | 有订阅者 + RootTun 模式 | 低 | 已加戳复用 |
 | 代理组 | 1s 合并窗 / 500ms TTL 缓存 | 有订阅者 | 低 | 已加记忆化 |
 | 代理组（延迟测试期） | 请求 500ms / 真正重建 1s | 代理页可见 + 测试进行中 | 低 | 已降频 |
 | 本地 Tun 流量通知 | 2s | 亮屏 + 开启流量通知；否则自停；文本未变则跳过重建 | 中 | 已降耗 |
@@ -73,10 +74,11 @@
 | 流量统计落盘 | 5s 采样 / 30s 批量写 MMKV | 运行中；非前台或熄屏降为 30s 采样 | 低 | 已降耗 |
 | Root 日志记录 | 2s | Root 模式 + 日志开启 | 中 | 未动 |
 | 核心日志流 | 无消费者时不打开；空闲 20s 自停 | 有人取日志（日志页 / 录制） | 中 | 已按需 |
-| 最近请求历史 | 1s 取连接快照 | 前台 + 亮屏 + 运行中 | 中 | native 采样器降耗 + 已门控 |
+| 最近请求历史 | 1s（统计页可见）/ 5s（保温）取连接快照 | 前台 + 亮屏 + 运行中；关闭保留窗口 ≥6s 保证不漏 | 中 | native 采样器降耗 + 订阅门控 |
 
-所有高频轮询均已按亮屏/前台/订阅门控：显示模式同步与连接列表现在跟随「前台 + 亮屏」起停，
-不可见时不再查询核心。
+所有高频轮询均已按亮屏/前台/订阅门控：显示模式同步与连接列表跟随「前台 + 亮屏」起停，
+不可见时不再查询核心；连接列表进一步在「无订阅者」时降到 5s 保温档（唯一消费方是流量统计页，
+保温只为下次打开时历史不为空）。
 
 ## 5. 本次优化电量影响汇总
 
@@ -94,21 +96,28 @@
 | 启动三路并行 | `SessionRuntime.kt` | 冷启动高功耗段缩短 |
 | 快速地址解析 | `Net.kt` | 减少每 miss 的分配/GC |
 | MTU 1500 | 多处 | 避免 PMTU 重传；包数增量可忽略 |
-| 显示模式同步门控 | `DefaultProxyModeController.kt` | 后台/熄屏期间 1.5s 核心查询 → 0 |
-| 连接快照门控 | `ConnectionActivityRepository.kt` | 后台/熄屏期间 1s 连接 JSON 查询 → 0 |
+| 显示模式同步门控 + 兜底降频 | `DefaultProxyModeController.kt` | 后台/熄屏期间 1.5s 核心查询 → 0；前台兜底 1.5s→5s |
+| 连接快照门控 + 订阅降频 | `ConnectionActivityRepository.kt` | 后台/熄屏期间 1s 连接 JSON 查询 → 0；无订阅者时 1s→5s（前台其余时间 -80%） |
+| 关闭连接窗口自适应 | `tunnel/conn.go` | 固定 2s → 下限 6s 并跟随实测轮询间隔，配合 5s 保温档不漏关闭记录 |
+| 连接历史去重 | `ConnectionHistoryManager.kt` | 关闭连接去重由 O(缓冲) 线性扫描改为 O(1) id 集合 |
+| 载荷内容复用 + 体积告警 | `SessionRuntime.kt`、`UiConfiguration.kt`、`RootTunRuntimeRecovery.kt` | TTL 到期但内容未变时不再重编码/以新实例下发；≥512 KiB 打印告警，`TransactionTooLargeException` 单独报因 |
+| 日志页增量解析 | `LogRecordService.kt`、`LogViewModel.kt` | 实时缓冲新增写入选代次，未变化时不再重复解析 2000 行 |
 | 通知文本去重 | `ServiceNotificationManager.kt`、`RootTunService.kt` | 空闲时不再重建 builder/PendingIntent/notify |
 | 磁贴更新去重 + IO 读取 | `ProxyTileService.kt` | 面板可见期间只在状态变化时更新 |
 | 配置/选择反序列化缓存 | `ProfileStore.kt`、`ProfileManager.kt` | 每次快照刷新少 2~3 次全量 JSON 解析 |
 | 首页流量重组下沉 + 旋转层化 | `HomeViewModel.kt`、`HomePager.kt`、`TrafficDisplay.kt`、`NodeCard.kt` | 2s 流量更新不再重组整页；空闲卡片不再跑旋转动画 |
+| root 载荷戳复用 | `SessionRuntime.kt`、`RootTunRemoteClient.kt`、`RootTunPayloadCache.kt` | RootTun 下载荷未变时每次刷新的整份 binder 传输 + JSON decode → 一次两 long 的调用 |
+| 选择查找批量化 | `ClashManager.kt`、`SelectionLookup.kt`、`SelectionDao.kt` | 每次快照 2N+1 次 MMKV 读 → 1~2 次；首批选择写入 N 次编码 → 1 次 |
+| 列表行分块/键记忆化 | `NodeGrid.kt`、`NodeGroups.kt`、`NodeContent.kt`、`Proxy.kt` | 代理页重组不再重算 O(行数) 分块与 key 字符串 |
 
 净结论：**数据面/客户端轮询电量不变或改善，native 空闲常驻成本显著下降**——TUN 无流量时的后台电耗是
 本次优化的主要受益场景。
 
 ## 6. 剩余电量优化点
 
-1. 连接列表 1s 轮询门控：仅当「统计/最近请求」页可见时轮询（当前运行中即轮询）。需权衡：近期请求历史只在
-   UI 展示时有意义，UI 关闭时可暂停采样+轮询。中收益、产品取舍。**已完成**：改为「前台 + 亮屏」时 1s 轮询，
-   否则挂起；代价是 App 不可见期间开关的短连接不进入历史。
+1. 连接列表轮询门控（可见 1s / 保温 5s）：仅当「统计/最近请求」页可见时高频率轮询。需权衡：近期请求历史只在 UI 展示时有意义，
+   UI 关闭时可暂停采样+轮询。**已完成**：有订阅者时 1s、无订阅者时 5s 保温、后台/熄屏挂起；代价是 App
+   不可见期间开关的短连接仍不进入历史（关闭保留窗口已提到 ≥6s，保温档不漏）。
 2. 事件驱动采样（hook `Manager.Leave()`）：可 100% 捕获且省掉全部定时唤醒；需改 mihomo kernel，
    `sync-kernel.sh` 每次重克隆上游、无 patch 机制，不可持续。
 3. 更细间隔（10ms）：收益递减，不推荐。

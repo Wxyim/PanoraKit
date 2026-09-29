@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.nomadboxlab.monadbox.core.model.LogMessage
 import com.github.nomadboxlab.monadbox.data.repository.DebugExportBundleBuilder
+import com.github.nomadboxlab.monadbox.data.repository.LogProvider
 import com.github.nomadboxlab.monadbox.data.repository.LogRepository
 import com.github.nomadboxlab.monadbox.domain.model.StructuredLogCollector
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,12 @@ class LogViewModel(
 
     private val refreshMutex = Mutex()
     private var autoRefreshJob: Job? = null
+
+    /**
+     * Revision of the live log tail that [tempLogEntries] was parsed from, or null when the cached
+     * entries are stale (nothing read yet, or recording stopped).
+     */
+    private var parsedTempLogRevision: Long? = null
 
     private val _isRecording = MutableStateFlow(repository.isRecording())
     val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
@@ -137,9 +144,7 @@ class LogViewModel(
                         }
                     val tempEntries =
                         if (recording) {
-                            repository.readTempLogEntries().map {
-                                LogEntry(time = it.time, level = it.level, message = it.message)
-                            }
+                            readTempLogEntriesIfChanged()
                         } else {
                             emptyList()
                         }
@@ -150,6 +155,9 @@ class LogViewModel(
             _historyFiles.value = browserState.historyFiles
             _startupFiles.value = browserState.startupFiles
             _tempLogEntries.value = browserState.tempEntries
+            if (!browserState.isRecording) {
+                parsedTempLogRevision = null
+            }
 
             val selectedHistory = _selectedHistoryFileName.value
             if (
@@ -173,6 +181,24 @@ class LogViewModel(
 
     fun refreshHistoryFiles() {
         requestBrowserStateRefresh()
+    }
+
+    /**
+     * Re-parse the live log tail only when the recorder actually appended something.
+     *
+     * The auto-refresh tick runs once a second while this screen is visible, but log output is
+     * bursty: most ticks see an unchanged tail. [LogProvider.liveLogLinesRevision] lets those ticks
+     * reuse the previously parsed list instead of re-parsing (and re-allocating) up to 2000 lines.
+     */
+    private suspend fun readTempLogEntriesIfChanged(): List<LogEntry> {
+        val revision = repository.liveLogLinesRevision()
+        if (revision == parsedTempLogRevision) {
+            return _tempLogEntries.value
+        }
+        parsedTempLogRevision = revision
+        return repository.readTempLogEntries().map {
+            LogEntry(time = it.time, level = it.level, message = it.message)
+        }
     }
 
     fun refreshStartupFiles() {

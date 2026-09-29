@@ -92,6 +92,8 @@ fun NodeSheetContent(
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(sheetHeight)) {
         val columns =
             rememberAdaptiveNodeGridColumns(maxWidth = maxWidth, displayMode = displayMode)
+        val rows =
+            rememberLazyRows(items = group.proxies, columns = columns) { proxy -> proxy.name }
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).overScrollVertical(),
@@ -130,6 +132,7 @@ fun NodeSheetContent(
 
             adaptiveNodeGridItems(
                 proxies = group.proxies,
+                rows = rows,
                 columns = columns,
                 selectedProxyName = group.now,
                 onProxyClick = { proxyName ->

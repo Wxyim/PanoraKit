@@ -177,9 +177,11 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
   10~20ms 72.2%、20ms 及以上 **100%**（50ms 间隔时分别为 73.7% / 8.8% / 28.3% / 48.1% / 78.6%）。
 - `queryTrafficSnapshot` 前台 2s、后台 60s 轮询，成本低（`down_scale_traffic` 已压成 30bit 计数）。
 - `queryRuntimeDataSnapshot`：服务侧 1s TTL，并把「快照实例 + 已持久化选择」与序列化结果都做记忆化——
-  载荷（全部代理组 + providers + 配置）在无人操作时不再每 tick 重建/重编码；载荷里已移除每 tick 必变的
-  `trafficNow/trafficTotal`，流量走 `queryTrafficSnapshot`。代理组 500ms TTL。均在 UI 订阅时才会被调用
-  （`WhileSubscribed`）。
+  载荷（全部代理组 + providers + 配置）在无人操作时不再每 tick 重建/重编码；TTL 到期后重建的载荷若与上一次
+  **内容相等**（未动选择/配置/provider），则直接复用上一次实例，编码字符串与下游的实例记忆化一并命中；
+  载荷里已移除每 tick 必变的 `trafficNow/trafficTotal`，流量走 `queryTrafficSnapshot`。代理组 500ms TTL。
+  均在 UI 订阅时才会被调用（`WhileSubscribed`）。编码结果 ≥512 KiB 时打印告警，`TransactionTooLargeException`
+  单独报因（不混入「IPC 断开」）。
 
 建议：
 
@@ -203,6 +205,12 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | P1 ✅ | GSO 不启用：本地/root 的 `LC.Tun.GSO` 均保持 false，Go 侧强制 `tun.enable=false` 使 profile 覆盖无法开启 | `tun/tun.go`/`tun/root.go`/`config/override.go` | 保持稳定分段行为，避免未经验证的吞吐风险 | 已确认 |
 | P2 ✅ | 启动并行化：App→UID 发布并入三路 async，与 transport.prepare/compileAndLoad 并行；GLOBAL selection 因 patchSelector 改核心保持串行 | `SessionRuntime.startInternal` | 冷启动再省一段 | 已实现 |
 | P2 ✅ | 最近关闭采样器：`Range` 替代 `Snapshot()`（免 `/proc/statm` 读取）+ 空闲 fast-path；间隔 50ms→20ms 提升短连接捕获，空闲退避 250ms 平衡电量（唤醒 50/s→4/s） | `tunnel/conn.go` | 后台轮询开销 + 短连接可观测性 + 电量 | 已实现 |
+| P1 ✅ | 连接列表订阅门控 + 关闭保留窗口自适应 + 历史去重 O(1) | `ConnectionActivityRepository.kt`、`ConnectionHistoryManager.kt`、`tunnel/conn.go` | 前台无订阅者时连接 JSON 往返 1/s→1/5s（-80%），历史捕获不漏 | 已实现 |
+| P2 ✅ | 载荷内容复用 + 体积告警 + `TransactionTooLargeException` 单独报因 | `SessionRuntime.kt`、`UiConfiguration.kt`、`RootTunRuntimeRecovery.kt` | TTL 到期但内容未变时不再重编码/以新实例下发 | 已实现 |
+| P3 ✅ | 显示模式兜底 1.5s→5s；日志页按写入代次增量解析；删除 `AppConstants.Timing/Limits` 死常量 | `DefaultProxyModeController.kt`、`LogRecordService.kt`、`LogViewModel.kt`、`AppConstants.kt` | 减少无收益轮询与重复解析 | 已实现 |
+| P2 ✅ | root 载荷戳（实例锚点 + 版本）：客户端持同一戳时跳过整份载荷的 binder 传输与 JSON 反序列化 | `SessionRuntime.kt`、`IRootTunService.aidl`、`RootTunRootService.kt`、`RootTunRemoteClient.kt`、`RootTunPayloadCache.kt`、`RootTunController.kt` | RootTun 模式下载荷未变时零传输零 decode（随节点数线性） | 已实现 |
+| P3 ✅ | 运行快照的持久化选择查找按组索引一次；首个快照的选择写入合并为一次落盘 | `ClashManager.kt`、`SelectionLookup.kt`、`SelectionDao.kt` | 每次快照 2N+1 次 MMKV 读 → 1~2 次；首批写入 O(n²) 编码 → 一次 | 已实现 |
+| P3 ✅ | 代理页/节点网格的行分块与行 key 改为 `remember` 记忆化 | `NodeGrid.kt`、`NodeGroups.kt`、`NodeContent.kt`、`Proxy.kt` | 负载刷新时不再每次重组重算 O(行数) 分配与 key 字符串 | 已实现 |
 | P2 | 连接列表分页/增量 | `SessionRuntime.queryConnections` | UI 常开时 CPU | 中 |
 | P2 ✅ | `GOGC` 调优：`debug.SetGCPercent(200)` 配合硬内存上限 | `native/main.go` | 高吞吐下 GC 抖动 | 已实现 |
 | P3 | `querySocketUid` 字符串跨 JNI 改整型编码（Go/C++/Kotlin ABI 变更，本仓库离线无法验证，收益受缓存稀释） | `tun.go`+`main.cpp`+`TunInterface` | 再省 ~10~20% miss 路径 | 暂缓 |

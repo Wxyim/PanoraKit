@@ -96,6 +96,19 @@ class SessionRuntime(
     private var runtimeDataMemoJsonSource: RuntimeDataSnapshot? = null
     private var runtimeDataMemoJson: String? = null
 
+    /**
+     * Identifies this runtime instance and the version of the payload memo it has produced.
+     *
+     * The root service exposes the pair to its client (see
+     * `IRootTunService.queryRuntimeSnapshotStamp`), which then skips both the binder transfer and
+     * the JSON decode while it already holds the same stamp. The anchor comes from the device-wide
+     * monotonic clock, so a recreated runtime can never re-use a stamp that an earlier instance
+     * handed out — that is what makes the client-side cache safe across root-service restarts.
+     */
+    private val runtimeDataAnchor = SystemClock.elapsedRealtimeNanos()
+
+    @Volatile private var runtimeDataRevision = 0L
+
     private val logSeq = AtomicLong(0L)
     private val recentLogs = ArrayDeque<Pair<Long, String>>()
     private val recentLogsLock = Any()
@@ -338,6 +351,16 @@ class SessionRuntime(
     }
 
     /**
+     * Cheap identity of the payload returned by [queryRuntimeDataSnapshotJson].
+     *
+     * `[anchor, revision]`: unchanged pair means the payload text did not change since the stamp
+     * was taken, so the root client can keep its cached copy instead of pulling the (potentially
+     * hundreds of KB) JSON across the binder again. [runtimeDataRevision] advances exactly where
+     * the memoized presentation is replaced, so it cannot report "unchanged" for new content.
+     */
+    fun runtimeDataStamp(): LongArray = longArrayOf(runtimeDataAnchor, runtimeDataRevision)
+
+    /**
      * The payload of [queryRuntimeDataSnapshot], already serialized for the root-service binder.
      *
      * Serializing the presentation is a full pass over every proxy group, so the encoded form is
@@ -350,6 +373,17 @@ class SessionRuntime(
             val cached = runtimeDataMemoJson
             if (cached != null && runtimeDataMemoJsonSource === presented) return cached
             val encoded = com.github.nomadboxlab.monadbox.service.root.RootTunJson.encode(presented)
+            if (encoded.length >= RUNTIME_PAYLOAD_WARN_CHARS) {
+                // Binder transactions are capped around 1 MiB process-wide; a payload this large is
+                // one big profile away from failing with TransactionTooLargeException, which the
+                // client can only report as a vague IPC error. Log it here, where the size is
+                // known.
+                Timber.w(
+                    "RootTun runtime payload is %d chars (~%d KiB); the binder transaction limit is close",
+                    encoded.length,
+                    encoded.length / 1024,
+                )
+            }
             runtimeDataMemoJsonSource = presented
             runtimeDataMemoJson = encoded
             return encoded
@@ -363,6 +397,12 @@ class SessionRuntime(
      * presentation only depends on that instance plus the persisted selections, so both act as the
      * memo key. A selection change therefore still shows up on the next query without waiting for
      * the TTL.
+     *
+     * Once the TTL lapses the snapshot is rebuilt from the core, but the rebuilt presentation is
+     * usually *equal* to the previous one — nothing about the groups, providers or configuration
+     * actually changed. Discarding it in favour of the previous instance keeps the identity-keyed
+     * memo in [queryRuntimeDataSnapshotJson] (and every identity check downstream) valid, so an
+     * unchanged payload is neither re-encoded nor treated as new by the client.
      */
     private fun presentedRuntimeDataSnapshot(): RuntimeDataSnapshot {
         val snapshot = ensureRuntimeSnapshot()
@@ -371,6 +411,7 @@ class SessionRuntime(
             if (runtimeDataMemoSource === snapshot && runtimeDataMemoSelections == selections) {
                 return runtimeDataMemoSnapshot
             }
+            val previous = runtimeDataMemoSnapshot
             val presented =
                 RuntimeDataSnapshot(
                     configuration = snapshot.configuration,
@@ -379,7 +420,11 @@ class SessionRuntime(
                 )
             runtimeDataMemoSource = snapshot
             runtimeDataMemoSelections = selections
+            if (presented == previous) return previous
             runtimeDataMemoSnapshot = presented
+            // The payload changed, so every stamp handed out from here on differs from the one
+            // the client may be caching.
+            runtimeDataRevision += 1
             return presented
         }
     }
@@ -1326,5 +1371,13 @@ class SessionRuntime(
         private const val RUNTIME_SNAPSHOT_CACHE_TTL_MS = 1_000L
         private const val CONNECTION_CACHE_TTL_MS = 100L
         private const val PROXY_GROUP_CACHE_TTL_MS = 500L
+
+        /**
+         * Rough size (in UTF-16 chars) at which the runtime payload is logged as a binder risk.
+         *
+         * The binder has a ~1 MiB per-transaction budget shared with everything else crossing that
+         * call, so a payload in this range is worth a warning even though it still fits.
+         */
+        private const val RUNTIME_PAYLOAD_WARN_CHARS = 512 * 1024
     }
 }

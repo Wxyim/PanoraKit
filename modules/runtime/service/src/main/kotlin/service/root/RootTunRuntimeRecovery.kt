@@ -26,6 +26,7 @@ import android.content.Intent
 import android.os.DeadObjectException
 import android.os.IInterface
 import android.os.RemoteException
+import android.os.TransactionTooLargeException
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.service.RootTunService
@@ -60,6 +61,12 @@ object RootTunRuntimeRecovery {
     }
 
     fun binderFailureReason(error: Throwable): String {
+        // TransactionTooLargeException is a RemoteException but means something completely
+        // different from a severed connection: the payload did not fit the binder transaction
+        // budget. Saying so points at the profile/group count instead of blaming the IPC channel.
+        if (generateSequence(error) { it.cause }.any { it is TransactionTooLargeException }) {
+            return "RootTun IPC payload exceeded the binder transaction limit"
+        }
         return generateSequence(error) { it.cause }
             .mapNotNull { cause -> cause.message?.trim()?.takeIf(String::isNotEmpty) }
             .firstOrNull() ?: "RootTun IPC disconnected"

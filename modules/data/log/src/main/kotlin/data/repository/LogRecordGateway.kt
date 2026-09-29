@@ -37,4 +37,10 @@ interface LogRecordGateway {
     fun getLogDir(application: Application): File
 
     fun snapshotLiveLogLines(maxLines: Int): List<String>
+
+    /**
+     * Revision of the live log tail; an unchanged value means [snapshotLiveLogLines] would return
+     * the same lines again, so consumers can skip re-reading and re-parsing them.
+     */
+    fun liveLogLinesRevision(): Long
 }

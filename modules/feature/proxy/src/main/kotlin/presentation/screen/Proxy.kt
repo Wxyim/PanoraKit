@@ -99,6 +99,7 @@ import com.github.nomadboxlab.monadbox.presentation.screen.node.NodeCard
 import com.github.nomadboxlab.monadbox.presentation.screen.node.RotatingCircleGauge
 import com.github.nomadboxlab.monadbox.presentation.screen.node.adaptiveNodeGroupItems
 import com.github.nomadboxlab.monadbox.presentation.screen.node.proxyLatencyVisual
+import com.github.nomadboxlab.monadbox.presentation.screen.node.rememberLazyRows
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalWindowAdaptiveInfo
@@ -503,6 +504,10 @@ private fun ProxyContent(
             } else {
                 null
             }
+        val groupRows =
+            rememberLazyRows(items = proxyGroups, columns = groupColumns) { group ->
+                "${group.type.name}:${group.name}"
+            }
 
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
@@ -530,6 +535,7 @@ private fun ProxyContent(
 
             adaptiveNodeGroupItems(
                 groups = proxyGroups,
+                rows = groupRows,
                 columns = groupColumns,
                 displayMode = displayMode,
                 onGroupClick = onGroupClick,

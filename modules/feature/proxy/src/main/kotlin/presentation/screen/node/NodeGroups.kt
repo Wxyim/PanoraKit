@@ -139,6 +139,7 @@ internal fun LazyListScope.nodeGroupItems(
 
 internal fun LazyListScope.adaptiveNodeGroupItems(
     groups: List<ProxyGroupInfo>,
+    rows: List<LazyRowChunk<ProxyGroupInfo>>,
     columns: Int,
     displayMode: ProxyDisplayMode,
     onGroupClick: (ProxyGroupInfo) -> Unit,
@@ -172,14 +173,8 @@ internal fun LazyListScope.adaptiveNodeGroupItems(
         return
     }
 
-    val rows = groups.chunked(columns)
-    items(
-        items = rows,
-        key = { row ->
-            row.joinToString(separator = "|") { group -> "${group.type.name}:${group.name}" }
-        },
-        contentType = { "AdaptiveNodeGroupRow" },
-    ) { rowGroups ->
+    items(items = rows, key = { row -> row.key }, contentType = { "AdaptiveNodeGroupRow" }) { row ->
+        val rowGroups = row.items
         val expandedGroup = rowGroups.firstOrNull { it.name == expandedGroupName }
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = itemVerticalPadding),

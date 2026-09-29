@@ -53,4 +53,8 @@ class LogRecordServiceGateway : LogRecordGateway {
     override fun snapshotLiveLogLines(maxLines: Int): List<String> {
         return LogRecordService.snapshotLiveLogLines(maxLines)
     }
+
+    override fun liveLogLinesRevision(): Long {
+        return LogRecordService.liveLogLinesRevision()
+    }
 }

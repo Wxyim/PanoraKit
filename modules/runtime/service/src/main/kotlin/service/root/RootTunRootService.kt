@@ -215,6 +215,10 @@ class RootTunRootService : RootService() {
                 return runtime.queryRuntimeDataSnapshotJson()
             }
 
+            override fun queryRuntimeSnapshotStamp(): LongArray {
+                return runtime.runtimeDataStamp()
+            }
+
             override fun queryConnectionsJson(): String {
                 return RootTunJson.encode(runtime.queryConnections())
             }

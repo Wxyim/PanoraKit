@@ -87,6 +87,15 @@ class LogRecordService : Service() {
         private val liveLogLines = ArrayDeque<String>()
         @Volatile private var liveLogBytes: Long = 0L
 
+        /**
+         * Bumped whenever the in-memory tail changes.
+         *
+         * The log screen re-reads (and re-parses) that tail once a second while it is visible,
+         * which is wasted work on the ticks where the recorder appended nothing. Consumers compare
+         * this revision instead of re-parsing up to 2000 lines for an identical result.
+         */
+        private var liveLogRevision: Long = 0L
+
         fun start(context: Context) {
             val intent =
                 Intent(context, LogRecordService::class.java).apply { action = ACTION_START }
@@ -114,10 +123,18 @@ class LogRecordService : Service() {
             }
         }
 
+        /** Monotonic revision of [liveLogLines]; unchanged means a re-read cannot differ. */
+        fun liveLogLinesRevision(): Long {
+            synchronized(liveLogLock) {
+                return liveLogRevision
+            }
+        }
+
         private fun clearLiveLogBuffer() {
             synchronized(liveLogLock) {
                 liveLogLines.clear()
                 liveLogBytes = 0L
+                liveLogRevision++
             }
         }
 
@@ -125,6 +142,7 @@ class LogRecordService : Service() {
             synchronized(liveLogLock) {
                 liveLogLines.addLast(line)
                 liveLogBytes += line.toByteArray(StandardCharsets.UTF_8).size.toLong()
+                liveLogRevision++
                 return liveLogBytes >= MAX_IN_MEMORY_LOG_BYTES
             }
         }
@@ -135,6 +153,7 @@ class LogRecordService : Service() {
                 val chunk = buildString { liveLogLines.forEach { append(it) } }
                 liveLogLines.clear()
                 liveLogBytes = 0L
+                liveLogRevision++
                 return chunk
             }
         }

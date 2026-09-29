@@ -11,6 +11,7 @@ interface IRootTunService {
     long queryTrafficTotal();
     long[] queryTrafficSnapshot();
     String queryRuntimeSnapshotJson();
+    long[] queryRuntimeSnapshotStamp();
     String queryConnectionsJson();
     String queryAllProxyGroupsJson(boolean excludeNotSelectable);
     String queryProxyGroupNamesJson(boolean excludeNotSelectable);

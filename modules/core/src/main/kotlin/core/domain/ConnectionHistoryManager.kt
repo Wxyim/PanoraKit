@@ -48,6 +48,16 @@ object ConnectionHistoryManager {
     private const val MIN_RETAIN_SIZE = 50
 
     private val _closedConnections = mutableListOf<Pair<Long, ConnectionInfo>>()
+
+    /**
+     * Ids currently present in [_closedConnections].
+     *
+     * The ids are unique by construction ([recordClosed] drops duplicates), so this set answers
+     * "have we already recorded this connection?" in O(1). Without it the closed-flagged branch
+     * below scanned the whole buffer (up to [MAX_BUFFER_SIZE] entries) for every closed connection
+     * in every poll, i.e. once a second in the worst case.
+     */
+    private val closedIds = mutableSetOf<String>()
     private var previousConnections: Map<String, ConnectionInfo> = emptyMap()
     private var closedRevision = 0L
     private val lock = Any()
@@ -78,28 +88,30 @@ object ConnectionHistoryManager {
             }
 
             // Connections the core flagged closed are recorded immediately. They
-            // linger in the snapshot for a short grace period, so deduplicate by id.
-            currentConnections
-                .filter { it.closed }
-                .forEach { conn ->
-                    if (_closedConnections.none { (_, existing) -> existing.id == conn.id }) {
-                        recordClosed(conn, now)
-                    }
-                }
+            // linger in the snapshot for a short grace period, so deduplicate by id
+            // (inside [recordClosed]).
+            currentConnections.filter { it.closed }.forEach { conn -> recordClosed(conn, now) }
 
             // Trim beyond the hard cap while preserving the minimum
             // guaranteed tail so the "Recent Requests" screen always has
             // enough entries to display.
             while (_closedConnections.size > MAX_BUFFER_SIZE) {
-                _closedConnections.removeAt(_closedConnections.lastIndex)
+                val evicted = _closedConnections.removeAt(_closedConnections.lastIndex)
+                closedIds.remove(evicted.second.id)
             }
 
             previousConnections = liveMap
         }
     }
 
-    /** Append a closed connection (newest first) and bump the revision. */
+    /**
+     * Append a closed connection (newest first) and bump the revision.
+     *
+     * Duplicates are dropped: the core keeps a closed connection in its snapshot for a while, and
+     * the same id can also be reported by the diff against [previousConnections].
+     */
     private fun recordClosed(conn: ConnectionInfo, now: Long) {
+        if (!closedIds.add(conn.id)) return
         val enriched =
             conn.copy(
                 metadata =
@@ -144,6 +156,7 @@ object ConnectionHistoryManager {
     fun clear() {
         synchronized(lock) {
             _closedConnections.clear()
+            closedIds.clear()
             previousConnections = emptyMap()
             closedRevision++
         }

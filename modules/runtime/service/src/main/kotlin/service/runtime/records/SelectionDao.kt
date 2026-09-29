@@ -37,13 +37,27 @@ object SelectionDao {
 
     fun setSelected(selection: Selection) {
         val list = ProfileStore.loadSelections().toMutableList()
-        val index = list.indexOfFirst { it.uuid == selection.uuid && it.proxy == selection.proxy }
-        if (index >= 0) {
-            list[index] = selection
-        } else {
-            list.add(selection)
-        }
+        SelectionLookup.mergeInto(list, listOf(selection))
         ProfileStore.saveSelections(list)
+    }
+
+    /**
+     * Applies [selections] in order with a single load/encode/store pass; equivalent to calling
+     * [setSelected] once per entry, but it encodes the list once instead of once per entry.
+     *
+     * The first runtime snapshot after a profile switch persists one selection per proxy group, so
+     * applying them one by one re-serialized the whole growing list once per group (O(n²) encoding
+     * plus one MMKV write per group) on a path that runs roughly once per second.
+     *
+     * Returns the persisted list, which is [ProfileStore]'s cached instance and must be treated as
+     * read-only.
+     */
+    fun setSelectedAll(selections: List<Selection>): List<Selection> {
+        if (selections.isEmpty()) return ProfileStore.loadSelections()
+        val list = ProfileStore.loadSelections().toMutableList()
+        SelectionLookup.mergeInto(list, selections)
+        ProfileStore.saveSelections(list)
+        return list
     }
 
     fun querySelectionScopeKey(profileUUID: UUID): String? {

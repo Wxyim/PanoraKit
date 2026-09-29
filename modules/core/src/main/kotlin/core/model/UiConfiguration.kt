@@ -27,7 +27,10 @@ import com.github.nomadboxlab.monadbox.core.util.Parcelizer
 import kotlinx.serialization.Serializable
 
 @Serializable
-class UiConfiguration(
+// `data` on purpose: the runtime payload memo compares whole RuntimeDataSnapshots to decide whether
+// a rebuilt payload is actually different, and that comparison has to see through this value holder
+// instead of stopping at its identity.
+data class UiConfiguration(
     val externalController: String? = null,
     val externalControllerTls: String? = null,
     val secret: String? = null,

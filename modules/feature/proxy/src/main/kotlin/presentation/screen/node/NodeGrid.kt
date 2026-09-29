@@ -81,8 +81,38 @@ internal fun LazyListScope.nodeGridItems(
     }
 }
 
+/**
+ * One lazy grid row: the items it renders plus the key `LazyColumn` uses for it.
+ *
+ * Both used to be derived inside the `LazyListScope` extension, so every recomposition of the
+ * enclosing list re-chunked the whole list and rebuilt one key string per row — O(all proxies)
+ * allocations on each payload refresh (once or twice a second while a delay test runs). Computing
+ * them in a `remember` ties that work to a real list/column change instead.
+ *
+ * Keys keep the previous shape (the row's item names joined with `|`), which stays unique even when
+ * two rows hold nodes with the same name.
+ */
+internal class LazyRowChunk<T>(val items: List<T>, val key: String)
+
+@Composable
+internal fun <T> rememberLazyRows(
+    items: List<T>,
+    columns: Int,
+    keyOf: (T) -> String,
+): List<LazyRowChunk<T>> =
+    remember(items, columns) {
+        if (columns <= 1 || items.isEmpty()) {
+            emptyList()
+        } else {
+            items.chunked(columns).map { row ->
+                LazyRowChunk(row, row.joinToString(separator = "|", transform = keyOf))
+            }
+        }
+    }
+
 internal fun LazyListScope.adaptiveNodeGridItems(
     proxies: List<Proxy>,
+    rows: List<LazyRowChunk<Proxy>>,
     columns: Int,
     selectedProxyName: String,
     onProxyClick: ((String) -> Unit)? = null,
@@ -114,12 +144,7 @@ internal fun LazyListScope.adaptiveNodeGridItems(
         return
     }
 
-    val rows = proxies.chunked(columns)
-    items(
-        items = rows,
-        key = { row -> row.joinToString(separator = "|") { proxy -> proxy.name } },
-        contentType = { "AdaptiveNodeCardRow" },
-    ) { row ->
+    items(items = rows, key = { row -> row.key }, contentType = { "AdaptiveNodeCardRow" }) { row ->
         Row(
             modifier =
                 Modifier.fillMaxWidth()
@@ -127,7 +152,7 @@ internal fun LazyListScope.adaptiveNodeGridItems(
                     .padding(horizontal = outerHorizontalPadding, vertical = itemVerticalPadding),
             horizontalArrangement = Arrangement.spacedBy(ProxyNodeGridLayoutDefaults.ColumnSpacing),
         ) {
-            row.forEach { proxy ->
+            row.items.forEach { proxy ->
                 NodeCard(
                     proxy = proxy,
                     isSelected = proxy.name == selectedProxyName,
@@ -143,7 +168,7 @@ internal fun LazyListScope.adaptiveNodeGridItems(
                     modifier = Modifier.weight(1f),
                 )
             }
-            repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+            repeat(columns - row.items.size) { Spacer(modifier = Modifier.weight(1f)) }
         }
     }
 }
@@ -183,6 +208,7 @@ internal fun NodeGrid(
     BoxWithConstraints(modifier = modifier) {
         val columns =
             rememberAdaptiveNodeGridColumns(maxWidth = maxWidth, displayMode = displayMode)
+        val rows = rememberLazyRows(items = proxies, columns = columns) { proxy -> proxy.name }
 
         LazyColumn(
             modifier =
@@ -197,6 +223,7 @@ internal fun NodeGrid(
         ) {
             adaptiveNodeGridItems(
                 proxies = proxies,
+                rows = rows,
                 columns = columns,
                 selectedProxyName = selectedProxyName,
                 onProxyClick = onProxyClick,

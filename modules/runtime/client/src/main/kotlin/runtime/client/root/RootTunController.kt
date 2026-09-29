@@ -129,7 +129,17 @@ object RootTunController {
 
     suspend fun queryRuntimeDataSnapshot(context: Context): RuntimeDataSnapshot {
         return RootTunRemoteClient.remoteCall(context) { service ->
-            RootTunJson.decode<RuntimeDataSnapshot>(service.queryRuntimeSnapshotJson())
+            // Two calls on a miss (a two-long stamp plus the payload), one on a hit: while the
+            // payload is unchanged the client keeps its own copy instead of paying a full binder
+            // transfer and a full JSON decode on every refresh tick.
+            val stamp = service.queryRuntimeSnapshotStamp()
+            RootTunRemoteClient.cachedRuntimeDataSnapshot(stamp)?.let {
+                return@remoteCall it
+            }
+            val snapshot =
+                RootTunJson.decode<RuntimeDataSnapshot>(service.queryRuntimeSnapshotJson())
+            RootTunRemoteClient.rememberRuntimeDataSnapshot(stamp, snapshot)
+            snapshot
         }
     }
 

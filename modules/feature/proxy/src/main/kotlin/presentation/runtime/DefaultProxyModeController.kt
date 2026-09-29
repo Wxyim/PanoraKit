@@ -56,7 +56,15 @@ class DefaultProxyModeController(
     private val scope: CoroutineScope,
 ) : ProxyModeController {
     private companion object {
-        const val MODE_REFRESH_RUNNING_MS = 1500L
+        /**
+         * Backstop cadence for picking up a mode that changed outside this controller.
+         *
+         * Everything the app itself does already refreshes immediately (runtime start/stop, the
+         * screen becoming visible, and a mode switch), so this poll only has to catch changes made
+         * behind its back. 5s keeps the displayed mode correct within a couple of seconds while
+         * cutting the `queryTunnelState` round-trips to a third of the previous 1.5s cadence.
+         */
+        const val MODE_REFRESH_RUNNING_MS = 5000L
         const val MODE_REFRESH_IDLE_MS = 10_000L
     }
 

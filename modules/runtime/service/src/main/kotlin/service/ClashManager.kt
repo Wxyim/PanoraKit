@@ -34,6 +34,7 @@ import com.github.nomadboxlab.monadbox.service.remote.ILogObserver
 import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Selection
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionDao
+import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionLookup
 import com.github.nomadboxlab.monadbox.service.runtime.records.SelectionPresentation
 import com.github.nomadboxlab.monadbox.service.runtime.session.CompiledConfigPipeline
 import com.github.nomadboxlab.monadbox.service.runtime.session.SessionRuntimeSpecFactory
@@ -136,15 +137,27 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
             if (profileUuid == null) {
                 snapshot
             } else {
+                // Resolving the remembered selection for every group used to re-read (and
+                // re-filter) the persisted selection list once per group. Read it once and index
+                // it by group name instead: this path runs about once per second.
+                val selections = SelectionDao.querySelections(profileUuid)
+                val selectionIndex = SelectionLookup.indexOf(selections)
+                val pendingSelections = ArrayList<Selection>()
                 snapshot.proxyGroups.forEach { group ->
-                    syncSelectionSnapshotSafely(group.name, group)
+                    syncSelectionSnapshotSafely(
+                        profileId = profileUuid,
+                        selectionIndex = selectionIndex,
+                        group = group.name,
+                        proxyGroup = group,
+                        pendingSelections = pendingSelections,
+                    )
                 }
+                val effectiveSelections =
+                    if (pendingSelections.isEmpty()) selections
+                    else SelectionDao.setSelectedAll(pendingSelections)
                 snapshot.copy(
                     proxyGroups =
-                        SelectionPresentation.apply(
-                            snapshot.proxyGroups,
-                            SelectionDao.querySelections(profileUuid),
-                        )
+                        SelectionPresentation.apply(snapshot.proxyGroups, effectiveSelections)
                 )
             }
         synchronized(runtimeDataCacheLock) {
@@ -223,15 +236,25 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
                 }
             }
         }
-        val groups =
-            Clash.queryGroups(excludeNotSelectable, ProxySort.Default).map { group ->
-                group.also { syncSelectionSnapshotSafely(it.name, it) }
+        val groups = Clash.queryGroups(excludeNotSelectable, ProxySort.Default)
+        val selections = current?.let { SelectionDao.querySelections(it) }.orEmpty()
+        val pendingSelections = ArrayList<Selection>()
+        if (current != null) {
+            val selectionIndex = SelectionLookup.indexOf(selections)
+            groups.forEach { group ->
+                syncSelectionSnapshotSafely(
+                    profileId = current,
+                    selectionIndex = selectionIndex,
+                    group = group.name,
+                    proxyGroup = group,
+                    pendingSelections = pendingSelections,
+                )
             }
-        val presentedGroups =
-            SelectionPresentation.apply(
-                groups,
-                current?.let { SelectionDao.querySelections(it) }.orEmpty(),
-            )
+        }
+        val effectiveSelections =
+            if (pendingSelections.isEmpty()) selections
+            else SelectionDao.setSelectedAll(pendingSelections)
+        val presentedGroups = SelectionPresentation.apply(groups, effectiveSelections)
         synchronized(proxyGroupCacheLock) {
             proxyGroupCache =
                 ProxyGroupCache(
@@ -251,10 +274,20 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
         val group =
             Clash.queryGroup(name, proxySort).let { raw ->
-                syncSelectionSnapshotSafely(name, raw)
                 val profileUuid = store.activeProfile ?: return@let raw
-                SelectionPresentation.apply(listOf(raw), SelectionDao.querySelections(profileUuid))
-                    .first()
+                val selections = SelectionDao.querySelections(profileUuid)
+                val pendingSelections = ArrayList<Selection>()
+                syncSelectionSnapshotSafely(
+                    profileId = profileUuid,
+                    selectionIndex = SelectionLookup.indexOf(selections),
+                    group = name,
+                    proxyGroup = raw,
+                    pendingSelections = pendingSelections,
+                )
+                val effectiveSelections =
+                    if (pendingSelections.isEmpty()) selections
+                    else SelectionDao.setSelectedAll(pendingSelections)
+                SelectionPresentation.apply(listOf(raw), effectiveSelections).first()
             }
         return group
     }
@@ -367,18 +400,29 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         invalidateRuntimePayloadCaches()
     }
 
-    private fun syncSelectionSnapshotSafely(group: String, proxyGroup: ProxyGroup) {
-        val current = store.activeProfile ?: return
-        val profileId = current.toString()
-        val key = selectionKey(profileId, group)
+    /**
+     * Reconciles one group's live selection with the persisted one.
+     *
+     * [selectionIndex] is the caller's single read of the persisted selections, keyed by group
+     * name; new entries are appended to [pendingSelections] instead of being written straight away,
+     * so a snapshot that seeds every group is persisted with one encode/write.
+     */
+    private fun syncSelectionSnapshotSafely(
+        profileId: java.util.UUID,
+        selectionIndex: Map<String, String>,
+        group: String,
+        proxyGroup: ProxyGroup,
+        pendingSelections: MutableList<Selection>,
+    ) {
+        val key = selectionKey(profileId.toString(), group)
         val node = proxyGroup.now.trim()
         val fallbackNode = proxyGroup.proxies.firstOrNull()?.name?.trim().orEmpty()
         val now = System.currentTimeMillis()
         if (node.isEmpty()) return
 
-        val remembered = queryRememberedSelection(current, group)
+        val remembered = selectionIndex[group]
         if (remembered == null) {
-            SelectionDao.setSelected(Selection(current, group, node))
+            pendingSelections += Selection(profileId, group, node)
             externalCandidates.remove(key)
             return
         }
@@ -410,20 +454,12 @@ class ClashManager(private val context: Context) : IClashManager, Closeable {
         if (now - candidate.firstSeenAt < EXTERNAL_SELECTION_CONFIRM_MS) {
             return
         }
-        SelectionDao.setSelected(Selection(current, group, node))
+        pendingSelections += Selection(profileId, group, node)
         externalCandidates.remove(key)
     }
 
     private fun selectionKey(profileId: String, group: String): String {
         return "$profileId::$group"
-    }
-
-    private fun queryRememberedSelection(profileId: java.util.UUID, group: String): String? {
-        return SelectionDao.querySelections(profileId)
-            .firstOrNull { it.proxy == group }
-            ?.selected
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
     }
 
     private fun configuredProxyMode(): ProxyMode {

@@ -72,6 +72,10 @@ class LogRepository(
         return isRecording() && logRecordGateway.currentLogFileName == fileName
     }
 
+    override fun liveLogLinesRevision(): Long {
+        return logRecordGateway.liveLogLinesRevision()
+    }
+
     override fun listLogFiles(): List<LogFileInfo> {
         val currentlyRecording = isRecording()
         val currentFileName = logRecordGateway.currentLogFileName

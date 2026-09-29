@@ -50,6 +50,12 @@ interface LogProvider {
 
     suspend fun readTempLogEntries(maxEntries: Int = 2000): List<LogRepository.LogEntry>
 
+    /**
+     * Revision of the live log tail; an unchanged value means [readTempLogEntries] would return the
+     * same entries again.
+     */
+    fun liveLogLinesRevision(): Long
+
     suspend fun deleteLogFile(fileName: String): Boolean
 
     suspend fun deleteStartupLogFile(fileName: String): Boolean
