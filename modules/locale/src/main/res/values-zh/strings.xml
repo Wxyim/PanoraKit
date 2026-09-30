@@ -1036,8 +1036,8 @@
     <string name="traffic_statistics_time_range_week">本周</string>
     <string name="traffic_statistics_summary_today_traffic">今日流量</string>
     <string name="traffic_statistics_summary_week_traffic">本周流量</string>
-    <string name="traffic_statistics_compare_more_than_yesterday">较昨日 +%s</string>
-    <string name="traffic_statistics_compare_less_than_yesterday">较昨日 %s</string>
+    <string name="traffic_statistics_compare_more_than_yesterday">比昨日多 %s</string>
+    <string name="traffic_statistics_compare_less_than_yesterday">比昨日少 %s</string>
     <string name="traffic_statistics_compare_same_as_yesterday">与昨日持平</string>
     <string name="traffic_statistics_compare_week_stats">近 7 天统计</string>
     <string name="util_error_unknown_error">未知错误</string>

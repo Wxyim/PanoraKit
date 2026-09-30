@@ -1036,8 +1036,8 @@
     <string name="traffic_statistics_time_range_week">This Week</string>
     <string name="traffic_statistics_summary_today_traffic">Today\'s Traffic</string>
     <string name="traffic_statistics_summary_week_traffic">This Week\'s Traffic</string>
-    <string name="traffic_statistics_compare_more_than_yesterday">vs yesterday +%s</string>
-    <string name="traffic_statistics_compare_less_than_yesterday">vs yesterday %s</string>
+    <string name="traffic_statistics_compare_more_than_yesterday">%s more than yesterday</string>
+    <string name="traffic_statistics_compare_less_than_yesterday">%s less than yesterday</string>
     <string name="traffic_statistics_compare_same_as_yesterday">Same as yesterday</string>
     <string name="traffic_statistics_compare_week_stats">Last 7 days stats</string>
     <string name="util_error_unknown_error">Unknown error</string>
