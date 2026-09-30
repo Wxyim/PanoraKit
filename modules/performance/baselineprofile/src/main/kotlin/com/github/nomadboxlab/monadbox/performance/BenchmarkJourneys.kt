@@ -95,11 +95,7 @@ private val ModeSwitchLabels = listOf("Rule", "Direct", "Global", "规则分流"
 internal fun MacrobenchmarkScope.startupJourney(): JourneyResult {
     pressHome()
     startActivityAndWait()
-    val windowVisible =
-        device.wait(
-            Until.hasObject(By.pkg(BenchmarkConfig.TargetPackage).depth(0)),
-            BenchmarkConfig.StartupTimeoutMs,
-        ) != null
+    val windowVisible = appWindowVisible(BenchmarkConfig.StartupTimeoutMs)
     device.waitForIdle()
     return if (windowVisible) {
         // The surface digest separates "the app is up" from "the app is up on the right screen",
@@ -124,6 +120,10 @@ internal fun MacrobenchmarkScope.startupJourney(): JourneyResult {
  * profile. When the app starts past the wizard this is a no-op.
  */
 internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     val surface =
         awaitAnyLabel(OnboardingSurfaceLabels, BenchmarkConfig.UiWaitTimeoutMs)
             ?: return JourneyResult.exercised("no wizard surface; install starts past onboarding")
@@ -186,8 +186,27 @@ internal fun MacrobenchmarkScope.openNextMainPage() {
     device.waitForIdle()
 }
 
+/**
+ * Swipe to the neighbouring main page.
+ *
+ * The swipe is the coverage this leg exists for, so its verdict only has to say that there was an
+ * app on screen to swipe on: a swipe on the launcher would otherwise be recorded as a covered
+ * journey.
+ */
+internal fun MacrobenchmarkScope.nextMainPageJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+    openNextMainPage()
+    return JourneyResult.exercised("swiped to the neighbouring main page")
+}
+
 /** Navigate through bottom navigation tabs (Profiles, Settings) and back to Home. */
 internal fun MacrobenchmarkScope.bottomNavigationJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     openNextMainPage()
     device.waitForIdle()
     val profilesSurface = firstMatchingLabel(ConfigTabLabels)
@@ -227,6 +246,10 @@ internal fun MacrobenchmarkScope.bottomNavigationJourney(): JourneyResult {
  *    skipped, so the entry lookup can never land back on the badge behind the scrim.
  */
 internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     navigateToHomePage()
 
     val badgeLabel =
@@ -258,6 +281,10 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
 
 /** Scroll settings list to exercise lazy list composition. */
 internal fun MacrobenchmarkScope.settingsScrollJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     // Navigate to Settings (swipe right twice from Home).
     openNextMainPage()
     openNextMainPage()
@@ -295,6 +322,10 @@ internal fun MacrobenchmarkScope.settingsScrollJourney(): JourneyResult {
  * source, which still exercises the sheet and its validation branch, and says so in its detail.
  */
 internal fun MacrobenchmarkScope.configurationImportJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     navigateToProfilesPage()
 
     val addEntry =
@@ -358,6 +389,10 @@ internal fun MacrobenchmarkScope.configurationImportJourney(): JourneyResult {
 
 /** Exercise the primary Home start/stop control when the runtime can be toggled in this install. */
 internal fun MacrobenchmarkScope.startStopProxyJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     navigateToHomePage()
     val start =
         clickFirstMatching(*StartControlLabels.toTypedArray())
@@ -379,6 +414,10 @@ internal fun MacrobenchmarkScope.startStopProxyJourney(): JourneyResult {
 
 /** Exercise edit/save controls for local profile or override editors when seeded data exists. */
 internal fun MacrobenchmarkScope.editSaveJourney(): JourneyResult {
+    requireAppOnScreen()?.let {
+        return it
+    }
+
     navigateToProfilesPage()
     val editEntry =
         clickFirstMatching(*EditEntryLabels.toTypedArray())
@@ -486,6 +525,35 @@ private fun MacrobenchmarkScope.firstMatchingDescription(needles: List<String>):
 
 private fun appSelector(selector: BySelector): BySelector =
     selector.pkg(BenchmarkConfig.TargetPackage)
+
+/**
+ * @return the verdict for a leg that needs the app up while it is not, or `null` when it is.
+ *
+ * Every package-filtered probe also matches nodes the app *owns* while another window renders them
+ * — the rows of its own notification, its launcher widget — and those outlived a force-stopped app,
+ * which made whole legs report "exercised" with nothing running. A leg therefore proves the app is
+ * the window in front before it touches the screen.
+ */
+private fun MacrobenchmarkScope.requireAppOnScreen(): JourneyResult? {
+    val foreground = device.currentPackageName
+    return if (foreground == BenchmarkConfig.TargetPackage && appWindowVisible()) {
+        null
+    } else {
+        JourneyResult.skipped("app is not in front (foreground: $foreground); ${describeSurface()}")
+    }
+}
+
+/**
+ * Whether the app has a window of its own on screen.
+ *
+ * The foreground check in [requireAppOnScreen] rules out a leg running while the app is not even
+ * alive; this one rules out the app being up but behind another window, where its nodes are still
+ * in the tree of whatever is on top.
+ */
+private fun MacrobenchmarkScope.appWindowVisible(
+    timeoutMs: Long = BenchmarkConfig.UiWaitTimeoutMs
+): Boolean =
+    device.wait(Until.hasObject(By.pkg(BenchmarkConfig.TargetPackage).depth(0)), timeoutMs) != null
 
 /**
  * Wait for any of [needles] to appear as text or content description.

@@ -255,10 +255,14 @@ CI 变量：
   落在源码树里，每次 release 构建无需设备即可消费。
 - `:app:generateBaselineProfile` 在已连接的设备/模拟器上运行生成器，写出
   `app/src/main/generated/baselineProfiles/baseline-prof.txt` 与 `startup-prof.txt`。生成器分两段
-  收集：先以 `includeInStartupProfile = true` 只跑冷启动路径，再以普通方式跑其余交互。第一段同时
-  贡献给两个档位（baseline 合并时也会并入 startup 片段），因此下面的 journey 不再重复冷启动。
-  若把全部 journey 都放进 `includeInStartupProfile = true`，`startup-prof.txt` 会变成
-  `baseline-prof.txt` 的逐字节副本，而不是启动路径子集。
+  收集：先以 `includeInStartupProfile = true` 只跑冷启动路径，再以普通方式跑其余导航交互，第二段
+  自己先拉起应用。每次 `collect` 都会先杀掉应用进程，且 harness 不会再拉起，所以第二段若不自己
+  启动，所有 journey 都对着一个死进程操作，整个收集最后以 "Process ... never flushed profiles in
+  any process" 失败。第一段的规则会经 startup 片段进入 baseline 档（合并时也会并入该类型片段），
+  因此第二段不重复冷启动。若把全部 journey 都放进 `includeInStartupProfile = true`，
+  `startup-prof.txt` 会变成 `baseline-prof.txt` 的逐字节副本，而不是启动路径子集。每条
+  best-effort journey 都会先确认应用就是最前窗口：应用已死时，通知、挂件等仍带着应用包名的节点
+  会把"未运行"记成"已覆盖"。
 - `:app:verifyBaselineProfile`（`BaselineProfileVerificationTask`，挂在 `check` 上）会拒绝丢失
   app 包/launcher 覆盖、条目数或类数低于已提交档位 90% 的 profile，以及缺失的
   `startup-prof.txt`。若 `startup-prof.txt` 不小于 `baseline-prof.txt`（即"整个 journey 集合

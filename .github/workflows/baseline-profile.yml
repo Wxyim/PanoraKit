@@ -14,7 +14,9 @@ name: Generate baseline profile
 #
 # Guardrails, because a stale or shrunken profile still looks green in every other job:
 # - the generator reports each journey it ran, and a required journey that never reached the main
-#   screen fails the run (see JourneyReport.kt);
+#   screen fails the run (see JourneyReport.kt); every best-effort journey first proves the app is
+#   the window in front, so a node the app owns but another window draws (its notification rows, a
+#   launcher widget) cannot report a dead app as a covered journey;
 # - :app:verifyBaselineProfile rejects a profile that lost app-package/startup coverage or fell
 #   below 90% of the committed profile's entry and class counts, and (because this job passes
 #   -PbaselineProfile.require=true) a `startup-prof.txt` that is missing or is not smaller than
@@ -329,7 +331,8 @@ jobs:
 
       - name: Upload generated profile
         # Runs even on failure: the journey report, verification output and logcat are what make a
-        # failed collection actionable.
+        # failed collection actionable, and a failing instrumented test only names itself in the
+        # androidTest report, which lives outside build/reports/baseline-profile.
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -337,6 +340,8 @@ jobs:
           path: |
             app/src/**/baselineProfiles/**
             build/reports/baseline-profile/**
+            build/performance/baselineprofile/outputs/androidTest-results/**
+            build/performance/baselineprofile/reports/androidTests/**
           retention-days: 1
           if-no-files-found: warn
 

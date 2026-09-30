@@ -252,11 +252,17 @@ Consumption and guardrails:
   profiles live in the source tree and every release build consumes them without a device.
 - `:app:generateBaselineProfile` runs the generator on a connected device/emulator and writes
   `app/src/main/generated/baselineProfiles/baseline-prof.txt` and `startup-prof.txt`. The generator
-  collects twice: an `includeInStartupProfile = true` pass for the cold-start journey alone, then a
-  normal pass over the remaining journeys. The cold-start pass feeds both files (the baseline merge
-  folds startup-typed fragments in as well), so the journeys below it are not repeated. Collecting
-  every journey under `includeInStartupProfile = true` would make `startup-prof.txt` a
-  byte-for-byte copy of `baseline-prof.txt` instead of the startup-path subset.
+  collects twice: an `includeInStartupProfile = true` pass whose block is the cold-start journey
+  alone, then a normal pass over the navigation journeys, which launches the app itself first.
+  `collect` kills the package before every collection and the harness never starts it again, so a
+  second pass without a launch of its own leaves each journey pointing at a dead app and aborts the
+  collection with "Process ... never flushed profiles in any process". The cold-start rules reach
+  the baseline file through the startup-typed fragment (the merge folds that kind in as well), so
+  the second pass does not repeat the cold start. Collecting every journey under
+  `includeInStartupProfile = true` would make `startup-prof.txt` a byte-for-byte copy of
+  `baseline-prof.txt` instead of the startup-path subset. Each best-effort journey starts by proving
+  the app is the window in front: a node the app owns but another window draws (its notification
+  rows, a launcher widget) would otherwise let a dead app report a covered journey.
 - `:app:verifyBaselineProfile` (`BaselineProfileVerificationTask`, wired into `check`) rejects a
   profile that loses app-package/launcher coverage or falls below 90% of the committed entry and
   class counts, and a missing `startup-prof.txt` next to the baseline one. A `startup-prof.txt` that
