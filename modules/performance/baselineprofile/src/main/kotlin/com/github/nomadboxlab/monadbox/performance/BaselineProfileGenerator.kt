@@ -36,8 +36,18 @@ class BaselineProfileGenerator {
     fun generate() {
         val report = JourneyReport(BenchmarkConfig.TargetPackage)
 
+        // Two collections on purpose. `includeInStartupProfile` does not add a journey to the
+        // startup profile, it labels the *whole* collection as the startup profile, so collecting
+        // every journey under it produced a startup-prof.txt that was a byte-for-byte copy of
+        // baseline-prof.txt and claimed the entire journey set is startup-critical. A startup-typed
+        // collection also feeds `baseline-prof.txt` (the merge task accepts both file kinds for the
+        // baseline output), so this cold-start pass alone covers both profiles and the journeys
+        // below must not repeat it.
         rule.collect(packageName = BenchmarkConfig.TargetPackage, includeInStartupProfile = true) {
             report.run("startup", JourneyKind.Required) { startupJourney() }
+        }
+
+        rule.collect(packageName = BenchmarkConfig.TargetPackage) {
             // Runs first: a fresh install shows the first-run wizard until this has walked it, and
             // the Home-facing journeys below have nothing to exercise before that. See
             // `onboardingJourney`.

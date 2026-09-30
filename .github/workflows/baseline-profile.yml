@@ -6,19 +6,24 @@ name: Generate baseline profile
 # run produces a profile that the arm64 release APK consumes just the same.
 #
 # The generated files are copied into app/src/main/generated/baselineProfiles/ (see the
-# `baselineProfile { }` block in app/build.gradle.kts) and picked up by every release build. Run this
-# whenever the startup or navigation paths change enough that the shipped profile drifts away from
-# the real journeys.
+# `baselineProfile { }` block in app/build.gradle.kts) and picked up by every release build. Manual
+# only: there is no schedule, because a monthly run pins a ~15 minute emulator job to a fixed
+# calendar slot whether or not anything changed, and the drift it would report is caused by the
+# changes that were merged on purpose. Dispatch this whenever the startup or navigation paths change
+# enough that the shipped profile drifts away from the real journeys.
 #
 # Guardrails, because a stale or shrunken profile still looks green in every other job:
 # - the generator reports each journey it ran, and a required journey that never reached the main
 #   screen fails the run (see JourneyReport.kt);
 # - :app:verifyBaselineProfile rejects a profile that lost app-package/startup coverage or fell
-#   below 90% of the committed profile's entry and class counts;
+#   below 90% of the committed profile's entry and class counts, and (because this job passes
+#   -PbaselineProfile.require=true) a `startup-prof.txt` that is missing or is not smaller than
+#   `baseline-prof.txt`;
 # - a regenerated profile that differs from the committed one fails the job unless it is committed,
 #   so profile drift cannot be forgotten;
-# - the monthly schedule regenerates without a human remembering to, which is what actually notices
-#   that the committed profile went stale.
+# - the generated startup profile is collected separately from the baseline one (see
+#   BaselineProfileGenerator), so `startup-prof.txt` stays the startup-path subset instead of a copy
+#   of the whole profile.
 
 on:
   workflow_dispatch:
@@ -33,9 +38,6 @@ on:
         required: false
         type: boolean
         default: false
-  schedule:
-    # Monthly drift check. Keep it off the hour boundary to avoid the busiest scheduler minutes.
-    - cron: '23 4 1 * *'
 
 permissions:
   contents: read
@@ -46,8 +48,7 @@ concurrency:
 
 env:
   PROFILE_ABI: x86_64
-  # `inputs` is empty for the scheduled run, so these fall back to the same defaults as the manual
-  # dispatch form.
+  # Fallbacks for an API dispatch that omits an input; the UI form always sends its defaults.
   EMULATOR_API_LEVEL: ${{ inputs.emulator_api_level || '36' }}
   COMMIT_PROFILE: ${{ inputs.commit_profile || false }}
 
@@ -336,11 +337,12 @@ jobs:
           path: |
             app/src/**/baselineProfiles/**
             build/reports/baseline-profile/**
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: warn
 
       - name: Fail on profile drift
-        # Regenerating on a schedule is pointless if a stale committed profile can pass unnoticed.
+        # A stale committed profile still looks green in every other job, so any drift found here has
+        # to fail loudly rather than be quietly ignored between manual runs.
         if: steps.generate.outcome == 'success'
         run: |
           set -euo pipefail

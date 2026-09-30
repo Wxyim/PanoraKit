@@ -249,10 +249,23 @@ CI 变量：
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=Macrobenchmark
 ```
 
-当前限制：
+消费与防线：
 
-- `:app` 使用自定义 Android source set 布局。
-- 在当前 AGP 9 组合下，该布局与端到端 `androidx.baselineprofile` 插件链路不兼容。
+- `app/build.gradle.kts` 启用了 `baselineProfile { saveInSrc = true; mergeIntoMain = true }`，profile
+  落在源码树里，每次 release 构建无需设备即可消费。
+- `:app:generateBaselineProfile` 在已连接的设备/模拟器上运行生成器，写出
+  `app/src/main/generated/baselineProfiles/baseline-prof.txt` 与 `startup-prof.txt`。生成器分两段
+  收集：先以 `includeInStartupProfile = true` 只跑冷启动路径，再以普通方式跑其余交互。第一段同时
+  贡献给两个档位（baseline 合并时也会并入 startup 片段），因此下面的 journey 不再重复冷启动。
+  若把全部 journey 都放进 `includeInStartupProfile = true`，`startup-prof.txt` 会变成
+  `baseline-prof.txt` 的逐字节副本，而不是启动路径子集。
+- `:app:verifyBaselineProfile`（`BaselineProfileVerificationTask`，挂在 `check` 上）会拒绝丢失
+  app 包/launcher 覆盖、条目数或类数低于已提交档位 90% 的 profile，以及缺失的
+  `startup-prof.txt`。若 `startup-prof.txt` 不小于 `baseline-prof.txt`（即"整个 journey 集合
+  被当成启动关键路径"的退化），在要求 profile 的场景（`-PbaselineProfile.require=true`，即
+  baseline profile workflow）会直接失败，普通 `check` 只报警告。
+- 重新生成仅手动触发。`.github/workflows/baseline-profile.yml` 不含 `schedule`：固定周期的模拟器
+  任务开销远大于收益；当启动或导航路径变动到已提交 profile 偏离真实 journey 时再手动派发。
 
 ## 12. 规范范围
 

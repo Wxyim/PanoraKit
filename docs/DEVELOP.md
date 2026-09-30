@@ -246,11 +246,26 @@ Common commands:
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=Macrobenchmark
 ```
 
-Current limitation:
+Consumption and guardrails:
 
-- `:app` uses a custom Android source-set layout.
-- With the current AGP 9 setup, that layout is not compatible with the
-  end-to-end `androidx.baselineprofile` plugin pipeline.
+- `app/build.gradle.kts` enables `baselineProfile { saveInSrc = true; mergeIntoMain = true }`, so the
+  profiles live in the source tree and every release build consumes them without a device.
+- `:app:generateBaselineProfile` runs the generator on a connected device/emulator and writes
+  `app/src/main/generated/baselineProfiles/baseline-prof.txt` and `startup-prof.txt`. The generator
+  collects twice: an `includeInStartupProfile = true` pass for the cold-start journey alone, then a
+  normal pass over the remaining journeys. The cold-start pass feeds both files (the baseline merge
+  folds startup-typed fragments in as well), so the journeys below it are not repeated. Collecting
+  every journey under `includeInStartupProfile = true` would make `startup-prof.txt` a
+  byte-for-byte copy of `baseline-prof.txt` instead of the startup-path subset.
+- `:app:verifyBaselineProfile` (`BaselineProfileVerificationTask`, wired into `check`) rejects a
+  profile that loses app-package/launcher coverage or falls below 90% of the committed entry and
+  class counts, and a missing `startup-prof.txt` next to the baseline one. A `startup-prof.txt` that
+  is not smaller than the baseline one (the "whole journey set is startup-critical" regression) is a
+  build failure when the profile is required (`-PbaselineProfile.require=true`, i.e. the
+  baseline-profile workflow) and a warning on a plain `check`.
+- Regeneration is manual only. `.github/workflows/baseline-profile.yml` has no `schedule`, because a
+  fixed-interval emulator run costs far more than it finds; dispatch it whenever the startup or
+  navigation paths change enough that the committed profile drifts away from the real journeys.
 
 ## 12. Normative Scope
 

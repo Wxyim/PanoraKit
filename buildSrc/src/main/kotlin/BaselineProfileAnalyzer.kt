@@ -63,9 +63,10 @@ internal object BaselineProfileAnalyzer {
         var launcherStartupEntries = 0
         var unparsedEntries = 0
 
-        // A profile can arrive as several fragments: AGP's merged `baseline-prof.txt` already
-        // contains every line of the `startup-prof.txt` next to it. Counting duplicate lines would
-        // inflate coverage and hide a shrunken profile, so the union is de-duplicated by line.
+        // A profile can arrive as several fragments, and the same rule can legitimately appear in
+        // both `baseline-prof.txt` and `startup-prof.txt`: the baseline merge folds the
+        // startup-typed fragments in as well. Counting duplicate lines would inflate coverage and
+        // hide a shrunken profile, so the union is de-duplicated by line.
         val seenLines = mutableSetOf<String>()
 
         sources.forEach { source ->
