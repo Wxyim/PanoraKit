@@ -49,4 +49,13 @@ data class ConnectionInfo(
      * short-lived requests remain observable by the periodic poll.
      */
     val closed: Boolean = false,
+    /**
+     * Wall-clock milliseconds of the moment the core saw the connection leave, or 0 for live
+     * connections.
+     *
+     * A poll after the app was backgrounded can return a whole batch of closes at once; without
+     * this they would all be stamped with the poll time, so durations and "recent" ordering would
+     * describe when the app came back instead of when the requests actually ended.
+     */
+    val closedAt: Long = 0L,
 )

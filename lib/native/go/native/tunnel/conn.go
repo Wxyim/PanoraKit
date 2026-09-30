@@ -48,6 +48,17 @@ const closeAllTimeout = 2 * time.Second
 // (see [recentClosedRetentionWindow]) so a future cadence change cannot silently
 // start dropping closes.
 //
+// A close that happens while nobody polls is a different case: the app suspends
+// its connection polling whenever it is backgrounded or the screen is off (the
+// recent-request list is the only consumer and it cannot be on screen then), so
+// honouring only [recentClosedRetention] would drop every close of that period.
+// Entries are therefore retained until they have been delivered to a poll once
+// ([recentClosedEntry.deliveredAt]); undelivered entries live for
+// [recentClosedUndeliveredRetention] instead, so returning to the foreground
+// replays what happened while the app was away. This costs nothing while
+// backgrounded — the sampler below already runs — and needs no extra polling,
+// no push channel and no binder traffic.
+//
 // [recentClosedSampler] is the active cadence: it must be finer than the app's
 // 1s poll to catch short-lived connections, and the finer it is the shorter a
 // connection has to live to be guaranteed observable. 20ms means any connection
@@ -55,10 +66,12 @@ const closeAllTimeout = 2 * time.Second
 // shorter ones are captured probabilistically (~lifetime/20ms).
 //
 // [recentClosedIdleSampler] is the backoff cadence used while the manager is
-// idle (no live connections, nothing retained). Idle ticks are already nearly
-// free CPU-wise, but keeping a 20ms timer armed prevents the CPU from idling
-// deep between ticks on a quiet device, so the sampler backs off to 250ms when
-// there is nothing to track and returns to 20ms as soon as activity resumes.
+// idle (no live connections, none pending). Idle ticks are already nearly free
+// CPU-wise, but keeping a 20ms timer armed prevents the CPU from idling deep
+// between ticks on a quiet device, so the sampler backs off to 250ms when there
+// is nothing to track and returns to 20ms as soon as activity resumes. Retained
+// entries do not keep the fine cadence armed: they only need to expire, which
+// the coarse tick is enough for.
 // The only tradeoff: a connection that opens and closes entirely inside a
 // single idle window (the first connection of a new burst) is not observed.
 const (
@@ -70,6 +83,13 @@ const (
 	recentClosedRetentionCap = 8 * time.Second
 	recentClosedSampler      = 20 * time.Millisecond
 	recentClosedIdleSampler  = 250 * time.Millisecond
+	// [recentClosedUndeliveredRetention] is how long a close survives while no
+	// poll has seen it yet. It only has to outlast a backgrounded app; the list
+	// it feeds is a "recent requests" view, so a bound that spans hours would
+	// only replay stale history. [recentClosedMax] additionally caps how much
+	// can accumulate, so one poll after a long background delivers at most that
+	// many entries.
+	recentClosedUndeliveredRetention = 30 * time.Minute
 	// [recentClosedMax] bounds the buffer itself, which is what actually caps
 	// the connection payload. On a device sustaining more than ~80 closes per
 	// second the oldest entries can therefore be evicted before the app polls;
@@ -110,6 +130,10 @@ func recentClosedRetentionWindow() time.Duration {
 type recentClosedEntry struct {
 	info     *statistic.TrackerInfo
 	closedAt time.Time
+	// deliveredAt marks the poll that first returned this entry. Zero means no
+	// poll has seen it yet, which is what keeps a background close around until
+	// the app comes back (see the retention notes above).
+	deliveredAt time.Time
 }
 
 // connectionSnapshot mirrors statistic.Snapshot but tags every connection with
@@ -126,6 +150,12 @@ type connectionSnapshot struct {
 type connectionInfo struct {
 	*statistic.TrackerInfo
 	Closed bool `json:"closed"`
+	// ClosedAt is when the core observed the connection leaving, in wall-clock
+	// milliseconds. The app stamps its recent-request history with it, which
+	// matters for a batch of closes that happened while the app was
+	// backgrounded: those must not all look like they closed at poll time.
+	// Omitted for live connections.
+	ClosedAt int64 `json:"closedAt,omitempty"`
 }
 
 var (
@@ -156,9 +186,10 @@ func ensureRecentClosedSampler() {
 
 // observeRecentClosed samples the live connection set, moves connections that
 // closed since the previous sample into the retention buffer and prunes
-// expired entries. It reports whether there is anything left to track (live
-// connections, pending seen entries or retained entries); a false return means
-// the manager is idle and the caller may back off the sampling cadence.
+// expired entries. It reports whether the fine sampling cadence is still
+// needed (live connections or pending seen entries); a false return means the
+// manager is idle and the caller may back off the sampling cadence. Retained
+// entries alone do not request the fine cadence — they only need to expire.
 func observeRecentClosed() bool {
 	now := time.Now()
 
@@ -179,30 +210,43 @@ func observeRecentClosed() bool {
 	recentClosedMu.Lock()
 	defer recentClosedMu.Unlock()
 
-	// Idle fast path: no live connections and nothing retained from earlier
-	// samples, so there is nothing to detect, add or prune this tick.
-	if connectionCount == 0 && len(recentClosedSeen) == 0 && len(recentClosedBuffer) == 0 {
-		return false
-	}
-
-	// Detect connections that left the manager since the previous sample and
-	// retain their final tracker info so a later poll can still observe them.
-	for id, info := range recentClosedSeen {
-		if alive[id] == nil {
-			recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
-			delete(recentClosedSeen, id)
+	// Nothing live and nothing pending: only retained entries can have work
+	// left, and that work is expiring them, which the coarse cadence covers.
+	// Retained entries deliberately do not keep the fine cadence armed.
+	idle := connectionCount == 0 && len(recentClosedSeen) == 0
+	if !idle {
+		// Detect connections that left the manager since the previous sample and
+		// retain their final tracker info so a later poll can still observe them.
+		for id, info := range recentClosedSeen {
+			if alive[id] == nil {
+				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
+				delete(recentClosedSeen, id)
+			}
+		}
+		for id, info := range alive {
+			if _, ok := recentClosedSeen[id]; !ok {
+				recentClosedSeen[id] = info
+			}
 		}
 	}
-	for id, info := range alive {
-		if _, ok := recentClosedSeen[id]; !ok {
-			recentClosedSeen[id] = info
-		}
-	}
 
-	// Prune retained entries whose retention window has elapsed.
-	cutoff := now.Add(-recentClosedRetentionWindow())
+	// Expire retained entries. Entries no poll has seen yet are kept for the
+	// longer window so a backgrounded app still gets them on its next poll;
+	// delivered ones expire as before, measured from the poll that delivered
+	// them. Entries are appended in close order and delivered in batches, so
+	// both timestamps are non-decreasing and this stops at the first live entry.
+	deliveredCutoff := now.Add(-recentClosedRetentionWindow())
+	undeliveredCutoff := now.Add(-recentClosedUndeliveredRetention)
 	keep := 0
-	for keep < len(recentClosedBuffer) && !recentClosedBuffer[keep].closedAt.After(cutoff) {
+	for keep < len(recentClosedBuffer) {
+		entry := recentClosedBuffer[keep]
+		if entry.deliveredAt.IsZero() {
+			if entry.closedAt.After(undeliveredCutoff) {
+				break
+			}
+		} else if entry.deliveredAt.After(deliveredCutoff) {
+			break
+		}
 		keep++
 	}
 	recentClosedBuffer = recentClosedBuffer[keep:]
@@ -212,7 +256,7 @@ func observeRecentClosed() bool {
 		recentClosedBuffer = recentClosedBuffer[len(recentClosedBuffer)-recentClosedMax:]
 	}
 
-	return true
+	return !idle
 }
 
 // noteQueryCadence records the gap between consecutive [QueryConnections] calls
@@ -237,8 +281,20 @@ func QueryConnections() *connectionSnapshot {
 	for _, c := range snap.Connections {
 		conns = append(conns, &connectionInfo{TrackerInfo: c})
 	}
-	for _, e := range recentClosedBuffer {
-		conns = append(conns, &connectionInfo{TrackerInfo: e.info, Closed: true})
+	// Stamp the poll on every entry it returns: an entry that has been seen once
+	// expires on the short window from here on, so retained history cannot keep
+	// growing once the app is back and polling again.
+	deliveredAt := time.Now()
+	for i := range recentClosedBuffer {
+		entry := &recentClosedBuffer[i]
+		if entry.deliveredAt.IsZero() {
+			entry.deliveredAt = deliveredAt
+		}
+		conns = append(conns, &connectionInfo{
+			TrackerInfo: entry.info,
+			Closed:      true,
+			ClosedAt:    entry.closedAt.UnixMilli(),
+		})
 	}
 
 	return &connectionSnapshot{

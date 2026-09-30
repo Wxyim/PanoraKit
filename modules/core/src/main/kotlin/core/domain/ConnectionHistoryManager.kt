@@ -66,7 +66,7 @@ object ConnectionHistoryManager {
      * Feed a fresh connection snapshot from the Go core.
      *
      * Connections present in the previous snapshot but missing from [currentConnections] are
-     * recorded as closed with the current wall-clock time.
+     * recorded as closed, using the close time the core reports when it has one.
      */
     fun updateConnections(currentConnections: List<ConnectionInfo>) {
         synchronized(lock) {
@@ -79,18 +79,22 @@ object ConnectionHistoryManager {
             val liveMap = currentConnections.filterNot { it.closed }.associateBy { it.id }
             val liveIds = liveMap.keys
 
+            // Connections the core flagged closed are recorded first: the core stamps them with
+            // the moment it saw the connection leave, and one poll can carry a whole batch of them
+            // when the app was backgrounded (the core holds undelivered closes back for a while).
+            // Recording those first keeps their real close times; the diff below then only has to
+            // cover closes the core could not report. Both paths deduplicate by id in
+            // [recordClosed], and the core reports retained closes oldest-first, so prepending
+            // keeps the buffer newest-first.
+            currentConnections.filter { it.closed }.forEach { conn -> recordClosed(conn, now) }
+
             // Detect newly-closed connections: IDs in the previous snapshot
-            // that are absent from the current live set.
-            // Stash the close timestamp so downstream consumers can calculate
-            // accurate connection duration (closeTime → start instead of now → start).
+            // that are absent from the current live set. This is the fallback for a connection the
+            // core no longer lists at all (its retained entry already expired), so the close is
+            // stamped with the poll time.
             previousConnections.keys.minus(liveIds).forEach { closedId ->
                 previousConnections[closedId]?.let { conn -> recordClosed(conn, now) }
             }
-
-            // Connections the core flagged closed are recorded immediately. They
-            // linger in the snapshot for a short grace period, so deduplicate by id
-            // (inside [recordClosed]).
-            currentConnections.filter { it.closed }.forEach { conn -> recordClosed(conn, now) }
 
             // Trim beyond the hard cap while preserving the minimum
             // guaranteed tail so the "Recent Requests" screen always has
@@ -110,18 +114,23 @@ object ConnectionHistoryManager {
      * Duplicates are dropped: the core keeps a closed connection in its snapshot for a while, and
      * the same id can also be reported by the diff against [previousConnections].
      */
-    private fun recordClosed(conn: ConnectionInfo, now: Long) {
+    private fun recordClosed(conn: ConnectionInfo, observedAt: Long) {
         if (!closedIds.add(conn.id)) return
+        // Prefer the core's close time: a batch of closes from a backgrounded period arrives long
+        // after the fact, and stamping those with the poll time would report every one of them as
+        // ending just now (wrong durations, wrong ordering). Falls back to the observation time for
+        // connections the core could not report.
+        val closedAt = conn.closedAt.takeIf { it > 0L } ?: observedAt
         val enriched =
             conn.copy(
                 metadata =
                     JsonObject(
                         conn.metadata.toMutableMap().apply {
-                            put("_closeTimeMs", JsonPrimitive(now))
+                            put("_closeTimeMs", JsonPrimitive(closedAt))
                         }
                     )
             )
-        _closedConnections.add(0, now to enriched)
+        _closedConnections.add(0, closedAt to enriched)
         closedRevision++
     }
 

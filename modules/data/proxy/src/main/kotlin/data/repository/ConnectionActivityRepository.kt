@@ -55,8 +55,11 @@ class ConnectionActivityRepository(
          * Polling only runs while the app is foregrounded with the screen on
          * ([RuntimeStateReader.isAppActive]); a backgrounded app has nothing that renders this
          * list, so it would otherwise pay a full connection-JSON query every second for no visible
-         * result. The tradeoff is that connections that open and close entirely while the app is
-         * not visible are not recorded in the recent-request history.
+         * result. The closes themselves are not lost by that: the Go core retains a close until a
+         * poll has seen it (`recentClosedUndeliveredRetention` in
+         * `lib/native/go/native/tunnel/conn.go`), so the first poll after the app comes back
+         * replays what happened while it was away, each with its real close time. Only history
+         * older than that bound is dropped.
          */
         private const val POLL_INTERVAL_MS = 1000L
 
