@@ -86,9 +86,12 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
    `metadata.Uid` 唯一来源。mihomo 默认 `find-process-mode=strict`：只有规则里存在 `process`/`uid` 类规则时才触发。
    触发时链路为：`app.QuerySocketUid` → `remoteTun.querySocketUid`（`C.CString`×2 + semaphore）→ JNI →
    Kotlin `ConnectivityManager.getConnectionOwnerUid`（Binder）→ 失败回退 `ProcFsUidResolver`（读 `/proc/net/tcp[6]`）。
-   已实现 Kotlin 侧正/负缓存：正缓存 **15s**、预热窗（启动 3s）结束后的负缓存 **5s**、容量 **2048**、按 TTL 淘汰，
+   已实现 Kotlin 侧正/负缓存：正缓存 **15s**、预热窗结束后的负缓存 **5s**、容量 **2048**、按 TTL 淘汰，
    键为 `(protocol, srcIp:port, dstIp:port)`。短连接场景（每请求新 src 端口）只在**新四元组首次出现**时走一次
-   JNI+Binder，重复四元组命中缓存；预热窗内 miss 不落负缓存以避免误伤启动期尚未发布的 socket。
+   JNI+Binder，重复四元组命中缓存；预热窗内 miss 先重试（3×5ms）再决定是否落负缓存，避免误伤启动期尚未
+   发布的 socket。预热窗**在 `transport.start()`（数据面真正开始收包）重新锚定 3s**：`prepare()` 到 `start()`
+   之间还夹着配置编译/核心加载、App→UID 表发布与 GLOBAL selection 引导，冷启动慢时原锚点会把窗口提前耗光，
+   导致启动首包洪峰的 UID miss 既不重试又被负缓存 5s，对应行永远只能显示「Unknown App」。
 3. **连接元数据/规则匹配**：规则数越多、正则越多成本越高；`IP-CIDR`/`GEOIP` 匹配依赖 IP 集与 MMDB，
    命中缓存后为 O(1)~O(log n)。fake-ip 模式下域名规则不触发二次解析，但 IP 类规则需要 `ResolveIP`。
 
@@ -217,7 +220,7 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 
 | 优先级 | 项 | 位置 | 影响 | 改动量 |
 | --- | --- | --- | --- | --- |
-| P0 ✅ | UID 缓存：正缓存 15s、预热后负缓存 5s、按 TTL 淘汰、容量 2048 | `VpnTunTransport.queryUid`/`cacheUid` | 降低短连接与 miss 场景下的 JNI+Binder+procfs 频率 | 已实现 |
+| P0 ✅ | UID 缓存：正缓存 15s、预热后负缓存 5s、按 TTL 淘汰、容量 2048；预热窗在 `transport.start()` 重新锚定，miss 重试 3×5ms | `VpnTunTransport.queryUid`/`cacheUid`/`refreshUidWarmup` | 降低短连接与 miss 场景下的 JNI+Binder+procfs 频率；消除冷启动首包洪峰的 UID miss（Unknown App） | 已实现 |
 | P0 ✅ | 日志：`init()` 常驻订阅者加级别过滤（对齐 `subscribeLogcat`） | `lib/native/go/native/log.go` | 消除每 DNS 劫持的 logcat 写入；常驻订阅者保证 logCh 不阻塞 | 已实现 |
 | P1 ✅ | `querySocketUid` 字符串→地址解析改手写快速解析（去 `URL()`+`getByName`，规避中括号 IPv6 平台差异） | `core/util/Net.kt` | 减少每次 miss 的 URL 分配与解析成本 | 已实现 |
 | P1 ✅ | 日志：常驻 drainer 无条件排空 `logCh`；JNI 侧改为按需订阅并可退订（最后一个 channel 关闭时 `unsubscribeLogcat()`），无订阅者时不转发 info/debug 到 logcat | `lib/native/go/native/log.go`、`core/Clash.kt`、`cpp/main.cpp` | 消除每 DNS 劫持 JNI 开销、订阅泄漏导致的重复 fan-out 与后台 CPU | 已实现 |

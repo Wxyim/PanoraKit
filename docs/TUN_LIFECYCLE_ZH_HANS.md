@@ -16,6 +16,10 @@
   保证任意时刻 fd 只被一个路径关闭，杜绝双重关闭与 fd 号复用误关。
 - Go `startTun` 失败路径端到端闭环：Go 关闭 fd（F_GETFD 守卫防双关）→ 返回码 1 → C++ 透传 → Kotlin 抛错 →
   `SessionRuntime.rollback`，runtime 进入 Failed 而非假 Running。
+- 同一窗口还有个非 fd 副作用：UID 预热窗若以 `prepare` 为锚点，会在首包到达前被配置编译/核心加载/App→UID
+  发布吃掉，启动首包洪峰的 UID miss 便既不重试又被负缓存 5s，表现为最早几条「最近请求」显示 Unknown App。
+  因此预热窗在 `start()`（数据面真正收包）重新锚定（详见
+  [TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md) 第 3.2 节）。
 
 ## 2. fd 归属规则
 

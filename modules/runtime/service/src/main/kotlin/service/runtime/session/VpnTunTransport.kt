@@ -38,6 +38,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.util.parseCIDR
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import timber.log.Timber
 
 class VpnTunTransport(
     private val vpnService: VpnService,
@@ -50,6 +51,8 @@ class VpnTunTransport(
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
     @Volatile private var pendingDevice: TunDevice? = null
     @Volatile private var uidWarmupUntilElapsedMs = 0L
+    private var uidWarmupStartedAtElapsedMs = 0L
+    @Volatile private var uidWarmupMissLogged = false
     private val deviceLock = Any()
 
     /**
@@ -65,7 +68,7 @@ class VpnTunTransport(
     override fun prepare(spec: RuntimeSpec) {
         uidCache.clear()
         packageNameCache.clear()
-        uidWarmupUntilElapsedMs = android.os.SystemClock.elapsedRealtime() + UID_WARMUP_WINDOW_MS
+        refreshUidWarmup()
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
         val device =
             with(vpnService.Builder()) {
@@ -211,6 +214,17 @@ class VpnTunTransport(
                 pending
             }
         startupLogStore.append("LOCAL_TUN transport start: begin fd=${device.fd}")
+        // Packets only start flowing here, not at prepare(): in between, SessionRuntime runs the
+        // config compilation, the core load, the app-uid publish and the GLOBAL selection
+        // bootstrap, so a slow cold start can consume the whole warm-up window [prepare] opened
+        // before a single packet arrives. That burst is exactly what needs the UID retries — a
+        // miss there is negative-cached for 5s and the row can never resolve an app name.
+        // Re-anchor the window on the moment the data path actually goes live.
+        val sincePrepareMs = android.os.SystemClock.elapsedRealtime() - uidWarmupStartedAtElapsedMs
+        refreshUidWarmup()
+        startupLogStore.append(
+            "LOCAL_TUN transport start: uid warmup re-anchored (${sincePrepareMs}ms after prepare)"
+        )
         com.github.nomadboxlab.monadbox.core.Clash.startTun(
             fd = device.fd,
             stack = device.stack,
@@ -300,8 +314,9 @@ class VpnTunTransport(
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
         var uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
         // During the first VPN start Android can publish the socket owner a
-        // few milliseconds after the TUN is established. Retry only in this
-        // short warm-up window; normal traffic keeps a single IPC query.
+        // few milliseconds after the socket first sends. Retry only in this
+        // warm-up window (anchored at transport start, see [start]); normal
+        // traffic keeps a single IPC query.
         if (uid <= 0 && warmupActive) {
             repeat(UID_WARMUP_RETRIES) {
                 if (uid <= 0) {
@@ -334,6 +349,18 @@ class VpnTunTransport(
         // the ConnectivityService Binder and procfs with the same 4-tuple.
         if (warmupActive) {
             uidCache.remove(key)
+            if (!uidWarmupMissLogged) {
+                uidWarmupMissLogged = true
+                // One line per warm-up window: tells an on-device log whether a startup row with no
+                // app name is a real UID miss (and what the first one looked like) or something
+                // else.
+                Timber.d(
+                    "UID unresolved after warm-up retries: %s -> %s (%d)",
+                    source,
+                    target,
+                    protocol,
+                )
+            }
         } else {
             cacheUid(key, -1, now + UID_CACHE_NEGATIVE_TTL_MS)
         }
@@ -395,6 +422,18 @@ class VpnTunTransport(
         }
     }
 
+    /**
+     * Opens (or re-opens) the warm-up window during which a UID miss is retried instead of being
+     * negative-cached. Called from [prepare] (the session is live and the traffic burst may start)
+     * and again from [start] (packets actually begin to flow).
+     */
+    private fun refreshUidWarmup() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        uidWarmupStartedAtElapsedMs = now
+        uidWarmupUntilElapsedMs = now + UID_WARMUP_WINDOW_MS
+        uidWarmupMissLogged = false
+    }
+
     private data class UidQueryKey(val protocol: Int, val source: String, val target: String)
 
     private data class UidCacheEntry(val uid: Int, val expiresAt: Long)
@@ -441,8 +480,12 @@ class VpnTunTransport(
         private const val UID_CACHE_NEGATIVE_TTL_MS = 5_000L
         private const val UID_CACHE_MAX_ENTRIES = 2048
         private const val UID_WARMUP_WINDOW_MS = 3_000L
-        private const val UID_WARMUP_RETRIES = 2
-        private const val UID_WARMUP_RETRY_DELAY_MS = 2L
+        // The owner is published shortly after the socket first sends, and the startup burst runs
+        // many lookups at once through the Go-side semaphore(4), so a couple of 2ms retries is not
+        // enough to ride out the publication latency. 3 x 5ms bounds the added per-miss latency to
+        // ~15ms and only ever applies inside the warm-up window.
+        private const val UID_WARMUP_RETRIES = 3
+        private const val UID_WARMUP_RETRY_DELAY_MS = 5L
 
         private val HTTP_PROXY_LOCAL_LIST =
             listOf(
