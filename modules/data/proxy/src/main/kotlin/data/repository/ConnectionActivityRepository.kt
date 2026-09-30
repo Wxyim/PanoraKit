@@ -57,9 +57,10 @@ class ConnectionActivityRepository(
          * list, so it would otherwise pay a full connection-JSON query every second for no visible
          * result. The closes themselves are not lost by that: the Go core retains a close until a
          * poll has seen it (`recentClosedUndeliveredRetention` in
-         * `lib/native/go/native/tunnel/conn.go`), so the first poll after the app comes back
-         * replays what happened while it was away, each with its real close time. Only history
-         * older than that bound is dropped.
+         * `lib/native/go/native/tunnel/conn.go`), so the polls after the app comes back replay what
+         * happened while it was away, each with its real close time. A single response carries at
+         * most 200 closes (`recentClosedMaxPerResponse`), so a large backlog drains over a few
+         * polls instead of being dropped; only history older than the retention bound is lost.
          */
         private const val POLL_INTERVAL_MS = 1000L
 

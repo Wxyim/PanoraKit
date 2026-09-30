@@ -95,6 +95,14 @@ const (
 	// second the oldest entries can therefore be evicted before the app polls;
 	// that trades a bounded slice of history for a bounded payload.
 	recentClosedMax = 500
+	// [recentClosedMaxPerResponse] bounds how many retained closes a single
+	// [QueryConnections] response carries. [recentClosedMax] bounds the buffer,
+	// but the RootTun path serialises the whole snapshot to a JSON string that
+	// crosses a binder transaction (~1 MiB budget, and binder strings are UTF-16
+	// so roughly half that many characters), so a saturated buffer would risk a
+	// TransactionTooLargeException. Undelivered entries are served first so a
+	// backlog drains over consecutive polls instead of being dropped.
+	recentClosedMaxPerResponse = 200
 )
 
 // recentClosedLastQueryNanos / recentClosedPollGapNanos hold the cadence of
@@ -281,11 +289,33 @@ func QueryConnections() *connectionSnapshot {
 	for _, c := range snap.Connections {
 		conns = append(conns, &connectionInfo{TrackerInfo: c})
 	}
+	// Cap how much retained history one response carries (see
+	// [recentClosedMaxPerResponse]). The buffer is [delivered prefix][undelivered
+	// suffix], so a backlog of undelivered entries is served oldest-first and
+	// whatever exceeds the cap is handed to the next poll while it is still
+	// inside its window; when the undelivered entries do not fill the budget the
+	// newest delivered ones top it up (the older ones were already recorded by an
+	// earlier poll). Either way the selection is a contiguous, oldest-first run,
+	// which is what lets the app keep its newest-first history by prepending.
+	numDelivered := 0
+	for numDelivered < len(recentClosedBuffer) && !recentClosedBuffer[numDelivered].deliveredAt.IsZero() {
+		numDelivered++
+	}
+	start, end := 0, len(recentClosedBuffer)
+	if len(recentClosedBuffer)-numDelivered >= recentClosedMaxPerResponse {
+		// Backlog: serve the oldest [recentClosedMaxPerResponse] undelivered ones.
+		start, end = numDelivered, numDelivered+recentClosedMaxPerResponse
+	} else if end > recentClosedMaxPerResponse {
+		// No backlog: serve the newest [recentClosedMaxPerResponse] entries, which
+		// covers every undelivered one plus the most recent already-delivered ones.
+		start = end - recentClosedMaxPerResponse
+	}
+
 	// Stamp the poll on every entry it returns: an entry that has been seen once
 	// expires on the short window from here on, so retained history cannot keep
 	// growing once the app is back and polling again.
 	deliveredAt := time.Now()
-	for i := range recentClosedBuffer {
+	for i := start; i < end; i++ {
 		entry := &recentClosedBuffer[i]
 		if entry.deliveredAt.IsZero() {
 			entry.deliveredAt = deliveredAt
