@@ -201,7 +201,12 @@ object Clash {
         dns: String,
         markSocket: (Int) -> Boolean,
         querySocketUid:
-            (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int,
+            (
+                protocol: Int,
+                source: InetSocketAddress,
+                target: InetSocketAddress,
+                force: Boolean,
+            ) -> Int,
         queryPackageName: (uid: Int) -> String,
     ) {
         val result =
@@ -220,11 +225,13 @@ object Clash {
                         protocol: Int,
                         source: String,
                         target: String,
+                        force: Boolean,
                     ): Int {
                         return querySocketUid(
                             protocol,
                             parseInetSocketAddress(source),
                             parseInetSocketAddress(target),
+                            force,
                         )
                     }
 

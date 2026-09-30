@@ -89,7 +89,10 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
    已实现 Kotlin 侧正/负缓存：正缓存 **15s**、预热窗结束后的负缓存 **5s**、容量 **2048**、按 TTL 淘汰，
    键为 `(protocol, srcIp:port, dstIp:port)`。短连接场景（每请求新 src 端口）只在**新四元组首次出现**时走一次
    JNI+Binder，重复四元组命中缓存；预热窗内 miss 先重试（3×5ms）再决定是否落负缓存，避免误伤启动期尚未
-   发布的 socket。预热窗**在 `transport.start()`（数据面真正开始收包）重新锚定 3s**：`prepare()` 到 `start()`
+   发布的 socket。补齐路径的查询带 `force` 标志（`querySocketUid(..., force=true)`，Go/C++/Kotlin 各层透传）：
+   它只复用正缓存，永不命中负缓存、也不写负缓存，因为「连接关闭后补查」问的恰恰是活跃期 miss 过的四元组；
+   频率已由 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms），不会退化成反复打 Binder。
+   预热窗**在 `transport.start()`（数据面真正开始收包）重新锚定 3s**：`prepare()` 到 `start()`
    之间还夹着配置编译/核心加载、App→UID 表发布与 GLOBAL selection 引导，冷启动慢时原锚点会把窗口提前耗光，
    导致启动首包洪峰的 UID miss 既不重试又被负缓存 5s，对应行永远只能显示「Unknown App」。
    预热窗只覆盖「核心已经发起过 UID 查询」的情形，残留的零星「Unknown App」还有两条漏网路径：
@@ -100,7 +103,11 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
      resolver 照常进入查询链；
    - `tunnel/conn.go` 仅在「App 正在轮询连接列表」（最近 10s 内有过 `QueryConnections`）且
      `find-process-mode != off` 时，在采样器里对 `metadata.Uid == 0` 的连接补齐 UID：每 tick 最多 8 条、
-     每连接最多尝试 3 次（间隔 ≥500ms，覆盖 socket 属主发布延迟），不轮询时零查询、零 Binder；
+     每连接最多尝试 3 次（间隔 ≥500ms，覆盖 socket 属主发布延迟），不轮询时零查询、零 Binder；预算先给
+     「刚关闭且尚未投递给 App 的保留条目」（在活跃扫描补到之前就关闭的短连接，正是 `0 s / 0 B` 的
+     Unknown App 行），再给活跃连接，最后给已投递但仍在保留窗内的条目；
+   - 核心自身发起的连接（mihomo `type: "Inner"`：proxydialer / inner listener / DNS dialer）没有可归属的
+     App，`AppIdentityResolver` 不再把它们落到「Unknown App」，而是标注为 `MonadBox`（`appKey = "core"`）；
    - `ProcFsUidResolver` 先按完整 `local_address` 精确匹配，未命中再退化为端口匹配（仅当同端口所有行 UID
      一致时采用，否则视为歧义返回 -1），并对 IPv4 源同时查 v4 表与 v6 表的 v4-mapped 项，覆盖未连接 UDP
      socket 与 Java dual-stack socket；稳态 miss 日志按 30s 限频，便于真机定位且不刷屏。

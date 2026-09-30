@@ -57,7 +57,9 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 			return "", process.ErrInvalidNetwork
 		}
 
-		uid := app.QuerySocketUid(src, dst)
+		// The core's own lookup runs while the connection is live, so it keeps taking the
+		// negative cache; only the enrichment path in tunnel/conn.go forces a fresh query.
+		uid := app.QuerySocketUid(src, dst, false)
 
 		// Always stash the UID so the Kotlin-side AppIdentityResolver can fall
 		// back to PackageManager.getPackagesForUid() when FindPackageName yields

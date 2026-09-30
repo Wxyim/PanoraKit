@@ -74,8 +74,9 @@ const closeAllTimeout = 2 * time.Second
 // CPU-wise, but keeping a 20ms timer armed prevents the CPU from idling deep
 // between ticks on a quiet device, so the sampler backs off to 250ms when there
 // is nothing to track and returns to 20ms as soon as activity resumes. Retained
-// entries do not keep the fine cadence armed: they only need to expire, which
-// the coarse tick is enough for.
+// entries do not keep the fine cadence armed: the coarse tick is enough to expire
+// them and still gives an undelivered close a couple of UID-enrichment attempts
+// before the next poll (see [tryScheduleUidEnrichment]).
 // The only tradeoff: a connection that opens and closes entirely inside a
 // single idle window (the first connection of a new burst) is not observed.
 const (
@@ -146,6 +147,12 @@ type recentClosedEntry struct {
 	// poll has seen it yet, which is what keeps a background close around until
 	// the app comes back (see the retention notes above).
 	deliveredAt time.Time
+	// enrichAttempts/enrichLastAt give the entry its own bounded UID enrichment
+	// budget (see [tryScheduleUidEnrichment]). A connection that closed before the
+	// live scan attributed it would otherwise reach the app with an empty owner,
+	// which is what renders a short "0 s / 0 B" request as "Unknown App".
+	enrichAttempts int
+	enrichLastAt   int64
 }
 
 // connectionSnapshot mirrors statistic.Snapshot but tags every connection with
@@ -233,8 +240,9 @@ func observeRecentClosed() bool {
 	var pending []*statistic.TrackerInfo
 
 	// Nothing live and nothing pending: only retained entries can have work
-	// left, and that work is expiring them, which the coarse cadence covers.
-	// Retained entries deliberately do not keep the fine cadence armed.
+	// left, and that work is expiring them plus the handful of UID-enrichment
+	// attempts the coarse cadence already covers. Retained entries deliberately
+	// do not keep the fine cadence armed.
 	idle := connectionCount == 0 && len(recentClosedSeen) == 0
 	if !idle {
 		// Detect connections that left the manager since the previous sample and
@@ -281,29 +289,60 @@ func observeRecentClosed() bool {
 
 	// Collect the connections whose owner the core left unresolved (see [enrichUid]). The scan is
 	// budgeted per tick and skips connections it already gave up on, so opening the list over a long
-	// backlog cannot turn one tick into one binder round trip per connection; Go's randomised map
-	// iteration makes the budgeted picks a fair sample, so nothing starves.
+	// backlog cannot turn one tick into one binder round trip per connection. The budget is spent in
+	// priority order; the buffer tiers run oldest-first and the live tier rides Go's randomised map
+	// iteration, so nothing starves:
+	//
+	//   1. retained closes no poll has delivered yet — the rows the next poll is about to show, and
+	//      often the last chance to attribute a connection that vanished from the live set before the
+	//      scan below reached it (the short "0 s / 0 B" requests behind most "Unknown App" rows);
+	//   2. live connections, as before;
+	//   3. retained closes already delivered once, while they are still inside the retention window.
 	if enrich {
 		budget := enrichUidBudgetPerTick
+		scheduleEntry := func(entry *recentClosedEntry) {
+			attempts, lastAt, scheduled := tryScheduleUidEnrichment(
+				entry.info,
+				entry.enrichAttempts,
+				entry.enrichLastAt,
+				now,
+			)
+			entry.enrichAttempts, entry.enrichLastAt = attempts, lastAt
+			if scheduled {
+				pending = append(pending, entry.info)
+				budget--
+			}
+		}
+		for i := range recentClosedBuffer {
+			if budget <= 0 {
+				break
+			}
+			entry := &recentClosedBuffer[i]
+			if entry.deliveredAt.IsZero() {
+				scheduleEntry(entry)
+			}
+		}
 		for id, info := range recentClosedSeen {
 			if budget <= 0 {
 				break
 			}
-			if info.Metadata == nil || info.Metadata.Uid != 0 {
-				continue
-			}
 			state := recentClosedEnriched[id]
-			if state.attempts >= enrichUidMaxAttempts {
-				continue
+			attempts, lastAt, scheduled :=
+				tryScheduleUidEnrichment(info, state.attempts, state.lastAt, now)
+			if scheduled {
+				recentClosedEnriched[id] = enrichState{attempts: attempts, lastAt: lastAt}
+				pending = append(pending, info)
+				budget--
 			}
-			if state.attempts > 0 && now.Sub(time.Unix(0, state.lastAt)) < enrichUidRetryInterval {
-				continue
+		}
+		for i := range recentClosedBuffer {
+			if budget <= 0 {
+				break
 			}
-			state.attempts++
-			state.lastAt = now.UnixNano()
-			recentClosedEnriched[id] = state
-			pending = append(pending, info)
-			budget--
+			entry := &recentClosedBuffer[i]
+			if !entry.deliveredAt.IsZero() {
+				scheduleEntry(entry)
+			}
 		}
 	}
 	recentClosedMu.Unlock()
@@ -370,7 +409,9 @@ func uidEnrichmentActive(now time.Time) bool {
 }
 
 // enrichUid resolves the owner UID of a connection the core skipped and stores it in the metadata
-// the app's snapshot renders.
+// the app's snapshot renders. The lookup is forced past the app-side negative cache: this path runs
+// precisely for the connections that missed while they were live, and it is rate limited by
+// [tryScheduleUidEnrichment], so a cached -1 would only mask the retry that can still attribute it.
 //
 // Connections the core already attributed, inner (core-originated) connections, and connections
 // whose 4-tuple cannot be rebuilt are left untouched: the first two need no help and the third has
@@ -387,9 +428,30 @@ func enrichUid(info *statistic.TrackerInfo) {
 	if source == nil || target == nil {
 		return
 	}
-	if uid := app.QuerySocketUid(source, target); uid > 0 {
+	if uid := app.QuerySocketUid(source, target, true); uid > 0 {
 		metadata.Uid = uint32(uid)
 	}
+}
+
+// tryScheduleUidEnrichment books one enrichment attempt for [info] when it is still unattributed
+// and has attempts left, returning the updated attempt bookkeeping. The rate limiting lives here so
+// the live scan and the retained-closed scan share the same retry policy.
+func tryScheduleUidEnrichment(
+	info *statistic.TrackerInfo,
+	attempts int,
+	lastAt int64,
+	now time.Time,
+) (newAttempts int, newLastAt int64, scheduled bool) {
+	if info == nil || info.Metadata == nil || info.Metadata.Type == C.INNER || info.Metadata.Uid != 0 {
+		return attempts, lastAt, false
+	}
+	if attempts >= enrichUidMaxAttempts {
+		return attempts, lastAt, false
+	}
+	if attempts > 0 && now.Sub(time.Unix(0, lastAt)) < enrichUidRetryInterval {
+		return attempts, lastAt, false
+	}
+	return attempts + 1, now.UnixNano(), true
 }
 
 func QueryConnections() *connectionSnapshot {

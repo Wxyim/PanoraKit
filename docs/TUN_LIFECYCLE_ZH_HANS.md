@@ -24,7 +24,10 @@
   HTTP/SOCKS 入站、packetaddr 出口这类不写 `RawAddr` 的连接，核心根本不会发起解析。第二轮补齐了这两条：
   `MetadataSocketAddrs` 在地址缺失时重建 socket 地址，`tunnel/conn.go` 在 App 轮询连接列表期间（最近 10s
   内有过 `QueryConnections`）由采样器按 8 条/tick、每连接 ≤3 次尝试补齐 `metadata.Uid`，procfs 回退同时
-  支持端口匹配与 v4-mapped 双表（详见同上第 3.2 节）。
+  支持端口匹配与 v4-mapped 双表；补齐预算优先给尚未投递的已关闭保留条目，让在活跃扫描补到之前就关闭的
+  短连接也能拿到 App 名，且补齐查询带 `force` 标志、只复用正缓存而不命中 App 侧负缓存。核心自身发起的
+  `Inner` 连接（proxydialer / inner listener / DNS dialer，无 App 可归属）不再显示「Unknown App」，
+  而是标注为 `MonadBox`；同样见第 3.2 节。
 
 ## 2. fd 归属规则
 

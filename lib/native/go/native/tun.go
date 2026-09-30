@@ -63,7 +63,7 @@ func (t *remoteTun) markSocket(fd int) {
 	C.mark_socket(t.callback, C.int(fd))
 }
 
-func (t *remoteTun) querySocketUid(protocol int, source, target string) int {
+func (t *remoteTun) querySocketUid(protocol int, source, target string, force bool) int {
 	_ = t.limit.Acquire(context.Background(), 1)
 	defer t.limit.Release(1)
 
@@ -71,7 +71,20 @@ func (t *remoteTun) querySocketUid(protocol int, source, target string) int {
 		return -1
 	}
 
-	return int(C.query_socket_uid(t.callback, C.int(protocol), C.CString(source), C.CString(target)))
+	forceFlag := C.int(0)
+	if force {
+		forceFlag = 1
+	}
+
+	return int(
+		C.query_socket_uid(
+			t.callback,
+			C.int(protocol),
+			C.CString(source),
+			C.CString(target),
+			forceFlag,
+		),
+	)
 }
 
 func (t *remoteTun) queryPackageName(uid int) string {

@@ -294,6 +294,7 @@ class VpnTunTransport(
         protocol: Int,
         source: java.net.InetSocketAddress,
         target: java.net.InetSocketAddress,
+        force: Boolean,
     ): Int {
         val now = android.os.SystemClock.elapsedRealtime()
         val warmupActive = now < uidWarmupUntilElapsedMs
@@ -303,11 +304,14 @@ class VpnTunTransport(
                 source = endpointKey(source),
                 target = endpointKey(target),
             )
-        uidCache[key]
-            ?.takeIf { it.expiresAt > now }
-            ?.let {
-                return it.uid
-            }
+        val cached = uidCache[key]?.takeIf { it.expiresAt > now }
+        // A forced (enrichment) lookup may reuse a positive answer but never a cached miss: the
+        // native enrichment path asks precisely about the sockets that missed while they were alive,
+        // and it is already rate-limited per connection, so the cached -1 would only hide the one
+        // lookup that can still attribute a short-lived connection.
+        if (cached != null && (cached.uid > 0 || !force)) {
+            return cached.uid
+        }
 
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
         var uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
@@ -349,25 +353,23 @@ class VpnTunTransport(
                 return procUid
             }
         }
-        // A miss is inherently transient during VPN startup: Android may not
-        // have published the socket owner yet, and procfs may lag behind the
-        // first packet. Only negative-cache once the warm-up window has
-        // elapsed, otherwise the same socket can remain unattributed for the
-        // rest of its short lifetime. After warm-up a miss is stable enough to
-        // cache briefly so retransmits and TIME_WAIT re-queries stop hammering
-        // the ConnectivityService Binder and procfs with the same 4-tuple.
-        if (warmupActive) {
+        // A miss is inherently transient during VPN startup and for a forced enrichment lookup:
+        // Android may not have published the socket owner yet, and procfs may lag behind the first
+        // packet. Only negative-cache once the warm-up window has elapsed and the caller is not
+        // forcing a fresh lookup, otherwise the same socket can remain unattributed for the rest of
+        // its short lifetime. A stable miss is cached briefly so retransmits and TIME_WAIT re-queries
+        // stop hammering the ConnectivityService Binder and procfs with the same 4-tuple.
+        if (warmupActive || force) {
             uidCache.remove(key)
-            if (!uidWarmupMissLogged) {
-                uidWarmupMissLogged = true
-                logUidMiss(source, target, protocol)
-            }
         } else {
             cacheUid(key, -1, now + UID_CACHE_NEGATIVE_TTL_MS)
-            if (now - uidMissLoggedAtElapsedMs >= UID_MISS_LOG_INTERVAL_MS) {
-                uidMissLoggedAtElapsedMs = now
-                logUidMiss(source, target, protocol)
-            }
+        }
+        if (warmupActive && !uidWarmupMissLogged) {
+            uidWarmupMissLogged = true
+            logUidMiss(source, target, protocol)
+        } else if (!warmupActive && now - uidMissLoggedAtElapsedMs >= UID_MISS_LOG_INTERVAL_MS) {
+            uidMissLoggedAtElapsedMs = now
+            logUidMiss(source, target, protocol)
         }
         return -1
     }
@@ -508,8 +510,10 @@ class VpnTunTransport(
         private const val UID_WARMUP_RETRIES = 3
         private const val UID_WARMUP_RETRY_DELAY_MS = 5L
         // Outside the warm-up window a single quick retry covers the narrow race against a
-        // short-lived socket disappearing before this query runs. A miss is negative-cached, so
-        // more retries would only cost every later connection that reuses the same 4-tuple.
+        // short-lived socket disappearing before this query runs. A non-forced miss is
+        // negative-cached, so more retries would only cost every later connection that reuses the
+        // same 4-tuple; a forced lookup is retried by the native enrichment budget instead (≤3
+        // attempts, ≥500ms apart), which is where the late socket-owner publication is absorbed.
         private const val UID_MISS_RETRIES = 1
         private const val UID_MISS_RETRY_DELAY_MS = 10L
         // Steady-state misses are logged at most once per interval, so an unattributable socket

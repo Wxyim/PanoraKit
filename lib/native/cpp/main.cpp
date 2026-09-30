@@ -484,14 +484,15 @@ static void call_tun_interface_mark_socket_impl(void* tun_interface, int fd) {
 }
 
 static int call_tun_interface_query_socket_uid_impl(void* tun_interface, int protocol,
-                                                    const char* source, const char* target) {
+                                                    const char* source, const char* target,
+                                                    int force) {
   TRACE_METHOD();
 
   ATTACH_JNI();
 
   return env->CallIntMethod((jobject)tun_interface, (jmethodID)m_tun_interface_query_socket_uid,
                             (jint)protocol, (jstring)new_string(source),
-                            (jstring)new_string(target));
+                            (jstring)new_string(target), (jboolean)(force != 0));
 }
 
 static char* call_tun_interface_query_package_name_impl(void* tun_interface, int uid) {
@@ -636,7 +637,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 
   m_tun_interface_mark_socket = find_method(c_tun_interface, "markSocket", "(I)V");
   m_tun_interface_query_socket_uid =
-      find_method(c_tun_interface, "querySocketUid", "(ILjava/lang/String;Ljava/lang/String;)I");
+      find_method(c_tun_interface, "querySocketUid", "(ILjava/lang/String;Ljava/lang/String;Z)I");
   m_tun_interface_query_package_name =
       find_method(c_tun_interface, "queryPackageName", "(I)Ljava/lang/String;");
   m_completable_complete = find_method(c_completable, "complete", "(Ljava/lang/Object;)Z");

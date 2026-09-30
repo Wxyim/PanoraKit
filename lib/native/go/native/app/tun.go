@@ -29,14 +29,20 @@ import (
 )
 
 var markSocketImpl func(fd int)
-var querySocketUidImpl func(protocol int, source, target string) int
+var querySocketUidImpl func(protocol int, source, target string, force bool) int
 var queryPackageNameImpl func(uid int) string
 
 func MarkSocket(fd int) {
 	markSocketImpl(fd)
 }
 
-func QuerySocketUid(source, target net.Addr) int {
+// QuerySocketUid resolves the UID that owns the socket [source] → [target].
+//
+// [force] requests a lookup that must not be answered from the Kotlin-side negative cache. The UID
+// enrichment path sets it for connections the core has already seen close: a miss cached while the
+// socket was still alive would otherwise mask the one lookup that can still attribute it. The caller
+// is responsible for rate limiting a forced lookup.
+func QuerySocketUid(source, target net.Addr, force bool) int {
 	var protocol int
 
 	switch source.Network() {
@@ -52,16 +58,16 @@ func QuerySocketUid(source, target net.Addr) int {
 		return platform.QuerySocketUidFromProcFs(source, target)
 	}
 
-	return querySocketUidImpl(protocol, source.String(), target.String())
+	return querySocketUidImpl(protocol, source.String(), target.String(), force)
 }
 
-func ApplyTunContext(markSocket func(fd int), querySocketUid func(int, string, string) int) {
+func ApplyTunContext(markSocket func(fd int), querySocketUid func(int, string, string, bool) int) {
 	if markSocket == nil {
 		markSocket = func(fd int) {}
 	}
 
 	if querySocketUid == nil {
-		querySocketUid = func(int, string, string) int { return -1 }
+		querySocketUid = func(int, string, string, bool) int { return -1 }
 	}
 	markSocketImpl = markSocket
 	querySocketUidImpl = querySocketUid

@@ -40,6 +40,11 @@ class AppIdentityResolver(context: Context) {
     private val installedPackageCache = ConcurrentHashMap<String, String>()
 
     fun resolve(metadata: JsonObject): AppIdentity {
+        // Connections mihomo dials itself (proxy dialer, inner listener, DNS dialer) have no owning
+        // app to look up; label them as the core instead of letting them fall through to "Unknown App".
+        if (metadata.isInnerConnection()) {
+            return AppIdentity(appKey = CORE_APP_KEY, packageName = null, appName = CORE_APP_NAME)
+        }
         val explicitPackageName =
             metadata.firstNonBlankValue("packageName", "package", "package-name", "package_name")
         val processName =
@@ -51,23 +56,11 @@ class AppIdentityResolver(context: Context) {
                 "appProcess",
             )
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
-        val fallbackHost =
-            metadata.firstNonBlankValue(
-                "host",
-                "destinationIP",
-                "destinationIp",
-                "destination-ip",
-                "destination_ip",
-                "dnsName",
-                "dns-name",
-                "dns_name",
-            )
         val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
         return resolve(
             explicitPackageName = explicitPackageName,
             processName = processName,
             uid = uid,
-            fallbackHost = fallbackHost,
             fallbackSourceIp = sourceIp,
         )
     }
@@ -76,7 +69,6 @@ class AppIdentityResolver(context: Context) {
         explicitPackageName: String,
         processName: String,
         uid: Int?,
-        fallbackHost: String = "",
         fallbackSourceIp: String = "",
     ): AppIdentity {
         val cacheKey = buildString {
@@ -92,8 +84,7 @@ class AppIdentityResolver(context: Context) {
             return it
         }
 
-        val identity =
-            resolveIdentity(explicitPackageName, processName, uid, fallbackHost, fallbackSourceIp)
+        val identity = resolveIdentity(explicitPackageName, processName, uid, fallbackSourceIp)
 
         // Cache only a confirmed installed package. UID/process fallbacks can
         // be produced while the VPN's first UID lookup is still warming up;
@@ -108,7 +99,6 @@ class AppIdentityResolver(context: Context) {
         explicitPackageName: String,
         processName: String,
         uid: Int?,
-        fallbackHost: String,
         fallbackSourceIp: String,
     ): AppIdentity {
         val packageName =
@@ -147,8 +137,9 @@ class AppIdentityResolver(context: Context) {
                     packageName = null,
                     appName = processName,
                 )
-            fallbackHost.isNotBlank() ->
-                AppIdentity(appKey = UNKNOWN_APP_KEY, packageName = null, appName = fallbackHost)
+            // No owner to name. Keep the identity "unknown" and reuse the recent-request
+            // placeholder instead of leaking the host/destination address into the app-name field
+            // (the destination already has its own row in the detail sheet).
             else ->
                 AppIdentity(
                     appKey = UNKNOWN_APP_KEY,
@@ -289,6 +280,9 @@ class AppIdentityResolver(context: Context) {
 
     /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
     fun resolveFallbackDisplayName(metadata: JsonObject): String {
+        // The recent-request list resolves its rows through here, so core-originated connections get
+        // the same label the detail sheet shows rather than "Unknown App".
+        if (metadata.isInnerConnection()) return CORE_APP_NAME
         val processName =
             metadata.firstNonBlankValue(
                 "process",
@@ -312,9 +306,18 @@ class AppIdentityResolver(context: Context) {
     companion object {
         const val UNKNOWN_APP_KEY = "unknown"
         const val UNKNOWN_APP_NAME = "Unknown App"
+
+        /** Identity of a connection the core opened itself (mihomo `type: "Inner"`). */
+        const val CORE_APP_KEY = "core"
+        const val CORE_APP_NAME = "MonadBox"
+
         private const val HOTSPOT_DEVICE_PREFIX = "Hotspot Device"
     }
 }
+
+/** True when mihomo marks the connection as core-originated (`metadata.type == "Inner"`). */
+private fun JsonObject.isInnerConnection(): Boolean =
+    firstNonBlankValue("type").equals("Inner", ignoreCase = true)
 
 private fun isRemoteSourceAddress(raw: String): Boolean {
     val value = raw.trim()

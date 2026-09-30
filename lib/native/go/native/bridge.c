@@ -12,7 +12,7 @@
 void (*mark_socket_func)(void* tun_interface, int fd);
 
 int (*query_socket_uid_func)(void* tun_interface, int protocol, const char* source,
-                             const char* target);
+                             const char* target, int force);
 char* (*query_package_name_func)(void* tun_interface, int uid);
 
 void (*complete_func)(void* completable, const char* exception);
@@ -35,10 +35,10 @@ void mark_socket(void* interface, int fd) {
   mark_socket_func(interface, fd);
 }
 
-int query_socket_uid(void* interface, int protocol, char* source, char* target) {
+int query_socket_uid(void* interface, int protocol, char* source, char* target, int force) {
   TRACE_METHOD();
 
-  int result = query_socket_uid_func(interface, protocol, source, target);
+  int result = query_socket_uid_func(interface, protocol, source, target, force);
 
   free(source);
   free(target);

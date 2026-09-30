@@ -19,7 +19,7 @@ typedef const char* c_string;
 extern void (*mark_socket_func)(void* tun_interface, int fd);
 
 extern int (*query_socket_uid_func)(void* tun_interface, int protocol, const char* source,
-                                    const char* target);
+                                    const char* target, int force);
 extern char* (*query_package_name_func)(void* tun_interface, int uid);
 
 extern void (*complete_func)(void* completable, const char* exception);
@@ -39,7 +39,7 @@ extern int (*open_content_func)(const char* url, char* error, int error_length);
 // cgo
 extern void mark_socket(void* interface, int fd);
 
-extern int query_socket_uid(void* interface, int protocol, char* source, char* target);
+extern int query_socket_uid(void* interface, int protocol, char* source, char* target, int force);
 extern char* query_package_name(void* interface, int uid);
 
 extern void complete(void* obj, char* error);
