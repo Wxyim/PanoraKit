@@ -32,25 +32,50 @@ import org.junit.runner.RunWith
 class BaselineProfileGenerator {
     @get:Rule val rule = BaselineProfileRule()
 
+    /**
+     * Startup profile: the cold-start path alone, collected with `includeInStartupProfile = true`.
+     *
+     * This has to be its own test method, not a second `collect` call next to the journeys one. AGP
+     * records the additional test output of a test case once per case, so the profile file written
+     * by the second collection in a method replaces the first one's and only the last fragment
+     * reaches the build: the app side then merges either the baseline fragment or the startup
+     * fragment (see `MergeBaselineProfileTask`), and with no startup rules to write it *deletes*
+     * the committed `startup-prof.txt` instead of leaving it alone. One collection per test method
+     * keeps both fragments, which is also what the upstream samples do.
+     */
     @Test
-    fun generate() {
+    fun startup() {
         val report = JourneyReport(BenchmarkConfig.TargetPackage)
 
         try {
-            // Two collections on purpose. `includeInStartupProfile` does not add a journey to the
-            // startup profile, it labels the *whole* collection as the startup profile, so
-            // collecting every journey under it produced a startup-prof.txt that was a
-            // byte-for-byte copy of baseline-prof.txt and claimed the entire journey set is
-            // startup-critical. A startup-typed collection also feeds `baseline-prof.txt` (the
-            // merge task accepts both file kinds for the baseline output), so the cold start
-            // recorded here does not need recording again below.
+            // `includeInStartupProfile` does not add a journey to the startup profile, it labels
+            // the *whole* collection as the startup profile, so collecting every journey under it
+            // produced a startup-prof.txt that was a byte-for-byte copy of baseline-prof.txt and
+            // claimed the entire journey set is startup-critical. The startup-typed fragment also
+            // feeds `baseline-prof.txt` (the merge task accepts both file kinds for the baseline
+            // output), so `journeys()` below does not repeat the cold start.
             rule.collect(
                 packageName = BenchmarkConfig.TargetPackage,
                 includeInStartupProfile = true,
             ) {
                 report.run("startup", JourneyKind.Required) { startupJourney() }
             }
+        } finally {
+            // Published from a `finally`, so a collection that aborts on the harness' own checks
+            // still leaves the per-journey evidence behind for CI.
+            report.publish(InstrumentationRegistry.getInstrumentation().targetContext)
+        }
 
+        // Throws after the report is published, so a required journey cannot degrade silently.
+        report.throwIfRequiredFailed()
+    }
+
+    /** Baseline profile: everything the app does once the cold start is over. */
+    @Test
+    fun journeys() {
+        val report = JourneyReport(BenchmarkConfig.TargetPackage)
+
+        try {
             rule.collect(packageName = BenchmarkConfig.TargetPackage) {
                 // `collect` kills the package before every collection and the harness never starts
                 // it again, so this block has to launch the app itself. Without that the journeys

@@ -252,17 +252,22 @@ Consumption and guardrails:
   profiles live in the source tree and every release build consumes them without a device.
 - `:app:generateBaselineProfile` runs the generator on a connected device/emulator and writes
   `app/src/main/generated/baselineProfiles/baseline-prof.txt` and `startup-prof.txt`. The generator
-  collects twice: an `includeInStartupProfile = true` pass whose block is the cold-start journey
-  alone, then a normal pass over the navigation journeys, which launches the app itself first.
-  `collect` kills the package before every collection and the harness never starts it again, so a
-  second pass without a launch of its own leaves each journey pointing at a dead app and aborts the
+  holds one collection per test method: `startup()` collects the cold-start journey alone with
+  `includeInStartupProfile = true`, and `journeys()` collects the navigation journeys with a normal
+  collection, launching the app itself first. The split is load-bearing: AGP records the additional
+  test output of a test case once per case, so two `collect` calls inside one method overwrite each
+  other and only the last fragment reaches the build, and a merge that receives no startup fragment
+  *deletes* the committed `startup-prof.txt` instead of leaving it alone.
+  `collect` also kills the package before every collection and the harness never starts it again,
+  so a pass without a launch of its own leaves each journey pointing at a dead app and aborts the
   collection with "Process ... never flushed profiles in any process". The cold-start rules reach
   the baseline file through the startup-typed fragment (the merge folds that kind in as well), so
-  the second pass does not repeat the cold start. Collecting every journey under
+  `journeys()` does not repeat the cold start. Collecting every journey under
   `includeInStartupProfile = true` would make `startup-prof.txt` a byte-for-byte copy of
   `baseline-prof.txt` instead of the startup-path subset. Each best-effort journey starts by proving
   the app is the window in front: a node the app owns but another window draws (its notification
-  rows, a launcher widget) would otherwise let a dead app report a covered journey.
+  rows, a launcher widget) would otherwise let a dead app report a covered journey. The journey
+  report accumulates one block per test method in the same file, so CI sees both leg sets.
 - `:app:verifyBaselineProfile` (`BaselineProfileVerificationTask`, wired into `check`) rejects a
   profile that loses app-package/launcher coverage or falls below 90% of the committed entry and
   class counts, and a missing `startup-prof.txt` next to the baseline one. A `startup-prof.txt` that

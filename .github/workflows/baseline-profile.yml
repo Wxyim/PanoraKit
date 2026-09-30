@@ -23,9 +23,9 @@ name: Generate baseline profile
 #   `baseline-prof.txt`;
 # - a regenerated profile that differs from the committed one fails the job unless it is committed,
 #   so profile drift cannot be forgotten;
-# - the generated startup profile is collected separately from the baseline one (see
-#   BaselineProfileGenerator), so `startup-prof.txt` stays the startup-path subset instead of a copy
-#   of the whole profile.
+# - the generated startup profile is collected in its own test method, separate from the baseline
+#   one (see BaselineProfileGenerator), so `startup-prof.txt` stays the startup-path subset instead
+#   of a copy of the whole profile.
 
 on:
   workflow_dispatch:
@@ -287,19 +287,26 @@ jobs:
             exit 1
           fi
 
-          required_failed=$(
-            grep -o 'required_failed=[0-9]*' "$report_dir/journey-report.txt" \
-              | head -n1 | cut -d= -f2 || true
+          # The generator writes one report block per test method (startup, journeys), so every
+          # summary line counts: a failed required journey in either block has to fail this step.
+          read -r summaries required_failed < <(
+            awk '
+              match($0, /required_failed=[0-9]+/) {
+                summaries += 1
+                failed += substr($0, RSTART + 16, RLENGTH - 16)
+              }
+              END { printf "%d %d\n", summaries, failed }
+            ' "$report_dir/journey-report.txt"
           )
-          if [ -z "$required_failed" ]; then
+          if [ "$summaries" -eq 0 ]; then
             echo "::error::Journey report has no required_failed summary line."
             exit 1
           fi
           if [ "$required_failed" != "0" ]; then
-            echo "::error::$required_failed required journey(s) never reached the app; the profile would be misleading."
+            echo "::error::$required_failed required journey(s) across $summaries report block(s) never reached the app; the profile would be misleading."
             exit 1
           fi
-          echo "All required journeys exercised their surface."
+          echo "All required journeys exercised their surface ($summaries report block(s))."
 
       - name: Verify generated profile
         if: steps.generate.outcome == 'success'
@@ -332,7 +339,9 @@ jobs:
       - name: Upload generated profile
         # Runs even on failure: the journey report, verification output and logcat are what make a
         # failed collection actionable, and a failing instrumented test only names itself in the
-        # androidTest report, which lives outside build/reports/baseline-profile.
+        # androidTest report, which lives outside build/reports/baseline-profile. The raw fragments
+        # are included too: when one of them never reaches the app-side merge, the merged profile is
+        # the only other evidence, and it cannot say which fragment was missing.
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -342,6 +351,7 @@ jobs:
             build/reports/baseline-profile/**
             build/performance/baselineprofile/outputs/androidTest-results/**
             build/performance/baselineprofile/reports/androidTests/**
+            build/performance/baselineprofile/outputs/connected_android_test_additional_output/**/*-prof-*.txt
           retention-days: 1
           if-no-files-found: warn
 

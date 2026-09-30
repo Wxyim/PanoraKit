@@ -130,14 +130,24 @@ internal class JourneyReport(private val targetPackage: String) {
         appendLine("${BenchmarkConfig.JourneyReportEndMarker}")
     }
 
-    /** Writes the report to the app-specific external files dir and mirrors it to logcat. */
+    /**
+     * Writes the report to the app-specific external files dir and mirrors it to logcat.
+     *
+     * The generator runs one collection per test method (see `BaselineProfileGenerator`), so the
+     * file accumulates one block per method: CI pulls a single file and has to see both leg sets.
+     * The first publish of an instrumentation run truncates, which also drops a file left behind by
+     * an earlier run on the same device instead of mixing the two runs' legs together.
+     */
     fun publish(context: Context): File? {
         val rendered = render()
         Log.i(BenchmarkConfig.JourneyReportTag, rendered)
         val directory = context.getExternalFilesDir(null) ?: context.filesDir
         return runCatching {
-                File(directory, BenchmarkConfig.JourneyReportFileName).apply { writeText(rendered) }
+                File(directory, BenchmarkConfig.JourneyReportFileName).apply {
+                    if (publishedInThisRun) appendText(rendered) else writeText(rendered)
+                }
             }
+            .onSuccess { publishedInThisRun = true }
             .onFailure { error ->
                 Log.w(BenchmarkConfig.JourneyReportTag, "journey report not written: $error")
             }
@@ -154,5 +164,12 @@ internal class JourneyReport(private val targetPackage: String) {
             "Required baseline profile journey(s) did not run: " +
                 failed.joinToString(", ") { "${it.name} (${it.detail})" }
         )
+    }
+
+    private companion object {
+        /**
+         * Process-scoped: every test method shares the file, but only the first one truncates it.
+         */
+        var publishedInThisRun = false
     }
 }
