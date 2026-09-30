@@ -23,6 +23,7 @@ import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetSocketAddress
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -32,20 +33,12 @@ import java.util.concurrent.ConcurrentHashMap
  * Resolution is two-tier: port cache → on-demand procfs read. The port cache avoids redundant file
  * reads for short-lived sockets that appear in rapid succession. No background threads — procfs is
  * only read when a JNI callback calls [resolveByProtocol] and the port is not already cached.
+ *
+ * The procfs read matches a socket by its full local address first and falls back to the rows that
+ * share the source port (see [resolveFromProcFs]) — an address-only match can never find the two
+ * shapes Android sockets take most often, an unconnected UDP socket and a dual-stack socket.
  */
 internal object ProcFsUidResolver {
-    // ── UDP indices ────────────────────────────────────────────────
-    private var udpLocalAddrIndex = -1
-    private var udpUidIndex = -1
-    private var udp6LocalAddrIndex = -1
-    private var udp6UidIndex = -1
-
-    // ── TCP indices ────────────────────────────────────────────────
-    private var tcpLocalAddrIndex = -1
-    private var tcpUidIndex = -1
-    private var tcp6LocalAddrIndex = -1
-    private var tcp6UidIndex = -1
-
     /**
      * Port-level UID cache for short-lived sockets that disappear from procfs before an on-demand
      * read can find them. Key: source port, Value: Pair(resolutionTimestamp, uid)
@@ -53,6 +46,35 @@ internal object ProcFsUidResolver {
     private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
 
     private const val PORT_CACHE_TTL_MS = 5_000L
+
+    private val WHITESPACE = Regex("\\s+")
+
+    /** One procfs table plus the data-row columns we need, resolved once from its header. */
+    private class ProcNetTable(
+        val path: String,
+        val localAddrIndex: Int,
+        val uidIndex: Int,
+        val inodeIndex: Int,
+    )
+
+    /** What one table scan found for a 4-tuple: an exact match and/or a port-only answer. */
+    private class ProcNetMatch {
+        var exactUid = -1
+        var portUid = -1
+
+        /**
+         * True when rows sharing the port disagreed about the owner. The port answer is then
+         * unusable: the same port can be open in several apps, and a wrong owner is worse than
+         * none.
+         */
+        var portAmbiguous = false
+    }
+
+    private var tcpTable: ProcNetTable? = null
+    private var tcp6Table: ProcNetTable? = null
+    private var udpTable: ProcNetTable? = null
+    private var udp6Table: ProcNetTable? = null
+    private var tablesLoaded = false
 
     // ═══════════════════════════════════════════════════════════════
     //  Protocol dispatch
@@ -83,7 +105,7 @@ internal object ProcFsUidResolver {
         }
 
         // 2. Direct on-demand procfs read.
-        val uid = resolveUdpUidInternal(source)
+        val uid = resolveFromProcFs(source, tcp = false)
         if (uid > 0) {
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
             if (portUidCache.size > 2000) {
@@ -91,28 +113,6 @@ internal object ProcFsUidResolver {
             }
         }
         return uid
-    }
-
-    private fun resolveUdpUidInternal(source: InetSocketAddress): Int {
-        val address = source.address
-        val port = source.port
-        return when (address) {
-            is Inet6Address -> {
-                ensureUdp6Indices()
-                queryProcFs(
-                    "/proc/net/udp6",
-                    address.address,
-                    port,
-                    udp6LocalAddrIndex,
-                    udp6UidIndex,
-                )
-            }
-            is Inet4Address -> {
-                ensureUdpIndices()
-                queryProcFs("/proc/net/udp", address.address, port, udpLocalAddrIndex, udpUidIndex)
-            }
-            else -> -1
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -130,7 +130,7 @@ internal object ProcFsUidResolver {
         }
 
         // 2. Direct on-demand procfs read.
-        val uid = resolveTcpUidInternal(source)
+        val uid = resolveFromProcFs(source, tcp = true)
         if (uid > 0) {
             portUidCache[port] = Pair(System.currentTimeMillis(), uid)
             if (portUidCache.size > 2000) {
@@ -140,57 +140,104 @@ internal object ProcFsUidResolver {
         return uid
     }
 
-    private fun resolveTcpUidInternal(source: InetSocketAddress): Int {
-        val address = source.address
+    /**
+     * Resolve [source] against the procfs tables.
+     *
+     * A row is matched by its full local address first. When no row matches exactly, rows sharing
+     * the source port are considered instead:
+     * - an unconnected UDP socket is listed as `0.0.0.0:<port>` while the tunnel reports the
+     *   concrete source address, so an address-only match can never succeed;
+     * - a dual-stack socket (what Java opens for an IPv4 endpoint) is listed in the v6 table as a
+     *   v4-mapped address, so the v4 table alone is not enough for an IPv4 source.
+     *
+     * A port-only answer is used only when every row with that port agrees on the UID.
+     */
+    private fun resolveFromProcFs(source: InetSocketAddress, tcp: Boolean): Int {
         val port = source.port
-        return when (address) {
-            is Inet6Address -> {
-                ensureTcp6Indices()
-                queryProcFs(
-                    "/proc/net/tcp6",
-                    address.address,
-                    port,
-                    tcp6LocalAddrIndex,
-                    tcp6UidIndex,
-                )
-            }
+        val candidates: List<Pair<ProcNetTable, String>>
+        when (val address = source.address) {
+            is Inet6Address ->
+                candidates =
+                    listOfNotNull(
+                        table(tcp, v6 = true)?.let {
+                            it to formatLocalAddress(address.address, port)
+                        }
+                    )
             is Inet4Address -> {
-                ensureTcpIndices()
-                queryProcFs("/proc/net/tcp", address.address, port, tcpLocalAddrIndex, tcpUidIndex)
+                val exact = formatLocalAddress(address.address, port)
+                val mapped = formatLocalAddress(v4Mapped(address.address), port)
+                candidates =
+                    listOfNotNull(
+                        table(tcp, v6 = false)?.let { it to exact },
+                        table(tcp, v6 = true)?.let { it to mapped },
+                    )
             }
-            else -> -1
+            else -> return -1
         }
+
+        var portUid = -1
+        var ambiguous = false
+        candidates.forEach { (table, exactKey) ->
+            val match = scanProcNet(table, exactKey, port)
+            if (match.exactUid > 0) {
+                return match.exactUid
+            }
+            if (match.portAmbiguous) {
+                ambiguous = true
+            }
+            if (match.portUid > 0) {
+                if (portUid < 0) {
+                    portUid = match.portUid
+                } else if (portUid != match.portUid) {
+                    ambiguous = true
+                }
+            }
+        }
+        return if (ambiguous) -1 else portUid
     }
 
     // ═══════════════════════════════════════════════════════════════
     //  Shared infra
     // ═══════════════════════════════════════════════════════════════
 
-    private fun queryProcFs(
-        path: String,
-        ip: ByteArray,
-        port: Int,
-        localAddrIdx: Int,
-        uidIdx: Int,
-    ): Int {
-        if (localAddrIdx < 0 || uidIdx < 0) return -1
-        val localHex = formatLocalAddress(ip, port)
-        return runCatching {
-                File(path).bufferedReader().use { reader ->
-                    reader.readLine() ?: return@use -1
-                    reader.lineSequence().forEach { line ->
-                        val fields = line.trim().split("\\s+".toRegex())
-                        if (
-                            fields.size > maxOf(localAddrIdx, uidIdx) &&
-                                fields[localAddrIdx].equals(localHex, ignoreCase = true)
-                        ) {
-                            return@use fields[uidIdx].toIntOrNull() ?: -1
-                        }
+    private fun scanProcNet(table: ProcNetTable, exactKey: String, port: Int): ProcNetMatch {
+        val match = ProcNetMatch()
+        val portSuffix = String.format(Locale.ROOT, "%04X", port)
+        runCatching {
+            File(table.path).bufferedReader().use { reader ->
+                if (reader.readLine() == null) {
+                    return@use
+                }
+                for (line in reader.lineSequence()) {
+                    val fields = line.trim().split(WHITESPACE)
+                    if (fields.size <= table.uidIndex || fields.size <= table.localAddrIndex) {
+                        continue
                     }
-                    -1
+                    val local = fields[table.localAddrIndex]
+                    if (!local.endsWith(portSuffix, ignoreCase = true)) {
+                        continue
+                    }
+                    // Ownerless rows (TIME_WAIT, inode 0) report uid 0; a port match on one would
+                    // shadow the live row that still owns the connection.
+                    if (
+                        table.inodeIndex in 0 until fields.size && fields[table.inodeIndex] == "0"
+                    ) {
+                        continue
+                    }
+                    val uid = fields[table.uidIndex].toIntOrNull()?.takeIf { it > 0 } ?: continue
+                    if (local.equals(exactKey, ignoreCase = true)) {
+                        match.exactUid = uid
+                        break
+                    }
+                    if (match.portUid < 0) {
+                        match.portUid = uid
+                    } else if (match.portUid != uid) {
+                        match.portAmbiguous = true
+                    }
                 }
             }
-            .getOrDefault(-1)
+        }
+        return match
     }
 
     /**
@@ -202,64 +249,67 @@ internal object ProcFsUidResolver {
         while (i < ip.size) {
             val groupEnd = minOf(i + 4, ip.size)
             for (j in groupEnd - 1 downTo i) {
-                sb.append(String.format("%02X", ip[j].toInt() and 0xFF))
+                sb.append(String.format(Locale.ROOT, "%02X", ip[j].toInt() and 0xFF))
             }
             i = groupEnd
         }
         sb.append(':')
-        sb.append(String.format("%04X", port))
+        sb.append(String.format(Locale.ROOT, "%04X", port))
         return sb.toString()
     }
 
-    // ── Index helpers ─────────────────────────────────────────────
-
-    private fun ensureUdpIndices() {
-        if (udpLocalAddrIndex >= 0 && udpUidIndex >= 0) return
-        val (local, uid) = parseIndices("/proc/net/udp")
-        if (local >= 0 && uid >= 0) {
-            udpLocalAddrIndex = local
-            udpUidIndex = uid
+    /** The `::ffff:a.b.c.d` byte form a dual-stack socket is listed under in the v6 tables. */
+    private fun v4Mapped(ip: ByteArray): ByteArray {
+        if (ip.size == 16) {
+            return ip
+        }
+        return ByteArray(16).also {
+            it[10] = 0xFF.toByte()
+            it[11] = 0xFF.toByte()
+            System.arraycopy(ip, 0, it, 12, 4)
         }
     }
 
-    private fun ensureUdp6Indices() {
-        if (udp6LocalAddrIndex >= 0 && udp6UidIndex >= 0) return
-        val (local, uid) = parseIndices("/proc/net/udp6")
-        if (local >= 0 && uid >= 0) {
-            udp6LocalAddrIndex = local
-            udp6UidIndex = uid
+    // ── Table index helpers ───────────────────────────────────────
+
+    private fun table(tcp: Boolean, v6: Boolean): ProcNetTable? {
+        ensureTables()
+        return when {
+            tcp -> if (v6) tcp6Table else tcpTable
+            v6 -> udp6Table
+            else -> udpTable
         }
     }
 
-    private fun ensureTcpIndices() {
-        if (tcpLocalAddrIndex >= 0 && tcpUidIndex >= 0) return
-        val (local, uid) = parseIndices("/proc/net/tcp")
-        if (local >= 0 && uid >= 0) {
-            tcpLocalAddrIndex = local
-            tcpUidIndex = uid
+    @Synchronized
+    private fun ensureTables() {
+        if (tablesLoaded) {
+            return
         }
+        tcpTable = parseTable("/proc/net/tcp")
+        tcp6Table = parseTable("/proc/net/tcp6")
+        udpTable = parseTable("/proc/net/udp")
+        udp6Table = parseTable("/proc/net/udp6")
+        // Latch only once a table was actually readable: an early failure (or a transient one)
+        // must not disable the fallback for the lifetime of the process.
+        tablesLoaded =
+            tcpTable != null || tcp6Table != null || udpTable != null || udp6Table != null
     }
 
-    private fun ensureTcp6Indices() {
-        if (tcp6LocalAddrIndex >= 0 && tcp6UidIndex >= 0) return
-        val (local, uid) = parseIndices("/proc/net/tcp6")
-        if (local >= 0 && uid >= 0) {
-            tcp6LocalAddrIndex = local
-            tcp6UidIndex = uid
-        }
-    }
-
-    private fun parseIndices(path: String): Pair<Int, Int> {
+    private fun parseTable(path: String): ProcNetTable? {
         return runCatching {
                 File(path).bufferedReader().use { reader ->
-                    val header = reader.readLine() ?: return@use Pair(-1, -1)
-                    val columns = header.trim().split("\\s+".toRegex())
-                    val localIdx = columns.indexOfFirst { it == "local_address" }
-                    val uidIdx = columns.indexOfFirst { it == "uid" }
-                    Pair(localIdx, uidIdx)
+                    val header = reader.readLine() ?: return@use null
+                    val columns = header.trim().split(WHITESPACE)
+                    val localIdx = columns.indexOf("local_address")
+                    val uidIdx = columns.indexOf("uid")
+                    if (localIdx < 0 || uidIdx < 0) {
+                        return@use null
+                    }
+                    ProcNetTable(path, localIdx, uidIdx, columns.indexOf("inode"))
                 }
             }
-            .getOrDefault(Pair(-1, -1))
+            .getOrNull()
     }
 
     private fun prunePortCache() {

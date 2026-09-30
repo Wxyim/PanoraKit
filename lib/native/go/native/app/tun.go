@@ -20,9 +20,12 @@ package app
 
 import (
 	"net"
+	"net/netip"
 	"syscall"
 
 	"cfa/native/platform"
+
+	"github.com/metacubex/mihomo/constant"
 )
 
 var markSocketImpl func(fd int)
@@ -76,6 +79,40 @@ func QueryPackageName(uid int) string {
 		return ""
 	}
 	return queryPackageNameImpl(uid)
+}
+
+// MetadataSocketAddrs returns the connection's local and remote socket addresses.
+//
+// Listeners that carry a name instead of an address (an HTTP/SOCKS inbound records its peer as a
+// domain) or that are driven by a per-packet destination (packetaddr) never fill mihomo's raw
+// address fields. They are rebuilt from the parsed metadata so those connections stay attributable
+// instead of bailing out of the process lookup entirely.
+func MetadataSocketAddrs(metadata *constant.Metadata) (source, target net.Addr) {
+	return metadataSocketAddr(metadata, true), metadataSocketAddr(metadata, false)
+}
+
+func metadataSocketAddr(metadata *constant.Metadata, source bool) net.Addr {
+	if source {
+		if metadata.RawSrcAddr != nil {
+			return metadata.RawSrcAddr
+		}
+		return metadataAddr(metadata.NetWork, metadata.SrcIP, metadata.SrcPort)
+	}
+	if metadata.RawDstAddr != nil {
+		return metadata.RawDstAddr
+	}
+	return metadataAddr(metadata.NetWork, metadata.DstIP, metadata.DstPort)
+}
+
+func metadataAddr(network constant.NetWork, ip netip.Addr, port uint16) net.Addr {
+	if !ip.IsValid() || port == 0 {
+		return nil
+	}
+	addr := ip.Unmap().AsSlice()
+	if network == constant.UDP {
+		return &net.UDPAddr{IP: addr, Port: int(port)}
+	}
+	return &net.TCPAddr{IP: addr, Port: int(port)}
 }
 
 func init() {

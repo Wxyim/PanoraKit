@@ -53,6 +53,7 @@ class VpnTunTransport(
     @Volatile private var uidWarmupUntilElapsedMs = 0L
     private var uidWarmupStartedAtElapsedMs = 0L
     @Volatile private var uidWarmupMissLogged = false
+    @Volatile private var uidMissLoggedAtElapsedMs = 0L
     private val deviceLock = Any()
 
     /**
@@ -294,9 +295,6 @@ class VpnTunTransport(
         source: java.net.InetSocketAddress,
         target: java.net.InetSocketAddress,
     ): Int {
-        if (Build.VERSION.SDK_INT < 29) {
-            return -1
-        }
         val now = android.os.SystemClock.elapsedRealtime()
         val warmupActive = now < uidWarmupUntilElapsedMs
         val key =
@@ -313,14 +311,25 @@ class VpnTunTransport(
 
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
         var uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
-        // During the first VPN start Android can publish the socket owner a
-        // few milliseconds after the socket first sends. Retry only in this
-        // warm-up window (anchored at transport start, see [start]); normal
-        // traffic keeps a single IPC query.
-        if (uid <= 0 && warmupActive) {
-            repeat(UID_WARMUP_RETRIES) {
+        // Android can publish the socket owner a few milliseconds after the
+        // socket first sends, so the warm-up window (anchored at transport
+        // start, see [start]) retries a few times. Outside it a single retry
+        // still covers the narrow race against a short-lived socket going away
+        // before this query runs; a miss is negative-cached, so retrying more
+        // would only cost every later connection that reuses the 4-tuple.
+        // getConnectionOwnerUid is API 29+; on older devices a retry would only repeat a lookup
+        // that cannot succeed, and the procfs fallback below is the only source.
+        val retries =
+            when {
+                Build.VERSION.SDK_INT < 29 -> 0
+                warmupActive -> UID_WARMUP_RETRIES
+                else -> UID_MISS_RETRIES
+            }
+        val retryDelayMs = if (warmupActive) UID_WARMUP_RETRY_DELAY_MS else UID_MISS_RETRY_DELAY_MS
+        if (uid <= 0) {
+            repeat(retries) {
                 if (uid <= 0) {
-                    android.os.SystemClock.sleep(UID_WARMUP_RETRY_DELAY_MS)
+                    android.os.SystemClock.sleep(retryDelayMs)
                     uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
                 }
             }
@@ -351,20 +360,29 @@ class VpnTunTransport(
             uidCache.remove(key)
             if (!uidWarmupMissLogged) {
                 uidWarmupMissLogged = true
-                // One line per warm-up window: tells an on-device log whether a startup row with no
-                // app name is a real UID miss (and what the first one looked like) or something
-                // else.
-                Timber.d(
-                    "UID unresolved after warm-up retries: %s -> %s (%d)",
-                    source,
-                    target,
-                    protocol,
-                )
+                logUidMiss(source, target, protocol)
             }
         } else {
             cacheUid(key, -1, now + UID_CACHE_NEGATIVE_TTL_MS)
+            if (now - uidMissLoggedAtElapsedMs >= UID_MISS_LOG_INTERVAL_MS) {
+                uidMissLoggedAtElapsedMs = now
+                logUidMiss(source, target, protocol)
+            }
         }
         return -1
+    }
+
+    /**
+     * One line per warm-up window, plus a rate-limited one outside it: tells an on-device log
+     * whether a row rendered without an app name is a real UID miss (and what it looked like) or
+     * something else.
+     */
+    private fun logUidMiss(
+        source: java.net.InetSocketAddress,
+        target: java.net.InetSocketAddress,
+        protocol: Int,
+    ) {
+        Timber.d("UID unresolved after retries: %s -> %s (%d)", source, target, protocol)
     }
 
     private fun queryConnectionOwnerUid(
@@ -373,6 +391,8 @@ class VpnTunTransport(
         source: java.net.InetSocketAddress,
         target: java.net.InetSocketAddress,
     ): Int {
+        // getConnectionOwnerUid is API 29+; older devices are served by the procfs fallback.
+        if (Build.VERSION.SDK_INT < 29) return -1
         return runCatching { connectivity?.getConnectionOwnerUid(protocol, source, target) ?: -1 }
             .getOrDefault(-1)
     }
@@ -432,6 +452,7 @@ class VpnTunTransport(
         uidWarmupStartedAtElapsedMs = now
         uidWarmupUntilElapsedMs = now + UID_WARMUP_WINDOW_MS
         uidWarmupMissLogged = false
+        uidMissLoggedAtElapsedMs = 0L
     }
 
     private data class UidQueryKey(val protocol: Int, val source: String, val target: String)
@@ -486,6 +507,14 @@ class VpnTunTransport(
         // ~15ms and only ever applies inside the warm-up window.
         private const val UID_WARMUP_RETRIES = 3
         private const val UID_WARMUP_RETRY_DELAY_MS = 5L
+        // Outside the warm-up window a single quick retry covers the narrow race against a
+        // short-lived socket disappearing before this query runs. A miss is negative-cached, so
+        // more retries would only cost every later connection that reuses the same 4-tuple.
+        private const val UID_MISS_RETRIES = 1
+        private const val UID_MISS_RETRY_DELAY_MS = 10L
+        // Steady-state misses are logged at most once per interval, so an unattributable socket
+        // cannot flood the log while a single line still correlates a device report.
+        private const val UID_MISS_LOG_INTERVAL_MS = 30_000L
 
         private val HTTP_PROXY_LOCAL_LIST =
             listOf(

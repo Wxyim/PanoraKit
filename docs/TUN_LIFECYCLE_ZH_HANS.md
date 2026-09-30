@@ -20,6 +20,11 @@
   发布吃掉，启动首包洪峰的 UID miss 便既不重试又被负缓存 5s，表现为最早几条「最近请求」显示 Unknown App。
   因此预热窗在 `start()`（数据面真正收包）重新锚定（详见
   [TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md) 第 3.2 节）。
+  预热窗只是第一层兜底：`find-process-mode=strict` 下未被 `process`/`uid` 规则命中的连接，以及
+  HTTP/SOCKS 入站、packetaddr 出口这类不写 `RawAddr` 的连接，核心根本不会发起解析。第二轮补齐了这两条：
+  `MetadataSocketAddrs` 在地址缺失时重建 socket 地址，`tunnel/conn.go` 在 App 轮询连接列表期间（最近 10s
+  内有过 `QueryConnections`）由采样器按 8 条/tick、每连接 ≤3 次尝试补齐 `metadata.Uid`，procfs 回退同时
+  支持端口匹配与 v4-mapped 双表（详见同上第 3.2 节）。
 
 ## 2. fd 归属规则
 

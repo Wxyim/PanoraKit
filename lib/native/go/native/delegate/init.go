@@ -51,13 +51,13 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 	app.ApplyPlatformVersion(platformVersion)
 
 	process.DefaultPackageNameResolver = func(metadata *constant.Metadata) (string, error) {
-		src, dst := metadata.RawSrcAddr, metadata.RawDstAddr
+		src, dst := app.MetadataSocketAddrs(metadata)
 
 		if src == nil || dst == nil {
 			return "", process.ErrInvalidNetwork
 		}
 
-		uid := app.QuerySocketUid(metadata.RawSrcAddr, metadata.RawDstAddr)
+		uid := app.QuerySocketUid(src, dst)
 
 		// Always stash the UID so the Kotlin-side AppIdentityResolver can fall
 		// back to PackageManager.getPackagesForUid() when FindPackageName yields

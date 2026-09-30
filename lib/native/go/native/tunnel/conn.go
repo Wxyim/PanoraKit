@@ -23,7 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"cfa/native/app"
+
+	"github.com/metacubex/mihomo/component/process"
 	C "github.com/metacubex/mihomo/constant"
+	mihomoTunnel "github.com/metacubex/mihomo/tunnel"
 	"github.com/metacubex/mihomo/tunnel/statistic"
 )
 
@@ -166,11 +170,20 @@ type connectionInfo struct {
 	ClosedAt int64 `json:"closedAt,omitempty"`
 }
 
+// enrichState tracks one live connection's UID enrichment attempts so a miss is retried a couple of
+// times (Android publishes a socket's owner a few ms after the socket first sends) without burning a
+// binder call on every sampler tick for the rest of the connection's life.
+type enrichState struct {
+	attempts int
+	lastAt   int64 // UnixNano of the last attempt
+}
+
 var (
-	recentClosedOnce   sync.Once
-	recentClosedMu     sync.Mutex
-	recentClosedSeen   = make(map[string]*statistic.TrackerInfo)
-	recentClosedBuffer []recentClosedEntry
+	recentClosedOnce     sync.Once
+	recentClosedMu       sync.Mutex
+	recentClosedSeen     = make(map[string]*statistic.TrackerInfo)
+	recentClosedEnriched = make(map[string]enrichState)
+	recentClosedBuffer   []recentClosedEntry
 )
 
 // ensureRecentClosedSampler starts the background sampler that watches the
@@ -216,7 +229,8 @@ func observeRecentClosed() bool {
 	})
 
 	recentClosedMu.Lock()
-	defer recentClosedMu.Unlock()
+	enrich := uidEnrichmentActive(now)
+	var pending []*statistic.TrackerInfo
 
 	// Nothing live and nothing pending: only retained entries can have work
 	// left, and that work is expiring them, which the coarse cadence covers.
@@ -229,6 +243,7 @@ func observeRecentClosed() bool {
 			if alive[id] == nil {
 				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
 				delete(recentClosedSeen, id)
+				delete(recentClosedEnriched, id)
 			}
 		}
 		for id, info := range alive {
@@ -264,6 +279,41 @@ func observeRecentClosed() bool {
 		recentClosedBuffer = recentClosedBuffer[len(recentClosedBuffer)-recentClosedMax:]
 	}
 
+	// Collect the connections whose owner the core left unresolved (see [enrichUid]). The scan is
+	// budgeted per tick and skips connections it already gave up on, so opening the list over a long
+	// backlog cannot turn one tick into one binder round trip per connection; Go's randomised map
+	// iteration makes the budgeted picks a fair sample, so nothing starves.
+	if enrich {
+		budget := enrichUidBudgetPerTick
+		for id, info := range recentClosedSeen {
+			if budget <= 0 {
+				break
+			}
+			if info.Metadata == nil || info.Metadata.Uid != 0 {
+				continue
+			}
+			state := recentClosedEnriched[id]
+			if state.attempts >= enrichUidMaxAttempts {
+				continue
+			}
+			if state.attempts > 0 && now.Sub(time.Unix(0, state.lastAt)) < enrichUidRetryInterval {
+				continue
+			}
+			state.attempts++
+			state.lastAt = now.UnixNano()
+			recentClosedEnriched[id] = state
+			pending = append(pending, info)
+			budget--
+		}
+	}
+	recentClosedMu.Unlock()
+
+	// Attribute the connections outside the lock: the lookup is a JNI/binder round trip and must not
+	// block a poll waiting for the same lock.
+	for _, info := range pending {
+		enrichUid(info)
+	}
+
 	return !idle
 }
 
@@ -274,6 +324,71 @@ func noteQueryCadence() {
 	previous := atomic.SwapInt64(&recentClosedLastQueryNanos, now)
 	if previous != 0 {
 		atomic.StoreInt64(&recentClosedPollGapNanos, now-previous)
+	}
+}
+
+// UID enrichment for connections the core never attributed.
+//
+// mihomo resolves a connection's owner UID (and with it the package name) either when
+// find-process-mode is `always` or, with `strict` (the default), only once the connection's rule
+// evaluation reaches a PROCESS/UID rule. Under `strict` a connection matched by an earlier domain
+// rule keeps an empty uid and process, and the app can only render it as "Unknown App".
+//
+// The app owns the very lookup the core would have run (VpnTunTransport.queryUid, with its
+// positive/negative caches), so it fills the gap itself. That work is deferred to the moment the
+// connection list is actually rendered: enrichment only runs while the app polls connections, so a
+// user who never opens the list never pays for it. `off` is left alone, since it is an explicit
+// opt-out of process resolution.
+const (
+	// enrichUidPollWindow is how long after the last connection poll the app is still assumed to
+	// be rendering the list. The repository polls every second while the traffic screen is open
+	// and every five seconds while it only keeps the recent-request history warm.
+	enrichUidPollWindow = 10 * time.Second
+
+	// enrichUidBudgetPerTick bounds how many lookups one sampler tick performs. Opening the screen
+	// over a long list of already-established connections would otherwise stall that tick behind one
+	// binder round trip per connection; the rest are picked up by the following ticks.
+	enrichUidBudgetPerTick = 8
+
+	// A connection is attributed at most enrichUidMaxAttempts times, spaced by at least
+	// enrichUidRetryInterval. Android publishes the socket owner a few ms after the socket first
+	// sends, so the first tick can legitimately miss; after a couple of retries the socket is either
+	// published or gone, and a connection that cannot be attributed must not keep paying for binder
+	// calls and procfs reads for as long as it lives.
+	enrichUidMaxAttempts   = 3
+	enrichUidRetryInterval = 500 * time.Millisecond
+)
+
+// uidEnrichmentActive reports whether the app is currently rendering the connection list and the
+// core still leaves attribution to it.
+func uidEnrichmentActive(now time.Time) bool {
+	if mihomoTunnel.FindProcessMode() == process.FindProcessOff {
+		return false
+	}
+	last := atomic.LoadInt64(&recentClosedLastQueryNanos)
+	return last != 0 && now.Sub(time.Unix(0, last)) < enrichUidPollWindow
+}
+
+// enrichUid resolves the owner UID of a connection the core skipped and stores it in the metadata
+// the app's snapshot renders.
+//
+// Connections the core already attributed, inner (core-originated) connections, and connections
+// whose 4-tuple cannot be rebuilt are left untouched: the first two need no help and the third has
+// nothing to query with.
+func enrichUid(info *statistic.TrackerInfo) {
+	if info == nil {
+		return
+	}
+	metadata := info.Metadata
+	if metadata == nil || metadata.Type == C.INNER || metadata.Uid != 0 {
+		return
+	}
+	source, target := app.MetadataSocketAddrs(metadata)
+	if source == nil || target == nil {
+		return
+	}
+	if uid := app.QuerySocketUid(source, target); uid > 0 {
+		metadata.Uid = uint32(uid)
 	}
 }
 
