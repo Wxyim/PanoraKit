@@ -40,8 +40,9 @@ class AppIdentityResolver(context: Context) {
     private val installedPackageCache = ConcurrentHashMap<String, String>()
 
     fun resolve(metadata: JsonObject): AppIdentity {
-        // Connections mihomo dials itself (proxy dialer, inner listener, DNS dialer) have no owning
-        // app to look up; label them as the core instead of letting them fall through to "Unknown App".
+        // Connections mihomo dials itself (proxy dialer, inner listener, DNS dialer) have no
+        // owning app to look up; label them as the core instead of falling through to
+        // "Unknown App".
         if (metadata.isInnerConnection()) {
             return AppIdentity(appKey = CORE_APP_KEY, packageName = null, appName = CORE_APP_NAME)
         }
@@ -280,8 +281,8 @@ class AppIdentityResolver(context: Context) {
 
     /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
     fun resolveFallbackDisplayName(metadata: JsonObject): String {
-        // The recent-request list resolves its rows through here, so core-originated connections get
-        // the same label the detail sheet shows rather than "Unknown App".
+        // The recent-request list resolves its rows through here, so core-originated connections
+        // get the same label the detail sheet shows rather than "Unknown App".
         if (metadata.isInnerConnection()) return CORE_APP_NAME
         val processName =
             metadata.firstNonBlankValue(

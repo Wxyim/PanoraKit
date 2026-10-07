@@ -31,9 +31,10 @@ interface TunInterface {
      * Resolves the Android app that owns the socket [source] → [target].
      *
      * [force] is set by the native UID-enrichment path, which asks about a connection the core has
-     * already seen close (or could not attribute in time). Such a lookup must not be answered from a
-     * cached miss recorded while the socket was still alive: it performs a real query and leaves the
-     * negative cache untouched. The caller rate-limits it (≤3 attempts, ≥500ms apart, per connection).
+     * already seen close (or could not attribute in time). Such a lookup must not be answered from
+     * a cached miss recorded while the socket was still alive: it performs a real query and leaves
+     * the negative cache untouched. The caller rate-limits it (≤3 attempts, ≥500ms apart, per
+     * connection).
      */
     fun querySocketUid(protocol: Int, source: String, target: String, force: Boolean): Int
 

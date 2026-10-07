@@ -202,10 +202,7 @@ object Clash {
         markSocket: (Int) -> Boolean,
         querySocketUid:
             (
-                protocol: Int,
-                source: InetSocketAddress,
-                target: InetSocketAddress,
-                force: Boolean,
+                protocol: Int, source: InetSocketAddress, target: InetSocketAddress, force: Boolean,
             ) -> Int,
         queryPackageName: (uid: Int) -> String,
     ) {

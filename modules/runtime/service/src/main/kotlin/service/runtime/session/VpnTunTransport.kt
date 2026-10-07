@@ -306,9 +306,9 @@ class VpnTunTransport(
             )
         val cached = uidCache[key]?.takeIf { it.expiresAt > now }
         // A forced (enrichment) lookup may reuse a positive answer but never a cached miss: the
-        // native enrichment path asks precisely about the sockets that missed while they were alive,
-        // and it is already rate-limited per connection, so the cached -1 would only hide the one
-        // lookup that can still attribute a short-lived connection.
+        // native enrichment path asks precisely about the sockets that missed while they were
+        // alive, and it is already rate-limited per connection, so the cached -1 would only hide
+        // the one lookup that can still attribute a short-lived connection.
         if (cached != null && (cached.uid > 0 || !force)) {
             return cached.uid
         }
@@ -357,8 +357,9 @@ class VpnTunTransport(
         // Android may not have published the socket owner yet, and procfs may lag behind the first
         // packet. Only negative-cache once the warm-up window has elapsed and the caller is not
         // forcing a fresh lookup, otherwise the same socket can remain unattributed for the rest of
-        // its short lifetime. A stable miss is cached briefly so retransmits and TIME_WAIT re-queries
-        // stop hammering the ConnectivityService Binder and procfs with the same 4-tuple.
+        // its short lifetime. A stable miss is cached briefly so retransmits and TIME_WAIT
+        // re-queries stop hammering the ConnectivityService Binder and procfs with the same
+        // 4-tuple.
         if (warmupActive || force) {
             uidCache.remove(key)
         } else {

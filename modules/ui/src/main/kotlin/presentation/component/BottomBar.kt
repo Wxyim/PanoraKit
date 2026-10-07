@@ -61,12 +61,12 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.House
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Package-check`
 import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberSystemBottomInset
 import com.kyant.shapes.Capsule
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import io.github.fletchmckee.liquid.LiquidState
 import io.github.fletchmckee.liquid.liquid
-import kotlin.math.max
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -137,13 +137,7 @@ fun BottomBarContent(isVisible: Boolean = true) {
                 ),
             label = "bottom_bar_alpha",
         )
-    val density = LocalDensity.current
-    val bottomSafeInset =
-        with(density) {
-            val navBottom = WindowInsets.navigationBars.getBottom(this)
-            val gestureBottom = WindowInsets.systemGestures.getBottom(this)
-            max(navBottom, gestureBottom).toDp()
-        }
+    val bottomSafeInset = rememberSystemBottomInset()
 
     val selectedColor = MiuixTheme.colorScheme.primary
     val unselectedColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.72f)

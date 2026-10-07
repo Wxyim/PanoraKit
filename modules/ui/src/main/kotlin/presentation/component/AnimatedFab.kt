@@ -39,7 +39,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -61,6 +60,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.theme.AnimationSpecs
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.systemBottomInsetPadding
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -165,7 +165,7 @@ fun OverrideAnimatedFab(
         label = "override_shared_fab_visibility",
     ) {
         val fabModifier =
-            Modifier.navigationBarsPadding()
+            Modifier.systemBottomInsetPadding()
                 .padding(
                     end = spacing.gutter,
                     bottom = spacing.lg + bottomBarOverlayPadding + extraBottomPadding,

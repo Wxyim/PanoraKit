@@ -41,10 +41,8 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.VerticalPager
@@ -98,6 +96,7 @@ import com.github.nomadboxlab.monadbox.presentation.theme.NavigationTransitions
 import com.github.nomadboxlab.monadbox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAdaptiveSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.theme.rememberSystemBottomInset
 import com.github.nomadboxlab.monadbox.runtime.client.usecase.AutoStartProxyUseCase
 import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeFailurePresenter
 import com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingLauncher
@@ -117,7 +116,6 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.rememberLiquidState
-import kotlin.math.max
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -426,24 +424,13 @@ fun MainScreen(navigator: DestinationsNavigator, initialPage: Int = 0) {
             if (!useRailNavigation && bottomBarLiquidGlassEnabled) bottomBarLiquidState else null,
     ) {
         Scaffold { innerPadding ->
-            val density = LocalDensity.current
             val layoutDirection = LocalLayoutDirection.current
             val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
             val safeTopInset = safeDrawingPadding.calculateTopPadding()
             val safeStartInset = safeDrawingPadding.calculateStartPadding(layoutDirection)
             val safeEndInset = safeDrawingPadding.calculateEndPadding(layoutDirection)
-            val systemBottomInset =
-                with(density) {
-                    val navBottom = WindowInsets.navigationBars.getBottom(this)
-                    val gestureBottom = WindowInsets.systemGestures.getBottom(this)
-                    max(navBottom, gestureBottom).toDp()
-                }
             val safeBottomInset =
-                if (safeDrawingPadding.calculateBottomPadding() > systemBottomInset) {
-                    safeDrawingPadding.calculateBottomPadding()
-                } else {
-                    systemBottomInset
-                }
+                maxOf(safeDrawingPadding.calculateBottomPadding(), rememberSystemBottomInset())
             val bottomBarReservedHeight = LocalBottomBarOverlayPadding.current
             val safeMainPadding =
                 PaddingValues(
