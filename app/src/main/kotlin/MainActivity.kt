@@ -75,6 +75,7 @@ import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesPagerBody
 import com.github.nomadboxlab.monadbox.feature.settings.AppSettingsViewModel
 import com.github.nomadboxlab.monadbox.presentation.component.BottomBarContent
 import com.github.nomadboxlab.monadbox.presentation.component.BottomBarLayoutDefaults
+import com.github.nomadboxlab.monadbox.presentation.component.DialogWarmUpHost
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarLiquidState
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarOverlayPadding
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarScrollBehavior
@@ -249,6 +250,7 @@ class MainActivity : ComponentActivity() {
                                         navController = navController,
                                         defaultTransitions = NavigationTransitions.defaultStyle,
                                     )
+                                    DialogWarmUpHost()
                                     ToastDialogHost()
                                 }
                             }

@@ -82,6 +82,14 @@ private val SaveLabels = listOf("Save", "Save and exit", "保存", "保存并退
  */
 private const val SheetStepTimeoutMs = 6_000L
 
+/**
+ * A mode switch always answers through the toast dialog host: the "switched" info dialog when a
+ * profile exists, or the switch-failed/`ProfileNotExist` error dialog on a clean install. The error
+ * branch only surfaces after `HomeRoute.MODE_SWITCH_ERROR_DELAY_MS`, so waiting for it needs more
+ * budget than a plain surface probe.
+ */
+private const val DialogFeedbackTimeoutMs = 4_000L
+
 private const val LabelPollIntervalMs = 100L
 
 /** The wizard is five steps; the extra iteration covers a stray tap that did not advance one. */
@@ -276,7 +284,28 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
         return JourneyResult.skipped("mode entry '$entry' was not clickable")
     }
     device.waitForIdle()
-    return JourneyResult.exercised("mode badge '$badgeLabel' expanded, selected '$entry'")
+
+    // Switching the routing mode always ends in a toast dialog (an info dialog on success, the
+    // no-profile/switch-failed error dialog otherwise). Waiting for it is what puts the
+    // `SuperDialog` -> `DialogLayout`/`DialogEntry` -> `DialogContentLayout` stack into the sampled
+    // profile: composing it cold on a fresh install, mid enter-animation, is exactly the jank of the
+    // first dialog a user opens. A plain `waitForIdle` returns before the delayed error branch
+    // appears, which is why an earlier run left those classes out of the profile entirely.
+    val dialogConfirm = awaitAnyLabel(ConfirmLabels, DialogFeedbackTimeoutMs)
+    if (dialogConfirm != null) {
+        clickFirstLabel(dialogConfirm)
+        device.waitForIdle()
+    }
+
+    val dialogDetail =
+        if (dialogConfirm != null) {
+            "; toast dialog dismissed via '$dialogConfirm'"
+        } else {
+            "; no toast dialog surfaced among $ConfirmLabels"
+        }
+    return JourneyResult.exercised(
+        "mode badge '$badgeLabel' expanded, selected '$entry'$dialogDetail"
+    )
 }
 
 /** Scroll settings list to exercise lazy list composition. */
