@@ -50,13 +50,19 @@ private val ProfilesSurfaceLabels =
 // its last step writes `initialSetupCompleted`, so every Home-facing journey below depends on it.
 //
 // The opening step is a titleless hero: its only stable node is the round "Start" arrow, whose
-// content description is `MLang.Component.Button.Start`. It has to be listed here or that first
-// step reads as "no wizard at all", `onboardingJourney` bails before tapping anything, and a
-// clean-install collection stops at `OnboardingStartupActivity` without ever reaching the shell.
+// content description is `MLang.Component.Button.Start` and which only appears once its
+// `RevealScaleBlock` fires (680ms in). Both the description and the typewriter wordmark are listed
+// here or that first step reads as "no wizard at all", `onboardingJourney` bails before tapping
+// anything, and a clean-install collection stops at `OnboardingStartupActivity` without ever
+// reaching the shell.
 private val OnboardingSurfaceLabels =
     listOf(
         "Start",
         "开始",
+        // `StartupTypewriterPhrases`: falls back to the hero wordmark when the arrow's node is not
+        // exposed (it sits under an `AndroidView` hit target).
+        "MonadBox",
+        "Hello Word",
         "Ready to Go",
         "Confirm Runtime Access",
         "Confirm Privacy Notice",
@@ -97,10 +103,28 @@ private const val SheetStepTimeoutMs = 6_000L
  */
 private const val DialogFeedbackTimeoutMs = 4_000L
 
+/**
+ * Budget for recognising the first wizard step.
+ *
+ * It is longer than `BenchmarkConfig.UiWaitTimeoutMs` because the opening hero reveals its start
+ * arrow 680ms in (`RevealScaleBlock`), so for the first ~700ms of the page there is no node to
+ * recognise at all.
+ */
+private const val OnboardingSurfaceTimeoutMs = 6_000L
+
+/**
+ * Let a freshly revealed control settle before tapping it.
+ *
+ * The start arrow is faded/scaled in over `RevealDurationMs`; a tap that lands while that is still
+ * running is swallowed, and the journey used to record the tap as taken and then stall on the same
+ * control until the step budget ran out.
+ */
+private const val OnboardingTapSettleMs = 500L
+
 private const val LabelPollIntervalMs = 100L
 
-/** The wizard is five steps; the extra iteration covers a stray tap that did not advance one. */
-private const val MaxOnboardingSteps = 6
+/** The wizard is five steps; the extra iterations cover a stray tap that did not advance one. */
+private const val MaxOnboardingSteps = 8
 
 // The routing-mode names, in the order the drop-down lists them. The badge and the drop-down
 // entries render the same strings, so the journey below tells them apart by *where* the string
@@ -139,8 +163,19 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
         return it
     }
 
+    // An install that is already set up starts in the main shell: nothing to walk, and the probe is
+    // non-blocking so a fresh install does not pay a timeout before the wizard shows up.
+    if (awaitAnyLabel(MainShellLabels, 0L) != null) {
+        return JourneyResult.exercised("no wizard surface; install starts past onboarding")
+    }
+
+    // The opening step has no title and reveals its only control 680ms in, so detection gets a
+    // longer budget than a plain surface probe and falls back to the advance controls: a step whose
+    // labels are reworded must not read as "no wizard at all", which is how collection used to stop
+    // at `OnboardingStartupActivity` and never reach the shell.
     val surface =
-        awaitAnyLabel(OnboardingSurfaceLabels, BenchmarkConfig.UiWaitTimeoutMs)
+        awaitAnyLabel(OnboardingSurfaceLabels, OnboardingSurfaceTimeoutMs)
+            ?: awaitAnyLabel(OnboardingAdvanceLabels, 0L)
             ?: return JourneyResult.exercised("no wizard surface; install starts past onboarding")
 
     val steps = mutableListOf<String>()
@@ -157,7 +192,8 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
                 ?: return JourneyResult.skipped(
                     "wizard stalled on '$surface': none of $OnboardingAdvanceLabels is present; ${describeSurface()}"
                 )
-        if (!clickFirstLabel(control)) {
+        SystemClock.sleep(OnboardingTapSettleMs)
+        if (!tapFirstLabel(control)) {
             return JourneyResult.skipped(
                 "wizard control '$control' was not tappable; ${describeSurface()}"
             )
@@ -687,6 +723,19 @@ private fun MacrobenchmarkScope.tapFirstMatch(selector: BySelector): Boolean {
 /** @return `true` when [label] was found (by text or description) and tapped. */
 private fun MacrobenchmarkScope.clickFirstLabel(label: String): Boolean =
     clickFirst(By.textContains(label)) || clickFirst(By.descContains(label))
+
+/**
+ * Tap the first node matching [label], by node and then by its reported bounds.
+ *
+ * `UiObject2.click` reports a node that is still animating in as unusable even though the search
+ * found it - the wizard's start arrow is faded/scaled in after a 680ms delay, so tapping it right
+ * after it appears is exactly that case. Tapping the reported bounds does not depend on the node
+ * staying usable between the search and the tap.
+ */
+private fun MacrobenchmarkScope.tapFirstLabel(label: String): Boolean =
+    clickFirstLabel(label) ||
+        tapFirstMatch(By.textContains(label)) ||
+        tapFirstMatch(By.descContains(label))
 
 /**
  * @return the label that was clicked, or `null` when no candidate was on screen.

@@ -20,6 +20,9 @@
 
 package com.github.nomadboxlab.monadbox.presentation.component
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,8 +31,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
+import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
+import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
+import dev.oom_wg.purejoy.mlang.MLang
 
 /**
  * Per-process, so a warm-up is paid once even when the activity is recreated (rotation, theme
@@ -37,8 +44,21 @@ import androidx.compose.ui.graphics.Color
  */
 private var overlayStackWarmedUp = false
 
-/** Roughly one enter transition (~350ms at 60fps) plus a frame of slack. */
-private const val WarmUpFrames = 24
+/**
+ * One full enter/exit transition at 60fps. The count matters more than the wall time: every frame
+ * of the transition executes the per-frame path (layer block, dim draw, transition machinery) that
+ * the first real overlay drops frames on, so the hold length is what makes that path warm.
+ */
+private const val EnterFrames = 36
+private const val ExitFrames = 24
+
+/**
+ * Far enough below any display that the warm-up overlays are never visible, while still being
+ * composed, measured and *drawn*: a zero-alpha layer (which is how an invisible warm-up is usually
+ * written) still composes, but the draw/render half of the path can be skipped for it, and that
+ * half is exactly what a cold first overlay is slow at.
+ */
+private const val OffScreenTranslationPx = 200_000f
 
 /**
  * Opens one dialog and one bottom sheet, invisibly, right after the hosting shell first draws, so
@@ -56,9 +76,11 @@ private const val WarmUpFrames = 24
  *
  * Both overlay kinds are warmed because either is enough to warm the shared half, and warming the
  * specific half means the app's very first dialog *and* its very first sheet are smooth. The
- * throwaway overlays are invisible: no window dim, transparent surface/handle and the whole thing
- * drawn at zero alpha. They are held until their enter transitions settle, then torn down, after
- * which this composable renders nothing for the rest of the process.
+ * throwaway overlays are invisible (no window dim, transparent surface/handle) because they are
+ * laid out off-screen rather than at zero alpha: they must still be *drawn*, since a zero-alpha
+ * layer can skip the draw/render half of the path that is being warmed. Both transitions run, then
+ * the overlays are torn down, after which this composable renders nothing for the rest of the
+ * process.
  *
  * This is hosted by every shell a user can reach first: `MainActivity` for an already-set-up
  * install, and the first-run wizard (`OnboardingBaseActivity`) for a clean one. A clean install
@@ -72,45 +94,68 @@ fun OverlayWarmUpHost() {
     if (overlayStackWarmedUp) return
 
     var warming by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         // Let the host shell's own first frames land before paying for the overlay trees, so the
         // warm-up does not sit on the startup critical path.
         withFrameNanos {}
         withFrameNanos {}
         warming = true
+        visible = true
         // Hold both overlays composed through the whole enter transition: the layer blocks and the
-        // transition/dim machinery only run every frame while the animations are live, so a couple
-        // of frames would leave that half of the path cold.
-        repeat(WarmUpFrames) { withFrameNanos {} }
+        // transition machinery only run every frame while the animations are live, so a couple of
+        // frames would leave that half of the path cold.
+        repeat(EnterFrames) { withFrameNanos {} }
+        // Then run the exit transition as well: the user closes the first dialog they open, and the
+        // teardown path is as cold as the open path.
+        visible = false
+        repeat(ExitFrames) { withFrameNanos {} }
         overlayStackWarmedUp = true
         warming = false
     }
 
     if (!warming) return
 
+    val offScreen = Modifier.graphicsLayer { translationY = OffScreenTranslationPx }
+
     // Dialog: SuperDialog -> MiuixPopupUtils.DialogLayout/DialogEntry -> DialogContentLayout. The
     // content mirrors what the toast/error dialogs draw (see `ToastDialogHost`) so the confirmation
     // button and its icon are warmed too.
     AppDialog(
-        show = true,
+        show = visible,
+        title = MLang.Component.Message.Hint,
         onDismissRequest = {},
         enableWindowDim = false,
         backgroundColor = Color.Transparent,
-        modifier = Modifier.alpha(0f),
+        modifier = offScreen,
     ) {
         ToastDialogInfoContent(onConfirm = {})
     }
 
     // Bottom sheet: AppActionBottomSheet -> SuperBottomSheet -> BottomSheetContentLayout, the path
-    // behind every `ConfigActionMenuRow` (theme mode, and the rest of the settings-style rows).
+    // behind every `ConfigActionMenuRow`. The title and rows mirror the theme-mode sheet that
+    // surfaced this cost by hand: `ConfigSelectionBottomSheet` lays out exactly this shape.
     AppActionBottomSheet(
-        show = true,
-        title = "",
+        show = visible,
+        title = MLang.AppSettings.Interface.ThemeModeTitle,
         onDismissRequest = {},
         enableWindowDim = false,
         backgroundColor = Color.Transparent,
         dragHandleColor = Color.Transparent,
-        modifier = Modifier.alpha(0f),
-        content = {},
-    )
+        modifier = offScreen,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            listOf(
+                    MLang.AppSettings.Interface.ThemeModeSystem,
+                    MLang.AppSettings.Interface.ThemeModeLight,
+                    MLang.AppSettings.Interface.ThemeModeDark,
+                )
+                .forEach { label ->
+                    AppActionTile(title = label, imageVector = MonadIcons.Palette, onClick = {})
+                }
+        }
+    }
 }
