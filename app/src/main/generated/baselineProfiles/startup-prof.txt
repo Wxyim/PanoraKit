@@ -3814,7 +3814,7 @@ SPLandroidx/compose/runtime/internal/RememberEventDispatcher;->sideEffect(Lkotli
 Landroidx/compose/runtime/internal/SnapshotThreadLocal;
 SPLandroidx/compose/runtime/internal/SnapshotThreadLocal;-><clinit>()V
 SPLandroidx/compose/runtime/internal/SnapshotThreadLocal;-><init>()V
-SPLandroidx/compose/runtime/internal/SnapshotThreadLocal;->get()Ljava/lang/Object;
+HSPLandroidx/compose/runtime/internal/SnapshotThreadLocal;->get()Ljava/lang/Object;
 SPLandroidx/compose/runtime/internal/SnapshotThreadLocal;->set(Ljava/lang/Object;)V
 Landroidx/compose/runtime/internal/SnapshotThreadLocalKt;
 SPLandroidx/compose/runtime/internal/SnapshotThreadLocalKt;-><clinit>()V
@@ -4028,11 +4028,7 @@ SPLandroidx/compose/runtime/snapshots/SnapshotIdArrayBuilder;->toArray()[J
 Landroidx/compose/runtime/snapshots/SnapshotIdSet;
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;-><clinit>()V
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;-><init>(JJJ[J)V
-SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->access$getBelowBound$p(Landroidx/compose/runtime/snapshots/SnapshotIdSet;)[J
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->access$getEMPTY$cp()Landroidx/compose/runtime/snapshots/SnapshotIdSet;
-SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->access$getLowerBound$p(Landroidx/compose/runtime/snapshots/SnapshotIdSet;)J
-SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->access$getLowerSet$p(Landroidx/compose/runtime/snapshots/SnapshotIdSet;)J
-SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->access$getUpperSet$p(Landroidx/compose/runtime/snapshots/SnapshotIdSet;)J
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->andNot(Landroidx/compose/runtime/snapshots/SnapshotIdSet;)Landroidx/compose/runtime/snapshots/SnapshotIdSet;
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->clear(J)Landroidx/compose/runtime/snapshots/SnapshotIdSet;
 SPLandroidx/compose/runtime/snapshots/SnapshotIdSet;->get(J)Z
@@ -7620,6 +7616,7 @@ SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->boundsInScreen(Landroidx/compose/ui/semantics/SemanticsNodeWithAdjustedBounds;)Landroid/graphics/Rect;
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->boundsUpdatesEventLoop$ui(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->createNodeInfo(I)Landroidx/core/view/accessibility/AccessibilityNodeInfoCompat;
+SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->emptyNodeInfoOrNull()Landroidx/core/view/accessibility/AccessibilityNodeInfoCompat;
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->getAccessibilityNodeProvider(Landroid/view/View;)Landroidx/core/view/accessibility/AccessibilityNodeProviderCompat;
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->getAccessibilitySelectionEnd(Landroidx/compose/ui/semantics/SemanticsNode;)I
 SPLandroidx/compose/ui/platform/AndroidComposeViewAccessibilityDelegateCompat;->getAccessibilitySelectionStart(Landroidx/compose/ui/semantics/SemanticsNode;)I
@@ -9836,6 +9833,7 @@ SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->onDescendantInvalidated(L
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->onLayout(ZIIII)V
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->onMeasure(II)V
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->onWindowVisibilityChanged(I)V
+SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->remeasure()V
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->setDensity(Landroidx/compose/ui/unit/Density;)V
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->setLifecycleOwner(Landroidx/lifecycle/LifecycleOwner;)V
 SPLandroidx/compose/ui/viewinterop/AndroidViewHolder;->setModifier(Landroidx/compose/ui/Modifier;)V
@@ -14202,7 +14200,7 @@ SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupH
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupHeroShell(ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$1(Landroidx/compose/runtime/MutableIntState;)I
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$13(Ljava/util/List;Landroidx/compose/ui/Modifier;IILandroidx/compose/runtime/Composer;I)Lkotlin/Unit;
-SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$2(Landroidx/compose/runtime/MutableIntState;I)V
+PLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$2(Landroidx/compose/runtime/MutableIntState;I)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$4(Landroidx/compose/runtime/MutableIntState;)I
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$5(Landroidx/compose/runtime/MutableIntState;I)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupTypewriterWord$lambda$7(Landroidx/compose/runtime/MutableState;)Z
@@ -14211,7 +14209,7 @@ SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->StartupT
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$RevealBlock$lambda$2(Landroidx/compose/runtime/MutableState;Z)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$RevealScaleBlock$lambda$2(Landroidx/compose/runtime/MutableState;Z)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$1(Landroidx/compose/runtime/MutableIntState;)I
-SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$2(Landroidx/compose/runtime/MutableIntState;I)V
+PLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$2(Landroidx/compose/runtime/MutableIntState;I)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$4(Landroidx/compose/runtime/MutableIntState;)I
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$5(Landroidx/compose/runtime/MutableIntState;I)V
 SPLcom/github/nomadboxlab/monadbox/screen/onboarding/OnboardingPageKt;->access$StartupTypewriterWord$lambda$7(Landroidx/compose/runtime/MutableState;)Z
@@ -14873,7 +14871,7 @@ Lkotlin/jvm/internal/IntCompanionObject;
 SPLkotlin/jvm/internal/IntCompanionObject;-><clinit>()V
 SPLkotlin/jvm/internal/IntCompanionObject;-><init>()V
 Lkotlin/jvm/internal/Intrinsics;
-HSPLkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+SPLkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 SPLkotlin/jvm/internal/Intrinsics;->checkNotNull(Ljava/lang/Object;)V
 SPLkotlin/jvm/internal/Intrinsics;->checkNotNull(Ljava/lang/Object;Ljava/lang/String;)V
 SPLkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
