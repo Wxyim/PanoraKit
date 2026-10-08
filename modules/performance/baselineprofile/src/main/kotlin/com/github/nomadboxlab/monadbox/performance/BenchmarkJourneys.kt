@@ -48,8 +48,15 @@ private val ProfilesSurfaceLabels =
 
 // Surfaces of the first-run wizard. A clean install walks it before the main shell exists, and only
 // its last step writes `initialSetupCompleted`, so every Home-facing journey below depends on it.
+//
+// The opening step is a titleless hero: its only stable node is the round "Start" arrow, whose
+// content description is `MLang.Component.Button.Start`. It has to be listed here or that first
+// step reads as "no wizard at all", `onboardingJourney` bails before tapping anything, and a
+// clean-install collection stops at `OnboardingStartupActivity` without ever reaching the shell.
 private val OnboardingSurfaceLabels =
     listOf(
+        "Start",
+        "开始",
         "Ready to Go",
         "Confirm Runtime Access",
         "Confirm Privacy Notice",
@@ -285,12 +292,11 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
     }
     device.waitForIdle()
 
-    // Switching the routing mode always ends in a toast dialog (an info dialog on success, the
-    // no-profile/switch-failed error dialog otherwise). Waiting for it is what puts the
-    // `SuperDialog` -> `DialogLayout`/`DialogEntry` -> `DialogContentLayout` stack into the sampled
-    // profile: composing it cold on a fresh install, mid enter-animation, is exactly the jank of the
-    // first dialog a user opens. A plain `waitForIdle` returns before the delayed error branch
-    // appears, which is why an earlier run left those classes out of the profile entirely.
+    // Switching the routing mode always ends in a toast dialog: an info dialog on success, the
+    // no-profile/switch-failed error dialog otherwise. Waiting for it is what puts the
+    // `SuperDialog` -> `DialogLayout` -> `DialogEntry` -> `DialogContentLayout` stack into the
+    // sampled profile; composing it cold, mid enter-animation, is the first-open jank, and
+    // `waitForIdle` alone returns before the delayed error branch appears.
     val dialogConfirm = awaitAnyLabel(ConfirmLabels, DialogFeedbackTimeoutMs)
     if (dialogConfirm != null) {
         clickFirstLabel(dialogConfirm)

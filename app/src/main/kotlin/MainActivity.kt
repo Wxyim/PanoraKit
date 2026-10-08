@@ -75,7 +75,6 @@ import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesPagerBody
 import com.github.nomadboxlab.monadbox.feature.settings.AppSettingsViewModel
 import com.github.nomadboxlab.monadbox.presentation.component.BottomBarContent
 import com.github.nomadboxlab.monadbox.presentation.component.BottomBarLayoutDefaults
-import com.github.nomadboxlab.monadbox.presentation.component.DialogWarmUpHost
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarLiquidState
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarOverlayPadding
 import com.github.nomadboxlab.monadbox.presentation.component.LocalBottomBarScrollBehavior
@@ -84,6 +83,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.LocalNavigator
 import com.github.nomadboxlab.monadbox.presentation.component.LocalPagerState
 import com.github.nomadboxlab.monadbox.presentation.component.LocalTopBarHazeState
 import com.github.nomadboxlab.monadbox.presentation.component.LocalTopBarHazeStyle
+import com.github.nomadboxlab.monadbox.presentation.component.OverlayWarmUpHost
 import com.github.nomadboxlab.monadbox.presentation.component.RuntimeFailureDialogEffect
 import com.github.nomadboxlab.monadbox.presentation.component.SideRailContent
 import com.github.nomadboxlab.monadbox.presentation.component.ToastDialogHost
@@ -250,7 +250,7 @@ class MainActivity : ComponentActivity() {
                                         navController = navController,
                                         defaultTransitions = NavigationTransitions.defaultStyle,
                                     )
-                                    DialogWarmUpHost()
+                                    OverlayWarmUpHost()
                                     ToastDialogHost()
                                 }
                             }

@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
 import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import com.github.nomadboxlab.monadbox.feature.onboarding.R
+import com.github.nomadboxlab.monadbox.presentation.component.OverlayWarmUpHost
 import com.github.nomadboxlab.monadbox.presentation.theme.MonadTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAdaptiveSpacing
@@ -163,6 +164,10 @@ private fun OnboardingActivityTheme(content: @Composable () -> Unit) {
                             color = MiuixTheme.colorScheme.surface,
                             content = content,
                         )
+                        // Warm the shared overlay stack before the user leaves the wizard for the
+                        // main shell, so the first dialog (or sheet) a clean install opens is not
+                        // its cold first composition. See `OverlayWarmUpHost`.
+                        OverlayWarmUpHost()
                     }
                 }
             }
