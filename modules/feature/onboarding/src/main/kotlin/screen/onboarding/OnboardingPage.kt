@@ -679,7 +679,10 @@ private fun HeroStartButton(
         )
         Icon(
             imageVector = MonadIcons.ArrowRight,
-            contentDescription = MLang.Component.Button.Start,
+            // Decorative: the label lives on the click target below, which is the node the
+            // accessibility tree exposes (an `AndroidView` covers this icon), so labelling it here
+            // would announce the control twice.
+            contentDescription = null,
             tint = MiuixTheme.colorScheme.onPrimary,
             modifier = Modifier.size(22.dp),
         )
@@ -689,6 +692,11 @@ private fun HeroStartButton(
             update = { view ->
                 view.isClickable = enabled
                 view.isEnabled = enabled
+                // This interop `View` is what actually takes the click, and it is what the
+                // accessibility tree exposes: without the label the wizard's only control is an
+                // unlabelled clickable node, which screen readers cannot announce and UI automation
+                // cannot address by name.
+                view.contentDescription = MLang.Component.Button.Start
                 view.setOnClickListener {
                     if (enabled) {
                         onStart(view)

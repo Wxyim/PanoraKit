@@ -115,11 +115,23 @@ private const val OnboardingSurfaceTimeoutMs = 6_000L
 /**
  * Let a freshly revealed control settle before tapping it.
  *
- * The start arrow is faded/scaled in over `RevealDurationMs`; a tap that lands while that is still
- * running is swallowed, and the journey used to record the tap as taken and then stall on the same
- * control until the step budget ran out.
+ * The start arrow is revealed 680ms in and then faded/scaled in over `RevealDurationMs`; a tap that
+ * lands while that is still running is swallowed, and the journey used to record the tap as taken
+ * and then stall on the same control until the step budget ran out.
  */
-private const val OnboardingTapSettleMs = 500L
+private const val OnboardingTapSettleMs = 800L
+
+/** Attempts/backoff for re-tapping a control that is only used by a single wizard step. */
+private const val OnboardingTapAttempts = 4
+private const val OnboardingTapRetryMs = 400L
+
+/**
+ * The wizard's start arrow, which exists on the opening step only.
+ *
+ * That makes "the control is gone" a usable progress check for it: it is the one advancement whose
+ * label is not shared with the following step, so a swallowed tap can be detected and retried.
+ */
+private val OnboardingStartControlLabels = listOf("Start", "开始")
 
 private const val LabelPollIntervalMs = 100L
 
@@ -193,9 +205,15 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
                     "wizard stalled on '$surface': none of $OnboardingAdvanceLabels is present; ${describeSurface()}"
                 )
         SystemClock.sleep(OnboardingTapSettleMs)
-        if (!tapFirstLabel(control)) {
+        val advanced =
+            if (control in OnboardingStartControlLabels) {
+                tapUntilGone(control)
+            } else {
+                tapFirstLabel(control)
+            }
+        if (!advanced) {
             return JourneyResult.skipped(
-                "wizard control '$control' was not tappable; ${describeSurface()}"
+                "wizard control '$control' did not advance the step; ${describeSurface()}"
             )
         }
         device.waitForIdle()
@@ -695,7 +713,10 @@ private fun clickNode(node: UiObject2): Boolean =
     try {
         node.click()
         true
-    } catch (_: StaleObjectException) {
+    } catch (_: Exception) {
+        // UiAutomator refuses to click a node that is still animating in or was replaced since the
+        // search; `tapFirstMatch` re-finds it and taps the reported bounds instead, so treat every
+        // refusal as "this attempt did not tap" rather than letting it fail the whole leg.
         false
     }
 
@@ -736,6 +757,25 @@ private fun MacrobenchmarkScope.tapFirstLabel(label: String): Boolean =
     clickFirstLabel(label) ||
         tapFirstMatch(By.textContains(label)) ||
         tapFirstMatch(By.descContains(label))
+
+/**
+ * Tap [label] until it disappears, up to [OnboardingTapAttempts] times.
+ *
+ * Only valid for a control used by a single step (the start arrow): every other step's primary
+ * action is also called "Next", so "still present" would not mean "the tap failed". The arrow is
+ * faded/scaled in over `RevealDurationMs` starting 680ms in, and a tap that lands while it is still
+ * animating is swallowed, so a single attempt can silently advance nothing.
+ */
+private fun MacrobenchmarkScope.tapUntilGone(label: String): Boolean {
+    repeat(OnboardingTapAttempts) {
+        if (tapFirstLabel(label)) {
+            device.waitForIdle()
+            if (awaitAnyLabel(listOf(label), 0L) == null) return true
+        }
+        SystemClock.sleep(OnboardingTapRetryMs)
+    }
+    return awaitAnyLabel(listOf(label), 0L) == null
+}
 
 /**
  * @return the label that was clicked, or `null` when no candidate was on screen.

@@ -31,8 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
@@ -53,12 +52,15 @@ private const val EnterFrames = 36
 private const val ExitFrames = 24
 
 /**
- * Far enough below any display that the warm-up overlays are never visible, while still being
- * composed, measured and *drawn*: a zero-alpha layer (which is how an invisible warm-up is usually
- * written) still composes, but the draw/render half of the path can be skipped for it, and that
- * half is exactly what a cold first overlay is slow at.
+ * Alpha for the throwaway overlays: about one 8-bit step of the framebuffer, i.e. not perceptible.
+ *
+ * It must not be zero (and the overlays must not be moved off-screen): both of those make the first
+ * real overlay skip rasterising the warm-up entirely, so nothing is warmed. The first overlay a
+ * process draws is slow precisely because the raster/composite path for it (rounded-corner clip,
+ * full-size layer, transform) is being built for the first time - which only happens for content
+ * that actually reaches the screen.
  */
-private const val OffScreenTranslationPx = 200_000f
+private const val WarmUpAlpha = 0.004f
 
 /**
  * Opens one dialog and one bottom sheet, invisibly, right after the hosting shell first draws, so
@@ -76,9 +78,11 @@ private const val OffScreenTranslationPx = 200_000f
  *
  * Both overlay kinds are warmed because either is enough to warm the shared half, and warming the
  * specific half means the app's very first dialog *and* its very first sheet are smooth. The
- * throwaway overlays are invisible (no window dim, transparent surface/handle) because they are
- * laid out off-screen rather than at zero alpha: they must still be *drawn*, since a zero-alpha
- * layer can skip the draw/render half of the path that is being warmed. Both transitions run, then
+ * throwaway overlays draw exactly what the real ones draw - same surface colour, clip, layers and
+ * content - and are hidden with [WarmUpAlpha] alone. Earlier versions hid them with `alpha = 0` or
+ * by moving them off-screen, and both were no-ops: nothing reached the screen, so the raster path
+ * that a first overlay actually pays for was never built. Only the window dim is skipped, because
+ * it is a sibling of the content and would darken the screen for real. Both transitions run, then
  * the overlays are torn down, after which this composable renders nothing for the rest of the
  * process.
  *
@@ -116,7 +120,9 @@ fun OverlayWarmUpHost() {
 
     if (!warming) return
 
-    val offScreen = Modifier.graphicsLayer { translationY = OffScreenTranslationPx }
+    // Drawn for real (real surface colour, real clip, real layers) and only hidden by alpha, so the
+    // raster path the first user overlay pays for is exercised here instead.
+    val imperceptible = Modifier.alpha(WarmUpAlpha)
 
     // Dialog: SuperDialog -> MiuixPopupUtils.DialogLayout/DialogEntry -> DialogContentLayout. The
     // content mirrors what the toast/error dialogs draw (see `ToastDialogHost`) so the confirmation
@@ -126,8 +132,7 @@ fun OverlayWarmUpHost() {
         title = MLang.Component.Message.Hint,
         onDismissRequest = {},
         enableWindowDim = false,
-        backgroundColor = Color.Transparent,
-        modifier = offScreen,
+        modifier = imperceptible,
     ) {
         ToastDialogInfoContent(onConfirm = {})
     }
@@ -140,9 +145,7 @@ fun OverlayWarmUpHost() {
         title = MLang.AppSettings.Interface.ThemeModeTitle,
         onDismissRequest = {},
         enableWindowDim = false,
-        backgroundColor = Color.Transparent,
-        dragHandleColor = Color.Transparent,
-        modifier = offScreen,
+        modifier = imperceptible,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
