@@ -128,6 +128,9 @@ private const val OnboardingTapRetryMs = 400L
 /** Attempts for ticking the terms step's privacy checkbox before giving up on that step. */
 private const val OnboardingCheckboxAttempts = 4
 
+/** How long the terms step's primary action gets to enable once the checkbox is ticked. */
+private const val OnboardingControlEnabledTimeoutMs = 2_000L
+
 /**
  * The wizard's start arrow, which exists on the opening step only.
  *
@@ -207,6 +210,16 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
                 ?: return JourneyResult.skipped(
                     "wizard stalled on '$surface': none of $OnboardingAdvanceLabels is present; ${describeSurface()}"
                 )
+        // So a tick that did not take has to report itself here, instead of spending the whole step
+        // budget on a dead "Next".
+        if (
+            onPrivacyNoticeStep() &&
+                !awaitAdvanceControlEnabled(control, OnboardingControlEnabledTimeoutMs)
+        ) {
+            return JourneyResult.skipped(
+                "wizard control '$control' stayed disabled on the privacy notice step; ${describeSurface()}"
+            )
+        }
         SystemClock.sleep(OnboardingTapSettleMs)
         val advanced =
             if (control in OnboardingStartControlLabels) {
@@ -277,6 +290,33 @@ private fun MacrobenchmarkScope.acceptPrivacyNoticeOnce(): Boolean {
 
 /** `Role.Checkbox` as Compose reports it to the platform accessibility tree. */
 private const val CheckboxClassName = "android.widget.CheckBox"
+
+/** @return `true` when the current step is the one carrying the privacy notice checkbox. */
+private fun MacrobenchmarkScope.onPrivacyNoticeStep(): Boolean =
+    awaitAnyLabel(PrivacyNoticeSurfaceLabels, timeoutMs = 0L) != null
+
+/**
+ * @return `true` once a node for [label] reports itself as enabled, or when that cannot be read.
+ *
+ * Compose maps a disabled clickable action onto the platform's disabled state, which lets a tick
+ * that silently failed be told apart from a tap that landed but did nothing. An unreadable node
+ * counts as enabled so the tap below still gets its chance.
+ */
+private fun MacrobenchmarkScope.awaitAdvanceControlEnabled(
+    label: String,
+    timeoutMs: Long,
+): Boolean {
+    val deadline = SystemClock.uptimeMillis() + timeoutMs
+    while (true) {
+        val enabled =
+            device.findObject(appSelector(By.textContains(label)))?.let {
+                staleSafe { it.isEnabled }
+            }
+        if (enabled != false) return true
+        if (SystemClock.uptimeMillis() >= deadline) return false
+        SystemClock.sleep(LabelPollIntervalMs)
+    }
+}
 
 private fun MacrobenchmarkScope.awaitMainShell(): Boolean =
     awaitAnyLabel(MainShellLabels, BenchmarkConfig.UiVerifyTimeoutMs) != null
