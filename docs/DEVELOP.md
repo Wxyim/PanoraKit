@@ -157,8 +157,11 @@ adb logcat -v time | rg -i "clash|runtime|traffic|override"
 - (7) Reinstall release artifact when validating packaging-specific behavior:
 
 ```sh
-adb install -r build/app/outputs/apk/release/MonadBox-universal-release.apk
+adb install -r "build/app/outputs/apk/release/MonadBox-universal-alpha-<mihomo-short>-release.apk"
 ```
+
+Release APKs are named `<app>-<abi>-<kernelChannel>-<kernelRevision>-<buildType>.apk`,
+where `<kernelRevision>` is the mihomo Prerelease-Alpha short hash (see `config/kernel.properties`).
 
 - (8) Optional cleanup for deterministic regression runs:
 

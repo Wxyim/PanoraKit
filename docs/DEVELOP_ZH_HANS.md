@@ -161,8 +161,11 @@ adb logcat -v time | rg -i "clash|runtime|traffic|override"
 - (7) 验证打包差异时重装 release APK：
 
 ```sh
-adb install -r build/app/outputs/apk/release/MonadBox-universal-release.apk
+adb install -r "build/app/outputs/apk/release/MonadBox-universal-alpha-<mihomo-short>-release.apk"
 ```
+
+Release APK 命名格式为 `<app>-<abi>-<内核通道>-<内核版本号>-<buildType>.apk`，
+其中 `<内核版本号>` 是 mihomo Prerelease-Alpha 的短 hash（见 `config/kernel.properties`）。
 
 - (8) 回归测试前可选清理安装态：
 

@@ -22,7 +22,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       new_sha: ${{ steps.resolve.outputs.new_sha }}
-      new_sha_short: ${{ steps.resolve.outputs.new_sha_short }}
       should_build: ${{ steps.compare.outputs.should_build }}
       skip_reason: ${{ steps.compare.outputs.skip_reason }}
     steps:
@@ -64,9 +63,7 @@ jobs:
             echo "::error::Failed to resolve mihomo/alpha revision"
             exit 1
           fi
-          new_sha_short=${new_sha:0:8}
           echo "new_sha=${new_sha}" >> "$GITHUB_OUTPUT"
-          echo "new_sha_short=${new_sha_short}" >> "$GITHUB_OUTPUT"
           echo "::notice::Latest mihomo/alpha @ ${new_sha}"
 
       - name: Decide whether to build
@@ -88,11 +85,11 @@ jobs:
           elif [ "$CURRENT" = "$NEW" ]; then
             should_build=false
             skip_reason=up_to_date
-            echo "::notice::mihomo/alpha unchanged at ${NEW:0:8} — skipping build"
+            echo "::notice::mihomo/alpha unchanged at ${NEW} — skipping build"
           else
             should_build=true
             skip_reason=new_commit
-            echo "::notice::New mihomo/alpha: ${CURRENT:0:8} -> ${NEW:0:8}"
+            echo "::notice::New mihomo/alpha: ${CURRENT} -> ${NEW}"
           fi
           {
             echo "should_build=${should_build}"
@@ -105,6 +102,8 @@ jobs:
     if: needs.resolve.outputs.should_build == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    outputs:
+      mihomo_short: ${{ steps.kernel_revision.outputs.short }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -195,6 +194,17 @@ jobs:
           set -euo pipefail
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh alpha
+
+      - name: Read synced kernel revision
+        id: kernel_revision
+        run: |
+          set -euo pipefail
+          # `sync-kernel.sh` clones the Prerelease-Alpha tag at depth 1, so this abbreviation is
+          # byte-for-byte the hash mihomo publishes in its `mihomo-<os>-<arch>-alpha-<hash>`
+          # assets. A full clone would widen it (8+ chars) and stop matching upstream.
+          short="$(git -C lib/mihomo/mihomo rev-parse --short HEAD)"
+          echo "short=${short}" >> "$GITHUB_OUTPUT"
+          echo "::notice::mihomo/alpha revision: ${short}"
 
       - name: Update CA certificates
         run: |
@@ -356,10 +366,25 @@ jobs:
           ls -lh "$apk"
           file "$apk"
 
+      - name: Resolve artifact name
+        id: artifact
+        run: |
+          set -euo pipefail
+          # Derive the artifact (the zip GitHub publishes) from the packaged APK so both share the
+          # same self-describing name, including the mihomo Prerelease-Alpha hash.
+          apk=$(find build/app/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n1)
+          if [ -z "$apk" ]; then
+            echo "::error::No APK found to name the artifact after"
+            exit 1
+          fi
+          name="$(basename "$apk" .apk)"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Artifact (zip) name: ${name}"
+
       - name: Upload APK artifact (1-day retention)
         uses: actions/upload-artifact@v7
         with:
-          name: monadbox-arm64-alpha-${{ needs.resolve.outputs.new_sha_short }}
+          name: ${{ steps.artifact.outputs.name }}
           path: build/app/outputs/apk/release/*.apk
           retention-days: 1
           if-no-files-found: error
@@ -398,7 +423,7 @@ jobs:
             echo "No state change to commit."
             exit 0
           fi
-          git commit -m "chore(kernel-state): sync alpha to Prerelease-Alpha (${{ needs.resolve.outputs.new_sha_short }})"
+          git commit -m "chore(kernel-state): sync alpha to Prerelease-Alpha (${{ needs.build.outputs.mihomo_short }})"
           # Defensive rebase: a concurrent manual run may have pushed first.
           git pull --rebase origin "$GITHUB_REF_NAME" 2>/dev/null || true
           git push

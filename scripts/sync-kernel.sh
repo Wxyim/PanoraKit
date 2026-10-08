@@ -81,6 +81,14 @@ resolve_release_revision() {
 }
 
 release_commit_short() {
+  # Upstream abbreviates its Prerelease-Alpha assets with `git rev-parse --short HEAD` in a
+  # depth-1 checkout. sync_repo keeps our checkout equally shallow, so this returns the exact
+  # same abbreviated hash mihomo publishes in `mihomo-<os>-<arch>-alpha-<hash>`.
+  short="$(git -C "$MIHOMO_DIR" rev-parse --short HEAD 2>/dev/null || true)"
+  if [ -n "$short" ]; then
+    printf '%s' "$short"
+    return
+  fi
   printf '%s' "$RELEASE_REVISION" | cut -c1-7
 }
 
@@ -138,9 +146,23 @@ sync_repo() {
     echo "Removing existing directory $MIHOMO_DIR"
     rm -rf "$MIHOMO_DIR"
   fi
-  echo "Cloning $REPO_URL -> $MIHOMO_DIR"
-  git clone --no-checkout "$REPO_URL" "$MIHOMO_DIR"
-  git -C "$MIHOMO_DIR" checkout --force "$RELEASE_REVISION"
+  # Depth-1 checkout on purpose: upstream builds every Prerelease-Alpha release from a shallow
+  # checkout too, and git's abbreviated hash length grows with the number of objects in the
+  # repository. A full clone widens `git rev-parse --short` (8+ chars here) and the packaged file
+  # names would no longer match the hash in mihomo's own `...-alpha-<hash>` asset names.
+  echo "Cloning $REPO_URL -> $MIHOMO_DIR (depth 1 @ $RELEASE_TAG)"
+  git -c advice.detachedHead=false clone \
+    --quiet \
+    --depth 1 \
+    --branch "$RELEASE_TAG" \
+    "$REPO_URL" "$MIHOMO_DIR"
+
+  cloned_revision="$(git -C "$MIHOMO_DIR" rev-parse HEAD)"
+  if [ "$cloned_revision" != "$RELEASE_REVISION" ]; then
+    echo "Tag $RELEASE_TAG moved while syncing: expected $RELEASE_REVISION, cloned $cloned_revision" >&2
+    echo "Re-run the sync to pick up the new revision." >&2
+    exit 1
+  fi
 }
 
 strip_indirect_requires() {
@@ -184,8 +206,8 @@ if [ "$MODE" = "--print-state" ]; then
   exit 0
 fi
 
-update_kernel_properties
 sync_repo
+update_kernel_properties
 run_tidy "$GOLANG_ROOT"
 run_tidy "$GOLANG_MAIN"
 

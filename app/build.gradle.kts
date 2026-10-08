@@ -50,17 +50,35 @@ val kernelProperties =
             kernelPropertiesFile.inputStream().use(::load)
         }
     }
+val mihomoBranch =
+    kernelProperties.getProperty("external.mihomo.branch")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: "unknown"
+
+// Short kernel revision written by `scripts/sync-kernel.sh` from the mihomo Prerelease-Alpha
+// checkout. That script clones the tag at depth 1 (the same shallow view upstream builds its
+// releases from), so this is `git rev-parse --short HEAD` exactly as mihomo publishes it in its
+// `mihomo-<os>-<arch>-alpha-<hash>` asset names, not a locally chosen truncation length.
+val mihomoCommit =
+    kernelProperties.getProperty("external.mihomo.commit")?.trim()?.takeIf {
+        it.isNotEmpty() && it != "unknown"
+    }
+
 val mihomoVersion = buildString {
-    append(
-        kernelProperties.getProperty("external.mihomo.branch")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: "unknown"
-    )
-    kernelProperties
-        .getProperty("external.mihomo.commit")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() && it != "unknown" }
-        ?.let { append('-').append(it) }
+    append(mihomoBranch)
+    mihomoCommit?.let { append('-').append(it) }
 }
+
+// Channel token mirroring the one mihomo uses in its release asset names, e.g.
+// `Prerelease-Alpha` -> `alpha`.
+val mihomoChannel =
+    mihomoBranch.substringAfterLast('-').lowercase().ifEmpty { mihomoBranch.lowercase() }
+
+// Kernel identity stamped into packaged file names so an artifact can be traced back to the exact
+// mihomo Prerelease-Alpha revision it was built against.
+val mihomoRevisionTag =
+    listOfNotNull(mihomoChannel.takeIf { it.isNotEmpty() && it != "unknown" }, mihomoCommit)
+        .joinToString("-")
+        .ifEmpty { "unknown" }
 
 val geoFilesAssetsDir = rootProject.layout.buildDirectory.dir("generated/assets/geo")
 val unifiedJniLibsDir = rootProject.layout.buildDirectory.dir("jniLibs")
@@ -295,7 +313,12 @@ android {
                 (output as com.android.build.api.variant.impl.VariantOutputImpl)
                     .outputFileName
                     .set(
-                        "${providers.gradleProperty("project.name").get()}-${abiName}-${buildTypeName}.apk"
+                        // Self-describing:
+                        // <app>-<abi>-<kernelChannel>-<kernelRevision>-<buildType>.apk
+                        // e.g. MonadBox-arm64-v8a-alpha-9f053c4-release.apk, whose
+                        // revision matches the hash in mihomo's Prerelease-Alpha asset names.
+                        "${providers.gradleProperty("project.name").get()}-" +
+                            "$abiName-$mihomoRevisionTag-$buildTypeName.apk"
                     )
             }
         }
