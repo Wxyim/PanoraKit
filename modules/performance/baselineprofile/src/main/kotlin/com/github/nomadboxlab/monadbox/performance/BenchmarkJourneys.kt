@@ -125,6 +125,9 @@ private const val OnboardingTapSettleMs = 800L
 private const val OnboardingTapAttempts = 4
 private const val OnboardingTapRetryMs = 400L
 
+/** Attempts for ticking the terms step's privacy checkbox before giving up on that step. */
+private const val OnboardingCheckboxAttempts = 4
+
 /**
  * The wizard's start arrow, which exists on the opening step only.
  *
@@ -234,17 +237,46 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
  *
  * The terms step disables its primary action until the notice is accepted, and only the checkbox
  * node itself carries the toggle action, so it has to be addressed as a checkable node.
+ *
+ * Every attempt re-finds the node and the tick is verified afterwards: the wizard re-renders as it
+ * is walked, so a handle can go stale between the search and the read, and a single stale read used
+ * to be treated as "nothing left to accept" - which left the walk stalled on this step clicking a
+ * disabled "Next" until the step budget ran out.
  */
 private fun MacrobenchmarkScope.acceptPrivacyNoticeIfOffered() {
     if (awaitAnyLabel(PrivacyNoticeSurfaceLabels, timeoutMs = 0L) == null) return
-    val checkbox = device.findObject(appSelector(By.checkable(true))) ?: return
-    // The wizard keeps re-rendering while it is walked, so the checkbox can be replaced between
-    // the search and the read; a stale read means this step has no notice left to accept.
-    val checked = staleSafe { checkbox.isChecked } ?: return
-    if (checked) return
-    clickNode(checkbox)
-    device.waitForIdle()
+    repeat(OnboardingCheckboxAttempts) {
+        if (acceptPrivacyNoticeOnce()) return
+        SystemClock.sleep(OnboardingTapRetryMs)
+    }
 }
+
+/** @return `true` once the notice is accepted (also when there is no checkbox on this step). */
+private fun MacrobenchmarkScope.acceptPrivacyNoticeOnce(): Boolean {
+    val checkbox =
+        device.findObject(appSelector(By.checkable(true)))
+            // Compose publishes the role as the platform class name, so this still finds the same
+            // node if a build maps the toggleable state without the checkable flag.
+            ?: device.findObject(appSelector(By.clazz(CheckboxClassName)))
+            ?: return false
+
+    val checked = staleSafe { checkbox.isChecked }
+    if (checked == true) return true
+
+    if (!clickNode(checkbox) && !tapFirstMatch(By.checkable(true))) {
+        return false
+    }
+    device.waitForIdle()
+
+    // Re-find before reading: the handle from the search above can be stale by now.
+    val accepted =
+        device.findObject(appSelector(By.checkable(true)))
+            ?: device.findObject(appSelector(By.clazz(CheckboxClassName)))
+    return staleSafe { accepted?.isChecked } ?: false
+}
+
+/** `Role.Checkbox` as Compose reports it to the platform accessibility tree. */
+private const val CheckboxClassName = "android.widget.CheckBox"
 
 private fun MacrobenchmarkScope.awaitMainShell(): Boolean =
     awaitAnyLabel(MainShellLabels, BenchmarkConfig.UiVerifyTimeoutMs) != null
