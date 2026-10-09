@@ -270,18 +270,32 @@ private fun MacrobenchmarkScope.acceptPrivacyNoticeIfOffered() {
     }
 }
 
-/** Swipe up inside the wizard step's scrollable body to bring its card into view. */
+/** The class name Compose publishes for a `verticalScroll` container. */
+private const val ScrollViewClassName = "android.widget.ScrollView"
+
+/**
+ * Drag the wizard step's scrollable body up so its lower content - the privacy notice checkbox on
+ * the terms step - comes into view.
+ *
+ * The gesture has to start *inside* that scrollable. The step body is what scrolls here, and on the
+ * collection device's 320x640 display it is only about a hundred pixels tall while the notice's
+ * paragraph already fills it, so a swipe across the middle of the screen (which is what this used
+ * to do) scrolls nothing and leaves the checkbox below the fold, where UI automation can neither
+ * see nor click it.
+ */
 private fun MacrobenchmarkScope.scrollOnboardingContent() {
-    val midX = device.displayWidth / 2
-    device.swipe(
-        midX,
-        (device.displayHeight * 0.62f).toInt(),
-        midX,
-        (device.displayHeight * 0.38f).toInt(),
-        24,
-    )
+    val bounds =
+        device.findObject(appSelector(By.clazz(ScrollViewClassName)))?.let {
+            staleSafe { it.visibleBounds }
+        } ?: return
+    if (bounds.height() <= SwipeInsetPx * 2) return
+    val midX = bounds.centerX()
+    device.swipe(midX, bounds.bottom - SwipeInsetPx, midX, bounds.top + SwipeInsetPx, 24)
     device.waitForIdle()
 }
+
+/** Keeps a swipe inside the node it was aimed at, clear of its edges. */
+private const val SwipeInsetPx = 8
 
 /** @return `true` once the notice is accepted (also when there is no checkbox on this step). */
 private fun MacrobenchmarkScope.acceptPrivacyNoticeOnce(): Boolean {
