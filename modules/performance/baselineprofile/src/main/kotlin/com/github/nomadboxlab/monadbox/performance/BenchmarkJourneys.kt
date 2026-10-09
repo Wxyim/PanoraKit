@@ -839,14 +839,8 @@ private fun MacrobenchmarkScope.dismissPermissionOrErrorSurface() {
 
 private fun MacrobenchmarkScope.firstMatchingLabel(needles: List<String>): String? =
     needles.firstOrNull { needle ->
-        device.wait(
-            Until.hasObject(appSelector(By.textContains(needle))),
-            BenchmarkConfig.UiVerifyTimeoutMs,
-        ) != null ||
-            device.wait(
-                Until.hasObject(appSelector(By.descContains(needle))),
-                BenchmarkConfig.UiVerifyTimeoutMs,
-            ) != null
+        findVisibleObject(By.textContains(needle), timeoutMs = BenchmarkConfig.UiVerifyTimeoutMs) !=
+            null || findVisibleObject(By.descContains(needle), timeoutMs = 0L) != null
     }
 
 /**
@@ -855,10 +849,8 @@ private fun MacrobenchmarkScope.firstMatchingLabel(needles: List<String>): Strin
  */
 private fun MacrobenchmarkScope.firstMatchingDescription(needles: List<String>): String? =
     needles.firstOrNull { needle ->
-        device.wait(
-            Until.hasObject(appSelector(By.descContains(needle))),
-            BenchmarkConfig.UiVerifyTimeoutMs,
-        ) != null
+        findVisibleObject(By.descContains(needle), timeoutMs = BenchmarkConfig.UiVerifyTimeoutMs) !=
+            null
     }
 
 private fun appSelector(selector: BySelector): BySelector =
@@ -905,12 +897,44 @@ private fun MacrobenchmarkScope.awaitAnyLabel(needles: List<String>, timeoutMs: 
     while (true) {
         needles
             .firstOrNull { needle ->
-                device.findObject(appSelector(By.textContains(needle))) != null ||
-                    device.findObject(appSelector(By.descContains(needle))) != null
+                findVisibleObject(By.textContains(needle), timeoutMs = 0L) != null ||
+                    findVisibleObject(By.descContains(needle), timeoutMs = 0L) != null
             }
             ?.let {
                 return it
             }
+        if (SystemClock.uptimeMillis() >= deadline) return null
+        SystemClock.sleep(LabelPollIntervalMs)
+    }
+}
+
+/**
+ * First node matching [selector] that is really on the display.
+ *
+ * Package filtering alone is not enough: the app's own notification rows carry the same labels -
+ * the current routing mode, for one - while they live in SystemUI's window, so a probe can match a
+ * node that is not on screen and whose bounds cannot be tapped. That is what made the mode-switch
+ * leg report a badge it could not click once the proxy notification existed.
+ */
+private fun MacrobenchmarkScope.findVisibleObject(
+    selector: BySelector,
+    appOnly: Boolean = true,
+    timeoutMs: Long = BenchmarkConfig.UiWaitTimeoutMs,
+): UiObject2? {
+    val scoped = if (appOnly) appSelector(selector) else selector
+    val deadline = SystemClock.uptimeMillis() + timeoutMs
+    while (true) {
+        val nodes = device.wait(Until.findObjects(scoped), 0L) ?: emptyList()
+        val visible =
+            nodes.firstOrNull { node ->
+                val bounds = staleSafe { node.visibleBounds }
+                bounds != null &&
+                    bounds.width() > 0 &&
+                    bounds.height() > 0 &&
+                    bounds.left < device.displayWidth &&
+                    bounds.top < device.displayHeight
+            }
+        if (visible != null) return visible
         if (SystemClock.uptimeMillis() >= deadline) return null
         SystemClock.sleep(LabelPollIntervalMs)
     }
@@ -1056,12 +1080,10 @@ private fun MacrobenchmarkScope.clickFirstMatching(
  * wizard.
  */
 private fun MacrobenchmarkScope.clickFirst(selector: BySelector, appOnly: Boolean = true): Boolean {
-    val scoped = if (appOnly) selector.pkg(BenchmarkConfig.TargetPackage) else selector
     // A tap races the screen it is tapped on, so a node replaced between the search and the tap is
     // searched for once more instead of aborting the leg that is driving the UI.
     repeat(2) {
-        val node =
-            device.wait(Until.findObject(scoped), BenchmarkConfig.UiWaitTimeoutMs) ?: return false
+        val node = findVisibleObject(selector, appOnly) ?: return false
         if (clickNode(node)) {
             device.waitForIdle()
             return true
