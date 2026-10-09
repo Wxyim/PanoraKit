@@ -233,9 +233,18 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
 
         val control =
             awaitAnyLabel(OnboardingAdvanceLabels, BenchmarkConfig.UiWaitTimeoutMs)
-                ?: return JourneyResult.skipped(
-                    "wizard stalled on '$surface': none of $OnboardingAdvanceLabels is present; ${describeSurface()}"
-                )
+                ?: return if (awaitMainShell()) {
+                    // The shell came up while this step was probed: the wizard was already finished
+                    // (by a previous run's legacy state, or by the entry probe racing the first
+                    // frame), so this is not a stall and must not be reported as one.
+                    JourneyResult.exercised(
+                        "wizard '$surface' -> ${steps.joinToString(" -> ")}; shell reached"
+                    )
+                } else {
+                    JourneyResult.skipped(
+                        "wizard stalled on '$surface': none of $OnboardingAdvanceLabels is present; ${describeSurface()}"
+                    )
+                }
         // So a tick that did not take has to report itself here, instead of spending the whole step
         // budget on a dead "Next".
         if (
