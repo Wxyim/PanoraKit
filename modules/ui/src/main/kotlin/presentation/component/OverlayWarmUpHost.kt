@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
@@ -121,8 +122,11 @@ fun OverlayWarmUpHost() {
     if (!warming) return
 
     // Drawn for real (real surface colour, real clip, real layers) and only hidden by alpha, so the
-    // raster path the first user overlay pays for is exercised here instead.
-    val imperceptible = Modifier.alpha(WarmUpAlpha)
+    // raster path the first user overlay pays for is exercised here instead. The semantics are
+    // cleared on top: alpha hides the pixels, not the accessibility tree, and a phantom dialog that
+    // screen readers can focus (and that shows up in UI-automation surface digests) is a real
+    // regression, not a warm-up detail.
+    val imperceptible = Modifier.alpha(WarmUpAlpha).clearAndSetSemantics {}
 
     // Dialog: SuperDialog -> MiuixPopupUtils.DialogLayout/DialogEntry -> DialogContentLayout. The
     // content mirrors what the toast/error dialogs draw (see `ToastDialogHost`) so the confirmation

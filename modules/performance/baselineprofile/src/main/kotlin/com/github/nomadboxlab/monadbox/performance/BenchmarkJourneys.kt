@@ -240,7 +240,7 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
         JourneyResult.exercised("wizard '$surface' -> ${steps.joinToString(" -> ")}")
     } else {
         JourneyResult.skipped(
-            "wizard '$surface' did not reach the main shell in $MaxOnboardingSteps steps (${steps.joinToString(" -> ")}); ${describeCheckboxNodes()}; ${describeSurface()}"
+            "wizard '$surface' did not reach the main shell in $MaxOnboardingSteps steps (${steps.joinToString(" -> ")}); ${describeCheckboxNodes()}; ${describeAppNodes()}"
         )
     }
 }
@@ -339,6 +339,30 @@ private fun MacrobenchmarkScope.describeCheckboxNodes(limit: Int = 3): String {
 /** @return `true` when the current step is the one carrying the privacy notice checkbox. */
 private fun MacrobenchmarkScope.onPrivacyNoticeStep(): Boolean =
     awaitAnyLabel(PrivacyNoticeSurfaceLabels, timeoutMs = 0L) != null
+
+/**
+ * A compact dump of the app's addressable nodes with their bounds.
+ *
+ * A composable can run, be in the profile, and still publish nothing reachable - for example when
+ * the layout hands its column no height, so the card is composed but clipped to nothing. Labels
+ * alone cannot tell that apart from "the screen never had the card": bounds and the display size
+ * can.
+ */
+private fun MacrobenchmarkScope.describeAppNodes(limit: Int = 10): String {
+    val nodes = surfaceNodes()
+    val dump =
+        nodes.take(limit).map { node ->
+            val labels = staleSafe { listOfNotNull(node.text, node.contentDescription) }
+            val className = staleSafe { node.className }
+            val bounds = staleSafe { node.visibleBounds }
+            if (labels == null) {
+                "<stale>"
+            } else {
+                "'${labels.joinToString("/").ifEmpty { "-" }}' [$className] $bounds"
+            }
+        }
+    return "display=${device.displayWidth}x${device.displayHeight} nodes(${nodes.size})=[${dump.joinToString(" | ")}]"
+}
 
 /**
  * @return `true` once a node for [label] reports itself as enabled, or when that cannot be read.
