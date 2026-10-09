@@ -94,14 +94,15 @@ start_stop_proxy      start 'Tap to start' -> 'Running' -> stopped
 edit_save             edit 'More' -> 'Edit Text' -> save 'Save'
 ```
 
-profile 规模与覆盖：
+profile 规模与覆盖（数值随每次重新生成略有浮动，此处为 2026-10-09 采集结果）：
 
 ```
-baseline-prof.txt 39,074 行 / startup-prof.txt 18,977 行（修复前 ~17.5k）
+baseline-prof.txt 39,614 行 / startup-prof.txt 20,745 行（修复前 ~17.5k）
 
 NavHost 171 | HomePagerKt 51 | TrafficDisplayKt 88 | BottomBarContent 9
 SuperDialogKt 11 | DialogContentLayoutKt 94 | BottomSheetContentLayoutKt 129
 OnboardingPersonalizeActivity 24 | ProfilesPagerBodyKt 186 | ProfileAddSheetKt 147 | CodeEditorKt 29
+ColorPickerKt 88（主题配色面板预热后一并入册）
 ```
 
 ## 三、顺带修复的其他缺陷
