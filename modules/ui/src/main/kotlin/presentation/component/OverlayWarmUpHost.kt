@@ -174,12 +174,20 @@ fun OverlayWarmUpHost() {
     // than the rows above (four colour models, gradients, sliders) and is followed by a hex field,
     // so the first user open of that sheet was still janky once the overlay machinery itself had
     // been warmed. The title, actions and content mirror `ThemeColorPickerSheet`.
+    //
+    // Unlike the two overlays above, this one is composed at zero alpha rather than drawn for real:
+    // its first draw builds gradient/shader state, and the profile collection device renders in
+    // software - rasterising that on every app start is a stability risk for the run (a collection
+    // crashed its emulator the first time this content was ever composed). Its first-open cost is
+    // dominated by composing it - class init, colour-model maths, brush construction - which zero
+    // alpha still warms.
+    val composedOnly = Modifier.alpha(0f).clearAndSetSemantics {}
     AppActionBottomSheet(
         show = visible,
         title = MLang.AppSettings.Interface.ColorThemePickerTitle,
         onDismissRequest = {},
         enableWindowDim = false,
-        modifier = imperceptible,
+        modifier = composedOnly,
         startAction = { AppBottomSheetCloseAction(onClick = {}) },
         endAction = { AppBottomSheetConfirmAction(onClick = {}) },
     ) {
