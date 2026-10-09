@@ -96,6 +96,14 @@ private val MainShellLabels = listOf("Home", "首页")
 private val HomeSurfaceLabels = listOf("UPLOAD", "DOWNLOAD", "上传", "下载")
 private val StartControlLabels = listOf("Tap to start", "Start", "VPN", "TUN", "HTTP", "点击启动", "启动")
 private val StopControlLabels = listOf("Running", "Stop", "VPN", "TUN", "HTTP", "运行", "停止")
+// The proxy card's own state headlines. They are deliberately narrower than the control lists
+// above: those contain the transport names ("VPN"/"TUN"/"HTTP"), which the capsule carries in both
+// states, so only these prove which state it is really in.
+private val ProxyRunningLabels = listOf("Running", "运行")
+private val ProxyIdleLabels = listOf("Tap to start", "点击启动")
+
+/** How long the proxy card gets to report its new state after a tap. */
+private const val ProxyStateTimeoutMs = 6_000L
 // The row actions on the Profiles page are icon-only, so they are addressed by their descriptions
 // (`Component.ProfileCard.Edit` / `Settings.Section.More`). "More" is tried first because its
 // actions dialog carries the text-editor entry for every profile type, while "Edit" only lands in
@@ -691,15 +699,31 @@ internal fun MacrobenchmarkScope.startStopProxyJourney(): JourneyResult {
                 "no start control among $StartControlLabels (install has no profile/config seeded)"
             )
 
-    dismissPermissionOrErrorSurface()
-    device.waitForIdle()
-    val stop = clickFirstMatching(*StopControlLabels.toTypedArray())
+    // Starting the tunnel raises the system VPN consent dialog. This leg drives the app, so the
+    // prompt has to be *accepted* - the dismiss helper used here before cancelled the tunnel, and
+    // the leg then "stopped" the mode label ("VPN"), reporting a start/stop pair it never covered.
+    acceptPermissionOrErrorSurface()
+
+    // The capsule reports its state in its description ("VPN, Running"), so the running headline is
+    // the proof that the tunnel really started; without it the stop tap below would hit the mode
+    // label instead.
+    val running =
+        awaitAnyLabel(ProxyRunningLabels, ProxyStateTimeoutMs)
+            ?: return JourneyResult.skipped(
+                "started via '$start', but the proxy never reported running; ${describeSurface(limit = 8)}"
+            )
+    if (!tapFirstLabel(running)) {
+        return JourneyResult.skipped("running state '$running' was not tappable")
+    }
     dismissPermissionOrErrorSurface()
 
-    return if (stop == null) {
-        JourneyResult.skipped("started via '$start', but no stop control among $StopControlLabels")
+    // And the idle headline is the proof the stop took.
+    return if (awaitAnyLabel(ProxyIdleLabels, ProxyStateTimeoutMs) != null) {
+        JourneyResult.exercised("start '$start' -> '$running' -> stopped")
     } else {
-        JourneyResult.exercised("start '$start', stop '$stop'")
+        JourneyResult.skipped(
+            "stopped via '$running', but the idle state never came back; ${describeSurface(limit = 8)}"
+        )
     }
 }
 
@@ -835,6 +859,16 @@ private fun MacrobenchmarkScope.dismissPermissionOrErrorSurface() {
     // The consent dialogs belong to the system UI, so this one deliberately reaches outside the
     // target package.
     clickFirstMatching("Cancel", "Deny", "Not now", "OK", "取消", "拒绝", "暂不", "确定", appOnly = false)
+}
+
+/**
+ * Accept a system consent dialog.
+ *
+ * The VPN prompt gates the tunnel: dismissing it cancels the start, which used to leave this leg
+ * "stopping" the mode label instead of a running proxy.
+ */
+private fun MacrobenchmarkScope.acceptPermissionOrErrorSurface() {
+    clickFirstMatching("OK", "Allow", "确定", "允许", appOnly = false)
 }
 
 private fun MacrobenchmarkScope.firstMatchingLabel(needles: List<String>): String? =
