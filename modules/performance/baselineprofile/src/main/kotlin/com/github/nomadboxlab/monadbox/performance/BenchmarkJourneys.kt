@@ -604,7 +604,8 @@ internal fun MacrobenchmarkScope.configurationImportJourney(): JourneyResult {
                 "add-profile '$addEntry' opened no confirm control among $ConfirmLabels; ${describeSurface()}"
             )
 
-    val blankSource = selectBlankConfigSource()
+    val selection = selectBlankConfigSource()
+    val blankSource = selection.source
     if (!clickFirstLabel(confirm)) {
         dismissTransientSurface()
         return JourneyResult.skipped("confirm '$confirm' was not tappable; ${describeSurface()}")
@@ -631,11 +632,12 @@ internal fun MacrobenchmarkScope.configurationImportJourney(): JourneyResult {
         blankSource == null && sheetStillOpen ->
             JourneyResult.exercised(
                 "add profile '$addEntry' -> confirm '$confirm' exercised the sheet without the " +
-                    "$ProfileTypePickerLabels source picker; ${describeSurface(limit = 8)}"
+                    "$ProfileTypePickerLabels source picker; ${selection.detail}"
             )
         blankSource == null ->
             JourneyResult.skipped(
-                "add-profile '$addEntry' produced no confirmable sheet and no source picker; ${describeSurface()}"
+                "add-profile '$addEntry' produced no confirmable sheet and no source picker; " +
+                    "${selection.detail}"
             )
         else ->
             JourneyResult.skipped(
@@ -730,24 +732,43 @@ private fun MacrobenchmarkScope.awaitProfilesSurface(): Boolean =
  * candidate list when tapped. The row *title* is used as the handle rather than the source name,
  * because the sheet's URL field carries a very similar "Subscription URL" text.
  *
+ * Both probes get the add-sheet budget rather than the plain `UiWaitTimeoutMs`: the sheet's content
+ * composes well after its (always-present) confirm action, and on the software-rendered collection
+ * device that takes longer than a plain surface probe waits for - which is why this used to report
+ * a missing picker while the confirm was already found.
+ *
  * @return the matched source label, or `null` when the picker could not be driven.
  */
-private fun MacrobenchmarkScope.selectBlankConfigSource(): String? {
+private fun MacrobenchmarkScope.selectBlankConfigSource(): SourceSelection {
     val picker =
-        awaitAnyLabel(ProfileTypePickerLabels, BenchmarkConfig.UiWaitTimeoutMs) ?: return null
-    if (!tapFirstLabel(picker)) return null
+        awaitAnyLabel(ProfileTypePickerLabels, SheetStepTimeoutMs)
+            ?: return SourceSelection(
+                source = null,
+                detail =
+                    "no picker row among $ProfileTypePickerLabels; ${describeAppNodes(limit = 8)}",
+            )
+    if (!tapFirstLabel(picker)) {
+        return SourceSelection(null, "picker '$picker' was not tappable")
+    }
     device.waitForIdle()
 
-    val source = awaitAnyLabel(BlankConfigSourceLabels, BenchmarkConfig.UiWaitTimeoutMs)
+    val source = awaitAnyLabel(BlankConfigSourceLabels, SheetStepTimeoutMs)
     if (source == null || !tapFirstLabel(source)) {
         // Put the picker back the way it was instead of leaving a dialog in front of the sheet.
         device.pressBack()
         device.waitForIdle()
-        return null
+        return SourceSelection(
+            source = null,
+            detail =
+                "picker '$picker' listed no '$BlankConfigSourceLabels'; ${describeAppNodes(limit = 8)}",
+        )
     }
     device.waitForIdle()
-    return source
+    return SourceSelection(source, detail = null)
 }
+
+/** @param detail why the picker could not be driven, for the report; `null` on success. */
+private data class SourceSelection(val source: String?, val detail: String?)
 
 private fun MacrobenchmarkScope.dismissTransientSurface() {
     device.pressBack()
