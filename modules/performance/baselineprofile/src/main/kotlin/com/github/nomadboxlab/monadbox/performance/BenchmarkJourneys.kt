@@ -142,6 +142,14 @@ private const val OnboardingCheckboxAttempts = 4
 private const val OnboardingControlEnabledTimeoutMs = 2_000L
 
 /**
+ * Let the routing-mode panel finish sliding in before tapping one of its rows.
+ *
+ * The panel's rows are laid out near each other on a small display and move during its ~180ms
+ * entrance, so a tap aimed at the bounds read mid-animation lands on the wrong place.
+ */
+private const val ModePanelSettleMs = 400L
+
+/**
  * The wizard's start arrow, which exists on the opening step only.
  *
  * That makes "the control is gone" a usable progress check for it: it is the one advancement whose
@@ -508,6 +516,7 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
 
     // The panel slides in and its rows sit close together on a small display, so the node click can
     // be refused while the row is still animating; the bounds tap below does not care.
+    SystemClock.sleep(ModePanelSettleMs)
     if (!tapFirstLabel(entry)) {
         return JourneyResult.skipped("mode entry '$entry' was not clickable")
     }
