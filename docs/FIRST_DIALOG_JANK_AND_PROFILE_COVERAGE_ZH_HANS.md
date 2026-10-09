@@ -3,8 +3,8 @@
 > 2026-10-09 · 适用范围：首次弹框预热（`:ui`）、首次引导向导可驱动性、基线 profile 采集 journey
 >
 > 结论：两条问题均已修复并经真机 / 采集报告验证。设备侧首次弹框不再掉帧；采集 8 条 journey
-> 在一轮内 `best_effort_exercised=56/56`、`required_failed=0`，profile 覆盖主界面 / 向导 / 浮层 /
-> 配置 / 编辑器。
+> 在一轮内 `required_failed=0`、`best_effort_exercised=120/120`、`best_effort_skipped=0`，
+> profile 覆盖主界面 / 向导 / 浮层 / 配置 / 编辑器 / 主题配色。
 
 ## 概要
 
@@ -101,10 +101,10 @@ SuperDialogKt / DialogContentLayoutKt / DialogLayout / DialogEntry          → 
 
 ### 结果
 
-采集报告（8 条 leg，多轮）：
+采集报告（8 条 journey，最新一轮 2026-10-09 13:16）：
 
 ```
-required_total=N required_failed=0 best_effort_total=56 best_effort_exercised=56 best_effort_skipped=0
+required_total=15 required_failed=0 best_effort_total=120 best_effort_exercised=120 best_effort_skipped=0
 
 onboarding            wizard 'Start' -> Start -> Next -> Next -> Next -> Enter App; shell reached
 home_mode_switch      mode badge 'Rule' expanded, selected 'Direct'; toast dialog dismissed via 'Confirm'
@@ -116,13 +116,17 @@ edit_save             edit 'More' -> 'Edit Text' -> save 'Save'
 profile 规模与覆盖（数值随每次重新生成略有浮动，此处为 2026-10-09 采集结果）：
 
 ```
-baseline-prof.txt 39,614 行 / startup-prof.txt 20,745 行（修复前 ~17.5k）
+baseline-prof.txt 39,325 行 / startup-prof.txt 18,978 行（修复前 ~17.5k）
 
-NavHost 171 | HomePagerKt 51 | TrafficDisplayKt 88 | BottomBarContent 9
+NavHost 171 | HomePagerKt 54 | TrafficDisplayKt 95 | BottomBarContent 9
 SuperDialogKt 11 | DialogContentLayoutKt 94 | BottomSheetContentLayoutKt 129
 OnboardingPersonalizeActivity 24 | ProfilesPagerBodyKt 186 | ProfileAddSheetKt 147 | CodeEditorKt 29
-ColorPickerKt 88（主题配色面板预热后一并入册）
+ColorPickerKt 68（仅 baseline）+ ThemeColorPickerWarmUpKt 39（拾色器行内预热）
 ```
+
+> `startup-prof.txt` 比上一轮（20,745）小：拾色器移出启动路径（见 §一 追加），现在只在
+> baseline 侧被设置页的行内预热采样——`ColorPickerKt` 从「baseline + startup 双份 88 条」变为
+> 「仅 baseline 68 条」，是预期收敛，不是覆盖回退。
 
 ## 三、顺带修复的其他缺陷
 
@@ -132,18 +136,20 @@ ColorPickerKt 88（主题配色面板预热后一并入册）
 
 ## 四、影响面与风险
 
-- 运行时新增：`OverlayWarmUpHost` 每进程一次、约 1 秒、**不可见**（`alpha = 0.004`），无布局/交互影响；
-  窗口遮罩（dim）保持关闭。
-- App 侧仅两处行为改动：`OnboardingPage.kt`（开始按钮标签）、`OverlayWarmUpHost` 挂载点
-  （`MainActivity` / `OnboardingBaseActivity`）。
+- 运行时新增：`OverlayWarmUpHost`（启动，每进程一次、约 1 秒、**不可见**，`alpha = 0.004`）与
+  `ThemeColorPickerDrawWarmUp`（设置页 / 引导个性化行内，行出现后两帧启动、8 帧后拆除，每进程一次；
+  对外测量为 1x1，**不改变任何布局、不拦截点击**）。窗口遮罩（dim）保持关闭。
+- App 侧行为改动：`OnboardingPage.kt`（开始按钮标签）、`OverlayWarmUpHost` 挂载点
+  （`MainActivity` / `OnboardingBaseActivity`）、`ThemeColorPickerItem`（行内预热宿主，包装一层
+  `Box`，尺寸与交互不变）。
 - 其余改动集中在 `:performance:baselineprofile` 的采集脚本，不进 APK 运行时。
 
 ## 五、维护约束
 
-1. `OverlayWarmUpHost` 必须**真正产生像素**：不要改回 `alpha = 0`、离屏平移或透明背景
-   （见 `UI_MODAL_RENDERING_PERF_ZH_HANS.md` §7）。
-   例外见 §一追加：**重组件内容**按"只预热组合"处理，并且不要在每次进程启动都让它做首次绘制
-   ——分档依据是"冷在哪一半"（骨架冷在栅格/合成，重内容冷在组合）。
+1. 预热浮层 / 重组件都必须**真正产生像素**：不要改回 `alpha = 0`、离屏平移或透明背景
+   （见 `UI_MODAL_RENDERING_PERF_ZH_HANS.md` §7、§7.1）。
+   分档规则（更新版）：浮层骨架 → 启动时真实绘制；重组件（如 `ColorPicker`）→ **入口页面行内**
+   真实绘制、小尺寸（别挤进启动路径，也别只预热组合）。
 2. 新增 / 改词 UI 时同步更新 `BenchmarkJourneys.kt` 顶部的标签表（报告会兜底暴露，但提前对齐更省事）。
 3. 采集设备是 320x640：涉及内容区的操作**必须在目标 `ScrollView` 的 bounds 内滚动**。
 4. 探针一律使用 `findVisibleObject`，避免匹配到 App 自有但不在屏幕上的节点（通知行等）。
