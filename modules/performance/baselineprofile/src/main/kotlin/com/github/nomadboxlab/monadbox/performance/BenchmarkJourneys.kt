@@ -496,7 +496,9 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
                 "mode panel '$badgeLabel' opened, but listed no other mode among $ModeSwitchLabels"
             )
 
-    if (!clickFirst(By.textContains(entry))) {
+    // The panel slides in and its rows sit close together on a small display, so the node click can
+    // be refused while the row is still animating; the bounds tap below does not care.
+    if (!tapFirstLabel(entry)) {
         return JourneyResult.skipped("mode entry '$entry' was not clickable")
     }
     device.waitForIdle()
