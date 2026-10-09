@@ -86,6 +86,14 @@ private val PrivacyNoticeSurfaceLabels = listOf("Confirm Privacy Notice", "确�
 // Bottom-bar labels. They exist in the main shell only, which is what makes them a usable witness
 // that the wizard has actually been left behind.
 private val MainShellLabels = listOf("Home", "首页")
+/**
+ * Labels only the Home page shows.
+ *
+ * The neighbouring pages carry their own copy of the routing-mode text, so a leg that recognises
+ * Home by its mode badge can end up driving the proxy page's copy - which is what made the
+ * mode-switch leg report a badge it could not click.
+ */
+private val HomeSurfaceLabels = listOf("UPLOAD", "DOWNLOAD", "上传", "下载")
 private val StartControlLabels = listOf("Tap to start", "Start", "VPN", "TUN", "HTTP", "点击启动", "启动")
 private val StopControlLabels = listOf("Running", "Stop", "VPN", "TUN", "HTTP", "运行", "停止")
 // The row actions on the Profiles page are icon-only, so they are addressed by their descriptions
@@ -494,6 +502,12 @@ internal fun MacrobenchmarkScope.homeModeSwitchJourney(): JourneyResult {
 
     navigateToHomePage()
 
+    // Without this, the proxy page's own mode text satisfies the badge probe and the leg taps a
+    // node that never opens the panel.
+    if (awaitAnyLabel(HomeSurfaceLabels, BenchmarkConfig.UiVerifyTimeoutMs) == null) {
+        return JourneyResult.skipped("home surface not reached; ${describeSurface(limit = 8)}")
+    }
+
     val badgeLabel =
         firstMatchingDescription(ModeSwitchLabels)
             ?: return JourneyResult.skipped("no mode badge among $ModeSwitchLabels")
@@ -719,7 +733,19 @@ internal fun MacrobenchmarkScope.editSaveJourney(): JourneyResult {
     }
 }
 
+/**
+ * Bring the Home page to the front and prove it with a Home-only marker.
+ *
+ * The bottom-bar tab is tried first because it jumps straight to the page; the swipe fallback
+ * covers the case where an auto-hidden bar disables its tabs. Neither is trusted by itself: every
+ * main page carries routing-mode text, so legs that only look for a mode badge can end up driving
+ * the proxy page's copy.
+ */
 private fun MacrobenchmarkScope.navigateToHomePage() {
+    clickFirstMatching(*MainShellLabels.toTypedArray())
+    device.waitForIdle()
+    if (awaitAnyLabel(HomeSurfaceLabels, BenchmarkConfig.UiVerifyTimeoutMs) != null) return
+
     val midY = device.displayHeight / 2
     repeat(3) {
         device.swipe(device.displayWidth / 5, midY, device.displayWidth * 4 / 5, midY, 24)
