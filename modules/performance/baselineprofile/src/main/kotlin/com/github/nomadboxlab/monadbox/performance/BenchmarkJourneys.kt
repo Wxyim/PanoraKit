@@ -35,7 +35,10 @@ private val ConfigTabLabels = listOf("Config", "Profiles", "配置", "订阅")
 private val SettingsTabLabels = listOf("Settings", "设置")
 private val AddProfileLabels =
     listOf("Add Profile", "Add profile", "添加配置", "新增配置", "添加", "新增", "Add")
-private val ProfileTypePickerLabels = listOf("Profile Type", "配置类型")
+// The picker row is a Miuix spinner: it shows the title and the currently selected entry, and on a
+// small display only one of the two may be the node that is actually published, so both are
+// matched.
+private val ProfileTypePickerLabels = listOf("Profile Type", "配置类型", "Subscription URL", "订阅链接")
 private val BlankConfigSourceLabels = listOf("Blank Config", "空白配置")
 private val ConfirmLabels = listOf("Confirm", "确定", "确认")
 private val CancelLabels = listOf("Cancel", "取消")
@@ -85,9 +88,16 @@ private val PrivacyNoticeSurfaceLabels = listOf("Confirm Privacy Notice", "确�
 private val MainShellLabels = listOf("Home", "首页")
 private val StartControlLabels = listOf("Tap to start", "Start", "VPN", "TUN", "HTTP", "点击启动", "启动")
 private val StopControlLabels = listOf("Running", "Stop", "VPN", "TUN", "HTTP", "运行", "停止")
-private val EditEntryLabels = listOf("Edit", "Open config", "Edit settings", "编辑", "打开配置", "编辑设置")
-private val OpenConfigLabels = listOf("Open config", "Edit", "打开配置", "编辑")
-private val SaveLabels = listOf("Save", "Save and exit", "保存", "保存并退出")
+// The row actions on the Profiles page are icon-only, so they are addressed by their descriptions
+// (`Component.ProfileCard.Edit` / `Settings.Section.More`). "More" is tried first because its
+// actions dialog carries the text-editor entry for every profile type, while "Edit" only lands in
+// the editor directly for local profiles.
+private val EditEntryLabels = listOf("More", "Edit", "更多", "编辑")
+// Editor entries: `SettingsDialog.OpenConfig` ("Edit Text") in the actions dialog, and
+// `SettingsDialog.EditSettings` ("Profile Options") in a local profile's settings sheet.
+private val OpenConfigLabels = listOf("Edit Text", "Profile Options", "编辑文本", "配置选项")
+private val SaveLabels =
+    listOf("Save", "Save Directly", "Save Directly & Stop", "保存", "直接保存", "直接保存并停止")
 
 /**
  * Add-sheet steps compose more slowly than a plain surface probe on the software-rendered CI
@@ -620,7 +630,8 @@ internal fun MacrobenchmarkScope.configurationImportJourney(): JourneyResult {
     return when {
         blankSource == null && sheetStillOpen ->
             JourneyResult.exercised(
-                "add profile '$addEntry' -> confirm '$confirm' exercised the sheet without the $ProfileTypePickerLabels source picker"
+                "add profile '$addEntry' -> confirm '$confirm' exercised the sheet without the " +
+                    "$ProfileTypePickerLabels source picker; ${describeSurface(limit = 8)}"
             )
         blankSource == null ->
             JourneyResult.skipped(
@@ -667,7 +678,9 @@ internal fun MacrobenchmarkScope.editSaveJourney(): JourneyResult {
     navigateToProfilesPage()
     val editEntry =
         clickFirstMatching(*EditEntryLabels.toTypedArray())
-            ?: return JourneyResult.skipped("no edit entry among $EditEntryLabels")
+            ?: return JourneyResult.skipped(
+                "no edit entry among $EditEntryLabels; ${describeSurface(limit = 8)}"
+            )
 
     clickFirstMatching(*OpenConfigLabels.toTypedArray())
     val save = clickFirstMatching(*SaveLabels.toTypedArray())
@@ -675,7 +688,9 @@ internal fun MacrobenchmarkScope.editSaveJourney(): JourneyResult {
     dismissTransientSurface()
 
     return if (save == null) {
-        JourneyResult.skipped("editor '$editEntry' opened, but no save control among $SaveLabels")
+        JourneyResult.skipped(
+            "editor '$editEntry' opened, but no save control among $SaveLabels; ${describeSurface(limit = 8)}"
+        )
     } else {
         JourneyResult.exercised("edit '$editEntry' -> save '$save'")
     }
@@ -720,11 +735,11 @@ private fun MacrobenchmarkScope.awaitProfilesSurface(): Boolean =
 private fun MacrobenchmarkScope.selectBlankConfigSource(): String? {
     val picker =
         awaitAnyLabel(ProfileTypePickerLabels, BenchmarkConfig.UiWaitTimeoutMs) ?: return null
-    if (!clickFirstLabel(picker)) return null
+    if (!tapFirstLabel(picker)) return null
     device.waitForIdle()
 
     val source = awaitAnyLabel(BlankConfigSourceLabels, BenchmarkConfig.UiWaitTimeoutMs)
-    if (source == null || !clickFirstLabel(source)) {
+    if (source == null || !tapFirstLabel(source)) {
         // Put the picker back the way it was instead of leaving a dialog in front of the sheet.
         device.pressBack()
         device.waitForIdle()
@@ -885,8 +900,11 @@ private fun clickNode(node: UiObject2): Boolean =
  * even though `hasObject` saw it a moment earlier. Tapping the reported bounds does not depend on
  * the node staying live between the search and the tap.
  */
-private fun MacrobenchmarkScope.tapFirstMatch(selector: BySelector): Boolean {
-    val scoped = selector.pkg(BenchmarkConfig.TargetPackage)
+private fun MacrobenchmarkScope.tapFirstMatch(
+    selector: BySelector,
+    appOnly: Boolean = true,
+): Boolean {
+    val scoped = if (appOnly) selector.pkg(BenchmarkConfig.TargetPackage) else selector
     val nodes =
         device.wait(Until.findObjects(scoped), BenchmarkConfig.UiWaitTimeoutMs) ?: return false
     val bounds =
@@ -899,8 +917,8 @@ private fun MacrobenchmarkScope.tapFirstMatch(selector: BySelector): Boolean {
 }
 
 /** @return `true` when [label] was found (by text or description) and tapped. */
-private fun MacrobenchmarkScope.clickFirstLabel(label: String): Boolean =
-    clickFirst(By.textContains(label)) || clickFirst(By.descContains(label))
+private fun MacrobenchmarkScope.clickFirstLabel(label: String, appOnly: Boolean = true): Boolean =
+    clickFirst(By.textContains(label), appOnly) || clickFirst(By.descContains(label), appOnly)
 
 /**
  * Tap the first node matching [label], by node and then by its reported bounds.
@@ -910,10 +928,10 @@ private fun MacrobenchmarkScope.clickFirstLabel(label: String): Boolean =
  * after it appears is exactly that case. Tapping the reported bounds does not depend on the node
  * staying usable between the search and the tap.
  */
-private fun MacrobenchmarkScope.tapFirstLabel(label: String): Boolean =
-    clickFirstLabel(label) ||
-        tapFirstMatch(By.textContains(label)) ||
-        tapFirstMatch(By.descContains(label))
+private fun MacrobenchmarkScope.tapFirstLabel(label: String, appOnly: Boolean = true): Boolean =
+    clickFirstLabel(label, appOnly) ||
+        tapFirstMatch(By.textContains(label), appOnly) ||
+        tapFirstMatch(By.descContains(label), appOnly)
 
 /**
  * Tap [label] until it disappears, up to [OnboardingTapAttempts] times.
@@ -945,8 +963,9 @@ private fun MacrobenchmarkScope.clickFirstMatching(
     appOnly: Boolean = true,
 ): String? {
     for (needle in needles) {
-        if (clickFirst(By.textContains(needle), appOnly)) return needle
-        if (clickFirst(By.descContains(needle), appOnly)) return needle
+        // Node click first, then the same label by reported bounds: rows on a small display sit
+        // close together and can be refused while they are still animating.
+        if (tapFirstLabel(needle, appOnly)) return needle
     }
     return null
 }
