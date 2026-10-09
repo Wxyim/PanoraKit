@@ -229,7 +229,7 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
             }
         if (!advanced) {
             return JourneyResult.skipped(
-                "wizard control '$control' did not advance the step; ${describeSurface()}"
+                "wizard control '$control' did not advance the step; ${describeCheckboxNodes()}; ${describeSurface()}"
             )
         }
         device.waitForIdle()
@@ -240,7 +240,7 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
         JourneyResult.exercised("wizard '$surface' -> ${steps.joinToString(" -> ")}")
     } else {
         JourneyResult.skipped(
-            "wizard '$surface' did not reach the main shell in $MaxOnboardingSteps steps (${steps.joinToString(" -> ")}); ${describeSurface()}"
+            "wizard '$surface' did not reach the main shell in $MaxOnboardingSteps steps (${steps.joinToString(" -> ")}); ${describeCheckboxNodes()}; ${describeSurface()}"
         )
     }
 }
@@ -258,10 +258,29 @@ internal fun MacrobenchmarkScope.onboardingJourney(): JourneyResult {
  */
 private fun MacrobenchmarkScope.acceptPrivacyNoticeIfOffered() {
     if (awaitAnyLabel(PrivacyNoticeSurfaceLabels, timeoutMs = 0L) == null) return
-    repeat(OnboardingCheckboxAttempts) {
+    repeat(OnboardingCheckboxAttempts) { attempt ->
         if (acceptPrivacyNoticeOnce()) return
+        // The notice card lives in the step's scrollable body, so on a short screen it can start
+        // below the fold - where it is neither visible nor addressable, and the checkbox can never
+        // be ticked.
+        if (attempt < OnboardingCheckboxAttempts - 1) {
+            scrollOnboardingContent()
+        }
         SystemClock.sleep(OnboardingTapRetryMs)
     }
+}
+
+/** Swipe up inside the wizard step's scrollable body to bring its card into view. */
+private fun MacrobenchmarkScope.scrollOnboardingContent() {
+    val midX = device.displayWidth / 2
+    device.swipe(
+        midX,
+        (device.displayHeight * 0.62f).toInt(),
+        midX,
+        (device.displayHeight * 0.38f).toInt(),
+        24,
+    )
+    device.waitForIdle()
 }
 
 /** @return `true` once the notice is accepted (also when there is no checkbox on this step). */
@@ -290,6 +309,32 @@ private fun MacrobenchmarkScope.acceptPrivacyNoticeOnce(): Boolean {
 
 /** `Role.Checkbox` as Compose reports it to the platform accessibility tree. */
 private const val CheckboxClassName = "android.widget.CheckBox"
+
+/**
+ * A digest of the checkbox-shaped nodes on screen plus the app's node count.
+ *
+ * The step's card can fail to be addressable (scrolled out of view, or not published at all), and
+ * the two look identical from a plain "no checkbox found": the node count tells them apart, and the
+ * per-node label/checked/bounds says whether the tick landed.
+ */
+private fun MacrobenchmarkScope.describeCheckboxNodes(limit: Int = 3): String {
+    val nodes =
+        device.findObjects(appSelector(By.checkable(true))) +
+            device.findObjects(appSelector(By.clazz(CheckboxClassName)))
+    val digest =
+        nodes.distinct().take(limit).map { node ->
+            val labels = staleSafe { listOfNotNull(node.text, node.contentDescription) }
+            val checked = staleSafe { node.isChecked }
+            val bounds = staleSafe { node.visibleBounds }
+            if (labels == null) {
+                "<stale>"
+            } else {
+                "${labels.joinToString(",").ifEmpty { "<unlabelled>" }} " +
+                    "checked=$checked bounds=$bounds"
+            }
+        }
+    return "appNodes=${surfaceNodes().size} checkboxes=[${digest.joinToString(" | ").ifEmpty { "none" }}]"
+}
 
 /** @return `true` when the current step is the one carrying the privacy notice checkbox. */
 private fun MacrobenchmarkScope.onPrivacyNoticeStep(): Boolean =
