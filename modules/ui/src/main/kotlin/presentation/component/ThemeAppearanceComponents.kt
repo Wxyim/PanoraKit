@@ -79,35 +79,42 @@ fun ThemeColorPickerItem(
     val editingThemeSeedHex =
         remember(themeSeedColorArgb) { mutableStateOf(formatThemeSeedHex(themeSeedColorArgb)) }
 
-    BasicComponent(
-        title = MLang.AppSettings.Interface.ColorThemeTitle,
-        summary =
-            MLang.AppSettings.Interface.ColorThemeCustomSummary.format(
-                formatThemeSeedHex(themeSeedColorArgb)
-            ),
-        onClick = {
-            editingThemeSeedColor.value =
-                runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
-            editingThemeSeedHex.value = formatThemeSeedHex(themeSeedColorArgb)
-            if (showBottomSheetInPlace) {
-                showThemeColorPicker.value = true
-            } else {
-                onOpenPickerRequest?.invoke()
-            }
-        },
-        endActions = {
-            val previewColor =
-                remember(themeSeedColorArgb) {
+    Box {
+        BasicComponent(
+            title = MLang.AppSettings.Interface.ColorThemeTitle,
+            summary =
+                MLang.AppSettings.Interface.ColorThemeCustomSummary.format(
+                    formatThemeSeedHex(themeSeedColorArgb)
+                ),
+            onClick = {
+                editingThemeSeedColor.value =
                     runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
+                editingThemeSeedHex.value = formatThemeSeedHex(themeSeedColorArgb)
+                if (showBottomSheetInPlace) {
+                    showThemeColorPicker.value = true
+                } else {
+                    onOpenPickerRequest?.invoke()
                 }
-            Icon(
-                MonadIcons.Palette,
-                tint = previewColor,
-                contentDescription = null,
-                modifier = Modifier.padding(end = 12.dp),
-            )
-        },
-    )
+            },
+            endActions = {
+                val previewColor =
+                    remember(themeSeedColorArgb) {
+                        runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
+                    }
+                Icon(
+                    MonadIcons.Palette,
+                    tint = previewColor,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+            },
+        )
+
+        // 用户看到这一行时，先在行内不可见地真实绘制一次拾色器（详见 `ThemeColorPickerDrawWarmUp`）。
+        // 等真正点开面板时，首次绘制的渐变/着色器/滑条路径成本已经付过。预热块对外测量为 1x1，
+        // 不会移动这一行。
+        ThemeColorPickerDrawWarmUp()
+    }
 
     if (showBottomSheetInPlace) {
         ThemeColorPickerSheet(

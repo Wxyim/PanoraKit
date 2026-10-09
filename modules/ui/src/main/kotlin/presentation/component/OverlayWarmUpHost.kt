@@ -23,7 +23,6 @@ package com.github.nomadboxlab.monadbox.presentation.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,14 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.ColorPicker
-import top.yukonga.miuix.kmp.basic.TextField
 
 /**
  * Per-process, so a warm-up is paid once even when the activity is recreated (rotation, theme
@@ -169,42 +165,4 @@ fun OverlayWarmUpHost() {
                 }
         }
     }
-
-    // Settings -> theme colour picker sheet. Miuix's `ColorPicker` is an order of magnitude heavier
-    // than the rows above (four colour models, gradients, sliders) and is followed by a hex field,
-    // so the first user open of that sheet was still janky once the overlay machinery itself had
-    // been warmed. The title, actions and content mirror `ThemeColorPickerSheet`.
-    //
-    // Unlike the two overlays above, this one is composed at zero alpha rather than drawn for real:
-    // its first draw builds gradient/shader state, and the profile collection device renders in
-    // software - rasterising that on every app start is a stability risk for the run (a collection
-    // crashed its emulator the first time this content was ever composed). Its first-open cost is
-    // dominated by composing it - class init, colour-model maths, brush construction - which zero
-    // alpha still warms.
-    val composedOnly = Modifier.alpha(0f).clearAndSetSemantics {}
-    AppActionBottomSheet(
-        show = visible,
-        title = MLang.AppSettings.Interface.ColorThemePickerTitle,
-        onDismissRequest = {},
-        enableWindowDim = false,
-        modifier = composedOnly,
-        startAction = { AppBottomSheetCloseAction(onClick = {}) },
-        endAction = { AppBottomSheetConfirmAction(onClick = {}) },
-    ) {
-        ColorPicker(
-            color = WarmUpPickerColor,
-            onColorChanged = {},
-            modifier = Modifier.fillMaxWidth(),
-        )
-        TextField(
-            value = WarmUpPickerHex,
-            onValueChange = {},
-            label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-    }
 }
-
-/** A neutral seed for the warm-up picker: the value does not matter, only that it draws. */
-private val WarmUpPickerColor = Color(0xFF3B82F6)
-private const val WarmUpPickerHex = "#3B82F6"
