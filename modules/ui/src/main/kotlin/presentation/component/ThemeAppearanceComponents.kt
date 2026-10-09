@@ -110,10 +110,11 @@ fun ThemeColorPickerItem(
             },
         )
 
-        // 用户看到这一行时，先在行内不可见地真实绘制一次拾色器（详见 `ThemeColorPickerDrawWarmUp`）。
-        // 等真正点开面板时，首次绘制的渐变/着色器/滑条路径成本已经付过。预热块对外测量为 1x1，
-        // 不会移动这一行。
-        ThemeColorPickerDrawWarmUp()
+        // 用户看到这一行时，在专属的「不可见且不接收输入」的窗口里真实打开一次拾色器面板
+        // （详见 `ThemeColorPickerSheetWarmUp`）：滑入动画首帧要付的「全高图层录制/光栅化 +
+        // 面板内首次绘制」一次性成本在这里提前付掉。预热窗口在 WindowManager 层就是
+        // NOT_TOUCHABLE / NOT_FOCUSABLE 的，不吞任何触摸、返回手势或输入法，对用户完全无感。
+        ThemeColorPickerSheetWarmUp()
     }
 
     if (showBottomSheetInPlace) {

@@ -20,83 +20,91 @@
 
 package com.github.nomadboxlab.monadbox.presentation.component
 
-import androidx.compose.foundation.layout.Column
+import android.os.SystemClock
+import android.view.Gravity
+import android.view.WindowManager
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.ColorPicker
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TextField
 
 /**
- * Per-process: the picker's first real draw is paid once, on the first screen that shows its entry
+ * Per-process: the picker sheet's first open is paid once, on the first screen that shows its entry
  * point, and never again - even if the activity is recreated.
  */
-private var pickerDrawWarmedUp = false
+private var pickerSheetWarmedUp = false
+
+/** Frames to let the warm-up sheet's composition, layout and draw land before the hold starts. */
+private const val DrawFrames = 3
 
 /**
- * How many frames the warm-up content stays in the tree. One frame is enough for the draw phase to
- * run; the hold is cheap insurance that composition, layout and draw all happen before teardown.
+ * How long the sheet is held after those frames, in wall-clock time. The enter transition is
+ * `folmeSpring(response = 0.38)` - time-based, ~0.6s to settle - so a frame count would under- or
+ * over-hold depending on the device's frame rate. The hold covers the whole slide with the sheet
+ * fully on screen, which is where the full-height layer gets recorded and rasterised.
  */
-private const val WarmUpFrames = 8
+private const val HoldMillis = 600L
 
 /**
- * Alpha for the throwaway draw: about one 8-bit step of the framebuffer, i.e. not perceptible.
+ * Alpha of the throwaway window: about one 8-bit step of the framebuffer, i.e. not perceptible.
  *
- * It must not be zero: zero alpha lets Compose skip the content's draw phase entirely (the layer's
- * paint is a no-op), so nothing gets warmed. The whole point here is the draw phase - see the KDoc
- * of [ThemeColorPickerDrawWarmUp].
+ * It must not be zero: zero alpha would let the renderer skip the content, which is the whole point
+ * here (the window has to draw for real - see the KDoc of [ThemeColorPickerSheetWarmUp]).
  */
-private const val WarmUpAlpha = 0.004f
+private const val WarmUpWindowAlpha = 0.004f
 
 /** A neutral seed for the warm-up picker: the value does not matter, only that it draws. */
 private val WarmUpPickerColor = Color(0xFF3B82F6)
 private const val WarmUpPickerHex = "#3B82F6"
 
 /**
- * Close to a real picker sheet's content width, so the warm-up builds its gradients at a realistic
- * scale - hue strip, saturation/value/alpha strips and the checkerboard path are all width-derived.
- */
-private val WarmUpPickerWidth = 320.dp
-
-/**
- * Draws the theme colour picker once, invisibly, at zero interaction cost, so that its *first real
- * draw* is not the one the user waits for when the picker sheet opens.
+ * Opens the theme colour picker sheet once, invisibly, so that its first real open does not pay the
+ * sheet's one-time setup while the slide-in animation is already running.
  *
- * Composing the picker is not the expensive half: its per-frame cost lays in the draw phase - each
- * `ColorSlider` builds a `Brush.horizontalGradient` and a `Stroke` inside `drawWithCache`, the
- * alpha slider additionally builds a checkerboard `Path` from hundreds of rects, and the indicator
- * builds a `Brush.radialGradient` - all of it class-loading and shader-pipeline-cold the first
- * time. Warming only its composition (the previous `alpha = 0` approach) warms none of that,
- * because zero alpha skips the draw phase; the first user-visible open then pays shader/setup cost
- * while the sheet's enter animation is already running, which reads as jank.
+ * What is cold on the first open is the sheet itself at full size plus the picker inside it: the
+ * sheet's full-height layer being recorded and rasterised for the first time (`clip` +
+ * `graphicsLayer` + background), the picker's first draw (per-slider gradients, the checkerboard
+ * path, the indicator's radial gradient) and the enter spring. None of that runs until a sheet is
+ * shown, so the warm-up shows the real sheet - same title, actions and content as
+ * `ThemeColorPickerSheet` - and everything it draws is produced by exactly the same code.
  *
- * This is hosted by the screens that actually own the entry point (the settings page and the
- * onboarding personalize step), not by app startup: the cost is paid a couple of frames after the
- * row is first shown, which is still comfortably before the user taps it, and app start stays
- * untouched.
+ * The sheet is hosted in a **dedicated, input-transparent window** (a compose `Dialog` whose window
+ * gets [WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE] and
+ * [WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE]) - not in the app's own window, where the overlay
+ * host would consume every pointer event for the duration of the warm-up and steal fast taps on the
+ * row, and not in the app's root popup host. At the window-manager level this window can never
+ * intercept a touch, a back gesture or the IME; the app underneath behaves exactly as if it did not
+ * exist. The window is hidden with [WarmUpWindowAlpha] alone (zero alpha would skip the draw), its
+ * window dim is cleared, and its content clears semantics so no phantom dialog is published to
+ * accessibility. `renderInRootScaffold = false` keeps the sheet inside this window: it registers
+ * with the local `Scaffold`'s popup host instead of the activity's root one.
  *
- * The composable renders nothing until its host row exists, and nothing after the first run; the
- * content is hidden with [WarmUpAlpha] alone (never zero alpha, never drawn off-screen - both skip
- * the draw phase), with semantics cleared so no phantom row is published to accessibility.
+ * Hosted by the screens that own the entry point (the settings page and the onboarding personalize
+ * step, via [ThemeColorPickerItem]), not by app startup: the cost is paid a couple of frames after
+ * the row is first shown - well before the user can reach it - and app start stays untouched. The
+ * whole cycle runs once per process.
  */
 @Composable
-internal fun ThemeColorPickerDrawWarmUp() {
-    if (pickerDrawWarmedUp) return
+internal fun ThemeColorPickerSheetWarmUp() {
+    if (pickerSheetWarmedUp) return
 
     var warming by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -105,24 +113,37 @@ internal fun ThemeColorPickerDrawWarmUp() {
         withFrameNanos {}
         withFrameNanos {}
         warming = true
-        repeat(WarmUpFrames) { withFrameNanos {} }
-        pickerDrawWarmedUp = true
+        repeat(DrawFrames) { withFrameNanos {} }
+        val deadline = SystemClock.uptimeMillis() + HoldMillis
+        while (SystemClock.uptimeMillis() < deadline) withFrameNanos {}
+        // Tear down once the spring has settled: entrance and teardown of the sheet have both run
+        // by now, so the first real open and close ride warmed paths.
+        pickerSheetWarmedUp = true
         warming = false
     }
 
     if (!warming) return
 
-    // The warm-up content mirrors the real sheet (`ColorPicker` plus the hex field) at its natural
-    // height, but the host reports a 1x1 size to the parent layout: the picker keeps its full
-    // height (a parent-bounded `matchParentSize` would squeeze the sliders), the row that hosts it
-    // does not move, and 1x1 - not 0x0 - is the smallest size at which Compose still runs the draw
-    // phase. Nothing is clipped on the way out: no ancestor up to the scroll container clips, and
-    // the drawn pixels are invisible anyway (they only differ from the background by alpha 0.004).
-    Layout(
-        content = {
-            Column(
-                modifier =
-                    Modifier.width(WarmUpPickerWidth).alpha(WarmUpAlpha).clearAndSetSemantics {}
+    Dialog(
+        onDismissRequest = {},
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+            ),
+    ) {
+        InvisibleWarmUpWindow()
+        Scaffold { _ ->
+            AppActionBottomSheet(
+                show = true,
+                title = MLang.AppSettings.Interface.ColorThemePickerTitle,
+                onDismissRequest = {},
+                enableWindowDim = false,
+                renderInRootScaffold = false,
+                modifier = Modifier.clearAndSetSemantics {},
+                startAction = { AppBottomSheetCloseAction(onClick = {}) },
+                endAction = { AppBottomSheetConfirmAction(onClick = {}) },
             ) {
                 ColorPicker(
                     color = WarmUpPickerColor,
@@ -137,8 +158,34 @@ internal fun ThemeColorPickerDrawWarmUp() {
                 )
             }
         }
-    ) { measurables, _ ->
-        val placeable = measurables.first().measure(Constraints())
-        layout(1, 1) { placeable.place(0, 0) }
+    }
+}
+
+/**
+ * Makes the hosting dialog window invisible and completely input-transparent.
+ *
+ * The dialog window is a real window of our own app, so without this it would sit above the
+ * activity, dim it and swallow touches in its area. The flags turn it into a purely visual - and
+ * here imperceptible - layer: touches and keys pass through to the activity as if the window did
+ * not exist. Reapplied on every recomposition, so the values cannot be reset by the dialog's own
+ * parameter updates.
+ */
+@Composable
+private fun InvisibleWarmUpWindow() {
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
+        window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        window.setDimAmount(0f)
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        )
+        window.setGravity(Gravity.TOP or Gravity.START)
+        window.setLayout(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+        )
+        window.attributes = window.attributes.apply { alpha = WarmUpWindowAlpha }
     }
 }
