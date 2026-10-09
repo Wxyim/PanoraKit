@@ -95,10 +95,9 @@ private val MainShellLabels = listOf("Home", "首页")
  */
 private val HomeSurfaceLabels = listOf("UPLOAD", "DOWNLOAD", "上传", "下载")
 private val StartControlLabels = listOf("Tap to start", "Start", "VPN", "TUN", "HTTP", "点击启动", "启动")
-private val StopControlLabels = listOf("Running", "Stop", "VPN", "TUN", "HTTP", "运行", "停止")
-// The proxy card's own state headlines. They are deliberately narrower than the control lists
-// above: those contain the transport names ("VPN"/"TUN"/"HTTP"), which the capsule carries in both
-// states, so only these prove which state it is really in.
+// The proxy card's own state headlines. They are deliberately narrower than the start control list
+// above: that one contains the transport names ("VPN"/"TUN"/"HTTP"), which the capsule carries in
+// both states, so only these prove which state it is really in.
 private val ProxyRunningLabels = listOf("Running", "运行")
 private val ProxyIdleLabels = listOf("Tap to start", "轻触启动")
 
