@@ -673,28 +673,40 @@ internal fun MacrobenchmarkScope.startStopProxyJourney(): JourneyResult {
 
 /** Exercise edit/save controls for local profile or override editors when seeded data exists. */
 internal fun MacrobenchmarkScope.editSaveJourney(): JourneyResult {
+    // Starting the proxy in the previous leg can leave the system VPN consent dialog in front. It
+    // belongs to another package, so it has to be cleared before the app-in-front check, or this
+    // leg reports "app is not in front" for the system's window.
+    dismissPermissionOrErrorSurface()
+
     requireAppOnScreen()?.let {
         return it
     }
 
     navigateToProfilesPage()
+    // Only act on the profiles surface: the proxy page's node list carries its own "More" action,
+    // and clicking that one lands in a screen with no editor at all.
+    if (!awaitProfilesSurface()) {
+        return JourneyResult.skipped("profiles surface not reached; ${describeSurface(limit = 8)}")
+    }
+
     val editEntry =
         clickFirstMatching(*EditEntryLabels.toTypedArray())
             ?: return JourneyResult.skipped(
                 "no edit entry among $EditEntryLabels; ${describeSurface(limit = 8)}"
             )
 
-    clickFirstMatching(*OpenConfigLabels.toTypedArray())
+    val editorEntry = clickFirstMatching(*OpenConfigLabels.toTypedArray())
     val save = clickFirstMatching(*SaveLabels.toTypedArray())
     dismissPermissionOrErrorSurface()
     dismissTransientSurface()
 
     return if (save == null) {
         JourneyResult.skipped(
-            "editor '$editEntry' opened, but no save control among $SaveLabels; ${describeSurface(limit = 8)}"
+            "edit '$editEntry' -> editor entry '$editorEntry' reached no save control among " +
+                "$SaveLabels; ${describeSurface(limit = 8)}"
         )
     } else {
-        JourneyResult.exercised("edit '$editEntry' -> save '$save'")
+        JourneyResult.exercised("edit '$editEntry' -> '$editorEntry' -> save '$save'")
     }
 }
 
