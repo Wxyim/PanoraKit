@@ -100,7 +100,7 @@ private val StopControlLabels = listOf("Running", "Stop", "VPN", "TUN", "HTTP", 
 // above: those contain the transport names ("VPN"/"TUN"/"HTTP"), which the capsule carries in both
 // states, so only these prove which state it is really in.
 private val ProxyRunningLabels = listOf("Running", "运行")
-private val ProxyIdleLabels = listOf("Tap to start", "点击启动")
+private val ProxyIdleLabels = listOf("Tap to start", "轻触启动")
 
 /** How long the proxy card gets to report its new state after a tap. */
 private const val ProxyStateTimeoutMs = 6_000L
@@ -181,7 +181,11 @@ private const val MaxOnboardingSteps = 8
 // The routing-mode names, in the order the drop-down lists them. The badge and the drop-down
 // entries render the same strings, so the journey below tells them apart by *where* the string
 // lives (description vs. text) rather than by the string itself.
-private val ModeSwitchLabels = listOf("Rule", "Direct", "Global", "规则分流", "直连", "全局代理")
+// The mode name is rendered from two different resources: the Home badge uses `Home.Profile.*`
+// ("规则分流"/"全局代理") while the panel entries and the "switched" message use `Proxy.Mode.*`
+// ("规则"/"全局"). Both spellings are needed - matching only the badge's would leave the entries
+// unfindable in a Chinese-locale run.
+private val ModeSwitchLabels = listOf("Rule", "Direct", "Global", "规则分流", "规则", "直连", "全局代理", "全局")
 
 internal fun MacrobenchmarkScope.startupJourney(): JourneyResult {
     pressHome()
