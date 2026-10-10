@@ -105,10 +105,13 @@ fun SettingPagerBody(mainInnerPadding: PaddingValues, navigation: SettingPagerNa
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
-                // Match the clearance the floating add button keeps above the bar on the profiles
-                // tab (`spacing.lg`); `combinePaddingValues` already contributes `spacing.md`, so
-                // only the remainder is added on top of the bottom-bar reserve.
-                bottomPadding = LocalSpacing.current.lg - LocalSpacing.current.md,
+                // Line the last card's bottom edge up with a floating action button's: the
+                // profiles "add" button clears the bar by `spacing.lg`, and the scaffold's
+                // `FabSpacing` (12dp, mirroring the `spacing.md` that `combinePaddingValues`
+                // already contributes) sits below it. `spacing.lg` reproduces its bottom offset
+                // in both orientations - against the bar in portrait, and the screen bottom in
+                // rail-landscape where no bottom bar exists.
+                bottomPadding = LocalSpacing.current.lg,
             ) {
                 item {
                     Box(
