@@ -229,10 +229,15 @@ jobs:
           # ADB work must live inside this script: the action kills the emulator as soon as the script
           # returns, after which any `adb` call just blocks on "waiting for device" until the job
           # times out. The journey report is therefore pulled here, while the device is alive, and the
-          # later steps only process the files this script wrote. Logcat is always dumped so a failed
-          # collection still leaves the crash/assertion evidence behind.
+          # later steps only process the files this script wrote.
+          #
+          # Logcat is streamed to the report dir for the whole collection, not dumped afterwards: when
+          # the AVD dies mid-run - the failure mode this workflow actually sees - a post-run dump finds
+          # no device and captures nothing, while a stream keeps every line up to the death, including
+          # the generator's per-leg `journey ...` trail. The post-run dump stays as a fallback for a
+          # device that never streamed.
           script: |
-            mkdir -p build/reports/baseline-profile; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; timeout 60 adb logcat -d > build/reports/baseline-profile/logcat.txt || true; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; (stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 &); ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; pkill -f "adb logcat" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
 
       - name: Generate baseline profile (retry)
         id: generate_retry
@@ -254,7 +259,7 @@ jobs:
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -no-snapshot
           script: |
-            mkdir -p build/reports/baseline-profile; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; timeout 60 adb logcat -d > build/reports/baseline-profile/logcat.txt || true; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; (stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 &); ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; pkill -f "adb logcat" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
 
       - name: Extract journey report from logcat
         # Fallback for when the report file could not be pulled from the device (the generator also
@@ -296,6 +301,13 @@ jobs:
               echo '```'
             else
               echo 'No journey report was produced.'
+              if [ -s "$report_dir/logcat.txt" ]; then
+                echo
+                echo 'Per-leg trail captured before the run stopped:'
+                echo '```'
+                grep -a 'journey ' "$report_dir/logcat.txt" | tail -n 30 || true
+                echo '```'
+              fi
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
