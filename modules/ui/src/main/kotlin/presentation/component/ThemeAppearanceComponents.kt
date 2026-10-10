@@ -110,10 +110,11 @@ fun ThemeColorPickerItem(
             },
         )
 
-        // 用户看到这一行时，在专属的「不可见且不接收输入」的窗口里真实打开一次拾色器面板
-        // （详见 `ThemeColorPickerSheetWarmUp`）：滑入动画首帧要付的「全高图层录制/光栅化 +
-        // 面板内首次绘制」一次性成本在这里提前付掉。预热窗口在 WindowManager 层就是
-        // NOT_TOUCHABLE / NOT_FOCUSABLE 的，不吞任何触摸、返回手势或输入法，对用户完全无感。
+        // 用户看到这一行时，在预热里不可见地真实打开一次拾色器面板（详见
+        // `ThemeColorPickerSheetWarmUp`）：滑入动画首帧要付的「全高图层录制/光栅化 + 面板内
+        // 首次绘制」一次性成本在这里提前付掉。真机上预热窗口在 WindowManager 层就是
+        // NOT_TOUCHABLE / NOT_FOCUSABLE 的，不吞任何触摸、返回手势或输入法，对用户完全无感；
+        // 模拟器（采集 AVD）上退化为轻量的内容绘制，避免给软件渲染的采集运行增加渲染风险。
         ThemeColorPickerSheetWarmUp()
     }
 

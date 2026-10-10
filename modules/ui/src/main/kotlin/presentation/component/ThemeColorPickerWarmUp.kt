@@ -20,11 +20,14 @@
 
 package com.github.nomadboxlab.monadbox.presentation.component
 
+import android.os.Build
 import android.os.SystemClock
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -34,9 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -71,9 +77,33 @@ private const val HoldMillis = 600L
  */
 private const val WarmUpWindowAlpha = 0.004f
 
+/**
+ * Alpha for the emulator content warm-up: same reasoning as [WarmUpWindowAlpha] - about one 8-bit
+ * step, and it must not be zero or the draw phase would be skipped.
+ */
+private const val WarmUpAlpha = 0.004f
+
 /** A neutral seed for the warm-up picker: the value does not matter, only that it draws. */
 private val WarmUpPickerColor = Color(0xFF3B82F6)
 private const val WarmUpPickerHex = "#3B82F6"
+
+/** Content width close to a real picker sheet's, so gradients are built at a realistic scale. */
+private val WarmUpPickerWidth = 320.dp
+
+/**
+ * The profile collection runs on a software-rendered emulator, where showing the full-size sheet
+ * once per process is a stability risk for the run (two consecutive collections lost the device
+ * right after the full-sheet warm-up was introduced). Emulators get the lighter content-only draw
+ * instead - it keeps the picker's draw paths in the sampled profile - while real devices, the only
+ * ones the slide-in fix is for, get the full warm-up.
+ */
+private val isEmulator: Boolean =
+    Build.HARDWARE.contains("goldfish") ||
+        Build.HARDWARE.contains("ranchu") ||
+        Build.FINGERPRINT.startsWith("generic") ||
+        Build.FINGERPRINT.contains("emulator") ||
+        Build.MODEL.contains("sdk_gphone") ||
+        Build.PRODUCT.startsWith("sdk")
 
 /**
  * Opens the theme colour picker sheet once, invisibly, so that its first real open does not pay the
@@ -101,6 +131,9 @@ private const val WarmUpPickerHex = "#3B82F6"
  * step, via [ThemeColorPickerItem]), not by app startup: the cost is paid a couple of frames after
  * the row is first shown - well before the user can reach it - and app start stays untouched. The
  * whole cycle runs once per process.
+ *
+ * On emulators the full warm-up is replaced by [ThemeColorPickerContentWarmUp], the lighter
+ * content-only draw (see [isEmulator]).
  */
 @Composable
 internal fun ThemeColorPickerSheetWarmUp() {
@@ -124,6 +157,57 @@ internal fun ThemeColorPickerSheetWarmUp() {
 
     if (!warming) return
 
+    if (isEmulator) {
+        ThemeColorPickerContentWarmUp()
+    } else {
+        ThemeColorPickerSheetShowWarmUp()
+    }
+}
+
+/**
+ * The emulator variant: draws the picker's leaf content once at a realistic width, invisibly and at
+ * zero interaction cost, so the picker's draw paths (gradients, the checkerboard path, the
+ * indicator) are still sampled into the collected profile without rasterising the full sheet on the
+ * software-rendered AVD.
+ *
+ * The content is measured with unbounded constraints (its natural, full height) but the host
+ * reports a 1x1 size to the parent layout: the row that hosts it does not move, and 1x1 - not 0x0
+ * - is the smallest size at which Compose still runs the draw phase. Only [WarmUpAlpha] hides it
+ *   (zero alpha or off-screen would skip the draw), with semantics cleared.
+ */
+@Composable
+private fun ThemeColorPickerContentWarmUp() {
+    Layout(
+        content = {
+            Column(
+                modifier =
+                    Modifier.width(WarmUpPickerWidth).alpha(WarmUpAlpha).clearAndSetSemantics {}
+            ) {
+                ColorPicker(
+                    color = WarmUpPickerColor,
+                    onColorChanged = {},
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = WarmUpPickerHex,
+                    onValueChange = {},
+                    label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+            }
+        }
+    ) { measurables, _ ->
+        val placeable = measurables.first().measure(Constraints())
+        layout(1, 1) { placeable.place(0, 0) }
+    }
+}
+
+/**
+ * The real-device variant: the real sheet, in its own input-transparent window. See the KDoc of
+ * [ThemeColorPickerSheetWarmUp].
+ */
+@Composable
+private fun ThemeColorPickerSheetShowWarmUp() {
     Dialog(
         onDismissRequest = {},
         properties =
