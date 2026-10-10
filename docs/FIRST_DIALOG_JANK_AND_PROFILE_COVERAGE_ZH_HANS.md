@@ -82,8 +82,11 @@
 > 形态，与已验证的采集运行保持一致。
 >
 > 收尾（2026-10-10，真机实测 + 采集复绿）：取色器首次打开不再卡顿、快速点击不再被吞；启动预热
-> 也不再吞输入。采集在模拟器降档后恢复全绿（14 条 journey、`required_failed=0`、109/112
-> exercised；3 个 skip 均为首装 journey 的首轮探测、后续全部恢复），CI 已重新生成并推送 profile。
+> 也不再吞输入。采集恢复全绿并连续两轮稳定：`required_failed=0`；skip 恒为 3 且全部集中在
+> **首装 journey**——`configuration_import` 面板已打开但 6s 内探不到 Confirm，`edit_save`（无
+> profile 可编辑）与 `start_stop_proxy`（无 profile 可起）是它的连锁；后续 journey 同一批腿
+> 全部 exercised，profile 覆盖不受影响。CI 已重新生成并推送 profile；采集脚本另加固为全程流式
+> logcat（失败也保留死前证据），自动重试已移除（根因是模拟器环境抖动，出现即人工重跑）。
 >
 > 重组件与"浮层骨架"的**分档规则**（更新版）：
 >
