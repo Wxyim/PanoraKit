@@ -34,9 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
 import dev.oom_wg.purejoy.mlang.MLang
+import top.yukonga.miuix.kmp.basic.Scaffold
 
 /**
  * Per-process, so a warm-up is paid once even when the activity is recreated (rotation, theme
@@ -93,6 +96,14 @@ private const val WarmUpAlpha = 0.004f
  * install can open. It also keeps these classes in the sampled baseline profile even when a
  * collection never leaves the wizard (the shipped profile has no `NavHost` and no app screen
  * composables).
+ *
+ * On real devices the two overlays are rendered inside a dedicated, input-transparent window (a
+ * compose `Dialog` whose window is `FLAG_NOT_TOUCHABLE | FLAG_NOT_FOCUSABLE`, invisible by window
+ * alpha, with `renderInRootScaffold = false` so both register with the local `Scaffold`'s popup
+ * host): the same overlay code is warmed, but at the window-manager level the warm-up can no longer
+ * intercept a touch, a back gesture or the IME - before this it borrowed input from the user for
+ * the whole warm-up. Emulators (including the software-rendered profile-collection AVD) keep the
+ * original in-app-window shape, which is what every collection has run with.
  */
 @Composable
 fun OverlayWarmUpHost() {
@@ -121,22 +132,61 @@ fun OverlayWarmUpHost() {
 
     if (!warming) return
 
-    // Drawn for real (real surface colour, real clip, real layers) and only hidden by alpha, so the
-    // raster path the first user overlay pays for is exercised here instead. The semantics are
-    // cleared on top: alpha hides the pixels, not the accessibility tree, and a phantom dialog that
-    // screen readers can focus (and that shows up in UI-automation surface digests) is a real
-    // regression, not a warm-up detail.
-    val imperceptible = Modifier.alpha(WarmUpAlpha).clearAndSetSemantics {}
+    if (isEmulator) {
+        // Emulators, including the software-rendered profile-collection AVD, keep the original
+        // in-app-window shape: it is what every collection has run with, and collections keep
+        // sampling the overlay paths through it. It consumes input while up, which nobody is
+        // around to notice on an emulator.
+        OverlayWarmUpContent(
+            show = visible,
+            renderInRootScaffold = true,
+            modifier = Modifier.alpha(WarmUpAlpha).clearAndSetSemantics {},
+        )
+    } else {
+        // Real devices render the same overlays inside a dedicated, input-transparent window:
+        // invisible by window alpha and, at the window-manager level, unable to intercept touches,
+        // back gestures or the IME (see `InvisibleWarmUpWindow`). The drawing work - and therefore
+        // the warming - is unchanged.
+        Dialog(
+            onDismissRequest = {},
+            properties =
+                DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false,
+                ),
+        ) {
+            InvisibleWarmUpWindow()
+            Scaffold { _ ->
+                OverlayWarmUpContent(
+                    show = visible,
+                    renderInRootScaffold = false,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+            }
+        }
+    }
+}
 
+/**
+ * The two throwaway overlays themselves - identical content in both hosts. Drawn for real (real
+ * surface colour, real clip, real layers) and, in the in-app host, hidden by [WarmUpAlpha] alone;
+ * the windowed host hides them by window alpha instead. Semantics are cleared either way: alpha
+ * hides the pixels, not the accessibility tree, and a phantom dialog that screen readers can focus
+ * (and that shows up in UI-automation surface digests) is a real regression, not a warm-up detail.
+ */
+@Composable
+private fun OverlayWarmUpContent(show: Boolean, renderInRootScaffold: Boolean, modifier: Modifier) {
     // Dialog: SuperDialog -> MiuixPopupUtils.DialogLayout/DialogEntry -> DialogContentLayout. The
     // content mirrors what the toast/error dialogs draw (see `ToastDialogHost`) so the confirmation
     // button and its icon are warmed too.
     AppDialog(
-        show = visible,
+        show = show,
         title = MLang.Component.Message.Hint,
         onDismissRequest = {},
         enableWindowDim = false,
-        modifier = imperceptible,
+        renderInRootScaffold = renderInRootScaffold,
+        modifier = modifier,
     ) {
         ToastDialogInfoContent(onConfirm = {})
     }
@@ -145,11 +195,12 @@ fun OverlayWarmUpHost() {
     // behind every `ConfigActionMenuRow`. The title and rows mirror the theme-mode sheet that
     // surfaced this cost by hand: `ConfigSelectionBottomSheet` lays out exactly this shape.
     AppActionBottomSheet(
-        show = visible,
+        show = show,
         title = MLang.AppSettings.Interface.ThemeModeTitle,
         onDismissRequest = {},
         enableWindowDim = false,
-        modifier = imperceptible,
+        renderInRootScaffold = renderInRootScaffold,
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

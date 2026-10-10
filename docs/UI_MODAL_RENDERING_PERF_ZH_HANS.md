@@ -87,6 +87,13 @@ adb shell dumpsys gfxinfo com.github.nomadboxlab.monadbox framestats
 「优化」；唯一例外是 window dim（它与内容并列，开启会真的压暗屏幕）。两处宿主（`MainActivity` 与
 首次引导 `OnboardingBaseActivity`）都要挂，因为全新安装会先走引导向导。
 
+追加：真机上 `OverlayWarmUpHost` 的两块浮层改在**独立、输入透明的窗口**里绘制（compose
+`Dialog` 加上 `FLAG_NOT_TOUCHABLE | FLAG_NOT_FOCUSABLE`、窗口 alpha 0.004、清 dim、
+`renderInRootScaffold = false`）：预热照旧真实绘制同样内容（上面的不变量不变），但在
+WindowManager 层就收不到任何输入——启动后约 1 秒不再吞触摸 / 返回手势 / 输入法。模拟器
+（含软件渲染的采集 AVD）保留原 app 窗口形态，采集与 profile 采样保持已验证过的样子。取色器
+预热的同套窗口机制见 §7.1。
+
 ### 7.1 重组件：同一条不变量，宿主是「入口页面 + 独立输入透明窗口」
 
 设置 → 界面 → **主题配色**面板（Miuix `ColorPicker`）是这条规则的四轮现场：
@@ -113,6 +120,10 @@ adb shell dumpsys gfxinfo com.github.nomadboxlab.monadbox framestats
 - 窗口以 `alpha = 0.004` 隐藏（≠0，否则渲染会跳过——§7 的不变量），内容清空语义、不留幽灵节点；
 - 按墙钟持住约 600ms（enter 是 `folmeSpring(response = 0.38)` 时间驱动弹簧，按帧数在低帧率设备
   会持不够），随后拆除；每进程一次；宿主行出现后两帧启动，远早于用户伸手去点。
+
+补充（模拟器分档）：取色器预热在模拟器上退化为**轻量内容绘制**（仍以 `alpha = 0.004` 真实绘制
+拾色器内容，保住 profile 采样），不再打开整块面板——全尺寸面板绘制在软件渲染的采集 AVD 上是
+稳定性风险（连续两次采集掉设备后降档）；真机仍走独立输入透明窗口 + 真实面板。
 
 结论：**凡是一次性成本「大头在首次显示」的重组件 / 重浮层，都不要只预热组合、也不要挤进启动
 路径——在入口页面把它真实显示一次（不可见）；如果它必须借用浮层宿主，就把预热实例放进一个

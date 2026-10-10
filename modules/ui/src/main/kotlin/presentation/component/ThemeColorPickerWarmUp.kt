@@ -91,13 +91,13 @@ private const val WarmUpPickerHex = "#3B82F6"
 private val WarmUpPickerWidth = 320.dp
 
 /**
- * The profile collection runs on a software-rendered emulator, where showing the full-size sheet
- * once per process is a stability risk for the run (two consecutive collections lost the device
- * right after the full-sheet warm-up was introduced). Emulators get the lighter content-only draw
- * instead - it keeps the picker's draw paths in the sampled profile - while real devices, the only
- * ones the slide-in fix is for, get the full warm-up.
+ * Shared by the warm-up hosts ([ThemeColorPickerSheetWarmUp] and [OverlayWarmUpHost]): emulators
+ * keep the older, in-app-window warm-up shapes - that is what the profile collections run with, and
+ * the full-size sheet draw proved to be a stability risk on the software-rendered collection AVD
+ * (two consecutive collections lost the device right after it was introduced) - while real devices
+ * get the input-transparent-window shapes that cannot intercept input.
  */
-private val isEmulator: Boolean =
+internal val isEmulator: Boolean =
     Build.HARDWARE.contains("goldfish") ||
         Build.HARDWARE.contains("ranchu") ||
         Build.FINGERPRINT.startsWith("generic") ||
@@ -246,7 +246,8 @@ private fun ThemeColorPickerSheetShowWarmUp() {
 }
 
 /**
- * Makes the hosting dialog window invisible and completely input-transparent.
+ * Makes a warm-up host's dialog window invisible and completely input-transparent; used by every
+ * warm-up that renders through its own window ([ThemeColorPickerSheetWarmUp], [OverlayWarmUpHost]).
  *
  * The dialog window is a real window of our own app, so without this it would sit above the
  * activity, dim it and swallow touches in its area. The flags turn it into a purely visual - and
@@ -255,7 +256,7 @@ private fun ThemeColorPickerSheetShowWarmUp() {
  * parameter updates.
  */
 @Composable
-private fun InvisibleWarmUpWindow() {
+internal fun InvisibleWarmUpWindow() {
     val view = LocalView.current
     SideEffect {
         val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect

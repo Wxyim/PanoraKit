@@ -72,6 +72,15 @@
 > 返回手势 / 输入法**完全透明**——对用户就像不存在，任何点击都不会被吞；面板本身照常真实绘制，
 > 滑入动画首帧要付的成本照付。整周期约 0.6s、每进程一次。
 >
+> 补充（模拟器分档）：上面的面板预热在**模拟器上退化为轻量内容绘制**（不再打开整块面板）——
+> 全尺寸面板绘制在软件渲染的采集 AVD 上是稳定性风险（连续两次采集掉设备）；降档后采集仍保留
+> `ColorPicker` 的绘制采样，真机不受影响、仍走独立输入透明窗口。
+>
+> 第五轮（`OverlayWarmUpHost` 收尾）：启动预热自身也按同一思路改造——真机上两块浮层改在**独立
+> 输入透明窗口**（`FLAG_NOT_TOUCHABLE | NOT_FOCUSABLE`、窗口 alpha 0.004、`renderInRootScaffold
+> = false`）里绘制，启动后约 1 秒不再吞全局输入 / 返回手势 / 输入法；模拟器保留原 app 窗口
+> 形态，与已验证的采集运行保持一致。
+>
 > 重组件与"浮层骨架"的**分档规则**（更新版）：
 >
 > | 冷的部分 | 预热方式 | 宿主 | 原因 |
@@ -145,9 +154,11 @@ ColorPickerKt 68（仅 baseline）+ ThemeColorPickerWarmUpKt 39（拾色器行�
 
 ## 四、影响面与风险
 
-- 运行时新增：`OverlayWarmUpHost`（启动，每进程一次、约 1 秒、**不可见**，`alpha = 0.004`）与
-  `ThemeColorPickerDrawWarmUp`（设置页 / 引导个性化行内，行出现后两帧启动、8 帧后拆除，每进程一次；
-  对外测量为 1x1，**不改变任何布局、不拦截点击**）。窗口遮罩（dim）保持关闭。
+- 运行时新增：`OverlayWarmUpHost`（启动，每进程一次、约 1 秒、**不可见**）与
+  `ThemeColorPickerSheetWarmUp`（设置页 / 引导个性化行内，行出现后两帧启动、约 0.6s 后拆除，
+  每进程一次）。真机上两者都渲染在**独立、输入透明**的窗口里（`FLAG_NOT_TOUCHABLE` /
+  `NOT_FOCUSABLE`、窗口 alpha 0.004、清 dim、语义清空）——不吞触摸 / 返回手势 / 输入法；模拟器上
+  两者保留历史上的 app 窗口形态（采集验证过的形状），其中取色器预热只做轻量内容绘制。
 - App 侧行为改动：`OnboardingPage.kt`（开始按钮标签）、`OverlayWarmUpHost` 挂载点
   （`MainActivity` / `OnboardingBaseActivity`）、`ThemeColorPickerItem`（行内预热宿主，包装一层
   `Box`，尺寸与交互不变）。
@@ -157,8 +168,10 @@ ColorPickerKt 68（仅 baseline）+ ThemeColorPickerWarmUpKt 39（拾色器行�
 
 1. 预热浮层 / 重组件都必须**真正产生像素**：不要改回 `alpha = 0`、离屏平移或透明背景
    （见 `UI_MODAL_RENDERING_PERF_ZH_HANS.md` §7、§7.1）。
-   分档规则（更新版）：浮层骨架 → 启动时真实绘制；重组件（如 `ColorPicker`）→ **入口页面行内**
-   真实绘制、小尺寸（别挤进启动路径，也别只预热组合）。
+   分档规则（更新版）：浮层骨架 → 启动时真实绘制；重组件（如 `ColorPicker`）→ **入口页面行内
+   真实显示/绘制一次**（不可见、别挤进启动路径、别只预热组合）。真机统一渲染在**独立输入透明
+   窗口**里（零输入代价）；模拟器保留历史形态（采集稳定性），取色器预热在模拟器上退化为轻量
+   内容绘制。
 2. 新增 / 改词 UI 时同步更新 `BenchmarkJourneys.kt` 顶部的标签表（报告会兜底暴露，但提前对齐更省事）。
 3. 采集设备是 320x640：涉及内容区的操作**必须在目标 `ScrollView` 的 bounds 内滚动**。
 4. 探针一律使用 `findVisibleObject`，避免匹配到 App 自有但不在屏幕上的节点（通知行等）。
