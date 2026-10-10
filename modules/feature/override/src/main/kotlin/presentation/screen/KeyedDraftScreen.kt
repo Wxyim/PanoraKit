@@ -317,7 +317,18 @@ fun OverrideKeyedObjectDraftEditorScreen(navigator: DestinationsNavigator) {
                 },
             )
         },
-        topBar = { TopBar(title = title, scrollBehavior = scrollBehavior) },
+        topBar = {
+            TopBar(
+                title = title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        },
     ) { innerPadding ->
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,

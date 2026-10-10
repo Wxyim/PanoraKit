@@ -142,6 +142,15 @@ fun OverrideEditScreen(
                     if (isNewConfig) MLang.Override.Edit.TitleNew
                     else MLang.Override.Edit.TitleEdit,
                 scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                        // Same path as `BackHandler`: closes an open sub-editor/sheet first and
+                        // routes unsaved edits through the discard confirmation.
+                        onClick = { requestExit() },
+                    )
+                },
             )
         }
     ) { paddingValues ->

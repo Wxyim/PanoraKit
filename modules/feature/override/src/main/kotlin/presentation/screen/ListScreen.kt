@@ -281,7 +281,18 @@ fun OverrideListScreen(
                 onClick = { showCreateDialog.value = true },
             )
         },
-        topBar = { TopBar(title = MLang.Override.Title, scrollBehavior = scrollBehavior) },
+        topBar = {
+            TopBar(
+                title = MLang.Override.Title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
+            )
+        },
     ) { paddingValues ->
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),

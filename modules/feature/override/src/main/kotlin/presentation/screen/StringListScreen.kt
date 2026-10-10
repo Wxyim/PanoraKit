@@ -156,6 +156,12 @@ fun OverrideStringListEditorScreen(navigator: DestinationsNavigator) {
             TopBar(
                 title = title,
                 scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
                 actions = {
                     IconButton(
                         onClick = { showResetDialog = true },

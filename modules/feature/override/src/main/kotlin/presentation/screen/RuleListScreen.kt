@@ -131,6 +131,12 @@ fun OverrideRuleListEditorScreen(
             TopBar(
                 title = title,
                 scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
+                    )
+                },
                 actions = {
                     if (isDeleteMode) {
                         IconButton(
