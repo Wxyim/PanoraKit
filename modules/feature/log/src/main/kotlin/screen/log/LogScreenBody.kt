@@ -291,7 +291,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 contentAlignment = Alignment.TopCenter,
             ) {
                 val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-                val logContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+                val logContentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
                 ScreenLazyColumn(
                     modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
                     scrollBehavior = scrollBehavior,
@@ -467,7 +467,7 @@ private fun LogEmptyStateContent(
     val spacing = AppTheme.spacing
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-        val logContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+        val logContentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
         ScreenLazyColumn(
             modifier = Modifier.adaptiveContentWidth(logContentMaxWidth),
             scrollBehavior = scrollBehavior,

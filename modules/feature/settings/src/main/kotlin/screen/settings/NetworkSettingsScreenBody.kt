@@ -439,8 +439,6 @@ private fun NetworkSettingsContent(
                     onManageAccessControl = onManageAccessControl,
                 )
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

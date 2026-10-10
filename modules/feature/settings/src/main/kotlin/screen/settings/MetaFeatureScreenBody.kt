@@ -180,7 +180,7 @@ fun MetaFeatureScreenBody(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-                val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+                val contentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
                 ScreenLazyColumn(
                     modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,

@@ -39,6 +39,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.compose.koinInject
@@ -66,6 +67,7 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
     val spacing = AppTheme.spacing
     val radii = AppTheme.radii
     val pageMetrics = LocalPageMetrics.current
+    val windowAdaptiveInfo = LocalWindowAdaptiveInfo.current
     val appInfo = koinInject<AppInfo>()
 
     Scaffold(
@@ -79,7 +81,8 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             ScreenLazyColumn(
-                modifier = Modifier.adaptiveContentWidth(pageMetrics.contentMaxWidth),
+                modifier =
+                    Modifier.adaptiveContentWidth(windowAdaptiveInfo.preferredTwoPaneMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
                 bottomPadding = spacing.xxxl,

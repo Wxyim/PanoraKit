@@ -299,7 +299,7 @@ fun OverrideListScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
-            val overrideContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+            val overrideContentMaxWidth = adaptiveInfo.preferredTwoPaneMaxWidth
             ScreenLazyColumn(
                 modifier = Modifier.adaptiveContentWidth(overrideContentMaxWidth),
                 scrollBehavior = scrollBehavior,

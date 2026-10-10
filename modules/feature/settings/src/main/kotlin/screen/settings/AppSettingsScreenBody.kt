@@ -642,8 +642,6 @@ private fun AppSettingsContent(
                     onRunCleanupNow = onRunCleanupNow,
                 )
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
