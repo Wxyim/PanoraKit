@@ -237,29 +237,7 @@ jobs:
           # the generator's per-leg `journey ...` trail. The post-run dump stays as a fallback for a
           # device that never streamed.
           script: |
-            mkdir -p build/reports/baseline-profile; (stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 &); ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; pkill -f "adb logcat" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
-
-      - name: Generate baseline profile (retry)
-        id: generate_retry
-        # The collection AVD occasionally dies mid-run (`adb: device offline`, the emulator gone by
-        # cleanup time), and the same build has both passed and died across dispatches - an infra
-        # flake that cannot be fixed from the app side. One automatic retry keeps a manual dispatch
-        # from being wasted; real breakage still fails both attempts and keeps the job red.
-        #
-        # Keep this `with:` block in sync with the primary step above (YAML anchors under `with:`
-        # are rejected by actionlint, so the configuration is duplicated on purpose).
-        if: failure() && steps.generate.outcome == 'failure'
-        uses: ReactiveCircus/android-emulator-runner@v2.38.0
-        with:
-          api-level: ${{ env.EMULATOR_API_LEVEL }}
-          arch: x86_64
-          target: google_apis
-          disable-animations: true
-          emulator-options: >-
-            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-            -camera-back none -no-snapshot
-          script: |
-            mkdir -p build/reports/baseline-profile; (stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 &); ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; pkill -f "adb logcat" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
 
       - name: Extract journey report from logcat
         # Fallback for when the report file could not be pulled from the device (the generator also
@@ -286,7 +264,7 @@ jobs:
         # device blocks forever. The emulator script pulled the report while the device was alive.
         if: always()
         env:
-          GENERATE_OUTCOME: ${{ (steps.generate.outcome == 'success' || steps.generate_retry.outcome == 'success') && 'success' || 'failure' }}
+          GENERATE_OUTCOME: ${{ steps.generate.outcome }}
         run: |
           set -euo pipefail
           report_dir=build/reports/baseline-profile
@@ -343,7 +321,7 @@ jobs:
           echo "All required journeys exercised their surface ($summaries report block(s))."
 
       - name: Verify generated profile
-        if: always() && (steps.generate.outcome == 'success' || steps.generate_retry.outcome == 'success')
+        if: steps.generate.outcome == 'success'
         run: |
           set -euo pipefail
           args=(-PbaselineProfile.require=true)
@@ -392,7 +370,7 @@ jobs:
       - name: Fail on profile drift
         # A stale committed profile still looks green in every other job, so any drift found here has
         # to fail loudly rather than be quietly ignored between manual runs.
-        if: always() && (steps.generate.outcome == 'success' || steps.generate_retry.outcome == 'success')
+        if: steps.generate.outcome == 'success'
         run: |
           set -euo pipefail
           paths=()
@@ -428,7 +406,7 @@ jobs:
           echo "Drift detected and commit_profile=true; the next step commits the regenerated profile."
 
       - name: Commit regenerated profile
-        if: always() && (steps.generate.outcome == 'success' || steps.generate_retry.outcome == 'success') && env.COMMIT_PROFILE == 'true'
+        if: steps.generate.outcome == 'success' && env.COMMIT_PROFILE == 'true'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
