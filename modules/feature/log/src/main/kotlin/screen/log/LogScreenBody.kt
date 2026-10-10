@@ -78,6 +78,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private enum class LogContentMode {
@@ -246,6 +247,9 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                         MLang.Log.Empty.AutoRecordHint
                     },
                 innerPadding = innerPadding,
+                // The page's own behavior, so upward drags drive the same machinery as everywhere
+                // else on this screen (see `LogEmptyStateContent`).
+                scrollBehavior = scrollBehavior,
                 onExportDebugBundle = { showExportConfirmDialog.value = true },
                 liveCount = logEntries.size,
                 isRecording = isRecording,
@@ -450,12 +454,16 @@ private fun LogEmptyStateContent(
     firstLine: String,
     secondLine: String,
     innerPadding: PaddingValues,
+    // The screen's own top-bar behavior. A private `MiuixScrollBehavior()` here would be invisible
+    // to the top bar and still consume every upward drag into its own off-screen collapse state:
+    // dragging up did nothing at all, dragging down half-worked (the custom overscroll stretch),
+    // and the asymmetry read as "drag is broken" on an empty log page.
+    scrollBehavior: ScrollBehavior,
     onExportDebugBundle: () -> Unit,
     liveCount: Int,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
 ) {
-    val scrollBehavior = MiuixScrollBehavior()
     val spacing = AppTheme.spacing
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
