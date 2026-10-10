@@ -236,6 +236,13 @@ jobs:
 
       - name: Generate baseline profile
         id: generate
+        # The AVD dies mid-test often enough that this first attempt is treated as a probe: the
+        # retry step below re-runs the collection on a fresh AVD, and a recovered run must end
+        # green or the profile this job really regenerated still reads as a failed dispatch (the
+        # honest signal stays in this step's own red X and its artifacts). Real breakage fails the
+        # retry as well, which has no `continue-on-error`, so the job goes red exactly when the
+        # collection never succeeded.
+        continue-on-error: true
         uses: ReactiveCircus/android-emulator-runner@v2.38.0
         with:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
@@ -267,8 +274,12 @@ jobs:
         id: generate_retry
         # The collection AVD occasionally dies mid-run (`adb: device offline`, the emulator gone by
         # cleanup time), and the same build has both passed and died across dispatches - an infra
-        # flake that cannot be fixed from the app side. One automatic retry keeps a manual dispatch
-        # from being wasted; real breakage still fails both attempts and keeps the job red.
+        # flake that cannot be fixed from the app side (the pre-build above lowers the memory
+        # pressure but does not remove it). One automatic retry keeps a manual dispatch from being
+        # wasted; real breakage still fails both attempts and keeps the job red.
+        #
+        # This condition keys off the raw `outcome`, not `failure()`: the first attempt carries
+        # `continue-on-error`, so the job state it leaves behind is success.
         #
         # This step was removed once before because the then-current teardown (`pkill -f "adb
         # logcat"`) killed the step's own shell - its command line contains that pattern - and made
@@ -278,7 +289,7 @@ jobs:
         #
         # Keep this `with:` block in sync with the primary step above (YAML anchors under `with:`
         # are rejected by actionlint, so the configuration is duplicated on purpose).
-        if: failure() && steps.generate.outcome == 'failure'
+        if: steps.generate.outcome == 'failure'
         uses: ReactiveCircus/android-emulator-runner@v2.38.0
         with:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
