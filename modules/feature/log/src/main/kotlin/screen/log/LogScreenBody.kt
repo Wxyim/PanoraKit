@@ -293,6 +293,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
                     topPadding = spacing.xl,
+                    bottomPadding = spacing.xxl,
                     lazyListState = if (isDetailMode) detailListState else browserListState,
                 ) {
                     if (!isDetailMode) {
@@ -312,7 +313,7 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
 
                     if (isDetailMode) {
                         item(key = "history_header") {
-                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
+                            Card(modifier = Modifier.padding(vertical = spacing.sm)) {
                                 Row(
                                     modifier =
                                         Modifier.fillMaxWidth()
@@ -374,10 +375,14 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                             }
                         }
                     } else if (historyFiles.isNotEmpty()) {
-                        item(key = "history_title") { SmallTitle(MLang.Log.History.Title) }
+                        item(key = "history_title") {
+                            Box(modifier = Modifier.padding(top = spacing.lg)) {
+                                SmallTitle(MLang.Log.History.Title)
+                            }
+                        }
                         itemsIndexed(items = historyFiles, key = { _, item -> item.name }) { _, file
                             ->
-                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
+                            Card(modifier = Modifier.padding(vertical = spacing.sm)) {
                                 ConfigSettingRow(
                                     title = file.name,
                                     summary =
@@ -396,10 +401,14 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                     }
 
                     if (!isDetailMode && startupFiles.isNotEmpty()) {
-                        item(key = "startup_title") { SmallTitle(MLang.Log.Startup.Title) }
+                        item(key = "startup_title") {
+                            Box(modifier = Modifier.padding(top = spacing.lg)) {
+                                SmallTitle(MLang.Log.Startup.Title)
+                            }
+                        }
                         itemsIndexed(items = startupFiles, key = { _, item -> item.name }) { _, file
                             ->
-                            Card(modifier = Modifier.padding(vertical = spacing.xs)) {
+                            Card(modifier = Modifier.padding(vertical = spacing.sm)) {
                                 ConfigSettingRow(
                                     title = file.name,
                                     summary =
@@ -419,7 +428,11 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                             (historyFiles.isNotEmpty() || startupFiles.isNotEmpty()) &&
                             displayEntries.isNotEmpty()
                     ) {
-                        item(key = "live_title") { SmallTitle(MLang.Log.History.LiveSection) }
+                        item(key = "live_title") {
+                            Box(modifier = Modifier.padding(top = spacing.lg)) {
+                                SmallTitle(MLang.Log.History.LiveSection)
+                            }
+                        }
                     }
 
                     val reversed = displayEntries.asReversed()
@@ -452,6 +465,7 @@ private fun LogEmptyStateContent(
             scrollBehavior = scrollBehavior,
             innerPadding = innerPadding,
             topPadding = spacing.xl,
+            bottomPadding = spacing.xxl,
         ) {
             item(key = "diagnostic_title") { SmallTitle(MLang.Settings.More.Logs) }
             item(key = "diagnostic_overview") {
@@ -463,7 +477,7 @@ private fun LogEmptyStateContent(
                 )
             }
             item(key = "empty_state") {
-                Card(modifier = Modifier.padding(vertical = spacing.xs)) {
+                Card(modifier = Modifier.padding(vertical = spacing.sm)) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(spacing.xxl),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -554,7 +568,7 @@ private fun LogEntryRow(entry: LogViewModel.LogEntry) {
             LogMessage.Level.Unknown -> Color(0xFF9E9E9E)
         }
 
-    Card(modifier = Modifier.padding(vertical = spacing.xs)) {
+    Card(modifier = Modifier.padding(vertical = spacing.sm)) {
         Column(
             modifier =
                 Modifier.fillMaxWidth().padding(horizontal = spacing.md, vertical = spacing.sm)

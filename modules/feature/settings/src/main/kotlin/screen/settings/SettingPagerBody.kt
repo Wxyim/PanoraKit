@@ -105,6 +105,10 @@ fun SettingPagerBody(mainInnerPadding: PaddingValues, navigation: SettingPagerNa
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
+                // Extra breathing room below the last card, on top of the bottom-bar reserve that
+                // `mainInnerPadding` already carries: the floating bar's shadow eats into a reserve
+                // that otherwise just clears its capsule.
+                bottomPadding = LocalSpacing.current.xxl,
             ) {
                 item {
                     Box(

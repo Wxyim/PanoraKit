@@ -39,6 +39,7 @@ import com.github.nomadboxlab.monadbox.feature.editor.screen.ConfigPreviewStore
 import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.remote.ServiceClient
@@ -184,6 +185,8 @@ fun MetaFeatureScreenBody(
                     modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
+                    topPadding = LocalSpacing.current.xl,
+                    bottomPadding = LocalSpacing.current.xxl,
                 ) {
                     item {
                         MetaOverviewSection(

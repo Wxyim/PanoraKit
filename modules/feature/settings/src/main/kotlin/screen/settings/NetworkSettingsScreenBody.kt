@@ -50,6 +50,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -133,6 +134,8 @@ fun NetworkSettingsScreenBody(
                     modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
+                    topPadding = LocalSpacing.current.xl,
+                    bottomPadding = LocalSpacing.current.xxl,
                 ) {
                     item {
                         NetworkSettingsContent(

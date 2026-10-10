@@ -169,6 +169,7 @@ fun AccessControlScreenBody(navigator: DestinationsNavigator) {
                         scrollBehavior = scrollBehavior,
                         innerPadding = innerPadding,
                         topPadding = spacing.xl,
+                        bottomPadding = spacing.xxl,
                     ) {
                         if (uiState.needsMiuiPermission) {
                             item {

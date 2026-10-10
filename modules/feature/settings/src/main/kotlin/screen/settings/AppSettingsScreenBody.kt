@@ -50,6 +50,7 @@ import com.github.nomadboxlab.monadbox.data.model.ThemeMode
 import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.component.Card
 import com.github.nomadboxlab.monadbox.presentation.component.ThemeColorPickerItem
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -191,6 +192,8 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                     modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                     scrollBehavior = scrollBehavior,
                     innerPadding = innerPadding,
+                    topPadding = LocalSpacing.current.xl,
+                    bottomPadding = LocalSpacing.current.xxl,
                 ) {
                     item {
                         AppSettingsContent(
