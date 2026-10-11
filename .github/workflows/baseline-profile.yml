@@ -254,6 +254,10 @@ jobs:
           # that moment - 1 g of app heap, raised from 768 m once the recovery retry started carrying
           # most dispatches - and the four cores the runner actually has: the pre-build above keeps
           # the emulator phase free of competing Gradle compiles, so the CPUs are the emulator's to use.
+          #
+          # The collection invocation also caps the Gradle heap at 4 g (the 8 g default targets the
+          # full builds; this phase only installs and runs the test), so the host keeps several
+          # gigabytes of headroom while the emulator is alive.
           cores: 4
           ram-size: 4096M
           heap-size: 1024M
@@ -280,8 +284,12 @@ jobs:
           # no device and captures nothing, while a stream keeps every line up to the death, including
           # the generator's per-leg `journey ...` trail. The post-run dump stays as a fallback for a
           # device that never streamed.
+          #
+          # A sampler in the script records host memory and the top RSS consumers in the report dir
+          # every 15 s: the flake kills the emulator process on the host with no guest-side trace,
+          # and this is the run's only record of how close the host was to its limit when it happens.
           script: |
-            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; ( while true; do date -u +%H:%M:%S; free -m | head -2; ps -eo rss,comm --sort=-rss | head -8; sleep 15; done ) > build/reports/baseline-profile/host-memory.txt 2>&1 & MON_PID=$!; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -XX:+ParallelRefProcEnabled -Dfile.encoding=UTF-8" --no-daemon; rc=$?; kill "$LOG_PID" "$MON_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; exit $rc
 
       - name: Generate baseline profile (retry)
         id: generate_retry
@@ -316,7 +324,25 @@ jobs:
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -no-snapshot
           script: |
-            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; ( while true; do date -u +%H:%M:%S; free -m | head -2; ps -eo rss,comm --sort=-rss | head -8; sleep 15; done ) > build/reports/baseline-profile/host-memory.txt 2>&1 & MON_PID=$!; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -XX:+ParallelRefProcEnabled -Dfile.encoding=UTF-8" --no-daemon; rc=$?; kill "$LOG_PID" "$MON_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; exit $rc
+
+      - name: Capture host diagnostics
+        # The flake kills the emulator process on the host with no guest-side trace. This keeps the
+        # evidence that can say why: the kernel log (an OOM kill shows up there), any emulator crash
+        # report, and a final memory snapshot. Runs after both attempts, on success as well, because
+        # a run that survived still tells how close to the line it came.
+        if: always()
+        run: |
+          set -euo pipefail
+          out=build/reports/baseline-profile
+          mkdir -p "$out"
+          sudo dmesg 2>/dev/null | tail -n 80 > "$out/dmesg-tail.txt" || echo "dmesg unavailable" > "$out/dmesg-tail.txt"
+          free -m >> "$out/host-memory-final.txt"
+          ls -la /tmp/android-runner/ > "$out/android-runner-listing.txt" 2>/dev/null || true
+          for f in /tmp/android-runner/emu-crash*; do
+            [ -e "$f" ] && cp "$f" "$out/" || true
+          done
+          echo "host diagnostics captured"
 
       - name: Fetch journey report
         # The report normally arrives through the additional test output the connected-test engine
