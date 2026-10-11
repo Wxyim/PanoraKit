@@ -286,7 +286,7 @@ private fun OverrideSelectionInputDialog(
                     errorText = null
                 },
                 label = label,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             errorText?.let { message ->
                 OverrideFieldAssistText(text = message, color = MiuixTheme.colorScheme.error)

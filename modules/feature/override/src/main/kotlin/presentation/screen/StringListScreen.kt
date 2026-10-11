@@ -411,7 +411,7 @@ private fun StringListEntryDialog(
                 value = draftValue,
                 onValueChange = { draftValue = it },
                 label = placeholder,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             DialogButtonRow(
                 onCancel = onDismiss,

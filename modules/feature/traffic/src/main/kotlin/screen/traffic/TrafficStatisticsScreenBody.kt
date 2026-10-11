@@ -62,6 +62,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.component.TrafficBarChart
 import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.TrafficStatisticsScreenLayoutDefaults
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
@@ -386,7 +387,7 @@ private fun DetailsCard(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 label = MLang.TrafficStatistics.RecentRequests.SearchHint,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
 
             if (recentRequests.isEmpty()) {

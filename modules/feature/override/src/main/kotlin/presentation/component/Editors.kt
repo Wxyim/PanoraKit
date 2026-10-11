@@ -371,7 +371,7 @@ private fun OverrideIntInputContent(
                     textValue = updatedValue.filter { it.isDigit() || it == '-' }
                 },
                 label = placeholder,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppCommandButton(

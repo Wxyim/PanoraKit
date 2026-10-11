@@ -74,6 +74,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Check
@@ -279,7 +280,8 @@ fun AccessControlScreenBody(navigator: DestinationsNavigator) {
                                             onValueChange = viewModel::onManualPackageNameChange,
                                             label =
                                                 MLang.AccessControl.AppList.ManualAddPlaceholder,
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier =
+                                                Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                                             keyboardOptions =
                                                 androidx.compose.foundation.text.KeyboardOptions(
                                                     imeAction = ImeAction.Done
@@ -731,7 +733,9 @@ private fun ExpandedSearchOverlay(
                 label = MLang.AccessControl.Search.Placeholder,
                 singleLine = true,
                 modifier =
-                    Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.md),
+                    Modifier.fillMaxWidth()
+                        .padding(horizontal = spacing.lg, vertical = spacing.md)
+                        .miuixTextFieldDrawGuard(),
             )
 
             LazyColumn(

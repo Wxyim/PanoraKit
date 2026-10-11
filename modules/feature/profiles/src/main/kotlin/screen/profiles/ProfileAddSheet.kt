@@ -56,6 +56,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomShe
 import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetCloseAction
 import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetConfirmAction
 import com.github.nomadboxlab.monadbox.presentation.component.appClickable
+import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Package-check`
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
@@ -623,7 +624,8 @@ internal fun AddProfileSheet(
                                                 error = ""
                                             },
                                             label = MLang.ProfilesPage.Input.ProfileName,
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier =
+                                                Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                                         )
 
                                         Text(
@@ -642,7 +644,8 @@ internal fun AddProfileSheet(
                                                 error = ""
                                             },
                                             label = MLang.ProfilesPage.Input.ProfileName,
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier =
+                                                Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                                         )
 
                                         if (typeIndex == 0) {
@@ -656,7 +659,9 @@ internal fun AddProfileSheet(
                                                 maxLines = 2,
                                                 readOnly = profileToEdit != null,
                                                 enabled = profileToEdit == null,
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier =
+                                                    Modifier.fillMaxWidth()
+                                                        .miuixTextFieldDrawGuard(),
                                             )
                                         } else {
                                             TextField(
@@ -671,7 +676,8 @@ internal fun AddProfileSheet(
                                                             onClickLabel =
                                                                 MLang.ProfilesPage.Input.SelectFile,
                                                             onClick = { launcher.launch("*/*") },
-                                                        ),
+                                                        )
+                                                        .miuixTextFieldDrawGuard(),
                                             )
                                         }
 

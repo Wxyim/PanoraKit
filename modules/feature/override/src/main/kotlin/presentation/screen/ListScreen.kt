@@ -121,6 +121,7 @@ private fun UrlImportSheet(
             TextField(
                 value = urlInput,
                 onValueChange = { urlInput = it },
+                modifier = Modifier.miuixTextFieldDrawGuard(),
                 label = MLang.Override.Import.UrlLabel,
                 enabled = !isLoading,
             )
@@ -701,12 +702,14 @@ private fun CreateConfigDialog(
             TextField(
                 value = name,
                 onValueChange = { name = it },
+                modifier = Modifier.miuixTextFieldDrawGuard(),
                 label = MLang.Override.Dialog.Create.Name,
             )
 
             TextField(
                 value = description,
                 onValueChange = { description = it },
+                modifier = Modifier.miuixTextFieldDrawGuard(),
                 label = MLang.Override.Dialog.Create.Description,
             )
 

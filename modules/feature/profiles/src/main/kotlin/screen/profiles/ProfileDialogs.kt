@@ -39,6 +39,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetConf
 import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
 import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
+import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
@@ -216,7 +217,7 @@ internal fun ProfileSettingsDialog(
                     value = editName,
                     onValueChange = { editName = it },
                     label = MLang.ProfilesPage.Input.ProfileName,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                 )
 
                 if (profile.type == Profile.Type.Url) {
@@ -224,7 +225,7 @@ internal fun ProfileSettingsDialog(
                         value = editSource,
                         onValueChange = { editSource = it },
                         label = MLang.ProfilesPage.SettingsDialog.ChangeLink,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                         maxLines = 2,
                     )
                 }

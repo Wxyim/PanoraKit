@@ -48,7 +48,7 @@ fun TextEditBottomSheet(
             TextField(
                 value = textFieldValue.value,
                 onValueChange = { textFieldValue.value = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             DialogButtonRow(
                 onCancel = onSecondaryClick,

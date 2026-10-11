@@ -136,7 +136,7 @@ fun OverrideExtraFieldDialog(
                     errorText = null
                 },
                 label = MLang.Override.Editor.KeyName,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             if (selectedType != OverrideExtraFieldValueType.Null) {
                 TextField(
@@ -162,7 +162,8 @@ fun OverrideExtraFieldDialog(
                                     if (selectedType == OverrideExtraFieldValueType.JsonFragment)
                                         140.dp
                                     else 0.dp
-                            ),
+                            )
+                            .miuixTextFieldDrawGuard(),
                     maxLines =
                         if (selectedType == OverrideExtraFieldValueType.JsonFragment) 12 else 1,
                 )

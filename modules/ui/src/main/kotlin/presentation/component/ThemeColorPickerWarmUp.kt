@@ -192,7 +192,7 @@ private fun ThemeColorPickerContentWarmUp() {
                     value = WarmUpPickerHex,
                     onValueChange = {},
                     label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
                 )
             }
         }
@@ -238,7 +238,7 @@ private fun ThemeColorPickerSheetShowWarmUp() {
                     value = WarmUpPickerHex,
                     onValueChange = {},
                     label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
                 )
             }
         }

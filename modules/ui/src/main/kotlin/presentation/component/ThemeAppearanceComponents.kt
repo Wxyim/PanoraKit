@@ -171,7 +171,7 @@ fun ThemeColorPickerSheet(
                 value = editingThemeSeedHex,
                 onValueChange = onEditingThemeSeedHexChange,
                 label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
             )
         },
     )

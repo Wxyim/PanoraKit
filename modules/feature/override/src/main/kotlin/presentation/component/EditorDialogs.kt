@@ -108,7 +108,7 @@ fun StringMapEditorDialog(
                                 validationError = null
                             },
                             label = keyPlaceholder,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).miuixTextFieldDrawGuard(),
                         )
                         TextField(
                             value = entry.second,
@@ -117,7 +117,7 @@ fun StringMapEditorDialog(
                                 validationError = null
                             },
                             label = valuePlaceholder,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).miuixTextFieldDrawGuard(),
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))

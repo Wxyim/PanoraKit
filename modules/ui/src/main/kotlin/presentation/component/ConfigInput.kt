@@ -164,7 +164,7 @@ private fun ConfigTextInputDialog(
                 value = textValue,
                 onValueChange = onTextValueChange,
                 label = label,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppCommandButton(

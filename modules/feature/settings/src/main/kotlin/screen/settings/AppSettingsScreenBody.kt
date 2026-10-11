@@ -339,7 +339,10 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                 renderInRootScaffold = true,
                 content = {
                     TextField(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                                .miuixTextFieldDrawGuard(),
                         value = pageScaleDialogText,
                         maxLines = 1,
                         trailingIcon = {
@@ -392,7 +395,10 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                 renderInRootScaffold = true,
                 content = {
                     TextField(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                                .miuixTextFieldDrawGuard(),
                         value = cleanupThresholdText,
                         maxLines = 1,
                         trailingIcon = {
@@ -430,7 +436,10 @@ fun AppSettingsScreenBody(navigator: DestinationsNavigator) {
                 renderInRootScaffold = true,
                 content = {
                     TextField(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                                .miuixTextFieldDrawGuard(),
                         value = cleanupIntervalText,
                         maxLines = 1,
                         trailingIcon = {

@@ -50,6 +50,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
+import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
@@ -1069,7 +1070,7 @@ private fun RootTunTextEditDialog(
                 TextField(
                     value = value,
                     onValueChange = onValueChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
                     keyboardOptions = keyboardOptions,
                     keyboardActions =
                         KeyboardActions(
