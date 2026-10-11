@@ -20,7 +20,9 @@
 package com.github.nomadboxlab.monadbox.performance
 
 import android.content.Context
+import android.os.ParcelFileDescriptor
 import android.util.Log
+import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 
 /**
@@ -147,12 +149,51 @@ internal class JourneyReport(private val targetPackage: String) {
                     if (publishedInThisRun) appendText(rendered) else writeText(rendered)
                 }
             }
-            .onSuccess { publishedInThisRun = true }
+            .onSuccess { file ->
+                publishedInThisRun = true
+                Log.i(BenchmarkConfig.JourneyReportTag, "journey report file: ${file.absolutePath}")
+                stageReportForCi(file)
+            }
             .onFailure { error ->
                 Log.w(BenchmarkConfig.JourneyReportTag, "journey report not written: $error")
             }
             .getOrNull()
     }
+
+    /**
+     * Stage a copy of [file] at [BenchmarkConfig.JourneyReportStagedPath] for the CI workflow.
+     *
+     * The connected-test cleanup uninstalls the app and the test package when the run ends - the
+     * same cleanup whose `Failed to uninstall package ...` lines appear when a device dies - and an
+     * uninstall wipes the external files dir of the app: by the time the post-Gradle adb work of
+     * the workflow runs, the original under /sdcard/Android/data is already gone, which is why the
+     * runs kept recovering the report from logcat. `/sdcard/Download` survives the cleanup, and the
+     * copy is made from inside the run, before it. Best-effort: the workflow still has the logcat
+     * fallback, so a failed copy only has to be visible in the logcat trail.
+     */
+    private fun stageReportForCi(file: File) {
+        val command =
+            "mkdir -p /sdcard/Download && cp -f ${file.absolutePath} ${BenchmarkConfig.JourneyReportStagedPath}"
+        val output =
+            runCatching { shellOutput(command) }.getOrElse { "executeShellCommand failed: $it" }
+        Log.i(
+            BenchmarkConfig.JourneyReportTag,
+            if (output.isBlank()) {
+                "journey report staged at ${BenchmarkConfig.JourneyReportStagedPath}"
+            } else {
+                "journey report staging output: ${output.trim()}"
+            },
+        )
+    }
+
+    /** Runs [command] through the instrumentation shell and returns its combined output. */
+    private fun shellOutput(command: String): String =
+        ParcelFileDescriptor.AutoCloseInputStream(
+                InstrumentationRegistry.getInstrumentation()
+                    .uiAutomation
+                    .executeShellCommand(command)
+            )
+            .use { it.readBytes().decodeToString() }
 
     /** Throws after the report is published, so a required journey cannot degrade silently. */
     fun throwIfRequiredFailed() {

@@ -44,6 +44,15 @@ internal object BenchmarkConfig {
      * a reworded UI silently reduces profile coverage while the run still looks green.
      */
     const val JourneyReportFileName = "journey-report.txt"
+
+    /**
+     * Where the generator stages a copy of the report for CI: the connected-test cleanup uninstalls
+     * the packages and wipes the external files dir of the app before the post-Gradle adb work of
+     * the workflow runs, and `/sdcard/Download` survives that. Keep in sync with the pull path in
+     * `.github/workflows/baseline-profile.yml`.
+     */
+    const val JourneyReportStagedPath = "/sdcard/Download/journey-report.txt"
+
     const val JourneyReportTag = "MonadBoxBaselineProfile"
     const val JourneyReportBeginMarker = "MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN"
     const val JourneyReportEndMarker = "MONADBOX_BASELINE_JOURNEY_REPORT_END"
