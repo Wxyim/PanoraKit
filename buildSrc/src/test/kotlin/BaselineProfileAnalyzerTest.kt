@@ -1,5 +1,6 @@
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BaselineProfileAnalyzerTest {
@@ -126,5 +127,32 @@ class BaselineProfileAnalyzerTest {
             "Delta vs committed profile: entries +0, classes +0.",
             BaselineProfileAnalyzer.renderDelta(current, baseline),
         )
+    }
+
+    @Test
+    fun warnsWhenDistinctClassesShrinkBelowCommittedProfile() {
+        val baseline = analyze(profile)
+        val current =
+            analyze(
+                profile.replace(
+                    "HSPLandroidx/compose/runtime/ComposerImpl;->changedInstance(Ljava/lang/Object;)Z\n",
+                    "",
+                )
+            )
+
+        val warning =
+            requireNotNull(BaselineProfileAnalyzer.renderClassTrendWarning(current, baseline))
+
+        assertTrue(warning.contains("classes decreased by 1"), warning)
+        assertTrue(warning.contains("entries changed by -1"), warning)
+    }
+
+    @Test
+    fun keepsQuietWhenClassCountHoldsOrGrows() {
+        val baseline = analyze(profile)
+        val grown = analyze(profile + "\nLcom/github/nomadboxlab/monadbox/Extra;->go()V")
+
+        assertNull(BaselineProfileAnalyzer.renderClassTrendWarning(baseline, baseline))
+        assertNull(BaselineProfileAnalyzer.renderClassTrendWarning(grown, baseline))
     }
 }

@@ -251,11 +251,12 @@ jobs:
           # The flake the retry absorbs kills the emulator a few minutes into the journeys, while the
           # guest is force-stopping, dex2oating and cold-starting the 50 MB app with the IME and the
           # system UI live. Give the guest enough headroom that it is not fighting its own lmkd at
-          # that moment, and the four cores the runner actually has: the pre-build above keeps the
-          # emulator phase free of competing Gradle compiles, so the CPUs are the emulator's to use.
+          # that moment - 1 g of app heap, raised from 768 m once the recovery retry started carrying
+          # most dispatches - and the four cores the runner actually has: the pre-build above keeps
+          # the emulator phase free of competing Gradle compiles, so the CPUs are the emulator's to use.
           cores: 4
           ram-size: 4096M
-          heap-size: 768M
+          heap-size: 1024M
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
@@ -275,8 +276,12 @@ jobs:
           # no device and captures nothing, while a stream keeps every line up to the death, including
           # the generator's per-leg `journey ...` trail. The post-run dump stays as a fallback for a
           # device that never streamed.
+          #
+          # The on-device find result and the adb pull outcome are echoed: a dispatch showed the pull
+          # can produce no file while the run still succeeds, and a fallback silently covering for a
+          # broken primary path would hide that the device-side route stopped working.
           script: |
-            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); echo "device-side journey report path: '${report_path}'"; if [ -n "$report_path" ]; then if timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt; then echo "journey report pulled from the device"; else echo "journey-report pull failed with exit code $?"; fi; else echo "no journey-report.txt on the device; the logcat fallback is the only route"; fi; exit $rc
 
       - name: Generate baseline profile (retry)
         id: generate_retry
@@ -305,29 +310,39 @@ jobs:
           target: google_apis
           cores: 4
           ram-size: 4096M
-          heap-size: 768M
+          heap-size: 1024M
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -no-snapshot
           script: |
-            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); if [ -n "$report_path" ]; then timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt || true; fi; exit $rc
+            mkdir -p build/reports/baseline-profile; stdbuf -oL -eL adb logcat -b all -v threadtime > build/reports/baseline-profile/logcat.txt 2>&1 & LOG_PID=$!; ./gradlew :app:generateBaselineProfile -Pabi.app.list=${PROFILE_ABI} -Pstartup.gate.enabled=false -Prelease.signing.required=false --no-daemon; rc=$?; kill "$LOG_PID" >/dev/null 2>&1 || true; sleep 1; if [ ! -s build/reports/baseline-profile/logcat.txt ]; then timeout 60 adb logcat -b all -d > build/reports/baseline-profile/logcat.txt || true; fi; report_path=$(timeout 60 adb shell find /sdcard/Android/data -name journey-report.txt 2>/dev/null | tr -d '\r' | head -n1 || true); echo "device-side journey report path: '${report_path}'"; if [ -n "$report_path" ]; then if timeout 60 adb pull "$report_path" build/reports/baseline-profile/journey-report.txt; then echo "journey report pulled from the device"; else echo "journey-report pull failed with exit code $?"; fi; else echo "no journey-report.txt on the device; the logcat fallback is the only route"; fi; exit $rc
 
       - name: Extract journey report from logcat
         # Fallback for when the report file could not be pulled from the device (the generator also
         # mirrors it to logcat, which the emulator script dumped while the device was still alive).
+        # A recovery is loud, not silent: it means the device-side route did not produce a file, and
+        # the fallback must not quietly become the primary path without anyone noticing.
         if: always()
         run: |
           set -euo pipefail
           report_dir=build/reports/baseline-profile
           report="$report_dir/journey-report.txt"
-          if [ ! -s "$report" ] && [ -s "$report_dir/logcat.txt" ]; then
+          if [ -s "$report" ]; then
+            echo "Journey report present, pulled from the device."
+          elif [ -s "$report_dir/logcat.txt" ]; then
             sed -n \
               '/MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN/,/MONADBOX_BASELINE_JOURNEY_REPORT_END/p' \
               "$report_dir/logcat.txt" > "$report" || true
             if [ -s "$report" ]; then
-              echo "Recovered the journey report from logcat."
+              blocks=$(grep -a -c 'MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN' "$report" || true)
+              echo "Recovered the journey report from logcat ($blocks report block(s))."
+              echo "::warning::The journey report was recovered from the logcat stream because the device-side adb pull produced no file; the run stays valid, but the pull route needs a look."
+            else
+              echo "No journey report markers in the logcat stream."
             fi
+          else
+            echo "No journey report and no logcat stream to recover it from."
           fi
 
       - name: Collect journey report
@@ -409,11 +424,16 @@ jobs:
             --no-daemon
 
       - name: Publish verification summary
+        # Warnings (e.g. a class-count dip that stays above the floors) turn into a run-level
+        # annotation here; the step summary alone can be scrolled past without being noticed.
         if: always()
         run: |
           summary=build/reports/baseline-profile/summary.md
           if [ -f "$summary" ]; then
             cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+            if grep -q '^### Baseline profile: WARN' "$summary"; then
+              echo "::warning::Baseline profile verification reported warnings; see the step summary."
+            fi
           fi
           report=build/reports/baseline-profile/verification.txt
           if [ -f "$report" ]; then

@@ -174,6 +174,10 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
                     minEntryRatio = minEntryRatio.get(),
                     minClassRatio = minClassRatio.get(),
                 )
+            // A class-count dip above the floor passes the gate, so nothing else would surface the
+            // trend; the warning keeps it visible in the report and the step summary.
+            BaselineProfileAnalyzer.renderClassTrendWarning(current = summary, baseline = baseline)
+                ?.let { warnings += it }
         }
 
         val delta = baseline?.let { BaselineProfileAnalyzer.renderDelta(summary, it) }

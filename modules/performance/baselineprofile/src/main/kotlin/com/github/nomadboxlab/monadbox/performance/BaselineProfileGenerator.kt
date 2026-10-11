@@ -19,6 +19,9 @@
 
 package com.github.nomadboxlab.monadbox.performance
 
+import android.content.Intent
+import android.os.SystemClock
+import android.util.Log
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -48,6 +51,8 @@ class BaselineProfileGenerator {
         val report = JourneyReport(BenchmarkConfig.TargetPackage)
 
         try {
+            // One cold start in front of the collection; see warmUpAppOnce below.
+            warmUpAppOnce()
             // `includeInStartupProfile` does not add a journey to the startup profile, it labels
             // the *whole* collection as the startup profile, so collecting every journey under it
             // produced a startup-prof.txt that was a byte-for-byte copy of baseline-prof.txt and
@@ -76,6 +81,8 @@ class BaselineProfileGenerator {
         val report = JourneyReport(BenchmarkConfig.TargetPackage)
 
         try {
+            // One cold start in front of the collection; see warmUpAppOnce below.
+            warmUpAppOnce()
             rule.collect(packageName = BenchmarkConfig.TargetPackage) {
                 // `collect` kills the package before every collection and the harness never starts
                 // it again, so this block has to launch the app itself. Without that the journeys
@@ -109,5 +116,38 @@ class BaselineProfileGenerator {
 
         // Throws after the report is published, so a required journey cannot degrade silently.
         report.throwIfRequiredFailed()
+    }
+
+    /**
+     * One cold start in front of a collection, settled for [BenchmarkConfig.JourneyWarmUpSettleMs].
+     *
+     * `collect` force-stops the package before every collection, and on the CI guest the moment the
+     * 50 MB app is dex2oated and cold-started again is where the emulator has died most often (see
+     * the pre-build comment in the baseline profile workflow). Launching the app once here pulls
+     * the first-run work - profile-guided compiling, asset and database creation - in front of the
+     * collection instead of leaving it inside the fragile window; the collection still starts from
+     * a cleanly killed package either way.
+     *
+     * Best-effort by design: a warm-up that cannot even launch the app must not fail the
+     * collection, it only has to leave its outcome in the logcat trail.
+     */
+    private fun warmUpAppOnce() {
+        val outcome = runCatching {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val intent =
+                requireNotNull(
+                    context.packageManager.getLaunchIntentForPackage(BenchmarkConfig.TargetPackage)
+                ) {
+                    "no launcher intent for ${BenchmarkConfig.TargetPackage}"
+                }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            SystemClock.sleep(BenchmarkConfig.JourneyWarmUpSettleMs)
+        }
+        Log.i(
+            BenchmarkConfig.JourneyReportTag,
+            outcome.exceptionOrNull()?.let { "warm-up cold start failed: $it" }
+                ?: "warm-up cold start settled",
+        )
     }
 }

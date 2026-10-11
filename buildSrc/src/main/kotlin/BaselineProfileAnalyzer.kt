@@ -164,5 +164,27 @@ internal object BaselineProfileAnalyzer {
         return "Delta vs committed profile: entries ${sign(entryDelta)}, classes ${sign(classDelta)}."
     }
 
+    /**
+     * A non-fatal heads-up for class coverage that slipped below the committed profile.
+     *
+     * The ratio floors in [compareToBaseline] only catch a profile that lost a serious share of its
+     * coverage; a smaller shrink still passes and stays invisible across dispatches. Reporting
+     * every decrease as a warning keeps the trend on the dashboard without failing the build over a
+     * class count that legitimately wobbles between collections.
+     */
+    fun renderClassTrendWarning(
+        current: BaselineProfileSummary,
+        baseline: BaselineProfileSummary,
+    ): String? {
+        if (baseline.entries == 0 || baseline.classes == 0 || current.classes >= baseline.classes) {
+            return null
+        }
+        val entryDelta = current.entries - baseline.entries
+        val entryNote = if (entryDelta >= 0) "+$entryDelta" else entryDelta.toString()
+        return "Distinct classes decreased by ${baseline.classes - current.classes} vs the committed " +
+            "profile (${baseline.classes} -> ${current.classes}) while entries changed by $entryNote; " +
+            "still above the regression floor, but worth watching across dispatches."
+    }
+
     private const val TOP_PACKAGE_LIMIT = 8
 }
