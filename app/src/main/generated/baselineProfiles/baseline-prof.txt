@@ -2367,13 +2367,13 @@ SPLandroidx/compose/foundation/AbstractClickableNode;->getTraverseKey()Ljava/lan
 PLandroidx/compose/foundation/AbstractClickableNode;->handlePressInteractionCancel(Z)V
 SPLandroidx/compose/foundation/AbstractClickableNode;->handlePressInteractionRelease-3MmeM6k(JZ)V
 SPLandroidx/compose/foundation/AbstractClickableNode;->handlePressInteractionStart(Landroidx/compose/ui/input/pointer/PointerInputChange;)V
-SPLandroidx/compose/foundation/AbstractClickableNode;->initializeGestureCoordination()V
+PLandroidx/compose/foundation/AbstractClickableNode;->initializeGestureCoordination()V
 SPLandroidx/compose/foundation/AbstractClickableNode;->initializeIndicationAndInteractionSourceIfNeeded()V
 SPLandroidx/compose/foundation/AbstractClickableNode;->onAttach()V
 SPLandroidx/compose/foundation/AbstractClickableNode;->onDetach()V
 SPLandroidx/compose/foundation/AbstractClickableNode;->onObservedReadsChanged$lambda$0(Landroidx/compose/foundation/AbstractClickableNode;)Lkotlin/Unit;
 SPLandroidx/compose/foundation/AbstractClickableNode;->onObservedReadsChanged()V
-SPLandroidx/compose/foundation/AbstractClickableNode;->onPointerEvent-H0pRuoY(Landroidx/compose/ui/input/pointer/PointerEvent;Landroidx/compose/ui/input/pointer/PointerEventPass;J)V
+HPLandroidx/compose/foundation/AbstractClickableNode;->onPointerEvent-H0pRuoY(Landroidx/compose/ui/input/pointer/PointerEvent;Landroidx/compose/ui/input/pointer/PointerEventPass;J)V
 PLandroidx/compose/foundation/AbstractClickableNode;->recreateIndicationIfNeeded()V
 SPLandroidx/compose/foundation/AbstractClickableNode;->shouldLazilyCreateIndication()Z
 SPLandroidx/compose/foundation/AbstractClickableNode;->updateCommon-O2vRcR0(Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/IndicationNodeFactory;ZZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;)V
@@ -2570,14 +2570,14 @@ SPLandroidx/compose/foundation/FocusableNode$focusTargetNode$1;-><init>(Ljava/la
 Landroidx/compose/foundation/GestureConnection;
 Landroidx/compose/foundation/GestureNode;
 SPLandroidx/compose/foundation/GestureNode;-><clinit>()V
-SPLandroidx/compose/foundation/GestureNode;-><init>(Landroidx/compose/foundation/GestureConnection;)V
+PLandroidx/compose/foundation/GestureNode;-><init>(Landroidx/compose/foundation/GestureConnection;)V
 SPLandroidx/compose/foundation/GestureNode;->getGestureConnection()Landroidx/compose/foundation/GestureConnection;
 SPLandroidx/compose/foundation/GestureNode;->getTraverseKey()Ljava/lang/Object;
 Landroidx/compose/foundation/GestureNode$TraverseKey;
 SPLandroidx/compose/foundation/GestureNode$TraverseKey;-><init>()V
 SPLandroidx/compose/foundation/GestureNode$TraverseKey;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 Landroidx/compose/foundation/GestureNodeKt;
-SPLandroidx/compose/foundation/GestureNodeKt;->gestureNode(Landroidx/compose/foundation/GestureConnection;)Landroidx/compose/ui/node/DelegatableNode;
+PLandroidx/compose/foundation/GestureNodeKt;->gestureNode(Landroidx/compose/foundation/GestureConnection;)Landroidx/compose/ui/node/DelegatableNode;
 PLandroidx/compose/foundation/GestureNodeKt;->getParentGestureConnection(Landroidx/compose/ui/node/DelegatableNode;)Landroidx/compose/foundation/GestureConnection;
 SPLandroidx/compose/foundation/GestureNodeKt;->traverseAncestorGestureConnections$lambda$0(Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/node/TraversableNode;)Z
 SPLandroidx/compose/foundation/GestureNodeKt;->traverseAncestorGestureConnections(Landroidx/compose/ui/node/DelegatableNode;Lkotlin/jvm/functions/Function1;)V
@@ -3485,6 +3485,7 @@ SPLandroidx/compose/foundation/layout/BoxWithConstraintsKt;->BoxWithConstraints(
 Landroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda0;
 SPLandroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda0;-><init>(Landroidx/compose/ui/layout/MeasurePolicy;Lkotlin/jvm/functions/Function3;)V
 SPLandroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda0;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+PLandroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda1;-><init>(Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;ZLkotlin/jvm/functions/Function3;II)V
 PLandroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda1;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 Landroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda2;
 SPLandroidx/compose/foundation/layout/BoxWithConstraintsKt$$ExternalSyntheticLambda2;-><init>(Lkotlin/jvm/functions/Function3;Landroidx/compose/foundation/layout/BoxWithConstraintsScopeImpl;)V
@@ -4590,13 +4591,10 @@ PLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactory$CachedIte
 Landroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt;
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt;->SkippableItem-JVlU9Rs(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;Ljava/lang/Object;ILjava/lang/Object;Landroidx/compose/runtime/Composer;I)V
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt;->SkippableItem_JVlU9Rs$lambda$0(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;ILjava/lang/Object;Landroidx/compose/runtime/Composer;I)Lkotlin/Unit;
-PLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt;->SkippableItem_JVlU9Rs$lambda$1(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;Ljava/lang/Object;ILjava/lang/Object;ILandroidx/compose/runtime/Composer;I)Lkotlin/Unit;
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt;->access$SkippableItem-JVlU9Rs(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;Ljava/lang/Object;ILjava/lang/Object;Landroidx/compose/runtime/Composer;I)V
 Landroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt$$ExternalSyntheticLambda0;
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt$$ExternalSyntheticLambda0;-><init>(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;ILjava/lang/Object;)V
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt$$ExternalSyntheticLambda0;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-PLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt$$ExternalSyntheticLambda1;-><init>(Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;Ljava/lang/Object;ILjava/lang/Object;I)V
-PLandroidx/compose/foundation/lazy/layout/LazyLayoutItemContentFactoryKt$$ExternalSyntheticLambda1;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;
 SPLandroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;->getContentType(I)Ljava/lang/Object;
 Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProviderKt;
@@ -5034,7 +5032,6 @@ SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;-><clinit>()V
 SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;-><init>(Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/foundation/lazy/layout/LazyLayoutIntervalContent;Landroidx/compose/foundation/lazy/layout/LazyLayoutKeyIndexMap;)V
 SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;->Item$lambda$0(Landroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;ILandroidx/compose/runtime/Composer;I)Lkotlin/Unit;
 SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;->Item(ILjava/lang/Object;Landroidx/compose/runtime/Composer;I)V
-PLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;->equals(Ljava/lang/Object;)Z
 SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;->getItemCount()I
 SPLandroidx/compose/foundation/pager/PagerLazyLayoutItemProvider;->getKey(I)Ljava/lang/Object;
 Landroidx/compose/foundation/pager/PagerLazyLayoutItemProvider$$ExternalSyntheticLambda0;
@@ -5094,7 +5091,7 @@ PLandroidx/compose/foundation/pager/PagerMeasureResult;->getFirstVisiblePageScro
 SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getHeight()I
 SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getOrientation()Landroidx/compose/foundation/gestures/Orientation;
 SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getPageSize()I
-SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getPageSpacing()I
+PLandroidx/compose/foundation/pager/PagerMeasureResult;->getPageSpacing()I
 PLandroidx/compose/foundation/pager/PagerMeasureResult;->getReverseLayout()Z
 SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getRulers()Lkotlin/jvm/functions/Function1;
 SPLandroidx/compose/foundation/pager/PagerMeasureResult;->getSnapPosition()Landroidx/compose/foundation/gestures/snapping/SnapPosition;
@@ -5171,7 +5168,7 @@ PLandroidx/compose/foundation/pager/PagerState;->getMaxScrollOffset$foundation()
 SPLandroidx/compose/foundation/pager/PagerState;->getMeasurementScopeInvalidator-zYiylxw$foundation()Landroidx/compose/runtime/MutableState;
 PLandroidx/compose/foundation/pager/PagerState;->getMinScrollOffset$foundation()J
 SPLandroidx/compose/foundation/pager/PagerState;->getNearestRange$foundation()Lkotlin/ranges/IntRange;
-PLandroidx/compose/foundation/pager/PagerState;->getPageSize$foundation()I
+HPLandroidx/compose/foundation/pager/PagerState;->getPageSize$foundation()I
 PLandroidx/compose/foundation/pager/PagerState;->getPageSizeWithSpacing$foundation()I
 PLandroidx/compose/foundation/pager/PagerState;->getPageSpacing$foundation()I
 SPLandroidx/compose/foundation/pager/PagerState;->getPinnedPages$foundation()Landroidx/compose/foundation/lazy/layout/LazyLayoutPinnedItemList;
@@ -5244,7 +5241,6 @@ PLandroidx/compose/foundation/pager/PagerStateKt;->access$calculateNewMinScrollO
 SPLandroidx/compose/foundation/pager/PagerStateKt;->access$getUnitDensity$p()Landroidx/compose/foundation/pager/PagerStateKt$UnitDensity$1;
 PLandroidx/compose/foundation/pager/PagerStateKt;->animateScrollToPage$lambda$2(Lkotlin/jvm/internal/Ref$FloatRef;Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;FF)Lkotlin/Unit;
 PLandroidx/compose/foundation/pager/PagerStateKt;->animateScrollToPage(Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;IFLandroidx/compose/animation/core/AnimationSpec;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-HPLandroidx/compose/foundation/pager/PagerStateKt;->calculateNewMaxScrollOffset(Landroidx/compose/foundation/pager/PagerLayoutInfo;I)J
 SPLandroidx/compose/foundation/pager/PagerStateKt;->calculateNewMinScrollOffset(Landroidx/compose/foundation/pager/PagerMeasureResult;I)J
 PLandroidx/compose/foundation/pager/PagerStateKt;->getDefaultPositionThreshold()F
 SPLandroidx/compose/foundation/pager/PagerStateKt;->getEmptyLayoutInfo()Landroidx/compose/foundation/pager/PagerMeasureResult;
@@ -6352,7 +6348,7 @@ SPLandroidx/compose/runtime/CompositionImpl;->applyChanges()V
 HSPLandroidx/compose/runtime/CompositionImpl;->applyChangesInLocked(Landroidx/compose/runtime/Changes;)V
 SPLandroidx/compose/runtime/CompositionImpl;->applyLateChanges()V
 SPLandroidx/compose/runtime/CompositionImpl;->changesApplied()V
-SPLandroidx/compose/runtime/CompositionImpl;->cleanUpDerivedStateObservations()V
+HSPLandroidx/compose/runtime/CompositionImpl;->cleanUpDerivedStateObservations()V
 SPLandroidx/compose/runtime/CompositionImpl;->clearDeactivated()Z
 SPLandroidx/compose/runtime/CompositionImpl;->composeContent(Lkotlin/jvm/functions/Function2;)V
 SPLandroidx/compose/runtime/CompositionImpl;->composeInitial(Lkotlin/jvm/functions/Function2;)V
@@ -6567,7 +6563,7 @@ SPLandroidx/compose/runtime/GapComposer;->ensureWriter()V
 HSPLandroidx/compose/runtime/GapComposer;->enterGroup(ZLandroidx/compose/runtime/GapPending;)V
 HSPLandroidx/compose/runtime/GapComposer;->enterRecomposeScope(Landroidx/compose/runtime/RecomposeScopeImpl;)V
 HSPLandroidx/compose/runtime/GapComposer;->exitGroup(IZ)V
-HSPLandroidx/compose/runtime/GapComposer;->exitRecomposeScope(Landroidx/compose/runtime/RecomposeScopeImpl;)Lkotlin/jvm/functions/Function1;
+SPLandroidx/compose/runtime/GapComposer;->exitRecomposeScope(Landroidx/compose/runtime/RecomposeScopeImpl;)Lkotlin/jvm/functions/Function1;
 SPLandroidx/compose/runtime/GapComposer;->finalizeCompose()V
 SPLandroidx/compose/runtime/GapComposer;->forceFreshInsertTable()V
 SPLandroidx/compose/runtime/GapComposer;->getApplier()Landroidx/compose/runtime/Applier;
@@ -7072,7 +7068,7 @@ PLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda0;-><init>(Landroi
 PLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda0;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
 Landroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda1;
 SPLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda1;-><init>(Landroidx/compose/runtime/ControlledComposition;)V
-SPLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda1;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
+HSPLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda1;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
 Landroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda2;
 SPLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda2;-><init>(Landroidx/compose/runtime/Recomposer;)V
 SPLandroidx/compose/runtime/Recomposer$$ExternalSyntheticLambda2;->invoke()Ljava/lang/Object;
@@ -7376,7 +7372,7 @@ SPLandroidx/compose/runtime/StaticValueHolder;->readValue(Landroidx/compose/runt
 Landroidx/compose/runtime/StructuralEqualityPolicy;
 SPLandroidx/compose/runtime/StructuralEqualityPolicy;-><clinit>()V
 SPLandroidx/compose/runtime/StructuralEqualityPolicy;-><init>()V
-HSPLandroidx/compose/runtime/StructuralEqualityPolicy;->equivalent(Ljava/lang/Object;Ljava/lang/Object;)Z
+SPLandroidx/compose/runtime/StructuralEqualityPolicy;->equivalent(Ljava/lang/Object;Ljava/lang/Object;)Z
 Landroidx/compose/runtime/Updater;
 SPLandroidx/compose/runtime/Updater;->constructor-impl(Landroidx/compose/runtime/Composer;)Landroidx/compose/runtime/Composer;
 SPLandroidx/compose/runtime/Updater;->init-impl(Landroidx/compose/runtime/Composer;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)V
@@ -8047,6 +8043,7 @@ SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementatio
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->makeNode(ILjava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;ILandroidx/compose/runtime/external/kotlinx/collections/immutable/internal/MutabilityOwnership;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->moveEntryToNode(IIILjava/lang/Object;Ljava/lang/Object;I)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->mutableInsertEntryAt(ILjava/lang/Object;Ljava/lang/Object;Landroidx/compose/runtime/external/kotlinx/collections/immutable/internal/MutabilityOwnership;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
+PLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->mutableMoveEntryToNode(IIILjava/lang/Object;Ljava/lang/Object;ILandroidx/compose/runtime/external/kotlinx/collections/immutable/internal/MutabilityOwnership;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->mutablePut(ILjava/lang/Object;Ljava/lang/Object;ILandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/PersistentHashMapBuilder;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->mutablePutAll(Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;ILandroidx/compose/runtime/external/kotlinx/collections/immutable/internal/DeltaCounter;Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/PersistentHashMapBuilder;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->mutablePutAllFromOtherNodeCell(Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;IILandroidx/compose/runtime/external/kotlinx/collections/immutable/internal/DeltaCounter;Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/PersistentHashMapBuilder;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
@@ -8054,10 +8051,10 @@ SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementatio
 HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->nodeAtIndex$runtime(I)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->nodeIndex$runtime(I)I
 HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->put(ILjava/lang/Object;Ljava/lang/Object;I)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode$ModificationResult;
-HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->remove(ILjava/lang/Object;I)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
+SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->remove(ILjava/lang/Object;I)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->removeEntryAtIndex(II)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 PLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->replaceNode(Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;II)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
-SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->updateNodeAtIndex(IILandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
+HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->updateNodeAtIndex(IILandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->updateValueAtIndex(ILjava/lang/Object;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode;->valueAtKeyIndex(I)Ljava/lang/Object;
 Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/TrieNode$Companion;
@@ -8106,7 +8103,7 @@ Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;-><clinit>()V
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;-><init>(Ljava/lang/Object;Ljava/lang/Object;Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/immutableMap/PersistentHashMap;)V
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->access$getEMPTY$cp()Landroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;
-SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->add(Ljava/lang/Object;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/PersistentSet;
+HSPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->add(Ljava/lang/Object;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/PersistentSet;
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->getSize()I
 SPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->iterator()Ljava/util/Iterator;
 HPLandroidx/compose/runtime/external/kotlinx/collections/immutable/implementations/persistentOrderedSet/PersistentOrderedSet;->remove(Ljava/lang/Object;)Landroidx/compose/runtime/external/kotlinx/collections/immutable/PersistentSet;
@@ -8287,6 +8284,8 @@ SPLandroidx/compose/runtime/internal/Trace;-><init>()V
 SPLandroidx/compose/runtime/internal/Trace;->beginSection(Ljava/lang/String;)Ljava/lang/Object;
 SPLandroidx/compose/runtime/internal/Trace;->endSection(Ljava/lang/Object;)V
 Landroidx/compose/runtime/internal/WeakReference;
+PLandroidx/compose/runtime/internal/WeakReference;-><clinit>()V
+PLandroidx/compose/runtime/internal/WeakReference;-><init>(Ljava/lang/Object;)V
 Landroidx/compose/runtime/retain/ForgetfulRetainedValuesStore;
 SPLandroidx/compose/runtime/retain/ForgetfulRetainedValuesStore;-><clinit>()V
 SPLandroidx/compose/runtime/retain/ForgetfulRetainedValuesStore;-><init>()V
@@ -8584,7 +8583,6 @@ Landroidx/compose/runtime/snapshots/SnapshotId_jvmKt;
 SPLandroidx/compose/runtime/snapshots/SnapshotId_jvmKt;->binarySearch([JJ)I
 SPLandroidx/compose/runtime/snapshots/SnapshotId_jvmKt;->snapshotIdArrayWithCapacity(I)[J
 SPLandroidx/compose/runtime/snapshots/SnapshotId_jvmKt;->toSnapshotId(I)J
-PLandroidx/compose/runtime/snapshots/SnapshotId_jvmKt;->withIdInsertedAt([JIJ)[J
 SPLandroidx/compose/runtime/snapshots/SnapshotId_jvmKt;->withIdRemovedAt([JI)[J
 Landroidx/compose/runtime/snapshots/SnapshotKt;
 SPLandroidx/compose/runtime/snapshots/SnapshotKt;-><clinit>()V
@@ -8628,7 +8626,7 @@ SPLandroidx/compose/runtime/snapshots/SnapshotKt;->mergedWriteObserver(Lkotlin/j
 HSPLandroidx/compose/runtime/snapshots/SnapshotKt;->newOverwritableRecordLocked(Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateObject;)Landroidx/compose/runtime/snapshots/StateRecord;
 SPLandroidx/compose/runtime/snapshots/SnapshotKt;->newWritableRecord(Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateObject;Landroidx/compose/runtime/snapshots/Snapshot;)Landroidx/compose/runtime/snapshots/StateRecord;
 SPLandroidx/compose/runtime/snapshots/SnapshotKt;->newWritableRecordLocked(Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateObject;Landroidx/compose/runtime/snapshots/Snapshot;)Landroidx/compose/runtime/snapshots/StateRecord;
-HSPLandroidx/compose/runtime/snapshots/SnapshotKt;->notifyWrite(Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/StateObject;)V
+SPLandroidx/compose/runtime/snapshots/SnapshotKt;->notifyWrite(Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/StateObject;)V
 SPLandroidx/compose/runtime/snapshots/SnapshotKt;->optimisticMerges(JLandroidx/compose/runtime/snapshots/MutableSnapshot;Landroidx/compose/runtime/snapshots/SnapshotIdSet;)Ljava/util/Map;
 HSPLandroidx/compose/runtime/snapshots/SnapshotKt;->overwritableRecord(Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateObject;Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/StateRecord;)Landroidx/compose/runtime/snapshots/StateRecord;
 SPLandroidx/compose/runtime/snapshots/SnapshotKt;->overwriteUnusedRecordsLocked(Landroidx/compose/runtime/snapshots/StateObject;)Z
@@ -8786,7 +8784,12 @@ SPLandroidx/compose/runtime/snapshots/SnapshotStateSetKt;->stateRecordWith(Landr
 Landroidx/compose/runtime/snapshots/SnapshotWeakSet;
 SPLandroidx/compose/runtime/snapshots/SnapshotWeakSet;-><clinit>()V
 SPLandroidx/compose/runtime/snapshots/SnapshotWeakSet;-><init>()V
+PLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->add(Ljava/lang/Object;)Z
+PLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->find(Ljava/lang/Object;I)I
+PLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->getHashes$runtime()[I
 SPLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->getSize$runtime()I
+PLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->getValues$runtime()[Landroidx/compose/runtime/internal/WeakReference;
+PLandroidx/compose/runtime/snapshots/SnapshotWeakSet;->setSize$runtime(I)V
 Landroidx/compose/runtime/snapshots/StateListIterator;
 SPLandroidx/compose/runtime/snapshots/StateListIterator;-><clinit>()V
 SPLandroidx/compose/runtime/snapshots/StateListIterator;-><init>(Landroidx/compose/runtime/snapshots/SnapshotStateList;I)V
@@ -8839,7 +8842,7 @@ SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->dispo
 HSPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getCurrentSnapshot()Landroidx/compose/runtime/snapshots/MutableSnapshot;
 SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getInvalid$runtime()Landroidx/compose/runtime/snapshots/SnapshotIdSet;
 SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getReadObserver$runtime()Lkotlin/jvm/functions/Function1;
-HSPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getReadObserver()Lkotlin/jvm/functions/Function1;
+SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getReadObserver()Lkotlin/jvm/functions/Function1;
 SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getReadOnly()Z
 SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getSnapshotId()J
 SPLandroidx/compose/runtime/snapshots/TransparentObserverMutableSnapshot;->getThreadId$runtime()J
@@ -9490,6 +9493,7 @@ SPLandroidx/compose/ui/geometry/Offset;->equals(Ljava/lang/Object;)Z
 SPLandroidx/compose/ui/geometry/Offset;->equals-impl(JLjava/lang/Object;)Z
 SPLandroidx/compose/ui/geometry/Offset;->equals-impl0(JJ)Z
 PLandroidx/compose/ui/geometry/Offset;->getDistance-impl(J)F
+PLandroidx/compose/ui/geometry/Offset;->getDistanceSquared-impl(J)F
 PLandroidx/compose/ui/geometry/Offset;->hashCode-impl(J)I
 HPLandroidx/compose/ui/geometry/Offset;->minus-MK-Hz9U(JJ)J
 HPLandroidx/compose/ui/geometry/Offset;->plus-MK-Hz9U(JJ)J
@@ -9643,7 +9647,7 @@ SPLandroidx/compose/ui/graphics/AndroidImageBitmap_androidKt;->asAndroidBitmap(L
 SPLandroidx/compose/ui/graphics/AndroidImageBitmap_androidKt;->toBitmapConfig-1JJdX4A(I)Landroid/graphics/Bitmap$Config;
 SPLandroidx/compose/ui/graphics/AndroidImageBitmap_androidKt;->toImageConfig(Landroid/graphics/Bitmap$Config;)I
 Landroidx/compose/ui/graphics/AndroidMatrixConversions_androidKt;
-HSPLandroidx/compose/ui/graphics/AndroidMatrixConversions_androidKt;->setFrom-tU-YjHk([FLandroid/graphics/Matrix;)V
+SPLandroidx/compose/ui/graphics/AndroidMatrixConversions_androidKt;->setFrom-tU-YjHk([FLandroid/graphics/Matrix;)V
 Landroidx/compose/ui/graphics/AndroidPaint;
 SPLandroidx/compose/ui/graphics/AndroidPaint;-><clinit>()V
 SPLandroidx/compose/ui/graphics/AndroidPaint;-><init>()V
@@ -10248,7 +10252,7 @@ SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->getTransformOrigin
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->getTranslationX()F
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->getTranslationY()F
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->invalidateLayerBlock()V
-SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->isImportantForBounds()Z
+HSPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->isImportantForBounds()Z
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->measure-3p2s80s(Landroidx/compose/ui/layout/MeasureScope;Landroidx/compose/ui/layout/Measurable;J)Landroidx/compose/ui/layout/MeasureResult;
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->setAlpha(F)V
 SPLandroidx/compose/ui/graphics/SimpleGraphicsLayerModifier;->setAmbientShadowColor-8_81llA(J)V
@@ -11404,7 +11408,7 @@ SPLandroidx/compose/ui/input/pointer/PointerEvent;->getChanges()Ljava/util/List;
 PLandroidx/compose/ui/input/pointer/PointerEvent;->getClassification()I
 PLandroidx/compose/ui/input/pointer/PointerEvent;->getInternalPointerEvent$ui()Landroidx/compose/ui/input/pointer/InternalPointerEvent;
 SPLandroidx/compose/ui/input/pointer/PointerEvent;->getMotionEvent()Landroid/view/MotionEvent;
-SPLandroidx/compose/ui/input/pointer/PointerEvent;->getType-7fucELk()I
+PLandroidx/compose/ui/input/pointer/PointerEvent;->getType-7fucELk()I
 Landroidx/compose/ui/input/pointer/PointerEventKt;
 SPLandroidx/compose/ui/input/pointer/PointerEventKt;->changedToDown(Landroidx/compose/ui/input/pointer/PointerInputChange;)Z
 SPLandroidx/compose/ui/input/pointer/PointerEventKt;->changedToDownIgnoreConsumed(Landroidx/compose/ui/input/pointer/PointerInputChange;)Z
@@ -11423,8 +11427,8 @@ SPLandroidx/compose/ui/input/pointer/PointerEventPass;->values()[Landroidx/compo
 Landroidx/compose/ui/input/pointer/PointerEventTimeoutCancellationException;
 Landroidx/compose/ui/input/pointer/PointerEventType;
 SPLandroidx/compose/ui/input/pointer/PointerEventType;-><clinit>()V
-SPLandroidx/compose/ui/input/pointer/PointerEventType;->access$getEnter$cp()I
-SPLandroidx/compose/ui/input/pointer/PointerEventType;->access$getExit$cp()I
+PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getEnter$cp()I
+PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getExit$cp()I
 SPLandroidx/compose/ui/input/pointer/PointerEventType;->access$getMove$cp()I
 PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getPanEnd$cp()I
 PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getPanMove$cp()I
@@ -11433,12 +11437,12 @@ PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getPress$cp()I
 PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getRelease$cp()I
 PLandroidx/compose/ui/input/pointer/PointerEventType;->access$getScroll$cp()I
 SPLandroidx/compose/ui/input/pointer/PointerEventType;->constructor-impl(I)I
-SPLandroidx/compose/ui/input/pointer/PointerEventType;->equals-impl0(II)Z
+PLandroidx/compose/ui/input/pointer/PointerEventType;->equals-impl0(II)Z
 Landroidx/compose/ui/input/pointer/PointerEventType$Companion;
 SPLandroidx/compose/ui/input/pointer/PointerEventType$Companion;-><init>()V
 SPLandroidx/compose/ui/input/pointer/PointerEventType$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-SPLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getEnter-7fucELk()I
-SPLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getExit-7fucELk()I
+PLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getEnter-7fucELk()I
+PLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getExit-7fucELk()I
 SPLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getMove-7fucELk()I
 PLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getPanEnd-7fucELk()I
 PLandroidx/compose/ui/input/pointer/PointerEventType$Companion;->getPanMove-7fucELk()I
@@ -12436,6 +12440,7 @@ SPLandroidx/compose/ui/node/HitTestResult;->get(I)Ljava/lang/Object;
 SPLandroidx/compose/ui/node/HitTestResult;->getSize()I
 SPLandroidx/compose/ui/node/HitTestResult;->hasHit()Z
 PLandroidx/compose/ui/node/HitTestResult;->isEmpty()Z
+PLandroidx/compose/ui/node/HitTestResult;->isHitInMinimumTouchTargetBetter(FZ)Z
 SPLandroidx/compose/ui/node/HitTestResult;->removeNodesInRange(II)V
 SPLandroidx/compose/ui/node/HitTestResult;->size()I
 Landroidx/compose/ui/node/HitTestResultKt;
@@ -14809,7 +14814,7 @@ SPLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->scrollToIndex(Landroidx
 SPLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->selectableGroup(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)V
 SPLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setCollectionInfo(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/semantics/CollectionInfo;)V
 PLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setContentDataType(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/autofill/ContentDataType;)V
-HSPLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setContentDescription(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/lang/String;)V
+SPLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setContentDescription(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/lang/String;)V
 PLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setEditable(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Z)V
 PLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setEditableText(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/text/AnnotatedString;)V
 PLandroidx/compose/ui/semantics/SemanticsPropertiesKt;->setFillableData(Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/autofill/FillableData;)V
@@ -16560,7 +16565,7 @@ SPLandroidx/compose/ui/unit/IntSize$Companion;-><init>()V
 SPLandroidx/compose/ui/unit/IntSize$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 SPLandroidx/compose/ui/unit/IntSize$Companion;->getZero-YbymL2g()J
 Landroidx/compose/ui/unit/IntSizeKt;
-SPLandroidx/compose/ui/unit/IntSizeKt;->getCenter-ozmzZPI(J)J
+PLandroidx/compose/ui/unit/IntSizeKt;->getCenter-ozmzZPI(J)J
 HSPLandroidx/compose/ui/unit/IntSizeKt;->roundToIntSize-uvyYCjk(J)J
 SPLandroidx/compose/ui/unit/IntSizeKt;->toIntSize-uvyYCjk(J)J
 HSPLandroidx/compose/ui/unit/IntSizeKt;->toSize-ozmzZPI(J)J
@@ -17526,6 +17531,7 @@ Landroidx/core/view/WindowInsetsControllerCompat$Impl35;
 SPLandroidx/core/view/WindowInsetsControllerCompat$Impl35;-><init>(Landroid/view/Window;Landroidx/core/view/WindowInsetsControllerCompat;Landroidx/core/view/SoftwareKeyboardControllerCompat;)V
 SPLandroidx/core/view/WindowInsetsControllerCompat$Impl35;->setAppearanceLightNavigationBars(Z)V
 SPLandroidx/core/view/WindowInsetsControllerCompat$Impl35;->setAppearanceLightStatusBars(Z)V
+Landroidx/core/view/accessibility/AccessibilityClickableSpanCompat;
 Landroidx/core/view/accessibility/AccessibilityManagerCompat;
 SPLandroidx/core/view/accessibility/AccessibilityManagerCompat;->isRequestFromAccessibilityTool(Landroid/view/accessibility/AccessibilityManager;)Z
 Landroidx/core/view/accessibility/AccessibilityManagerCompat$Api34Impl;
@@ -19085,10 +19091,13 @@ SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleResumeEffect(Ljava/la
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleResumeEffectImpl$lambda$0$0$0(Landroidx/lifecycle/compose/LifecycleResumePauseEffectScope;Lkotlin/jvm/internal/Ref$ObjectRef;Lkotlin/jvm/functions/Function1;Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/Lifecycle$Event;)V
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleResumeEffectImpl$lambda$0$0(Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/compose/LifecycleResumePauseEffectScope;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/DisposableEffectScope;)Landroidx/compose/runtime/DisposableEffectResult;
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleResumeEffectImpl(Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/compose/LifecycleResumePauseEffectScope;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
+PLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleStartEffect$lambda$3(Ljava/lang/Object;Ljava/lang/Object;Landroidx/lifecycle/LifecycleOwner;Lkotlin/jvm/functions/Function1;IILandroidx/compose/runtime/Composer;I)Lkotlin/Unit;
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleStartEffect(Ljava/lang/Object;Ljava/lang/Object;Landroidx/lifecycle/LifecycleOwner;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleStartEffectImpl$lambda$0$0$0(Landroidx/lifecycle/compose/LifecycleStartStopEffectScope;Lkotlin/jvm/internal/Ref$ObjectRef;Lkotlin/jvm/functions/Function1;Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/Lifecycle$Event;)V
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleStartEffectImpl$lambda$0$0(Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/compose/LifecycleStartStopEffectScope;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/DisposableEffectScope;)Landroidx/compose/runtime/DisposableEffectResult;
 SPLandroidx/lifecycle/compose/LifecycleEffectKt;->LifecycleStartEffectImpl(Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/compose/LifecycleStartStopEffectScope;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
+PLandroidx/lifecycle/compose/LifecycleEffectKt$$ExternalSyntheticLambda10;-><init>(Ljava/lang/Object;Ljava/lang/Object;Landroidx/lifecycle/LifecycleOwner;Lkotlin/jvm/functions/Function1;II)V
+PLandroidx/lifecycle/compose/LifecycleEffectKt$$ExternalSyntheticLambda10;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 Landroidx/lifecycle/compose/LifecycleEffectKt$$ExternalSyntheticLambda12;
 SPLandroidx/lifecycle/compose/LifecycleEffectKt$$ExternalSyntheticLambda12;-><init>(Landroidx/lifecycle/compose/LifecycleStartStopEffectScope;Lkotlin/jvm/internal/Ref$ObjectRef;Lkotlin/jvm/functions/Function1;)V
 SPLandroidx/lifecycle/compose/LifecycleEffectKt$$ExternalSyntheticLambda12;->onStateChanged(Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/Lifecycle$Event;)V
@@ -21830,14 +21839,14 @@ SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;-><clinit>()V
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;-><init>(JLjava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;)V
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->equals(Ljava/lang/Object;)Z
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getId()J
-PLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getMessage()Ljava/lang/String;
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getMessage()Ljava/lang/String;
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getMode()Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;
-PLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getTitle()Ljava/lang/String;
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;->getTitle()Ljava/lang/String;
 Lcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;
-PLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->showToastDialog$default(Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;ILjava/lang/Object;)V
-PLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->showToastDialog(Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;)V
-PLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->toast$default(Landroid/content/Context;Ljava/lang/String;ILcom/github/nomadboxlab/monadbox/common/util/ToastMode;ILjava/lang/Object;)V
-PLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->toast(Landroid/content/Context;Ljava/lang/String;ILcom/github/nomadboxlab/monadbox/common/util/ToastMode;)V
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->showToastDialog$default(Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;ILjava/lang/Object;)V
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->showToastDialog(Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;)V
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->toast$default(Landroid/content/Context;Ljava/lang/String;ILcom/github/nomadboxlab/monadbox/common/util/ToastMode;ILjava/lang/Object;)V
+SPLcom/github/nomadboxlab/monadbox/common/util/ToastExtKt;->toast(Landroid/content/Context;Ljava/lang/String;ILcom/github/nomadboxlab/monadbox/common/util/ToastMode;)V
 Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastMode;->$values()[Lcom/github/nomadboxlab/monadbox/common/util/ToastMode;
 SPLcom/github/nomadboxlab/monadbox/common/util/ToastMode;-><clinit>()V
@@ -24461,7 +24470,7 @@ SPLcom/github/nomadboxlab/monadbox/feature/home/HomeProfilesState;->getRecommend
 Lcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$DsTZwjEaTtDenZr6TUv2KazZoRY(Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$EP7Jyarj5Mp79yFYoJ62VceqJg0(Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
-PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$LVv9y78sTUTJ-KqBuJ9wElxupo0(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
+SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$LVv9y78sTUTJ-KqBuJ9wElxupo0(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$ThRcmVeKUv7DLPHJuet0A6TD24E(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/Lifecycle$Event;)V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$VFLLyV_-n04AKxDrxs8k7jmroX4(Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;Landroidx/compose/runtime/State;Lcom/github/nomadboxlab/monadbox/core/model/TunnelState$Mode;)Lkotlin/Unit;
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->$r8$lambda$bpek4Nr7YoxeQep4f7BsaBDZA_4(Landroidx/compose/runtime/State;)Lcom/github/nomadboxlab/monadbox/domain/model/TrafficData;
@@ -24477,7 +24486,7 @@ SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$1
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$15$0(Landroidx/lifecycle/LifecycleOwner;Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Landroidx/compose/runtime/DisposableEffectScope;)Landroidx/compose/runtime/DisposableEffectResult;
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$16$0(Landroid/content/Context;Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lkotlinx/coroutines/CoroutineScope;Landroidx/compose/runtime/State;ZLcom/github/nomadboxlab/monadbox/service/runtime/entity/Profile;Lcom/github/nomadboxlab/monadbox/domain/model/ProxyMode;)Lkotlin/Unit;
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$0$0(Landroidx/compose/runtime/State;)Lcom/github/nomadboxlab/monadbox/domain/model/TrafficData;
-PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$2$0(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
+SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$2$0(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$3$0(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$4$0(Landroidx/compose/runtime/MutableState;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt;->HomeRoute$lambda$17$5$0(Landroidx/compose/runtime/MutableState;Landroidx/compose/ui/geometry/Rect;)Lkotlin/Unit;
@@ -24524,7 +24533,7 @@ Lcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLamb
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda7;-><init>(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;)V
 Lcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda8;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda8;-><init>(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;Landroidx/compose/runtime/MutableState;)V
-PLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda8;->invoke()Ljava/lang/Object;
+SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda8;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda9;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda9;-><init>(Lcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;Lcom/github/nomadboxlab/monadbox/feature/proxy/api/ProxyModeController;)V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeRouteKt$$ExternalSyntheticLambda9;->invoke()Ljava/lang/Object;
@@ -24574,7 +24583,7 @@ SPLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;-><init>(ZZLjava/lan
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->copy$default(Lcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;ZZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/domain/model/StructuredError;ILjava/lang/Object;)Lcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->copy(ZZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/github/nomadboxlab/monadbox/domain/model/StructuredError;)Lcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->equals(Ljava/lang/Object;)Z
-PLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->getError()Ljava/lang/String;
+SPLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->getError()Ljava/lang/String;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->getLoadingProgress()Ljava/lang/String;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->getMessage()Ljava/lang/String;
 PLcom/github/nomadboxlab/monadbox/feature/home/HomeUiState;->isLoading()Z
@@ -24607,7 +24616,7 @@ SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->clearExternalIpC
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->clearExternalIpCacheOnStop()V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->collectExternalIpEnabled()V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->collectSelectedServer()V
-PLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->consumeError()V
+SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->consumeError()V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->consumeMessage()V
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->getCurrentProfile()Lkotlinx/coroutines/flow/StateFlow;
 SPLcom/github/nomadboxlab/monadbox/feature/home/HomeViewModel;->getProxyGroups()Lkotlinx/coroutines/flow/StateFlow;
@@ -26190,18 +26199,18 @@ SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->To
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->ToastDialogHost(Landroidx/compose/runtime/Composer;I)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->ToastDialogInfoContent(Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;I)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->access$ToastDialogHost$lambda$0(Landroidx/compose/runtime/State;)Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;
-PLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->access$ToastDialogHost$lambda$3(Landroidx/compose/runtime/MutableState;Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;)V
+SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt;->access$ToastDialogHost$lambda$3(Landroidx/compose/runtime/MutableState;Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;)V
 Lcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda2;
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda2;-><init>(Landroidx/compose/runtime/MutableState;)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda2;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda4;
-PLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda4;-><init>(Landroidx/compose/runtime/MutableState;)V
+SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda4;-><init>(Landroidx/compose/runtime/MutableState;)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda4;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda5;
-PLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda5;-><init>(Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;Landroidx/compose/runtime/MutableState;Landroidx/compose/runtime/MutableState;)V
+SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda5;-><init>(Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;Landroidx/compose/runtime/MutableState;Landroidx/compose/runtime/MutableState;)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda5;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda6;
-PLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda6;-><init>(Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;Landroid/content/Context;Landroidx/compose/runtime/MutableState;)V
+SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda6;-><init>(Lcom/github/nomadboxlab/monadbox/common/util/ToastDialogEvent;Landroid/content/Context;Landroidx/compose/runtime/MutableState;)V
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda6;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda7;
 SPLcom/github/nomadboxlab/monadbox/presentation/component/ToastDialogHostKt$$ExternalSyntheticLambda7;-><init>(I)V
@@ -26334,7 +26343,7 @@ SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeControll
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->access$refreshCurrentTunnelMode(Lcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->access$setLoading(Lcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;Z)V
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->access$showError(Lcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;Ljava/lang/String;)V
-PLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->clearError()V
+SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->clearError()V
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->clearMessage()V
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->getCurrentMode()Lkotlinx/coroutines/flow/StateFlow;
 SPLcom/github/nomadboxlab/monadbox/presentation/runtime/DefaultProxyModeController;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
@@ -27199,7 +27208,7 @@ SPLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllPro
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllProfiles$2;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllProfilesInternal$1;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllProfilesInternal$1;-><init>(Lcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository;Lkotlin/coroutines/Continuation;)V
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllProfilesInternal$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
+SPLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryAllProfilesInternal$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository$queryProfileByUUIDInternal$1;-><init>(Lcom/github/nomadboxlab/monadbox/runtime/client/ProfilesRepository;Lkotlin/coroutines/Continuation;)V
 Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;-><clinit>()V
@@ -27208,10 +27217,7 @@ PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$awaitLocal
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$awaitStopTerminal(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$connectCurrentBackend(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getAppContext$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Landroid/content/Context;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getAppForegroundObserver$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Lcom/github/nomadboxlab/monadbox/runtime/client/AppForegroundObserver;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getLastPayloadRefreshAt$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)J
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getLatencyObservations$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyLatencyObservationStore;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getPowerManager(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Landroid/os/PowerManager;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$getPreviewCache$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacadePreviewCache;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$handleRuntimeProfileLoaded(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$handleRuntimeStopped(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -27221,8 +27227,6 @@ PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$refreshAll
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$refreshPreviewStateSafely(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$refreshProxyGroupsInternal(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Ljava/util/Set;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$restoreCachedPreviewGroups(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$setLastPayloadRefreshAt$p(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;J)V
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$shouldRefreshRuntimePayload(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Z
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->access$stopProxyInternal(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;Lcom/github/nomadboxlab/monadbox/domain/model/ProxyMode;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->appForegroundObserver$lambda$0(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Lkotlin/Unit;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->applyRootTunStatus(Lcom/github/nomadboxlab/monadbox/service/root/RootTunStatus;)V
@@ -27242,10 +27246,8 @@ PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->eventBus$lambda$3
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->expectedLocalOwnerFromPersistedState()Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->finalizeStopIfSnapshotNotTerminal(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getCurrentProfile()Lkotlinx/coroutines/flow/StateFlow;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getPowerManager()Landroid/os/PowerManager;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getProxyGroups()Lkotlinx/coroutines/flow/StateFlow;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getProxyGroupsLoadState()Lkotlinx/coroutines/flow/StateFlow;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getProxyPageVisible()Lkotlinx/coroutines/flow/StateFlow;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getProxySelectionEvents()Lkotlinx/coroutines/flow/SharedFlow;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getRootTunStateStore()Lcom/github/nomadboxlab/monadbox/service/root/RootTunStateStore;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->getRootTunStatus()Lkotlinx/coroutines/flow/StateFlow;
@@ -27270,7 +27272,6 @@ SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->json$lambda$0(Lk
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->kickTrafficPoller()V
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->latencyScopeKey()Ljava/lang/String;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->normalizeProxyGroups(Ljava/util/List;)Ljava/util/List;
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->powerManager_delegate$lambda$0(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Landroid/os/PowerManager;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->publishRuntimeSnapshot(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;)V
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->queryPreviewProxyGroups(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->queryProxyGroupNames(ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -27292,7 +27293,6 @@ SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->restoreCachedPre
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->rootTunStateStore_delegate$lambda$0(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)Lcom/github/nomadboxlab/monadbox/service/root/RootTunStateStore;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->scheduleLocalStopDrain(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;)V
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->setProxyPageVisible(Z)V
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->shouldRefreshRuntimePayload()Z
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->startLocalRuntime(Lcom/github/nomadboxlab/monadbox/domain/model/ProxyMode;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->startProxy(Lcom/github/nomadboxlab/monadbox/domain/model/ProxyMode;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;->startTrafficPolling()V
@@ -27310,7 +27310,6 @@ SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSynthetic
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda1;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda2;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda2;-><init>(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)V
-PLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda2;->invoke()Ljava/lang/Object;
 Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda3;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda3;-><init>(Lcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade;)V
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ProxyFacade$$ExternalSyntheticLambda3;->invoke()Ljava/lang/Object;
@@ -27599,7 +27598,6 @@ SPLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;-><cli
 SPLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;-><init>()V
 SPLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;->normalizeSnapshot(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;)Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;
 PLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;->resolveStartedOwner(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;)Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;
-PLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;->shouldRefreshPayload(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;ZZ)Z
 PLcom/github/nomadboxlab/monadbox/runtime/client/RuntimeTransitionPolicy;->startedSnapshot(Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeOwner;Lcom/github/nomadboxlab/monadbox/domain/model/ProxyMode;)Lcom/github/nomadboxlab/monadbox/service/runtime/state/RuntimeSnapshot;
 Lcom/github/nomadboxlab/monadbox/runtime/client/ServiceClientRuntimeConnectionReader;
 SPLcom/github/nomadboxlab/monadbox/runtime/client/ServiceClientRuntimeConnectionReader;-><init>(Landroid/content/Context;)V
@@ -28105,9 +28103,6 @@ Lcom/github/nomadboxlab/monadbox/service/ClashManager$Companion;
 SPLcom/github/nomadboxlab/monadbox/service/ClashManager$Companion;-><init>()V
 SPLcom/github/nomadboxlab/monadbox/service/ClashManager$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 PLcom/github/nomadboxlab/monadbox/service/ClashManager$RuntimeDataCache;-><init>(Ljava/lang/String;JLcom/github/nomadboxlab/monadbox/core/model/RuntimeDataSnapshot;)V
-PLcom/github/nomadboxlab/monadbox/service/ClashManager$RuntimeDataCache;->getCreatedAt()J
-PLcom/github/nomadboxlab/monadbox/service/ClashManager$RuntimeDataCache;->getProfile()Ljava/lang/String;
-PLcom/github/nomadboxlab/monadbox/service/ClashManager$RuntimeDataCache;->getSnapshot()Lcom/github/nomadboxlab/monadbox/core/model/RuntimeDataSnapshot;
 Lcom/github/nomadboxlab/monadbox/service/ClashManager$WhenMappings;
 SPLcom/github/nomadboxlab/monadbox/service/ClashManager$WhenMappings;-><clinit>()V
 Lcom/github/nomadboxlab/monadbox/service/ClashManager$queryProfileProxyGroups$groups$2;
@@ -30147,7 +30142,6 @@ SPLdev/chrisbanes/haze/HazeEffectNode$Companion;-><init>()V
 SPLdev/chrisbanes/haze/HazeEffectNode$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 Ldev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;
 SPLdev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;-><init>(Ldev/chrisbanes/haze/HazeEffectNode;)V
-HPLdev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;->equals(Ljava/lang/Object;)Z
 HPLdev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;->getFunctionDelegate()Lkotlin/Function;
 HPLdev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;->hashCode()I
 PLdev/chrisbanes/haze/HazeEffectNode$areaPreDrawListener$2$1;->invoke()V
@@ -30230,7 +30224,7 @@ SPLdev/chrisbanes/haze/HazeSourceNode;-><clinit>()V
 SPLdev/chrisbanes/haze/HazeSourceNode;-><init>(Ldev/chrisbanes/haze/HazeState;FLjava/lang/Object;)V
 SPLdev/chrisbanes/haze/HazeSourceNode;->disablePreDrawListener()V
 SPLdev/chrisbanes/haze/HazeSourceNode;->draw$lambda$3(Landroidx/compose/ui/graphics/drawscope/ContentDrawScope;Landroidx/compose/ui/graphics/layer/GraphicsLayer;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
-HSPLdev/chrisbanes/haze/HazeSourceNode;->draw(Landroidx/compose/ui/graphics/drawscope/ContentDrawScope;)V
+SPLdev/chrisbanes/haze/HazeSourceNode;->draw(Landroidx/compose/ui/graphics/drawscope/ContentDrawScope;)V
 SPLdev/chrisbanes/haze/HazeSourceNode;->enablePreDrawListener()V
 SPLdev/chrisbanes/haze/HazeSourceNode;->getArea$haze_release()Ldev/chrisbanes/haze/HazeArea;
 PLdev/chrisbanes/haze/HazeSourceNode;->getTraverseKey()Ljava/lang/Object;
@@ -32194,7 +32188,7 @@ SPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto$default([Ljava/lang/Obje
 SPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto([F[FIII)[F
 HSPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto([I[IIII)[I
 SPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto([J[JIII)[J
-SPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto([Ljava/lang/Object;[Ljava/lang/Object;III)[Ljava/lang/Object;
+HSPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyInto([Ljava/lang/Object;[Ljava/lang/Object;III)[Ljava/lang/Object;
 SPLkotlin/collections/ArraysKt___ArraysJvmKt;->copyOfRange([Ljava/lang/Object;II)[Ljava/lang/Object;
 SPLkotlin/collections/ArraysKt___ArraysJvmKt;->fill$default([IIIIILjava/lang/Object;)V
 HSPLkotlin/collections/ArraysKt___ArraysJvmKt;->fill$default([JJIIILjava/lang/Object;)V
@@ -32588,7 +32582,7 @@ Lkotlin/coroutines/CoroutineContext$Element;
 Lkotlin/coroutines/CoroutineContext$Element$DefaultImpls;
 HSPLkotlin/coroutines/CoroutineContext$Element$DefaultImpls;->fold(Lkotlin/coroutines/CoroutineContext$Element;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Ljava/lang/Object;
 HSPLkotlin/coroutines/CoroutineContext$Element$DefaultImpls;->get(Lkotlin/coroutines/CoroutineContext$Element;Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext$Element;
-HSPLkotlin/coroutines/CoroutineContext$Element$DefaultImpls;->minusKey(Lkotlin/coroutines/CoroutineContext$Element;Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext;
+SPLkotlin/coroutines/CoroutineContext$Element$DefaultImpls;->minusKey(Lkotlin/coroutines/CoroutineContext$Element;Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext;
 SPLkotlin/coroutines/CoroutineContext$Element$DefaultImpls;->plus(Lkotlin/coroutines/CoroutineContext$Element;Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
 Lkotlin/coroutines/CoroutineContext$Key;
 Lkotlin/coroutines/EmptyCoroutineContext;
@@ -32663,9 +32657,9 @@ SPLkotlin/internal/PlatformImplementations;-><init>()V
 Lkotlin/internal/PlatformImplementationsKt;
 SPLkotlin/internal/PlatformImplementationsKt;-><clinit>()V
 Lkotlin/internal/ProgressionUtilKt;
-HSPLkotlin/internal/ProgressionUtilKt;->differenceModulo(III)I
-SPLkotlin/internal/ProgressionUtilKt;->getProgressionLastElement(III)I
-SPLkotlin/internal/ProgressionUtilKt;->mod(II)I
+HPLkotlin/internal/ProgressionUtilKt;->differenceModulo(III)I
+PLkotlin/internal/ProgressionUtilKt;->getProgressionLastElement(III)I
+PLkotlin/internal/ProgressionUtilKt;->mod(II)I
 Lkotlin/internal/jdk7/JDK7PlatformImplementations;
 SPLkotlin/internal/jdk7/JDK7PlatformImplementations;-><init>()V
 Lkotlin/internal/jdk8/JDK8PlatformImplementations;
@@ -32802,10 +32796,10 @@ SPLkotlin/jvm/internal/ByteCompanionObject;-><init>()V
 Lkotlin/jvm/internal/CallableReference;
 SPLkotlin/jvm/internal/CallableReference;-><clinit>()V
 SPLkotlin/jvm/internal/CallableReference;-><init>(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Z)V
-SPLkotlin/jvm/internal/CallableReference;->getBoundReceiver()Ljava/lang/Object;
+PLkotlin/jvm/internal/CallableReference;->getBoundReceiver()Ljava/lang/Object;
 SPLkotlin/jvm/internal/CallableReference;->getName()Ljava/lang/String;
-HSPLkotlin/jvm/internal/CallableReference;->getOwner()Lkotlin/reflect/KDeclarationContainer;
-HSPLkotlin/jvm/internal/CallableReference;->getSignature()Ljava/lang/String;
+SPLkotlin/jvm/internal/CallableReference;->getOwner()Lkotlin/reflect/KDeclarationContainer;
+SPLkotlin/jvm/internal/CallableReference;->getSignature()Ljava/lang/String;
 Lkotlin/jvm/internal/CallableReference$NoReceiver;
 SPLkotlin/jvm/internal/CallableReference$NoReceiver;-><clinit>()V
 SPLkotlin/jvm/internal/CallableReference$NoReceiver;-><init>()V
@@ -32844,7 +32838,6 @@ Lkotlin/jvm/internal/FunctionAdapter;
 Lkotlin/jvm/internal/FunctionBase;
 Lkotlin/jvm/internal/FunctionReference;
 HSPLkotlin/jvm/internal/FunctionReference;-><init>(ILjava/lang/Object;Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)V
-HPLkotlin/jvm/internal/FunctionReference;->equals(Ljava/lang/Object;)Z
 SPLkotlin/jvm/internal/FunctionReference;->getArity()I
 HPLkotlin/jvm/internal/FunctionReference;->hashCode()I
 Lkotlin/jvm/internal/FunctionReferenceImpl;
@@ -32877,8 +32870,8 @@ Lkotlin/jvm/internal/MutablePropertyReference1Impl;
 SPLkotlin/jvm/internal/MutablePropertyReference1Impl;-><init>(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)V
 Lkotlin/jvm/internal/PackageReference;
 HPLkotlin/jvm/internal/PackageReference;-><init>(Ljava/lang/Class;Ljava/lang/String;)V
-HSPLkotlin/jvm/internal/PackageReference;->equals(Ljava/lang/Object;)Z
-SPLkotlin/jvm/internal/PackageReference;->getJClass()Ljava/lang/Class;
+HPLkotlin/jvm/internal/PackageReference;->equals(Ljava/lang/Object;)Z
+PLkotlin/jvm/internal/PackageReference;->getJClass()Ljava/lang/Class;
 HPLkotlin/jvm/internal/PackageReference;->hashCode()I
 Lkotlin/jvm/internal/PropertyReference;
 SPLkotlin/jvm/internal/PropertyReference;-><init>(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)V
@@ -32964,7 +32957,7 @@ Lkotlin/ranges/ClosedFloatingPointRange;
 Lkotlin/ranges/ClosedRange;
 Lkotlin/ranges/IntProgression;
 SPLkotlin/ranges/IntProgression;-><clinit>()V
-HSPLkotlin/ranges/IntProgression;-><init>(III)V
+HPLkotlin/ranges/IntProgression;-><init>(III)V
 SPLkotlin/ranges/IntProgression;->getFirst()I
 SPLkotlin/ranges/IntProgression;->getLast()I
 SPLkotlin/ranges/IntProgression;->getStep()I
@@ -33411,7 +33404,7 @@ SPLkotlinx/coroutines/CancellableContinuationImpl;->invokeOnCancellation(Lkotlin
 HSPLkotlinx/coroutines/CancellableContinuationImpl;->invokeOnCancellation(Lkotlinx/coroutines/internal/Segment;I)V
 HSPLkotlinx/coroutines/CancellableContinuationImpl;->invokeOnCancellationImpl(Ljava/lang/Object;)V
 SPLkotlinx/coroutines/CancellableContinuationImpl;->invokeOnCancellationInternal$kotlinx_coroutines_core(Lkotlinx/coroutines/CancelHandler;)V
-SPLkotlinx/coroutines/CancellableContinuationImpl;->isCompleted()Z
+HSPLkotlinx/coroutines/CancellableContinuationImpl;->isCompleted()Z
 HSPLkotlinx/coroutines/CancellableContinuationImpl;->isReusable()Z
 SPLkotlinx/coroutines/CancellableContinuationImpl;->parentCancelled$kotlinx_coroutines_core(Ljava/lang/Throwable;)V
 HSPLkotlinx/coroutines/CancellableContinuationImpl;->releaseClaimedReusableContinuation$kotlinx_coroutines_core()V
@@ -33708,7 +33701,7 @@ SPLkotlinx/coroutines/Job;-><clinit>()V
 SPLkotlinx/coroutines/Job;->cancel$default(Lkotlinx/coroutines/Job;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
 Lkotlinx/coroutines/Job$DefaultImpls;
 SPLkotlinx/coroutines/Job$DefaultImpls;->cancel$default(Lkotlinx/coroutines/Job;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
-SPLkotlinx/coroutines/Job$DefaultImpls;->fold(Lkotlinx/coroutines/Job;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Ljava/lang/Object;
+HSPLkotlinx/coroutines/Job$DefaultImpls;->fold(Lkotlinx/coroutines/Job;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Ljava/lang/Object;
 HSPLkotlinx/coroutines/Job$DefaultImpls;->get(Lkotlinx/coroutines/Job;Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext$Element;
 SPLkotlinx/coroutines/Job$DefaultImpls;->minusKey(Lkotlinx/coroutines/Job;Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext;
 SPLkotlinx/coroutines/Job$DefaultImpls;->plus(Lkotlinx/coroutines/Job;Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
@@ -33768,7 +33761,7 @@ PLkotlinx/coroutines/JobSupport;->cancelCoroutine(Ljava/lang/Throwable;)Z
 HSPLkotlinx/coroutines/JobSupport;->cancelImpl$kotlinx_coroutines_core(Ljava/lang/Object;)Z
 SPLkotlinx/coroutines/JobSupport;->cancelInternal(Ljava/lang/Throwable;)V
 SPLkotlinx/coroutines/JobSupport;->cancelMakeCompleting(Ljava/lang/Object;)Ljava/lang/Object;
-SPLkotlinx/coroutines/JobSupport;->cancelParent(Ljava/lang/Throwable;)Z
+HSPLkotlinx/coroutines/JobSupport;->cancelParent(Ljava/lang/Throwable;)Z
 SPLkotlinx/coroutines/JobSupport;->cancellationExceptionMessage()Ljava/lang/String;
 SPLkotlinx/coroutines/JobSupport;->childCancelled(Ljava/lang/Throwable;)Z
 HSPLkotlinx/coroutines/JobSupport;->completeStateFinalization(Lkotlinx/coroutines/Incomplete;Ljava/lang/Object;)V
@@ -34026,7 +34019,6 @@ HSPLkotlinx/coroutines/channels/BufferedChannel;->trySend-JP2dKIU(Ljava/lang/Obj
 PLkotlinx/coroutines/channels/BufferedChannel;->updateCellExpandBuffer(Lkotlinx/coroutines/channels/ChannelSegment;IJ)Z
 PLkotlinx/coroutines/channels/BufferedChannel;->updateCellExpandBufferSlow(Lkotlinx/coroutines/channels/ChannelSegment;IJ)Z
 HSPLkotlinx/coroutines/channels/BufferedChannel;->updateCellReceive(Lkotlinx/coroutines/channels/ChannelSegment;IJLjava/lang/Object;)Ljava/lang/Object;
-SPLkotlinx/coroutines/channels/BufferedChannel;->updateCellReceiveSlow(Lkotlinx/coroutines/channels/ChannelSegment;IJLjava/lang/Object;)Ljava/lang/Object;
 HSPLkotlinx/coroutines/channels/BufferedChannel;->updateCellSend(Lkotlinx/coroutines/channels/ChannelSegment;ILjava/lang/Object;JLjava/lang/Object;Z)I
 SPLkotlinx/coroutines/channels/BufferedChannel;->waitExpandBufferCompletion$kotlinx_coroutines_core(J)V
 Lkotlinx/coroutines/channels/BufferedChannel$BufferedChannelIterator;
@@ -34687,7 +34679,7 @@ HSPLkotlinx/coroutines/internal/DispatchedContinuation;->claimReusableCancellabl
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->dispatchYield$kotlinx_coroutines_core(Lkotlin/coroutines/CoroutineContext;Ljava/lang/Object;)V
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->getContext()Lkotlin/coroutines/CoroutineContext;
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->getDelegate$kotlinx_coroutines_core()Lkotlin/coroutines/Continuation;
-SPLkotlinx/coroutines/internal/DispatchedContinuation;->getReusableCancellableContinuation()Lkotlinx/coroutines/CancellableContinuationImpl;
+HSPLkotlinx/coroutines/internal/DispatchedContinuation;->getReusableCancellableContinuation()Lkotlinx/coroutines/CancellableContinuationImpl;
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->get_reusableCancellableContinuation$volatile$FU()Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->isReusable$kotlinx_coroutines_core()Z
 SPLkotlinx/coroutines/internal/DispatchedContinuation;->postponeCancellation$kotlinx_coroutines_core(Ljava/lang/Throwable;)Z
