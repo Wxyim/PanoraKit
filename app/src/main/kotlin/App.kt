@@ -25,6 +25,7 @@ import android.app.Application
 import com.github.nomadboxlab.monadbox.common.runtime.StartupGate
 import com.github.nomadboxlab.monadbox.core.Global
 import com.github.nomadboxlab.monadbox.core.locale.LocaleBootstrap
+import com.github.nomadboxlab.monadbox.data.repository.LogRecordGateway
 import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.data.store.LegacyMmkvImporter
 import com.github.nomadboxlab.monadbox.data.store.LegacyProfileLinksImporter
@@ -34,6 +35,7 @@ import com.github.nomadboxlab.monadbox.di.APPLICATION_SCOPE_NAME
 import com.github.nomadboxlab.monadbox.di.appModule
 import com.github.nomadboxlab.monadbox.feature.settings.AppLanguageManager
 import com.github.nomadboxlab.monadbox.startup.AppStartupCoordinator
+import com.github.nomadboxlab.monadbox.startup.CrashLogRecorder
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -71,6 +73,18 @@ class App : Application() {
         appSettingsStorage = koin.get()
 
         Timber.plant(com.github.nomadboxlab.monadbox.startup.StructuredLoggingTree(koin.get()))
+
+        // Device-only crashes must leave a retrievable trace behind; see CrashLogRecorder. The
+        // recorder is best-effort: a failure to install it must not block startup.
+        runCatching {
+            val logGateway = koin.get<LogRecordGateway>()
+            CrashLogRecorder.install(
+                application = this,
+                logDir = logGateway.getLogDir(this),
+                prefix = logGateway.logPrefix,
+                suffix = logGateway.logSuffix,
+            )
+        }
 
         startupCoordinator =
             AppStartupCoordinator(

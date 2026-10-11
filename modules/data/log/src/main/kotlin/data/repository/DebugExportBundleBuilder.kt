@@ -39,7 +39,9 @@ import kotlinx.coroutines.withContext
  * 2. **state_snapshot.txt** — key runtime state at export time
  * 3. **recent_failures.txt** — last N structured failure entries
  * 4. **sanitized_logs.txt** — recent log entries with sensitive tokens redacted
- * 5. **config_version.txt** — current configuration version identifier
+ * 5. **crash_reports.txt** — the newest uncaught-exception stack traces, if any (written by the app
+ *    module's `CrashLogRecorder`)
+ * 6. **config_version.txt** — current configuration version identifier
  */
 class DebugExportBundleBuilder(
     private val application: Application,
@@ -50,6 +52,14 @@ class DebugExportBundleBuilder(
     companion object {
         private const val MAX_SANITIZED_LOG_LINES = 2000
         private const val MAX_FAILURE_ENTRIES = 100
+        private const val MAX_CRASH_REPORTS = 2
+        private const val MAX_CRASH_REPORT_LINES = 400
+
+        /**
+         * Name fragment of the crash files written by the app module's `CrashLogRecorder`
+         * (`crash_<timestamp>.log`); both sides have to agree on it.
+         */
+        private const val CRASH_FILE_MARKER = "crash_"
 
         private val SENSITIVE_PATTERNS =
             listOf(
@@ -87,6 +97,7 @@ class DebugExportBundleBuilder(
                         writeStateSnapshot(zip, runtimeStateSummary)
                         writeRecentFailures(zip)
                         writeSanitizedLogs(zip)
+                        writeCrashReports(zip)
                         writeConfigVersion(zip, configVersionId)
                     }
                 } ?: return@withContext false
@@ -166,6 +177,37 @@ class DebugExportBundleBuilder(
         if (entries.isEmpty()) {
             sb.appendLine("(no log entries; recording may be inactive)")
         }
+        zip.write(sb.toString().toByteArray())
+        zip.closeEntry()
+    }
+
+    private suspend fun writeCrashReports(zip: ZipOutputStream) {
+        zip.putNextEntry(ZipEntry("crash_reports.txt"))
+        val sb = StringBuilder()
+        sb.appendLine("=== Crash Reports ===")
+
+        // Device-only crashes (e.g. IME interaction on one specific phone) leave no trace in the
+        // recording buffers once the process dies, so the newest crash files are shipped verbatim.
+        val crashes =
+            logRepository
+                .listLogFiles()
+                .filter { it.name.contains(CRASH_FILE_MARKER) }
+                .sortedByDescending { it.createdAt }
+                .take(MAX_CRASH_REPORTS)
+
+        if (crashes.isEmpty()) {
+            sb.appendLine("(no crash reports)")
+        }
+        crashes.forEach { crash ->
+            sb.appendLine()
+            sb.appendLine("--- ${crash.name} ---")
+            logRepository.readLogEntries(crash.name, MAX_CRASH_REPORT_LINES).forEach { entry ->
+                sb.appendLine(
+                    sanitizeLine("[${entry.time}] [${entry.level.name}] ${entry.message}")
+                )
+            }
+        }
+
         zip.write(sb.toString().toByteArray())
         zip.closeEntry()
     }
