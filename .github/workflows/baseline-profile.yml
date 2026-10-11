@@ -248,6 +248,14 @@ jobs:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
           arch: x86_64
           target: google_apis
+          # The flake the retry absorbs kills the emulator a few minutes into the journeys, while the
+          # guest is force-stopping, dex2oating and cold-starting the 50 MB app with the IME and the
+          # system UI live. Give the guest enough headroom that it is not fighting its own lmkd at
+          # that moment, and the four cores the runner actually has: the pre-build above keeps the
+          # emulator phase free of competing Gradle compiles, so the CPUs are the emulator's to use.
+          cores: 4
+          ram-size: 4096M
+          heap-size: 768M
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
@@ -295,6 +303,9 @@ jobs:
           api-level: ${{ env.EMULATOR_API_LEVEL }}
           arch: x86_64
           target: google_apis
+          cores: 4
+          ram-size: 4096M
+          heap-size: 768M
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
