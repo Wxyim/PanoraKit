@@ -189,7 +189,11 @@ fun LogScreenBody(navigator: DestinationsNavigator) {
                 },
                 actions = {
                     if (!viewingSavedFile) {
-                        IconButton(onClick = copyLogs, enabled = logEntries.isNotEmpty()) {
+                        // Always clickable on purpose: with nothing to copy the handler shows
+                        // the CopyEmpty hint. Miuix's disabled IconButton keeps identical
+                        // visuals, so the previous gate made the icon look tappable while
+                        // doing nothing whenever the live tail was empty (i.e. recording off).
+                        IconButton(onClick = copyLogs) {
                             Icon(
                                 imageVector = MonadIcons.ClipboardCopy,
                                 contentDescription = MLang.Log.Action.Copy,
