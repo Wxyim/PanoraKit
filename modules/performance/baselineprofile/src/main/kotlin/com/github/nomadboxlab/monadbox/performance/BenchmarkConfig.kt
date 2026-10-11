@@ -46,12 +46,12 @@ internal object BenchmarkConfig {
     const val JourneyReportFileName = "journey-report.txt"
 
     /**
-     * Where the generator stages a copy of the report for CI: the connected-test cleanup uninstalls
-     * the packages and wipes the external files dir of the app before the post-Gradle adb work of
-     * the workflow runs, and `/sdcard/Download` survives that. Keep in sync with the pull path in
+     * Clipboard directory under the app's external media dir that the connected-test engine pulls
+     * to the host (AGP additional test output) - the same channel the benchmark's profile fragments
+     * arrive through. Keep in sync with the adoption path in
      * `.github/workflows/baseline-profile.yml`.
      */
-    const val JourneyReportStagedPath = "/sdcard/Download/journey-report.txt"
+    const val AdditionalTestOutputDirName = "additional_test_output"
 
     const val JourneyReportTag = "MonadBoxBaselineProfile"
     const val JourneyReportBeginMarker = "MONADBOX_BASELINE_JOURNEY_REPORT_BEGIN"

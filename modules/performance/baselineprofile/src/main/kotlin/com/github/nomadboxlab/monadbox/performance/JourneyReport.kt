@@ -20,8 +20,6 @@
 package com.github.nomadboxlab.monadbox.performance
 
 import android.content.Context
-import android.os.ParcelFileDescriptor
-import android.util.Base64
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -153,7 +151,7 @@ internal class JourneyReport(private val targetPackage: String) {
             .onSuccess { file ->
                 publishedInThisRun = true
                 Log.i(BenchmarkConfig.JourneyReportTag, "journey report file: ${file.absolutePath}")
-                stageReportForCi(file, rendered)
+                copyToAdditionalTestOutput(file)
             }
             .onFailure { error ->
                 Log.w(BenchmarkConfig.JourneyReportTag, "journey report not written: $error")
@@ -162,73 +160,37 @@ internal class JourneyReport(private val targetPackage: String) {
     }
 
     /**
-     * Stage a copy of the report at [BenchmarkConfig.JourneyReportStagedPath] for the CI workflow.
+     * Copy the report to the app's `additional_test_output` clipboard for the CI workflow.
      *
-     * The connected-test cleanup uninstalls the app and the test package when the run ends - the
-     * same cleanup whose `Failed to uninstall package ...` lines appear when a device dies - and an
-     * uninstall wipes the app's external files dir: by the time the post-Gradle adb work of the
-     * workflow runs, the original under /sdcard/Android/data is already gone, which is why the runs
-     * kept recovering the report from logcat. `/sdcard/Download` survives the cleanup, and the copy
-     * is made from inside the run, before it.
-     *
-     * Two routes, because the first depends on the shell being able to read the app's external dir:
-     * a plain file copy, and - when the copy fails - the rendered block piped through the shell,
-     * which needs no source-side read at all. Both merge stderr at the device (the shell wrapper
-     * here captures stdout only) and verify the exit status and the resulting file before claiming
-     * success; whichever route worked is named in the logcat trail. Best-effort: the workflow still
-     * has the logcat fallback, so a failed stage only has to be visible in the logcat trail.
+     * This is the route the workflow uses: the connected-test engine pulls everything under
+     * `<external media>/additional_test_output` to the host before the cleanup uninstalls the
+     * packages - the same channel the benchmark's own profile fragments arrive through. A post-run
+     * `adb pull` can never see the report (the uninstall wipes /sdcard/Android/data), and a
+     * device-side shell copy from inside this test process proved unreliable, so this plain file
+     * copy is the whole mechanism. Best-effort: the workflow still has its logcat fallback, so a
+     * failed copy only has to be visible in the logcat trail.
      */
-    private fun stageReportForCi(file: File, rendered: String) {
-        val stagedPath = BenchmarkConfig.JourneyReportStagedPath
-        val check =
-            "stage_rc=\$?; if [ \$stage_rc -eq 0 ] && [ -s $stagedPath ]; then echo STAGED-OK;" +
-                " else echo STAGED-MISSING; fi"
-        val copyCommand =
-            "mkdir -p /sdcard/Download; cp -f ${file.absolutePath} $stagedPath 2>&1; $check"
-        val copyOutput =
-            runCatching { shellOutput(copyCommand) }.getOrElse { "executeShellCommand failed: $it" }
-        if (copyOutput.contains("STAGED-OK")) {
-            stagedInThisRun = true
-            Log.i(
-                BenchmarkConfig.JourneyReportTag,
-                "journey report staged at $stagedPath (file copy)",
-            )
-            return
+    private fun copyToAdditionalTestOutput(file: File) {
+        val outcome = runCatching {
+            val mediaDir =
+                InstrumentationRegistry.getInstrumentation()
+                    .targetContext
+                    .getExternalMediaDirs()
+                    ?.firstOrNull() ?: error("no external media dir")
+            val outputDir =
+                File(mediaDir, BenchmarkConfig.AdditionalTestOutputDirName).apply { mkdirs() }
+            val target = File(outputDir, BenchmarkConfig.JourneyReportFileName)
+            file.copyTo(target, overwrite = true)
+            target.absolutePath
         }
         Log.i(
             BenchmarkConfig.JourneyReportTag,
-            "journey report file-copy staging failed: ${copyOutput.trim()}",
+            outcome.fold(
+                { "journey report copied to additional test output: $it" },
+                { "journey report copy to additional test output failed: $it" },
+            ),
         )
-
-        val encoded = Base64.encodeToString(rendered.toByteArray(), Base64.NO_WRAP)
-        val redirect = if (stagedInThisRun) ">>" else ">"
-        val pipeCommand =
-            "mkdir -p /sdcard/Download; printf '%s' '$encoded' | base64 -d 2>&1 $redirect" +
-                " $stagedPath; $check"
-        val pipeOutput =
-            runCatching { shellOutput(pipeCommand) }.getOrElse { "executeShellCommand failed: $it" }
-        if (pipeOutput.contains("STAGED-OK")) {
-            stagedInThisRun = true
-            Log.i(
-                BenchmarkConfig.JourneyReportTag,
-                "journey report staged at $stagedPath (shell pipe)",
-            )
-        } else {
-            Log.i(
-                BenchmarkConfig.JourneyReportTag,
-                "journey report pipe staging failed: ${pipeOutput.trim()}",
-            )
-        }
     }
-
-    /** Runs [command] through the instrumentation shell and returns its combined output. */
-    private fun shellOutput(command: String): String =
-        ParcelFileDescriptor.AutoCloseInputStream(
-                InstrumentationRegistry.getInstrumentation()
-                    .uiAutomation
-                    .executeShellCommand(command)
-            )
-            .use { it.readBytes().decodeToString() }
 
     /** Throws after the report is published, so a required journey cannot degrade silently. */
     fun throwIfRequiredFailed() {
@@ -247,11 +209,5 @@ internal class JourneyReport(private val targetPackage: String) {
          * Process-scoped: every test method shares the file, but only the first one truncates it.
          */
         var publishedInThisRun = false
-
-        /**
-         * Process-scoped: set once a staging route confirmed the staged copy; later publishes
-         * append to it instead of truncating it.
-         */
-        var stagedInThisRun = false
     }
 }

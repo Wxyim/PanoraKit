@@ -95,8 +95,9 @@
 > 主路径必须可见）；验证报告在 distinct classes 低于已提交 profile 时输出非致命 warning（entries 涨、
 > classes 微降的趋势逐次可见）。
 >
-> 补记：journey-report 设备端空结果已定位——测试收尾的卸载会连带删除 /sdcard/Android/data 下的报告文件；
-> 生成器现于运行期把报告中转一份到 /sdcard/Download，workflow 优先拉取该副本，Android/data 搜索降为兜底。
+> 补记：journey-report 设备端空结果已定位——测试收尾的卸载会连带删除 /sdcard/Android/data 下的报告文件，
+> 且该测试进程内的设备侧 shell 中转不可靠；报告改为经 AGP additional test output（外部 media 目录）随测试
+> 引擎自动拉回主机——benchmark 自身的 prof 分片就走这条通道——logcat 镜像仍为兜底。
 >
 > 重组件与"浮层骨架"的**分档规则**（更新版）：
 >
