@@ -85,7 +85,7 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                     Modifier.adaptiveContentWidth(windowAdaptiveInfo.preferredTwoPaneMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
-                bottomPadding = spacing.xxxl,
+                bottomPadding = spacing.xxl,
             ) {
                 item {
                     Column(

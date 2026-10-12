@@ -132,7 +132,7 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
                 scrollBehavior = scrollBehavior,
                 innerPadding = innerPadding,
                 topPadding = AppTheme.spacing.lg,
-                bottomPadding = AppTheme.spacing.xxxl,
+                bottomPadding = AppTheme.spacing.xxl,
                 modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
             ) {
                 item {
