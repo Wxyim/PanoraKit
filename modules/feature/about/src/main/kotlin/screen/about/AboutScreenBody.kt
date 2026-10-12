@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.github.nomadboxlab.monadbox.domain.app.AppInfo
 import com.github.nomadboxlab.monadbox.presentation.component.Card
@@ -125,10 +126,23 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                     }
 
                     Card {
-                        BasicComponent(
-                            title = MLang.About.App.Name,
-                            summary = MLang.About.App.Description,
-                        )
+                        // `BasicComponent` stacks its title and summary with no built-in gap,
+                        // which reads too tight for this identity card; render the pair through
+                        // the content overload so an explicit spacer separates the two lines.
+                        BasicComponent {
+                            Text(
+                                text = MLang.About.App.Name,
+                                fontSize = MiuixTheme.textStyles.headline1.fontSize,
+                                fontWeight = FontWeight.Medium,
+                                color = MiuixTheme.colorScheme.onBackground,
+                            )
+                            Spacer(modifier = Modifier.height(spacing.sm))
+                            Text(
+                                text = MLang.About.App.Description,
+                                fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
                     }
 
                     SmallTitle(MLang.About.Section.ProjectLinks)
