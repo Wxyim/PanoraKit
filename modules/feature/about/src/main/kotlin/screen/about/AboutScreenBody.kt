@@ -126,23 +126,10 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                     }
 
                     Card {
-                        // `BasicComponent` stacks its title and summary with no built-in gap,
-                        // which reads too tight for this identity card; render the pair through
-                        // the content overload so an explicit spacer separates the two lines.
-                        BasicComponent {
-                            Text(
-                                text = MLang.About.App.Name,
-                                fontSize = MiuixTheme.textStyles.headline1.fontSize,
-                                fontWeight = FontWeight.Medium,
-                                color = MiuixTheme.colorScheme.onBackground,
-                            )
-                            Spacer(modifier = Modifier.height(spacing.sm))
-                            Text(
-                                text = MLang.About.App.Description,
-                                fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
+                        SpacedBasicComponent(
+                            title = MLang.About.App.Name,
+                            summary = MLang.About.App.Description,
+                        )
                     }
 
                     SmallTitle(MLang.About.Section.ProjectLinks)
@@ -177,7 +164,7 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                             showDivider = false,
                             onClick = onOpenSourceLicensesClick,
                         )
-                        BasicComponent(
+                        SpacedBasicComponent(
                             title = MLang.About.License.AgplName,
                             summary = MLang.About.License.AgplDescription,
                         )
@@ -200,4 +187,29 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
 @Composable
 private fun AboutLinkItem(title: String, url: String) {
     LinkItem(title = title, url = url, showArrow = true)
+}
+
+/**
+ * A [BasicComponent] whose title and summary are separated by an explicit `spacing.sm`.
+ *
+ * The stock title/summary stack puts the two lines flush against each other, which reads too tight
+ * for these display blocks.
+ */
+@Composable
+private fun SpacedBasicComponent(title: String, summary: String) {
+    val spacing = AppTheme.spacing
+    BasicComponent {
+        Text(
+            text = title,
+            fontSize = MiuixTheme.textStyles.headline1.fontSize,
+            fontWeight = FontWeight.Medium,
+            color = MiuixTheme.colorScheme.onBackground,
+        )
+        Spacer(modifier = Modifier.height(spacing.sm))
+        Text(
+            text = summary,
+            fontSize = MiuixTheme.textStyles.body2.fontSize,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+    }
 }
