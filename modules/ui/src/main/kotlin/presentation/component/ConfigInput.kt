@@ -160,7 +160,7 @@ private fun ConfigTextInputDialog(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextField(
+            MiuixEditTextField(
                 value = textValue,
                 onValueChange = onTextValueChange,
                 label = label,

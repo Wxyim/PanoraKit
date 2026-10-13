@@ -70,7 +70,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Zap
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Zashboard
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.basic.TextField
 
 typealias OpenStringMapEditor =
     (
@@ -365,7 +364,7 @@ private fun OverrideIntInputContent(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextField(
+            MiuixEditTextField(
                 value = textValue,
                 onValueChange = { updatedValue ->
                     textValue = updatedValue.filter { it.isDigit() || it == '-' }

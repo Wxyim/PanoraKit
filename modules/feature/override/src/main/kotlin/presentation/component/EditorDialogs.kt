@@ -33,7 +33,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Edit
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 enum class StringMapValidationMode {
@@ -101,7 +100,7 @@ fun StringMapEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        TextField(
+                        MiuixEditTextField(
                             value = entry.first,
                             onValueChange = { updatedKey ->
                                 entries[index] = updatedKey to entry.second
@@ -110,7 +109,7 @@ fun StringMapEditorDialog(
                             label = keyPlaceholder,
                             modifier = Modifier.weight(1f).miuixTextFieldDrawGuard(),
                         )
-                        TextField(
+                        MiuixEditTextField(
                             value = entry.second,
                             onValueChange = { updatedValue ->
                                 entries[index] = entry.first to updatedValue

@@ -38,7 +38,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -129,7 +128,7 @@ fun OverrideExtraFieldDialog(
                     errorText = null
                 },
             )
-            TextField(
+            MiuixEditTextField(
                 value = keyText,
                 onValueChange = {
                     keyText = it
@@ -139,7 +138,7 @@ fun OverrideExtraFieldDialog(
                 modifier = Modifier.fillMaxWidth().miuixTextFieldDrawGuard(),
             )
             if (selectedType != OverrideExtraFieldValueType.Null) {
-                TextField(
+                MiuixEditTextField(
                     value = valueText,
                     onValueChange = {
                         valueText = it

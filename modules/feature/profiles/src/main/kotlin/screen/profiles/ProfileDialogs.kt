@@ -38,6 +38,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetClos
 import com.github.nomadboxlab.monadbox.presentation.component.AppBottomSheetConfirmAction
 import com.github.nomadboxlab.monadbox.presentation.component.AppDialog
 import com.github.nomadboxlab.monadbox.presentation.component.DialogButtonRow
+import com.github.nomadboxlab.monadbox.presentation.component.MiuixEditTextField
 import com.github.nomadboxlab.monadbox.presentation.component.SemanticTone
 import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
@@ -213,7 +214,7 @@ internal fun ProfileSettingsDialog(
                         .padding(bottom = spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(spacing.lg),
             ) {
-                TextField(
+                MiuixEditTextField(
                     value = editName,
                     onValueChange = { editName = it },
                     label = MLang.ProfilesPage.Input.ProfileName,
@@ -221,7 +222,7 @@ internal fun ProfileSettingsDialog(
                 )
 
                 if (profile.type == Profile.Type.Url) {
-                    TextField(
+                    MiuixEditTextField(
                         value = editSource,
                         onValueChange = { editSource = it },
                         label = MLang.ProfilesPage.SettingsDialog.ChangeLink,

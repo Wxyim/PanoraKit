@@ -55,7 +55,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private object OverrideStringListMetrics {
@@ -407,7 +406,7 @@ private fun StringListEntryDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextField(
+            MiuixEditTextField(
                 value = draftValue,
                 onValueChange = { draftValue = it },
                 label = placeholder,
