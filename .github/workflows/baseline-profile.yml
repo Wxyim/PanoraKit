@@ -340,7 +340,7 @@ jobs:
           free -m >> "$out/host-memory-final.txt"
           ls -la /tmp/android-runner/ > "$out/android-runner-listing.txt" 2>/dev/null || true
           for f in /tmp/android-runner/emu-crash*; do
-            [ -e "$f" ] && cp "$f" "$out/" || true
+            [ -e "$f" ] && cp -r "$f" "$out/" || true
           done
           echo "host diagnostics captured"
 
