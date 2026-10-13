@@ -24,6 +24,8 @@ package com.github.nomadboxlab.monadbox.service.runtime.session
 import android.os.SystemClock
 import com.github.nomadboxlab.monadbox.core.Clash
 import com.github.nomadboxlab.monadbox.core.model.*
+import com.github.nomadboxlab.monadbox.data.store.TrafficSettlementStore
+import com.github.nomadboxlab.monadbox.domain.model.TrafficData
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.service.ServiceNetworkObserver
@@ -53,6 +55,7 @@ import timber.log.Timber
 class SessionRuntime(
     private val host: RuntimeHost,
     private val transport: RuntimeTransport,
+    private val trafficSettlementStore: TrafficSettlementStore,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     private val compiledConfigPipeline = CompiledConfigPipeline(host.context.appContextOrSelf)
@@ -788,10 +791,38 @@ class SessionRuntime(
         startupLog(spec, "snapshot refresh: done")
     }
 
+    /**
+     * Stages the core's last cumulative counters before [teardownCore] zeroes them.
+     *
+     * The zeroing is otherwise unrecoverable: the collector reads the shared total from the client
+     * poll loop, which suspends while the app is backgrounded, so a stop from the background
+     * (quick-settings tile, notification action) would discard every byte not yet read. The
+     * collector consumes the staged settlement when it observes the stop and records the gap with
+     * the true stop timestamp. Best-effort: staging must never block or fail the teardown.
+     */
+    private fun settleTrafficBeforeTeardown() {
+        if (currentSnapshot.phase != RuntimePhase.Running) return
+        runCatching {
+                val traffic = TrafficData.from(Clash.queryTrafficTotal())
+                trafficSettlementStore.stage(
+                    TrafficSettlementStore.Settlement(
+                        upload = traffic.upload,
+                        download = traffic.download,
+                        timestampMillis = System.currentTimeMillis(),
+                        profileId = currentSpec?.profileUuid,
+                        profileName = currentSpec?.profileName,
+                    )
+                )
+            }
+            .onFailure { error -> Timber.w(error, "Traffic settlement skipped") }
+    }
+
     private fun stopInternal(reason: String?, notifyHost: Boolean) {
         if (currentSnapshot.phase == RuntimePhase.Idle && currentSpec == null) {
             return
         }
+
+        settleTrafficBeforeTeardown()
 
         publishSnapshot(
             currentSnapshot.copy(

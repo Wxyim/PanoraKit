@@ -26,8 +26,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
+import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.model.LogMessage
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.store.TrafficSettlementStore
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.service.common.constants.Intents
@@ -47,6 +49,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeSnapshot
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendProfileLoaded
+import com.tencent.mmkv.MMKV
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -127,6 +130,13 @@ class ClashService : BaseService() {
 
                 runtime =
                     SessionRuntime(
+                        trafficSettlementStore =
+                            TrafficSettlementStore(
+                                MMKV.mmkvWithID(
+                                    StoreIds.TRAFFIC_STATISTICS,
+                                    MMKV.MULTI_PROCESS_MODE,
+                                )
+                            ),
                         host =
                             object : RuntimeHost {
                                 override val context = this@ClashService

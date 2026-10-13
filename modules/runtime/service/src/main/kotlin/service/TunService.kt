@@ -25,8 +25,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.model.LogMessage
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.store.TrafficSettlementStore
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.service.common.constants.Intents
@@ -42,6 +44,7 @@ import com.github.nomadboxlab.monadbox.service.runtime.util.sendAccessControlApp
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendProfileLoaded
+import com.tencent.mmkv.MMKV
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
@@ -139,6 +142,13 @@ class TunService : VpnService(), CoroutineScope {
 
                 runtime =
                     SessionRuntime(
+                        trafficSettlementStore =
+                            TrafficSettlementStore(
+                                MMKV.mmkvWithID(
+                                    StoreIds.TRAFFIC_STATISTICS,
+                                    MMKV.MULTI_PROCESS_MODE,
+                                )
+                            ),
                         host =
                             object : RuntimeHost {
                                 override val context = this@TunService

@@ -21,14 +21,17 @@
 
 package com.github.nomadboxlab.monadbox.data.repository
 
+import com.github.nomadboxlab.monadbox.data.store.TrafficSettlementStore
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeStateReader
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 class TrafficStatisticsCollector(
     private val runtimeStateReader: RuntimeStateReader,
     private val trafficStatisticsStore: TrafficStatisticsStore,
+    private val trafficSettlementStore: TrafficSettlementStore,
     private val scope: CoroutineScope,
 ) {
     companion object {
@@ -36,12 +39,14 @@ class TrafficStatisticsCollector(
         private const val COLLECTION_INTERVAL_MS = 5000L
 
         /**
-         * Sample interval used while [RuntimeStateReader.isAppActive] is false (app backgrounded or
-         * screen off). Nothing renders the statistics in that state, and the totals are pushed by
-         * the runtime rather than polled, so a slower sample only coarsens how finely a delta is
-         * spread across the sampling window: every delta is still attributed over its real
-         * `windowStartMillis`..`windowEndMillis`, so daily totals stay exact. In exchange the
-         * collector wakes the CPU six times less often while the user is not looking at it.
+         * Ceiling for the sleep between samples while [RuntimeStateReader.isAppActive] is false
+         * (app backgrounded or screen off). Nothing renders the statistics in that state while the
+         * core keeps counting, so the collector idles at this slower pace, and sum-wise nothing is
+         * lost: every delta is still attributed over its real
+         * `windowStartMillis`..`windowEndMillis`. The sleep is cut short the moment the app becomes
+         * active again (see [awaitNextSample]), so the whole backlog is flushed at the wake
+         * boundary instead of up to this interval later. In exchange the collector wakes the CPU
+         * six times less often while unobserved.
          */
         private const val INACTIVE_COLLECTION_INTERVAL_MS = 30_000L
 
@@ -96,6 +101,16 @@ class TrafficStatisticsCollector(
                         monitoringJob?.cancel()
                         monitoringJob?.join()
                         monitoringJob = null
+                        if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) {
+                            // The runtime was already stopped when this collector came up (the app
+                            // process was recreated after the VPN stopped): load the persisted
+                            // baseline so a staged settlement can still be diffed and recorded.
+                            lastTotalUpload = trafficStatisticsStore.getLastTrafficUpload()
+                            lastTotalDownload = trafficStatisticsStore.getLastTrafficDownload()
+                            lastProfileId = trafficStatisticsStore.getLastProfileId()
+                            lastSampleAt = trafficStatisticsStore.getLastTrafficTimestamp()
+                        }
+                        settleStagedFinal()
                         flushPending()
                         resetLastValues()
                     }
@@ -122,12 +137,12 @@ class TrafficStatisticsCollector(
             while (isActive && runtimeStateReader.isRuntimeRunning.value) {
                 runCatching {
                         collectTrafficData()
-                        delay(collectionIntervalMs())
+                        awaitNextSample()
                     }
                     .onFailure { e ->
                         if (e is CancellationException) throw e
                         Timber.tag(TAG).e(e, "Traffic collection failed")
-                        delay(collectionIntervalMs())
+                        awaitNextSample()
                     }
             }
             // Runtime stopped (or the job was cancelled): persist any buffered deltas.
@@ -135,9 +150,76 @@ class TrafficStatisticsCollector(
         }
     }
 
-    private fun collectionIntervalMs(): Long =
-        if (runtimeStateReader.isAppActive.value) COLLECTION_INTERVAL_MS
-        else INACTIVE_COLLECTION_INTERVAL_MS
+    /**
+     * Suspends until the next sample is due.
+     *
+     * While the app is active this is a plain [COLLECTION_INTERVAL_MS] delay. While it is inactive
+     * it waits up to [INACTIVE_COLLECTION_INTERVAL_MS] but wakes as soon as the app becomes active
+     * again, so the catch-up sample (and with it the flush of everything the frozen total
+     * accumulated while the app was away) lands at the wake boundary instead of up to thirty
+     * seconds later. A wake additionally pays for one [RuntimeStateReader.refreshTrafficTotal]
+     * pull; the regular active cadence relies on the facade's own two-second polling instead.
+     */
+    private suspend fun awaitNextSample() {
+        if (runtimeStateReader.isAppActive.value) {
+            delay(COLLECTION_INTERVAL_MS)
+            return
+        }
+        val wokeToForeground =
+            withTimeoutOrNull(INACTIVE_COLLECTION_INTERVAL_MS) {
+                runtimeStateReader.isAppActive.first { it }
+            } != null
+        if (!wokeToForeground) return
+
+        // The shared total was frozen while the app was away, and this sample may beat the facade's
+        // own poll tick by a frame. Pull a fresh reading now so the sample that follows records the
+        // whole backlog without another wait; on failure the previous value is sampled and the next
+        // (active-cadence) tick picks the delta up anyway.
+        runCatching { runtimeStateReader.refreshTrafficTotal() }
+            .onFailure { error -> Timber.tag(TAG).d(error, "Traffic refresh skipped") }
+    }
+
+    /**
+     * Folds a pending final settlement into the sample buffer, if one is staged.
+     *
+     * The runtime stages the core's last cumulative counters right before the teardown zeroes them
+     * (see [TrafficSettlementStore]); settling covers both the live reaction to a stop and
+     * leftovers from a session that ended while this collector was not alive. The delta is buffered
+     * like a regular sample so the batching, window attribution and profile bookkeeping stay
+     * uniform; the window ends at the true stop timestamp.
+     */
+    private fun settleStagedFinal() {
+        val settlement = trafficSettlementStore.consume() ?: return
+        if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) return
+        // Older than the baseline cursor: the samples already cover it.
+        if (settlement.timestampMillis <= lastSampleAt) return
+        if (settlement.upload < lastTotalUpload || settlement.download < lastTotalDownload) {
+            // Counters went backwards: the settlement belongs to a different runtime era; the
+            // regular regression handling aligns the baseline on the next sample.
+            return
+        }
+
+        val uploadDelta = settlement.upload - lastTotalUpload
+        val downloadDelta = settlement.download - lastTotalDownload
+        if (uploadDelta > 0 || downloadDelta > 0) {
+            synchronized(pendingLock) {
+                if (pendingUpload == 0L && pendingDownload == 0L) {
+                    pendingWindowStart = lastSampleAt
+                }
+                pendingUpload += uploadDelta
+                pendingDownload += downloadDelta
+                pendingWindowEnd = maxOf(pendingWindowEnd, settlement.timestampMillis)
+                if (pendingProfileId == null) {
+                    pendingProfileId = settlement.profileId
+                }
+                if (pendingProfileName == null) {
+                    pendingProfileName = settlement.profileName
+                }
+            }
+        }
+        lastTotalUpload = settlement.upload
+        lastTotalDownload = settlement.download
+    }
 
     private fun collectTrafficData() {
         val collectedAt = System.currentTimeMillis()
@@ -149,6 +231,11 @@ class TrafficStatisticsCollector(
         val currentProfile = runtimeStateReader.currentRuntimeProfile.value
         val currentProfileId = currentProfile?.id
         val currentProfileName = currentProfile?.name
+
+        // A staged settlement belongs to a runtime era that just ended (stop or reload); fold it
+        // before the era checks below so the gap is recorded (and released) under the right
+        // baseline.
+        settleStagedFinal()
 
         if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) {
             resetBaseline(currentUpload, currentDownload, currentProfileId, collectedAt)

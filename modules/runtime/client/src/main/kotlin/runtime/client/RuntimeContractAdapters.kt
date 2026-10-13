@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-class ProxyFacadeRuntimeStateReader(proxyFacade: ProxyFacade, scope: CoroutineScope) :
+class ProxyFacadeRuntimeStateReader(private val proxyFacade: ProxyFacade, scope: CoroutineScope) :
     RuntimeStateReader {
     override val isRuntimeRunning: StateFlow<Boolean> = proxyFacade.isRunning
 
@@ -48,6 +48,10 @@ class ProxyFacadeRuntimeStateReader(proxyFacade: ProxyFacade, scope: CoroutineSc
                 profile?.let { RuntimeProfileRef(id = it.uuid.toString(), name = it.name) }
             }
             .stateIn(scope, SharingStarted.Eagerly, null)
+
+    override suspend fun refreshTrafficTotal() {
+        proxyFacade.queryTrafficTotal()
+    }
 }
 
 class ServiceClientRuntimeConnectionReader(private val context: Context) : RuntimeConnectionReader {

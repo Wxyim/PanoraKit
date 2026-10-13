@@ -248,6 +248,29 @@ class TrafficPipelineReplicaTest {
             if (shouldFlush(collectedAt)) flush()
         }
 
+        /**
+         * Mirrors `TrafficStatisticsCollector.settleStagedFinal`: the staged final counters (read
+         * by the runtime right before the teardown zeroes them) are diffed against the baseline and
+         * buffered with a window ending at the stop timestamp.
+         */
+        fun settle(upload: Long, download: Long, stopAt: Long) {
+            if (lastTotalUpload == NO_BASELINE && lastTotalDownload == NO_BASELINE) return
+            if (stopAt <= lastSampleAt) return
+            if (upload < lastTotalUpload || download < lastTotalDownload) return
+            val uploadDelta = upload - lastTotalUpload
+            val downloadDelta = download - lastTotalDownload
+            if (uploadDelta > 0 || downloadDelta > 0) {
+                if (pendingUpload == 0L && pendingDownload == 0L) {
+                    pendingWindowStart = lastSampleAt
+                }
+                pendingUpload += uploadDelta
+                pendingDownload += downloadDelta
+                pendingWindowEnd = maxOf(pendingWindowEnd, stopAt)
+            }
+            lastTotalUpload = upload
+            lastTotalDownload = download
+        }
+
         private fun shouldFlush(collectedAt: Long): Boolean =
             (pendingUpload > 0L || pendingDownload > 0L) &&
                 collectedAt - lastFlushAt >= flushInterval
@@ -377,6 +400,44 @@ class TrafficPipelineReplicaTest {
         assertEquals(110_000_000L, hourly[TimeSlot.SLOT_8_12.ordinal].total)
         assertEquals(0L, hourly[TimeSlot.SLOT_0_4.ordinal].total)
         assertEquals(0L, hourly[TimeSlot.SLOT_4_8.ordinal].total)
+    }
+
+    @Test
+    fun backgroundStopSettlementLandsAtStopTime() {
+        val store = StoreReplica()
+        val collector = CollectorReplica(store)
+        collector.start()
+
+        val calendar = Calendar.getInstance()
+        calendar.set(2026, Calendar.JUNE, 1, 11, 0, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val baselineAt = calendar.timeInMillis
+
+        // Foreground start: the baseline aligns at ~0. Then the app is backgrounded and its polling
+        // suspends â the shared total freezes at 0 while the core keeps counting; the frozen 30s
+        // samples record nothing.
+        collector.sample(0L, 0L, "P", baselineAt)
+        var t = baselineAt
+        repeat(20) {
+            t += 30_000L
+            collector.sample(0L, 0L, "P", t)
+        }
+        assertEquals(0L, store.getTodaySummary(t).total)
+
+        // The user stops the VPN from the quick-settings tile: the runtime stages the core's final
+        // counters (500 MB) right before the teardown zeroes them, and the collector consumes the
+        // settlement when it observes the stop.
+        val stopAt = t + 30_000L
+        collector.settle(500_000_000L, 0L, stopAt)
+        collector.flush()
+
+        val today = store.getTodaySummary(stopAt)
+        assertEquals(500_000_000L, today.totalUpload)
+        assertEquals(0L, today.totalDownload)
+        assertEquals(
+            500_000_000L,
+            store.getTodayHourlyData(stopAt)[TimeSlot.SLOT_8_12.ordinal].total,
+        )
     }
 
     private fun dayStart(millis: Long): Long {

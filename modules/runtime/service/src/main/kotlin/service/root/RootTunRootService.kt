@@ -27,6 +27,7 @@ import com.github.nomadboxlab.monadbox.core.Global
 import com.github.nomadboxlab.monadbox.core.StoreIds
 import com.github.nomadboxlab.monadbox.core.model.LogMessage
 import com.github.nomadboxlab.monadbox.data.model.ProxyMode
+import com.github.nomadboxlab.monadbox.data.store.TrafficSettlementStore
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayErrorCode
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.service.StatusProvider
@@ -292,6 +293,10 @@ class RootTunRootService : RootService() {
         startupLogStore.append("ROOT_TUN root-service: onCreate")
         runtime =
             SessionRuntime(
+                trafficSettlementStore =
+                    TrafficSettlementStore(
+                        MMKV.mmkvWithID(StoreIds.TRAFFIC_STATISTICS, MMKV.MULTI_PROCESS_MODE)
+                    ),
                 host =
                     object : RuntimeHost {
                         override val context = this@RootTunRootService

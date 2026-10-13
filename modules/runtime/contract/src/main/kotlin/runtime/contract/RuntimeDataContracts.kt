@@ -47,6 +47,16 @@ interface RuntimeStateReader {
 
     val runtimeTrafficTotal: StateFlow<Long>
     val currentRuntimeProfile: StateFlow<RuntimeProfileRef?>
+
+    /**
+     * Forces a fresh read of the runtime's cumulative traffic counters into [runtimeTrafficTotal].
+     *
+     * The flow is normally advanced by the facade's own poll loop, which suspends while the app is
+     * backgrounded or the screen is off ([isAppActive] false). Consumers that must observe the
+     * exact total at a wake boundary — e.g. the traffic-statistics catch-up right after the app
+     * returns — call this instead of waiting for the next poll tick.
+     */
+    suspend fun refreshTrafficTotal()
 }
 
 interface RuntimeConnectionReader {

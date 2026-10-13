@@ -131,6 +131,7 @@ val appFoundationModule = module {
         )
     }
     single { TrafficStatisticsStore(get(named(StoreIds.TRAFFIC_STATISTICS))) }
+    single { TrafficSettlementStore(get(named(StoreIds.TRAFFIC_STATISTICS))) }
 
     single { DeepLinkBus() }
 
@@ -201,7 +202,9 @@ val appDataRuntimeModule = module {
     }
     single { AppIdentityResolver(androidContext()) }
 
-    single { TrafficStatisticsCollector(get(), get(), get(named(APPLICATION_IO_SCOPE_NAME))) }
+    single {
+        TrafficStatisticsCollector(get(), get(), get(), get(named(APPLICATION_IO_SCOPE_NAME)))
+    }
     single { ConnectionActivityRepository(get(), get(), get(named(APPLICATION_SCOPE_NAME))) }
     single<ConnectionActivityProvider> { get<ConnectionActivityRepository>() }
     single { RuntimeLogRecordingCoordinator(androidApplication(), get(), get()) }
