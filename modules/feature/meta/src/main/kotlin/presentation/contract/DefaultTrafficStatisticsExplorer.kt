@@ -302,6 +302,12 @@ class DefaultTrafficStatisticsExplorer(
      * label.
      */
     private fun resolveAppIdentity(connection: ConnectionInfo): Pair<String, String?> {
+        // A resolved kernel/root owner has no package and no process. Label it explicitly instead
+        // of letting the absent app identity fall through to "Unknown App". Hotspot clients are
+        // also forwarded by the kernel, so keep their more specific remote-device label.
+        if (connection.system && !appIdentityResolver.hasRemoteSource(connection.metadata)) {
+            return MLang.TrafficStatistics.RecentRequests.System to null
+        }
         val pkg = appIdentityResolver.resolvePackageFromMetadata(connection.metadata)
         if (pkg != null) return appIdentityResolver.resolveAppLabel(pkg) to pkg
         return appIdentityResolver.resolveFallbackDisplayName(connection.metadata) to null

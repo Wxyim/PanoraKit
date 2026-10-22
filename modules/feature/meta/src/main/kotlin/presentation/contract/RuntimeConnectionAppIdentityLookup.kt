@@ -23,10 +23,17 @@ import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionSourceApp
 import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
+import dev.oom_wg.purejoy.mlang.MLang
 
 class RuntimeConnectionAppIdentityLookup(private val appIdentityResolver: AppIdentityResolver) :
     ConnectionAppIdentityLookup {
     override fun resolve(connection: ConnectionInfo): ConnectionSourceApp {
+        if (connection.system && !appIdentityResolver.hasRemoteSource(connection.metadata)) {
+            return ConnectionSourceApp(
+                appName = MLang.TrafficStatistics.RecentRequests.System,
+                packageName = null,
+            )
+        }
         val identity = appIdentityResolver.resolve(connection.metadata)
         return ConnectionSourceApp(appName = identity.appName, packageName = identity.packageName)
     }

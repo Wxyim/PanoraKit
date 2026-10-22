@@ -168,6 +168,7 @@ func retainRecentClosed(
 		return entry.closedAt.After(undeliveredCutoff)
 	}
 	if enrichmentPossible &&
+		!entry.system &&
 		entry.enrichAttempts < enrichUidMaxAttempts &&
 		connectionNeedsUid(entry.info) {
 		return entry.closedAt.After(undeliveredCutoff)
@@ -188,6 +189,10 @@ type recentClosedEntry struct {
 	// which is what renders a short "0 s / 0 B" request as "Unknown App".
 	enrichAttempts int
 	enrichLastAt   int64
+	// system marks a retained close whose owner was authoritatively resolved to UID 0. It is a
+	// terminal identity, so the entry must not consume more enrichment attempts; the flag is
+	// carried into every snapshot so the app can render "System" instead of "Unknown App".
+	system bool
 	// redeliver marks an entry whose metadata was upgraded after it had already been returned to
 	// the app. The next poll must include it once more so the app can replace the incomplete copy
 	// it recorded on first delivery.
@@ -208,6 +213,10 @@ type connectionSnapshot struct {
 type connectionInfo struct {
 	*statistic.TrackerInfo
 	Closed bool `json:"closed"`
+	// System marks a connection whose owner is the kernel/root rather than an ordinary app. It is
+	// only set after an authoritative UID 0 lookup (see [enrichUid]); an unresolved lookup (-1) is
+	// deliberately left false so it still renders as Unknown App.
+	System bool `json:"system,omitempty"`
 	// ClosedAt is when the core observed the connection leaving, in wall-clock
 	// milliseconds. The app stamps its recent-request history with it, which
 	// matters for a batch of closes that happened while the app was
@@ -222,6 +231,9 @@ type connectionInfo struct {
 type enrichState struct {
 	attempts int
 	lastAt   int64 // UnixNano of the last attempt
+	// system is set once the owner was authoritatively resolved to UID 0; further lookups are
+	// unnecessary and would only waste binder calls.
+	system bool
 }
 
 // uidEnrichmentRequest keeps the retained buffer entry that a lookup belongs to, when there is
@@ -230,6 +242,21 @@ type enrichState struct {
 type uidEnrichmentRequest struct {
 	info  *statistic.TrackerInfo
 	entry *recentClosedEntry
+}
+
+// uidEnrichmentOutcome distinguishes a lookup that found an app from one that authoritatively
+// found the kernel/root owner. Both are terminal answers; only a negative result stays retryable.
+type uidEnrichmentOutcome int
+
+const (
+	uidEnrichmentUnresolved uidEnrichmentOutcome = iota
+	uidEnrichmentAttributed
+	uidEnrichmentSystem
+)
+
+type uidEnrichmentResult struct {
+	request uidEnrichmentRequest
+	outcome uidEnrichmentOutcome
 }
 
 var (
@@ -297,7 +324,12 @@ func observeRecentClosed() bool {
 		// retain their final tracker info so a later poll can still observe them.
 		for id, info := range recentClosedSeen {
 			if alive[id] == nil {
-				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{info: info, closedAt: now})
+				state := recentClosedEnriched[id]
+				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{
+					info:     info,
+					closedAt: now,
+					system:   state.system,
+				})
 				delete(recentClosedSeen, id)
 				delete(recentClosedEnriched, id)
 			}
@@ -350,6 +382,7 @@ func observeRecentClosed() bool {
 		scheduleEntry := func(entry *recentClosedEntry) bool {
 			attempts, lastAt, scheduled := tryScheduleUidEnrichment(
 				entry.info,
+				entry.system,
 				entry.enrichAttempts,
 				entry.enrichLastAt,
 				now,
@@ -376,9 +409,11 @@ func observeRecentClosed() bool {
 			}
 			state := recentClosedEnriched[id]
 			attempts, lastAt, scheduled :=
-				tryScheduleUidEnrichment(info, state.attempts, state.lastAt, now)
+				tryScheduleUidEnrichment(info, state.system, state.attempts, state.lastAt, now)
 			if scheduled {
-				recentClosedEnriched[id] = enrichState{attempts: attempts, lastAt: lastAt}
+				state.attempts = attempts
+				state.lastAt = lastAt
+				recentClosedEnriched[id] = state
 				pending = append(pending, uidEnrichmentRequest{info: info})
 				budget--
 			}
@@ -406,18 +441,44 @@ func observeRecentClosed() bool {
 
 	// Attribute the connections outside the lock: the lookup is a JNI/binder round trip and must not
 	// block a poll waiting for the same lock.
-	var redeliver []*recentClosedEntry
+	var results []uidEnrichmentResult
 	for _, request := range pending {
-		if enrichUid(request.info) && request.entry != nil {
-			redeliver = append(redeliver, request.entry)
-		}
+		results = append(results, uidEnrichmentResult{
+			request: request,
+			outcome: enrichUid(request.info),
+		})
 	}
-	if len(redeliver) > 0 {
+	if len(results) > 0 {
 		recentClosedMu.Lock()
+		var redeliver []*recentClosedEntry
+		for _, result := range results {
+			switch result.outcome {
+			case uidEnrichmentAttributed:
+				if result.request.entry != nil {
+					redeliver = append(redeliver, result.request.entry)
+				}
+			case uidEnrichmentSystem:
+				id := result.request.info.UUID.String()
+				if state, ok := recentClosedEnriched[id]; ok {
+					state.system = true
+					recentClosedEnriched[id] = state
+				}
+				// The live entry can have moved to the retained buffer while the lookup was in
+				// flight. Locate it by UUID in that case so the system flag is not lost.
+				entry := result.request.entry
+				if entry == nil {
+					entry = findRecentClosedLocked(id)
+				}
+				if entry != nil && !entry.system {
+					entry.system = true
+					redeliver = append(redeliver, entry)
+				}
+			}
+		}
 		for _, entry := range redeliver {
 			if entry.deliveredAt.IsZero() {
 				// Enrichment won the race against first delivery. The poll that delivers this
-				// entry will already carry the UID, so no redelivery is needed.
+				// entry will already carry the upgraded identity, so no redelivery is needed.
 				continue
 			}
 			entry.redeliver = true
@@ -509,22 +570,27 @@ func connectionNeedsUid(info *statistic.TrackerInfo) bool {
 // whose 4-tuple cannot be rebuilt are left untouched: the first two need no help and the third has
 // nothing to query with.
 //
-// It returns true only when this call added a UID, which tells the caller that a retained closed
-// entry must be redelivered to the app.
-func enrichUid(info *statistic.TrackerInfo) bool {
+// A positive UID is stored in the metadata for the existing app-identity fallback. UID 0 is not a
+// miss: Android reports it for kernel/root-owned sockets, and the caller records it as a terminal
+// system identity so the UI can label the row as System. Only a negative result remains retryable.
+func enrichUid(info *statistic.TrackerInfo) uidEnrichmentOutcome {
 	if !connectionNeedsUid(info) {
-		return false
+		return uidEnrichmentUnresolved
 	}
 	metadata := info.Metadata
 	source, target := app.MetadataSocketAddrs(metadata)
 	if source == nil || target == nil {
-		return false
+		return uidEnrichmentUnresolved
 	}
-	if uid := app.QuerySocketUid(source, target, true); uid > 0 {
+	switch uid := app.QuerySocketUid(source, target, true); {
+	case uid > 0:
 		metadata.Uid = uint32(uid)
-		return true
+		return uidEnrichmentAttributed
+	case uid == 0:
+		return uidEnrichmentSystem
+	default:
+		return uidEnrichmentUnresolved
 	}
-	return false
 }
 
 // tryScheduleUidEnrichment books one enrichment attempt for [info] when it is still unattributed
@@ -532,11 +598,12 @@ func enrichUid(info *statistic.TrackerInfo) bool {
 // the live scan and the retained-closed scan share the same retry policy.
 func tryScheduleUidEnrichment(
 	info *statistic.TrackerInfo,
+	system bool,
 	attempts int,
 	lastAt int64,
 	now time.Time,
 ) (newAttempts int, newLastAt int64, scheduled bool) {
-	if !connectionNeedsUid(info) {
+	if system || !connectionNeedsUid(info) {
 		return attempts, lastAt, false
 	}
 	if attempts >= enrichUidMaxAttempts {
@@ -546,6 +613,19 @@ func tryScheduleUidEnrichment(
 		return attempts, lastAt, false
 	}
 	return attempts + 1, now.UnixNano(), true
+}
+
+// findRecentClosedLocked returns the retained entry for id, if any. The caller must hold
+// recentClosedMu. It covers the race where a live connection moved into the retention buffer
+// while its UID lookup was in flight.
+func findRecentClosedLocked(id string) *recentClosedEntry {
+	for i := range recentClosedBuffer {
+		info := recentClosedBuffer[i].info
+		if info != nil && info.UUID.String() == id {
+			return &recentClosedBuffer[i]
+		}
+	}
+	return nil
 }
 
 // selectRecentClosedIndices chooses the retained closes to include in one response.
@@ -601,7 +681,10 @@ func QueryConnections() *connectionSnapshot {
 
 	conns := make([]*connectionInfo, 0, len(snap.Connections)+len(recentClosedBuffer))
 	for _, c := range snap.Connections {
-		conns = append(conns, &connectionInfo{TrackerInfo: c})
+		conns = append(conns, &connectionInfo{
+			TrackerInfo: c,
+			System:      recentClosedEnriched[c.UUID.String()].system,
+		})
 	}
 	// Cap how much retained history one response carries (see [recentClosedMaxPerResponse]).
 	selectedIndices := selectRecentClosedIndices(recentClosedBuffer)
@@ -623,6 +706,7 @@ func QueryConnections() *connectionSnapshot {
 			TrackerInfo: entry.info,
 			Closed:      true,
 			ClosedAt:    entry.closedAt.UnixMilli(),
+			System:      entry.system,
 		})
 	}
 

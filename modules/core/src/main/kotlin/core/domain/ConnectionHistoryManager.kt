@@ -150,8 +150,8 @@ object ConnectionHistoryManager {
      */
     private fun upgradeClosedIfBetter(conn: ConnectionInfo, existing: Pair<Long, ConnectionInfo>) {
         val (existingClosedAt, existingInfo) = existing
-        val newScore = identityScore(conn.metadata)
-        val oldScore = identityScore(existingInfo.metadata)
+        val newScore = identityScore(conn)
+        val oldScore = identityScore(existingInfo)
         val authoritativeClosedAt = conn.closedAt.takeIf { it > 0L }
         val closeTimeChanged =
             authoritativeClosedAt != null && authoritativeClosedAt != existingClosedAt
@@ -217,15 +217,21 @@ private fun ConnectionInfo.withCloseTime(closedAt: Long): ConnectionInfo =
     )
 
 /**
- * How much of an app identity this metadata copy carries.
+ * How much of an app identity this connection copy carries.
  *
  * This deliberately mirrors the information the app-side AppIdentityResolver can use, rather than
- * comparing raw JSON maps: enrichment only adds fields, so a higher score means the row can become
- * more specific without ever replacing an enriched row with the stale active copy the diff fallback
- * may still hold.
+ * comparing raw JSON maps: enrichment only adds fields (or resolves the system flag), so a higher
+ * score means the row can become more specific without ever replacing an enriched row with the
+ * stale active copy the diff fallback may still hold.
  */
-private fun identityScore(metadata: JsonObject): Int {
+private fun identityScore(connection: ConnectionInfo): Int {
+    val metadata = connection.metadata
     var score = 0
+    // A late UID lookup can prove the traffic belongs to the kernel/root after the first copy was
+    // delivered as "Unknown App". That is an identity upgrade, so it must outrank the stale copy.
+    if (connection.system) {
+        score += 16
+    }
     if (metadata.firstNonBlankValue("type").equals("Inner", ignoreCase = true)) {
         score += 16
     }

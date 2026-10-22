@@ -70,6 +70,13 @@ object MLangTrafficStatistics {
                 *args,
             )
 
+        val `System`: String
+            get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_system)
+
+        @Composable
+        fun `System`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_system, *args)
+
         val `Count`: String
             get() = LocaleBootstrap.getString(R.string.traffic_statistics_recent_requests_count)
 

@@ -233,6 +233,18 @@ class AppIdentityResolver(context: Context) {
     }
 
     /**
+     * True when the metadata's source address belongs to a device outside this phone.
+     *
+     * Hotspot clients are forwarded through the VPN by the kernel and can therefore be reported as
+     * UID 0 just like local system sockets. Callers resolving the system identity use this to keep
+     * the more specific "Hotspot Device · IP" label.
+     */
+    fun hasRemoteSource(metadata: JsonObject): Boolean {
+        val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
+        return isRemoteSourceAddress(sourceIp)
+    }
+
+    /**
      * Extract the package name from mihomo metadata, with UID fallback. Uses mihomo's `packageName`
      * field first; if absent, resolves UID via
      * [android.content.pm.PackageManager.getPackagesForUid]. Returns null when neither source

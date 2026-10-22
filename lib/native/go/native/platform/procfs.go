@@ -36,6 +36,7 @@ import (
 
 var netIndexOfLocal = -1
 var netIndexOfUid = -1
+var netIndexOfInode = -1
 
 var nativeEndian binary.ByteOrder
 
@@ -112,6 +113,15 @@ func doQuery(path string, sIP net.IP, sPort int) int {
 		}
 
 		if strings.EqualFold(local, fields[netIndexOfLocal]) {
+			// Ownerless rows (TIME_WAIT and friends) keep the local address but report
+			// inode 0 and uid 0. Treating that tuple as a system-owned socket would label
+			// ordinary closed app connections as System.
+			if netIndexOfInode >= 0 &&
+				netIndexOfInode < len(fields) &&
+				fields[netIndexOfInode] == "0" {
+				continue
+			}
+
 			uid, err := strconv.Atoi(fields[netIndexOfUid])
 			if err != nil {
 				return -1
@@ -177,6 +187,8 @@ func init() {
 			netIndexOfLocal = idx + offset
 		case "uid":
 			netIndexOfUid = idx + offset
+		case "inode":
+			netIndexOfInode = idx + offset
 		}
 	}
 }

@@ -65,6 +65,10 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 		// back to PackageManager.getPackagesForUid() when FindPackageName yields
 		// an empty package name.  This is essential for CMFA builds where
 		// metadata.Uid is otherwise never populated.
+		//
+		// UID 0 is authoritative kernel/root ownership, not a miss. On the CMFA path
+		// metadata.Uid stays at its zero value, so the tunnel enrichment pass records it as a
+		// terminal system identity instead of retrying forever.
 		if uid > 0 {
 			metadata.Uid = uint32(uid)
 		}

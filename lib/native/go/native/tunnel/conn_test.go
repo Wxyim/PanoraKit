@@ -1,7 +1,9 @@
 package tunnel
 
 import (
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +67,55 @@ func TestRetainRecentClosedKeepsUnresolvedDeliveredEntryForLateUid(t *testing.T)
 	info.Metadata.Uid = 0
 	if retainRecentClosed(&entry, false, deliveredCutoff, undeliveredCutoff) {
 		t.Fatal("find-process-mode=off must not extend retention")
+	}
+}
+
+func TestRetainRecentClosedTreatsResolvedSystemAsFinal(t *testing.T) {
+	now := time.Now()
+	entry := recentClosedEntry{
+		info:        &statistic.TrackerInfo{Metadata: &C.Metadata{Type: C.TUN}},
+		closedAt:    now.Add(-time.Minute),
+		deliveredAt: now.Add(-10 * time.Second),
+		system:      true,
+	}
+	if retainRecentClosed(
+		&entry,
+		true,
+		now.Add(-6*time.Second),
+		now.Add(-recentClosedUndeliveredRetention),
+	) {
+		t.Fatal("a resolved system entry must use the normal delivered window")
+	}
+}
+
+func TestTryScheduleUidEnrichmentSkipsResolvedSystem(t *testing.T) {
+	info := &statistic.TrackerInfo{Metadata: &C.Metadata{Type: C.TUN}}
+	now := time.Now()
+	if _, _, scheduled := tryScheduleUidEnrichment(info, true, 0, 0, now); scheduled {
+		t.Fatal("a resolved system connection must not be queried again")
+	}
+	if _, _, scheduled := tryScheduleUidEnrichment(info, false, 0, 0, now); !scheduled {
+		t.Fatal("an unresolved connection must still be enrichable")
+	}
+}
+
+func TestConnectionInfoSerializesSystemOnlyWhenResolved(t *testing.T) {
+	info := &statistic.TrackerInfo{Metadata: &C.Metadata{Type: C.TUN}}
+
+	payload, err := json.Marshal(&connectionInfo{TrackerInfo: info, System: true})
+	if err != nil {
+		t.Fatalf("marshal system connection: %v", err)
+	}
+	if !strings.Contains(string(payload), `"system":true`) {
+		t.Fatalf("system connection JSON = %s, want system=true", payload)
+	}
+
+	payload, err = json.Marshal(&connectionInfo{TrackerInfo: info})
+	if err != nil {
+		t.Fatalf("marshal unresolved connection: %v", err)
+	}
+	if strings.Contains(string(payload), `"system"`) {
+		t.Fatalf("unresolved connection JSON = %s, want no system field", payload)
 	}
 }
 

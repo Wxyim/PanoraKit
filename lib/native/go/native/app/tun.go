@@ -38,6 +38,11 @@ func MarkSocket(fd int) {
 
 // QuerySocketUid resolves the UID that owns the socket [source] → [target].
 //
+// The result is tri-state: -1 means the owner could not be resolved, 0 means the socket is
+// authoritatively owned by the kernel/root (system traffic), and a positive value is an app UID.
+// Callers must not treat 0 as "unresolved"; on Android it is the UID the kernel reports for
+// sockets that have no app owner.
+//
 // [force] requests a lookup that must not be answered from the Kotlin-side negative cache. The UID
 // enrichment path sets it for connections the core has already seen close: a miss cached while the
 // socket was still alive would otherwise mask the one lookup that can still attribute it. The caller

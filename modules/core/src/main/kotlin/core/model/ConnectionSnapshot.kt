@@ -50,6 +50,14 @@ data class ConnectionInfo(
      */
     val closed: Boolean = false,
     /**
+     * True when the connection is authoritatively owned by the kernel/root (UID 0).
+     *
+     * This is deliberately separate from a missing UID: an unresolved owner lookup also leaves
+     * `metadata.uid` at 0, but must keep rendering as "Unknown App" rather than claiming that the
+     * traffic belongs to the system.
+     */
+    val system: Boolean = false,
+    /**
      * Wall-clock milliseconds of the moment the core saw the connection leave, or 0 for live
      * connections.
      *

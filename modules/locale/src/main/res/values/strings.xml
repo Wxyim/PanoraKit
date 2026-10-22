@@ -1024,6 +1024,7 @@
     <string name="traffic_statistics_recent_requests_title">Recent Requests</string>
     <string name="traffic_statistics_recent_requests_empty">No recent requests</string>
     <string name="traffic_statistics_recent_requests_unknown_request">Unknown Request</string>
+    <string name="traffic_statistics_recent_requests_system">System</string>
     <string name="traffic_statistics_recent_requests_count">%d</string>
     <string name="traffic_statistics_recent_requests_search_hint">Search by IP, domain, app, node…</string>
     <string name="traffic_statistics_recent_requests_no_results">No matching requests</string>

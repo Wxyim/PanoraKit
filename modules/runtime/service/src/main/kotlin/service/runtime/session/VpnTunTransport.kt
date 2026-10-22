@@ -305,11 +305,12 @@ class VpnTunTransport(
                 target = endpointKey(target),
             )
         val cached = uidCache[key]?.takeIf { it.expiresAt > now }
-        // A forced (enrichment) lookup may reuse a positive answer but never a cached miss: the
-        // native enrichment path asks precisely about the sockets that missed while they were
-        // alive, and it is already rate-limited per connection, so the cached -1 would only hide
-        // the one lookup that can still attribute a short-lived connection.
-        if (cached != null && (cached.uid > 0 || !force)) {
+        // A resolved answer (including UID 0, which identifies kernel/system traffic) is reusable.
+        // A forced (enrichment) lookup may reuse it but never a cached miss: the native enrichment
+        // path asks precisely about the sockets that missed while they were alive, and it is
+        // already rate-limited per connection, so the cached -1 would only hide the one lookup
+        // that can still attribute a short-lived connection.
+        if (cached != null && (cached.uid >= 0 || !force)) {
             return cached.uid
         }
 
@@ -330,26 +331,29 @@ class VpnTunTransport(
                 else -> UID_MISS_RETRIES
             }
         val retryDelayMs = if (warmupActive) UID_WARMUP_RETRY_DELAY_MS else UID_MISS_RETRY_DELAY_MS
-        if (uid <= 0) {
+        if (uid < 0) {
             repeat(retries) {
-                if (uid <= 0) {
+                if (uid < 0) {
                     android.os.SystemClock.sleep(retryDelayMs)
                     uid = queryConnectionOwnerUid(connectivity, protocol, source, target)
                 }
             }
         }
-        if (uid > 0) {
-            cacheUid(key, uid, now + UID_CACHE_POSITIVE_TTL_MS)
+        // UID 0 is a valid answer: Android reports it for sockets owned by the kernel/root rather
+        // than INVALID_UID. It must be preserved so the UI can label the row as System instead of
+        // treating it as an unresolved app lookup.
+        if (uid >= 0) {
+            cacheUid(key, uid, now + UID_CACHE_RESOLVED_TTL_MS)
             return uid
         }
 
         // getConnectionOwnerUid may miss sockets that are already closed,
         // in TIME_WAIT, or otherwise untracked by the kernel. Fall back to
         // reading /proc/net/{tcp,udp}[6] with a protocol-specific resolver.
-        if (uid <= 0) {
+        if (uid < 0) {
             val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
-            if (procUid > 0) {
-                cacheUid(key, procUid, now + UID_CACHE_POSITIVE_TTL_MS)
+            if (procUid >= 0) {
+                cacheUid(key, procUid, now + UID_CACHE_RESOLVED_TTL_MS)
                 return procUid
             }
         }
@@ -500,7 +504,7 @@ class VpnTunTransport(
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
-        private const val UID_CACHE_POSITIVE_TTL_MS = 15_000L
+        private const val UID_CACHE_RESOLVED_TTL_MS = 15_000L
         private const val UID_CACHE_NEGATIVE_TTL_MS = 5_000L
         private const val UID_CACHE_MAX_ENTRIES = 2048
         private const val UID_WARMUP_WINDOW_MS = 3_000L

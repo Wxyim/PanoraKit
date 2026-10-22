@@ -101,11 +101,42 @@ class ConnectionHistoryManagerTest {
         assertEquals(revisionBeforeStaleCopy, ConnectionHistoryManager.closedConnectionsRevision())
     }
 
+    @Test
+    fun lateSystemResolution_upgradesAnUnknownRowAndKeepsTheFlag() {
+        ConnectionHistoryManager.updateConnections(
+            listOf(connection(id = "system-late", closed = true, uid = null, closedAt = 4_000L))
+        )
+        val revisionBeforeUpgrade = ConnectionHistoryManager.closedConnectionsRevision()
+
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "system-late",
+                    closed = true,
+                    uid = 0,
+                    closedAt = 4_000L,
+                    system = true,
+                )
+            )
+        )
+
+        val row = ConnectionHistoryManager.getClosedConnections().single()
+        assertTrue(row.system)
+        assertTrue(ConnectionHistoryManager.closedConnectionsRevision() > revisionBeforeUpgrade)
+
+        // A stale copy captured before the system lookup must not erase the resolved identity.
+        ConnectionHistoryManager.updateConnections(
+            listOf(connection(id = "system-late", closed = true, uid = null, closedAt = 4_000L))
+        )
+        assertTrue(ConnectionHistoryManager.getClosedConnections().single().system)
+    }
+
     private fun connection(
         id: String,
         closed: Boolean,
         uid: Int?,
         closedAt: Long = 0L,
+        system: Boolean = false,
     ): ConnectionInfo =
         ConnectionInfo(
             id = id,
@@ -118,5 +149,6 @@ class ConnectionHistoryManagerTest {
                 },
             closed = closed,
             closedAt = closedAt,
+            system = system,
         )
 }

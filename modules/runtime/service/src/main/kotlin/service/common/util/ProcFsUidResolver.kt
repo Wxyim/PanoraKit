@@ -59,7 +59,13 @@ internal object ProcFsUidResolver {
 
     /** What one table scan found for a 4-tuple: an exact match and/or a port-only answer. */
     private class ProcNetMatch {
-        var exactUid = -1
+        /**
+         * UID of the row whose local address matched exactly, or null when there is no such row.
+         *
+         * The value may legitimately be 0: kernel/root-owned sockets report UID 0 and are distinct
+         * from "no match", which is what the caller treats as unresolved.
+         */
+        var exactUid: Int? = null
         var portUid = -1
 
         /**
@@ -83,6 +89,12 @@ internal object ProcFsUidResolver {
     private const val IPPROTO_TCP = 6
     private const val IPPROTO_UDP = 17
 
+    /**
+     * Resolve the UID of the socket [source].
+     *
+     * Returns `-1` when no authoritative owner could be determined, `0` for a socket owned by the
+     * kernel/root (system traffic), and a positive UID for an app.
+     */
     fun resolveByProtocol(protocol: Int, source: InetSocketAddress): Int =
         when (protocol) {
             IPPROTO_TCP -> resolveTcpUid(source)
@@ -179,8 +191,8 @@ internal object ProcFsUidResolver {
         var ambiguous = false
         candidates.forEach { (table, exactKey) ->
             val match = scanProcNet(table, exactKey, port)
-            if (match.exactUid > 0) {
-                return match.exactUid
+            match.exactUid?.let {
+                return it
             }
             if (match.portAmbiguous) {
                 ambiguous = true
@@ -224,11 +236,15 @@ internal object ProcFsUidResolver {
                     ) {
                         continue
                     }
-                    val uid = fields[table.uidIndex].toIntOrNull()?.takeIf { it > 0 } ?: continue
+                    val uid = fields[table.uidIndex].toIntOrNull() ?: continue
                     if (local.equals(exactKey, ignoreCase = true)) {
                         match.exactUid = uid
                         break
                     }
+                    // UID 0 on a port-only match is ambiguous: ownerless rows and system sockets
+                    // both report it. Only an exact local-address match is authoritative enough to
+                    // surface it, so keep the port-only tier limited to real app UIDs.
+                    if (uid <= 0) continue
                     if (match.portUid < 0) {
                         match.portUid = uid
                     } else if (match.portUid != uid) {
