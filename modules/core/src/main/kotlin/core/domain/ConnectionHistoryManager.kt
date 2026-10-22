@@ -24,6 +24,10 @@ package com.github.nomadboxlab.monadbox.core.domain
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Tracks connection lifecycle by diffing successive [ConnectionInfo] snapshots from the Go core.
@@ -50,14 +54,15 @@ object ConnectionHistoryManager {
     private val _closedConnections = mutableListOf<Pair<Long, ConnectionInfo>>()
 
     /**
-     * Ids currently present in [_closedConnections].
+     * Closed entries by id, used to upgrade a row when attribution arrives after the first
+     * snapshot.
      *
-     * The ids are unique by construction ([recordClosed] drops duplicates), so this set answers
-     * "have we already recorded this connection?" in O(1). Without it the closed-flagged branch
-     * below scanned the whole buffer (up to [MAX_BUFFER_SIZE] entries) for every closed connection
-     * in every poll, i.e. once a second in the worst case.
+     * The native UID enrichment is asynchronous: a closed connection can be delivered to the app
+     * before its owner lookup completes. Keeping the latest entry here lets [recordClosed] replace
+     * an incomplete copy (for example one with `uid == 0`) when a later poll carries the enriched
+     * metadata, without scanning the whole history just to detect the duplicate.
      */
-    private val closedIds = mutableSetOf<String>()
+    private val closedConnectionsById = mutableMapOf<String, Pair<Long, ConnectionInfo>>()
     private var previousConnections: Map<String, ConnectionInfo> = emptyMap()
     private var closedRevision = 0L
     private val lock = Any()
@@ -101,7 +106,7 @@ object ConnectionHistoryManager {
             // enough entries to display.
             while (_closedConnections.size > MAX_BUFFER_SIZE) {
                 val evicted = _closedConnections.removeAt(_closedConnections.lastIndex)
-                closedIds.remove(evicted.second.id)
+                closedConnectionsById.remove(evicted.second.id)
             }
 
             previousConnections = liveMap
@@ -109,28 +114,59 @@ object ConnectionHistoryManager {
     }
 
     /**
-     * Append a closed connection (newest first) and bump the revision.
+     * Append a closed connection (newest first) and bump the revision, or upgrade an existing row
+     * when a later snapshot carries a better app identity.
      *
-     * Duplicates are dropped: the core keeps a closed connection in its snapshot for a while, and
-     * the same id can also be reported by the diff against [previousConnections].
+     * The same id can be reported repeatedly: the core keeps a closed connection in its snapshot
+     * for a while, and the diff against [previousConnections] can also report it. The first copy
+     * may be a stale active snapshot with `uid == 0`; a later copy can contain the UID resolved by
+     * the native enrichment pass. We therefore merge instead of dropping duplicates.
      */
     private fun recordClosed(conn: ConnectionInfo, observedAt: Long) {
-        if (!closedIds.add(conn.id)) return
+        val existing = closedConnectionsById[conn.id]
+        if (existing != null) {
+            upgradeClosedIfBetter(conn, existing)
+            return
+        }
         // Prefer the core's close time: a batch of closes from a backgrounded period arrives long
         // after the fact, and stamping those with the poll time would report every one of them as
         // ending just now (wrong durations, wrong ordering). Falls back to the observation time for
         // connections the core could not report.
         val closedAt = conn.closedAt.takeIf { it > 0L } ?: observedAt
-        val enriched =
-            conn.copy(
-                metadata =
-                    JsonObject(
-                        conn.metadata.toMutableMap().apply {
-                            put("_closeTimeMs", JsonPrimitive(closedAt))
-                        }
-                    )
-            )
-        _closedConnections.add(0, closedAt to enriched)
+        val enriched = conn.withCloseTime(closedAt)
+        val entry = closedAt to enriched
+        _closedConnections.add(0, entry)
+        closedConnectionsById[conn.id] = entry
+        closedRevision++
+    }
+
+    /**
+     * Merge a repeated close observation without ever downgrading an already-attributed row.
+     *
+     * The core reports a core-flagged close before the diff fallback in [updateConnections]. The
+     * fallback can still hold the previous poll's active copy, so blindly replacing on duplicate
+     * would overwrite an enriched core snapshot with an older `uid == 0` one. An identity score
+     * keeps the richer copy; an authoritative close time from the core is still allowed through.
+     */
+    private fun upgradeClosedIfBetter(conn: ConnectionInfo, existing: Pair<Long, ConnectionInfo>) {
+        val (existingClosedAt, existingInfo) = existing
+        val newScore = identityScore(conn.metadata)
+        val oldScore = identityScore(existingInfo.metadata)
+        val authoritativeClosedAt = conn.closedAt.takeIf { it > 0L }
+        val closeTimeChanged =
+            authoritativeClosedAt != null && authoritativeClosedAt != existingClosedAt
+        if (newScore <= oldScore && !closeTimeChanged) return
+
+        val base = if (newScore >= oldScore) conn else existingInfo
+        val closedAt = authoritativeClosedAt ?: existingClosedAt
+        val upgraded = base.withCloseTime(closedAt)
+        val index = _closedConnections.indexOfFirst { it.second.id == conn.id }
+        if (index < 0) return
+        _closedConnections[index] = closedAt to upgraded
+        closedConnectionsById[conn.id] = closedAt to upgraded
+        if (closeTimeChanged) {
+            _closedConnections.sortByDescending { it.first }
+        }
         closedRevision++
     }
 
@@ -165,9 +201,79 @@ object ConnectionHistoryManager {
     fun clear() {
         synchronized(lock) {
             _closedConnections.clear()
-            closedIds.clear()
+            closedConnectionsById.clear()
             previousConnections = emptyMap()
             closedRevision++
         }
     }
+}
+
+private fun ConnectionInfo.withCloseTime(closedAt: Long): ConnectionInfo =
+    copy(
+        metadata =
+            JsonObject(
+                metadata.toMutableMap().apply { put("_closeTimeMs", JsonPrimitive(closedAt)) }
+            )
+    )
+
+/**
+ * How much of an app identity this metadata copy carries.
+ *
+ * This deliberately mirrors the information the app-side AppIdentityResolver can use, rather than
+ * comparing raw JSON maps: enrichment only adds fields, so a higher score means the row can become
+ * more specific without ever replacing an enriched row with the stale active copy the diff fallback
+ * may still hold.
+ */
+private fun identityScore(metadata: JsonObject): Int {
+    var score = 0
+    if (metadata.firstNonBlankValue("type").equals("Inner", ignoreCase = true)) {
+        score += 16
+    }
+    if (metadata.firstPositiveUid() != null) {
+        score += 8
+    }
+    if (
+        metadata
+            .firstNonBlankValue(
+                "process",
+                "processName",
+                "process-name",
+                "process_name",
+                "appProcess",
+            )
+            .isNotBlank()
+    ) {
+        score += 4
+    }
+    if (
+        metadata
+            .firstNonBlankValue("packageName", "package", "package-name", "package_name")
+            .isNotBlank()
+    ) {
+        score += 2
+    }
+    if (
+        metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip").isNotBlank()
+    ) {
+        score += 1
+    }
+    return score
+}
+
+private fun JsonObject.firstNonBlankValue(vararg keys: String): String {
+    keys.forEach { key ->
+        val value = this[key]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        if (value.isNotBlank()) return value
+    }
+    return ""
+}
+
+private fun JsonObject.firstPositiveUid(): Int? {
+    listOf("uid", "sourceUid", "source_uid", "Uid", "UID").forEach { key ->
+        val primitive = this[key]?.jsonPrimitive ?: return@forEach
+        primitive.intOrNull?.let { if (it > 0) return it }
+        primitive.longOrNull?.let { if (it in 1..Int.MAX_VALUE.toLong()) return it.toInt() }
+        primitive.contentOrNull?.trim()?.toIntOrNull()?.let { if (it > 0) return it }
+    }
+    return null
 }

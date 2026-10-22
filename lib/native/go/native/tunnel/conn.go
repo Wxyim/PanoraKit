@@ -63,6 +63,11 @@ const closeAllTimeout = 2 * time.Second
 // backgrounded — the sampler below already runs — and needs no extra polling,
 // no push channel and no binder traffic.
 //
+// A delivered close whose owner is still unknown is another special case: its
+// first copy may already have reached the app, but a later UID lookup can still
+// repair it. Such entries keep the long replay window until their retry budget
+// is exhausted, and a successful late lookup marks them for one redelivery.
+//
 // [recentClosedSampler] is the active cadence: it must be finer than the app's
 // 1s poll to catch short-lived connections, and the finer it is the shorter a
 // connection has to live to be guaranteed observable. 20ms means any connection
@@ -75,7 +80,7 @@ const closeAllTimeout = 2 * time.Second
 // between ticks on a quiet device, so the sampler backs off to 250ms when there
 // is nothing to track and returns to 20ms as soon as activity resumes. Retained
 // entries do not keep the fine cadence armed: the coarse tick is enough to expire
-// them and still gives an undelivered close a couple of UID-enrichment attempts
+// them and still gives an unresolved close a couple of UID-enrichment attempts
 // before the next poll (see [tryScheduleUidEnrichment]).
 // The only tradeoff: a connection that opens and closes entirely inside a
 // single idle window (the first connection of a new burst) is not observed.
@@ -93,7 +98,8 @@ const (
 	// it feeds is a "recent requests" view, so a bound that spans hours would
 	// only replay stale history. [recentClosedMax] additionally caps how much
 	// can accumulate, so one poll after a long background delivers at most that
-	// many entries.
+	// many entries. The same bound applies to an already-delivered entry whose
+	// owner is still unresolved or which is waiting to be redelivered.
 	recentClosedUndeliveredRetention = 30 * time.Minute
 	// [recentClosedMax] bounds the buffer itself, which is what actually caps
 	// the connection payload. On a device sustaining more than ~80 closes per
@@ -140,6 +146,35 @@ func recentClosedRetentionWindow() time.Duration {
 	return window
 }
 
+// retainRecentClosed reports whether [entry] should stay in the retention buffer.
+//
+// Delivered entries normally expire on the short poll-following window. An unresolved entry that
+// can still be enriched is the exception: keep it for the same replay window as an undelivered
+// close so a late UID can be handed to the app even after the first (incomplete) copy was rendered.
+// Once the bounded retry budget is exhausted, the normal short window applies again.
+func retainRecentClosed(
+	entry *recentClosedEntry,
+	enrichmentPossible bool,
+	deliveredCutoff time.Time,
+	undeliveredCutoff time.Time,
+) bool {
+	if entry == nil {
+		return false
+	}
+	if entry.deliveredAt.IsZero() {
+		return entry.closedAt.After(undeliveredCutoff)
+	}
+	if entry.redeliver {
+		return entry.closedAt.After(undeliveredCutoff)
+	}
+	if enrichmentPossible &&
+		entry.enrichAttempts < enrichUidMaxAttempts &&
+		connectionNeedsUid(entry.info) {
+		return entry.closedAt.After(undeliveredCutoff)
+	}
+	return entry.deliveredAt.After(deliveredCutoff)
+}
+
 type recentClosedEntry struct {
 	info     *statistic.TrackerInfo
 	closedAt time.Time
@@ -153,6 +188,10 @@ type recentClosedEntry struct {
 	// which is what renders a short "0 s / 0 B" request as "Unknown App".
 	enrichAttempts int
 	enrichLastAt   int64
+	// redeliver marks an entry whose metadata was upgraded after it had already been returned to
+	// the app. The next poll must include it once more so the app can replace the incomplete copy
+	// it recorded on first delivery.
+	redeliver bool
 }
 
 // connectionSnapshot mirrors statistic.Snapshot but tags every connection with
@@ -183,6 +222,14 @@ type connectionInfo struct {
 type enrichState struct {
 	attempts int
 	lastAt   int64 // UnixNano of the last attempt
+}
+
+// uidEnrichmentRequest keeps the retained buffer entry that a lookup belongs to, when there is
+// one. Live connections have no buffer entry; a successful lookup for a retained close must also
+// mark that entry for redelivery to the app.
+type uidEnrichmentRequest struct {
+	info  *statistic.TrackerInfo
+	entry *recentClosedEntry
 }
 
 var (
@@ -237,7 +284,8 @@ func observeRecentClosed() bool {
 
 	recentClosedMu.Lock()
 	enrich := uidEnrichmentActive(now)
-	var pending []*statistic.TrackerInfo
+	enrichPossible := uidEnrichmentPossible()
+	var pending []uidEnrichmentRequest
 
 	// Nothing live and nothing pending: only retained entries can have work
 	// left, and that work is expiring them plus the handful of UID-enrichment
@@ -262,20 +310,17 @@ func observeRecentClosed() bool {
 	}
 
 	// Expire retained entries. Entries no poll has seen yet are kept for the
-	// longer window so a backgrounded app still gets them on its next poll;
-	// delivered ones expire as before, measured from the poll that delivered
-	// them. Entries are appended in close order and delivered in batches, so
-	// both timestamps are non-decreasing and this stops at the first live entry.
+	// longer window so a backgrounded app still gets them on its next poll.
+	// Delivered entries normally expire on the short window, but an unresolved
+	// entry that still has enrichment attempts left (or an entry waiting to be
+	// redelivered) keeps the long replay window. The loop stops at the first
+	// retained entry; later entries are newer, so they cannot be expired yet.
 	deliveredCutoff := now.Add(-recentClosedRetentionWindow())
 	undeliveredCutoff := now.Add(-recentClosedUndeliveredRetention)
 	keep := 0
 	for keep < len(recentClosedBuffer) {
 		entry := recentClosedBuffer[keep]
-		if entry.deliveredAt.IsZero() {
-			if entry.closedAt.After(undeliveredCutoff) {
-				break
-			}
-		} else if entry.deliveredAt.After(deliveredCutoff) {
+		if retainRecentClosed(&entry, enrichPossible, deliveredCutoff, undeliveredCutoff) {
 			break
 		}
 		keep++
@@ -293,14 +338,16 @@ func observeRecentClosed() bool {
 	// priority order; the buffer tiers run oldest-first and the live tier rides Go's randomised map
 	// iteration, so nothing starves:
 	//
-	//   1. retained closes no poll has delivered yet — the rows the next poll is about to show, and
-	//      often the last chance to attribute a connection that vanished from the live set before the
-	//      scan below reached it (the short "0 s / 0 B" requests behind most "Unknown App" rows);
-	//   2. live connections, as before;
-	//   3. retained closes already delivered once, while they are still inside the retention window.
+	//   1. delivered closes that are still unresolved get first refusal of a small share of the
+	//      budget: they are already visible and their short retention window is running;
+	//   2. live connections, whose owner must be queried while the socket still exists;
+	//   3. retained closes no poll has delivered yet (they have the long replay window);
+	//   4. any leftover budget goes back to delivered unresolved closes, including a large batch
+	//      delivered after the app returned from the background.
 	if enrich {
 		budget := enrichUidBudgetPerTick
-		scheduleEntry := func(entry *recentClosedEntry) {
+		urgentBudget := enrichUidBudgetPerTick / 2
+		scheduleEntry := func(entry *recentClosedEntry) bool {
 			attempts, lastAt, scheduled := tryScheduleUidEnrichment(
 				entry.info,
 				entry.enrichAttempts,
@@ -309,17 +356,18 @@ func observeRecentClosed() bool {
 			)
 			entry.enrichAttempts, entry.enrichLastAt = attempts, lastAt
 			if scheduled {
-				pending = append(pending, entry.info)
+				pending = append(pending, uidEnrichmentRequest{info: entry.info, entry: entry})
 				budget--
 			}
+			return scheduled
 		}
 		for i := range recentClosedBuffer {
-			if budget <= 0 {
+			if budget <= 0 || urgentBudget <= 0 {
 				break
 			}
 			entry := &recentClosedBuffer[i]
-			if entry.deliveredAt.IsZero() {
-				scheduleEntry(entry)
+			if !entry.deliveredAt.IsZero() && scheduleEntry(entry) {
+				urgentBudget--
 			}
 		}
 		for id, info := range recentClosedSeen {
@@ -331,8 +379,17 @@ func observeRecentClosed() bool {
 				tryScheduleUidEnrichment(info, state.attempts, state.lastAt, now)
 			if scheduled {
 				recentClosedEnriched[id] = enrichState{attempts: attempts, lastAt: lastAt}
-				pending = append(pending, info)
+				pending = append(pending, uidEnrichmentRequest{info: info})
 				budget--
+			}
+		}
+		for i := range recentClosedBuffer {
+			if budget <= 0 {
+				break
+			}
+			entry := &recentClosedBuffer[i]
+			if entry.deliveredAt.IsZero() {
+				scheduleEntry(entry)
 			}
 		}
 		for i := range recentClosedBuffer {
@@ -349,8 +406,29 @@ func observeRecentClosed() bool {
 
 	// Attribute the connections outside the lock: the lookup is a JNI/binder round trip and must not
 	// block a poll waiting for the same lock.
-	for _, info := range pending {
-		enrichUid(info)
+	var redeliver []*recentClosedEntry
+	for _, request := range pending {
+		if enrichUid(request.info) && request.entry != nil {
+			redeliver = append(redeliver, request.entry)
+		}
+	}
+	if len(redeliver) > 0 {
+		recentClosedMu.Lock()
+		for _, entry := range redeliver {
+			if entry.deliveredAt.IsZero() {
+				// Enrichment won the race against first delivery. The poll that delivers this
+				// entry will already carry the UID, so no redelivery is needed.
+				continue
+			}
+			entry.redeliver = true
+			// An entry can have been delivered and then enriched after its short retention window
+			// had already started. Refresh that window so the next poll can hand the upgraded
+			// metadata to the app before the entry expires.
+			if !entry.deliveredAt.IsZero() {
+				entry.deliveredAt = time.Now()
+			}
+		}
+		recentClosedMu.Unlock()
 	}
 
 	return !idle
@@ -398,14 +476,28 @@ const (
 	enrichUidRetryInterval = 500 * time.Millisecond
 )
 
+// uidEnrichmentPossible reports whether the configured process mode permits owner lookups at all.
+func uidEnrichmentPossible() bool {
+	return mihomoTunnel.FindProcessMode() != process.FindProcessOff
+}
+
 // uidEnrichmentActive reports whether the app is currently rendering the connection list and the
 // core still leaves attribution to it.
 func uidEnrichmentActive(now time.Time) bool {
-	if mihomoTunnel.FindProcessMode() == process.FindProcessOff {
+	if !uidEnrichmentPossible() {
 		return false
 	}
 	last := atomic.LoadInt64(&recentClosedLastQueryNanos)
 	return last != 0 && now.Sub(time.Unix(0, last)) < enrichUidPollWindow
+}
+
+// connectionNeedsUid reports whether [info] is a user connection that the core did not attribute.
+// Inner connections have no owning app, and a non-zero UID is already enough for the UI fallback.
+func connectionNeedsUid(info *statistic.TrackerInfo) bool {
+	return info != nil &&
+		info.Metadata != nil &&
+		info.Metadata.Type != C.INNER &&
+		info.Metadata.Uid == 0
 }
 
 // enrichUid resolves the owner UID of a connection the core skipped and stores it in the metadata
@@ -416,21 +508,23 @@ func uidEnrichmentActive(now time.Time) bool {
 // Connections the core already attributed, inner (core-originated) connections, and connections
 // whose 4-tuple cannot be rebuilt are left untouched: the first two need no help and the third has
 // nothing to query with.
-func enrichUid(info *statistic.TrackerInfo) {
-	if info == nil {
-		return
+//
+// It returns true only when this call added a UID, which tells the caller that a retained closed
+// entry must be redelivered to the app.
+func enrichUid(info *statistic.TrackerInfo) bool {
+	if !connectionNeedsUid(info) {
+		return false
 	}
 	metadata := info.Metadata
-	if metadata == nil || metadata.Type == C.INNER || metadata.Uid != 0 {
-		return
-	}
 	source, target := app.MetadataSocketAddrs(metadata)
 	if source == nil || target == nil {
-		return
+		return false
 	}
 	if uid := app.QuerySocketUid(source, target, true); uid > 0 {
 		metadata.Uid = uint32(uid)
+		return true
 	}
+	return false
 }
 
 // tryScheduleUidEnrichment books one enrichment attempt for [info] when it is still unattributed
@@ -442,7 +536,7 @@ func tryScheduleUidEnrichment(
 	lastAt int64,
 	now time.Time,
 ) (newAttempts int, newLastAt int64, scheduled bool) {
-	if info == nil || info.Metadata == nil || info.Metadata.Type == C.INNER || info.Metadata.Uid != 0 {
+	if !connectionNeedsUid(info) {
 		return attempts, lastAt, false
 	}
 	if attempts >= enrichUidMaxAttempts {
@@ -452,6 +546,49 @@ func tryScheduleUidEnrichment(
 		return attempts, lastAt, false
 	}
 	return attempts + 1, now.UnixNano(), true
+}
+
+// selectRecentClosedIndices chooses the retained closes to include in one response.
+//
+// Redelivery entries come first because they carry metadata the app has not seen. The remaining
+// budget preserves the original backlog behavior: serve the oldest undelivered entries first,
+// then top the response up with the newest delivered entries.
+func selectRecentClosedIndices(buffer []recentClosedEntry) []int {
+	numDelivered := 0
+	for numDelivered < len(buffer) && !buffer[numDelivered].deliveredAt.IsZero() {
+		numDelivered++
+	}
+	start, end := 0, len(buffer)
+	if len(buffer)-numDelivered >= recentClosedMaxPerResponse {
+		start, end = numDelivered, numDelivered+recentClosedMaxPerResponse
+	} else if end > recentClosedMaxPerResponse {
+		start = end - recentClosedMaxPerResponse
+	}
+
+	selected := make([]bool, len(buffer))
+	selectedIndices := make([]int, 0, recentClosedMaxPerResponse)
+	addIndex := func(index int) {
+		if selected[index] || len(selectedIndices) >= recentClosedMaxPerResponse {
+			return
+		}
+		selected[index] = true
+		selectedIndices = append(selectedIndices, index)
+	}
+	for i := range buffer {
+		if len(selectedIndices) >= recentClosedMaxPerResponse {
+			break
+		}
+		if buffer[i].redeliver {
+			addIndex(i)
+		}
+	}
+	for i := start; i < end; i++ {
+		if len(selectedIndices) >= recentClosedMaxPerResponse {
+			break
+		}
+		addIndex(i)
+	}
+	return selectedIndices
 }
 
 func QueryConnections() *connectionSnapshot {
@@ -466,35 +603,20 @@ func QueryConnections() *connectionSnapshot {
 	for _, c := range snap.Connections {
 		conns = append(conns, &connectionInfo{TrackerInfo: c})
 	}
-	// Cap how much retained history one response carries (see
-	// [recentClosedMaxPerResponse]). The buffer is [delivered prefix][undelivered
-	// suffix], so a backlog of undelivered entries is served oldest-first and
-	// whatever exceeds the cap is handed to the next poll while it is still
-	// inside its window; when the undelivered entries do not fill the budget the
-	// newest delivered ones top it up (the older ones were already recorded by an
-	// earlier poll). Either way the selection is a contiguous, oldest-first run,
-	// which is what lets the app keep its newest-first history by prepending.
-	numDelivered := 0
-	for numDelivered < len(recentClosedBuffer) && !recentClosedBuffer[numDelivered].deliveredAt.IsZero() {
-		numDelivered++
-	}
-	start, end := 0, len(recentClosedBuffer)
-	if len(recentClosedBuffer)-numDelivered >= recentClosedMaxPerResponse {
-		// Backlog: serve the oldest [recentClosedMaxPerResponse] undelivered ones.
-		start, end = numDelivered, numDelivered+recentClosedMaxPerResponse
-	} else if end > recentClosedMaxPerResponse {
-		// No backlog: serve the newest [recentClosedMaxPerResponse] entries, which
-		// covers every undelivered one plus the most recent already-delivered ones.
-		start = end - recentClosedMaxPerResponse
-	}
+	// Cap how much retained history one response carries (see [recentClosedMaxPerResponse]).
+	selectedIndices := selectRecentClosedIndices(recentClosedBuffer)
 
 	// Stamp the poll on every entry it returns: an entry that has been seen once
 	// expires on the short window from here on, so retained history cannot keep
-	// growing once the app is back and polling again.
+	// growing once the app is back and polling again. A redelivery refreshes that
+	// window because the app only now receives the upgraded metadata.
 	deliveredAt := time.Now()
-	for i := start; i < end; i++ {
+	for _, i := range selectedIndices {
 		entry := &recentClosedBuffer[i]
-		if entry.deliveredAt.IsZero() {
+		if entry.redeliver {
+			entry.redeliver = false
+			entry.deliveredAt = deliveredAt
+		} else if entry.deliveredAt.IsZero() {
 			entry.deliveredAt = deliveredAt
 		}
 		conns = append(conns, &connectionInfo{

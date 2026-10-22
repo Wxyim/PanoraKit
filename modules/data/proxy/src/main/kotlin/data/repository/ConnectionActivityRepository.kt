@@ -155,12 +155,12 @@ class ConnectionActivityRepository(
                                 _activeConnections.value = connections.filterNot { it.closed }
                                 val revision = ConnectionHistoryManager.closedConnectionsRevision()
                                 if (revision != lastClosedRevision) {
-                                    val closed = ConnectionHistoryManager.getClosedConnections()
-                                    // Only emit when the closed set actually changed
-                                    // (avoids driving combine recomputation every 1000 ms).
-                                    if (closedChanged(closed)) {
-                                        _closedConnections.value = closed
-                                    }
+                                    // A revision is bumped for both a new closed row and a late
+                                    // app-identity upgrade of an existing row. The latter keeps the
+                                    // same id set, so comparing ids here would suppress the update
+                                    // and leave a row showing Unknown App forever.
+                                    _closedConnections.value =
+                                        ConnectionHistoryManager.getClosedConnections()
                                     lastClosedRevision = revision
                                 }
                             }
@@ -199,15 +199,6 @@ class ConnectionActivityRepository(
     private fun onCollectorStarted() = subscriberCount.update { it + 1 }
 
     private fun onCollectorStopped() = subscriberCount.update { (it - 1).coerceAtLeast(0) }
-
-    /** Returns true when [closed] differs from the currently-held snapshot by connection id set. */
-    private fun closedChanged(closed: List<ConnectionInfo>): Boolean {
-        val prev = _closedConnections.value
-        if (prev.size != closed.size) return true
-        val prevIds = prev.asSequence().map { it.id }.toSet()
-        val closedIds = closed.asSequence().map { it.id }.toSet()
-        return prevIds != closedIds
-    }
 
     /** Stop connection polling. StateFlows retain their last-emitted values. */
     fun stop() {
