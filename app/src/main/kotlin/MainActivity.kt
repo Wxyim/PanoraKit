@@ -157,7 +157,9 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             // A fresh task (app force-quit, force-stop or first launch) should
             // start on the home tab. Only recreations of the same backgrounded
-            // task (task id recorded in onStop) restore the last tab.
+            // task (task id recorded in onStop) restore the last tab. Keep the
+            // onboarding hand-off on the launcher intent path so the first
+            // launcher tap does not look like a new task here.
             if (taskId.toLong() != appSettingsStorage.lastBackgroundTaskId.value) {
                 appSettingsStorage.lastMainPage.set(0)
             }

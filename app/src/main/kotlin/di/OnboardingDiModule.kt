@@ -29,10 +29,17 @@ import org.koin.dsl.module
 
 private class MainActivityOnboardingCompletionHandler : OnboardingCompletionHandler {
     override fun finishOnboarding(activity: Activity) {
+        // Enter through the launcher entry point, not an explicit MainActivity intent.
+        // The task's base intent must match the one used by the home-screen icon; otherwise
+        // the first launcher tap after onboarding resets the task (and its taskId), which
+        // the restore logic correctly interprets as a force-quit and clears the last tab.
         val intent =
-            Intent(activity, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            }
+            activity.packageManager.getLaunchIntentForPackage(activity.packageName)
+                ?: Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    setClass(activity, MainActivity::class.java)
+                }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         activity.startActivity(intent)
         activity.finish()
     }
