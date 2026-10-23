@@ -60,9 +60,10 @@
   以免冷启动首包洪峰被负缓存 5s（电量上只影响启动 3s，稳态不变）。核心侧补齐发出的查询带 `force` 标志：
   只复用正缓存、不读也不写负缓存，代价受 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms），稳态唤醒不变。
 - 电量：减少 `ConnectivityService` Binder 往返 → 减少唤醒系统服务与进程切换。
-- 核心侧补齐（新增）：仅当 App 正在轮询连接列表（最近 10s 内有过 `QueryConnections`）且
-  `find-process-mode != off` 时才补 `metadata.Uid`，采样器每 tick 最多 8 条、每连接最多 3 次尝试，并复用
-  同一份 Kotlin 正/负缓存；不看列表时不产生任何解析，也不碰 Binder——补齐全落在用户已经付出的那次查询里。
+- 核心侧补齐（新增）：`find-process-mode != off` 时，活跃连接在 socket 存活期间先做有界补齐。App 轮询
+  列表时每 tick 最多 8 条、每连接最多 3 次；后台时每 tick 最多 4 条、每连接最多 2 次，保证后台关闭后
+  回放的最近请求也有 UID/系统标记。保留条目的重试与已投递 Unknown 行的修复仍只在轮询期间进行，后台不会
+  无限重试。正/负缓存与 Kotlin 侧共用，稳态下每个新连接通常只多一次 Binder 查询。
 - procfs 回退：先精确匹配完整 `local_address`，未命中才按端口匹配（仅同端口 UID 一致时采用），并覆盖
   v4-mapped v6 表，减少 miss 后的重复读表。
 
@@ -103,7 +104,7 @@
 | 采样器：50ms→20ms（活跃） | `tunnel/conn.go` | 捕获提升；活跃期增量可忽略 |
 | 日志级别过滤 | `native/log.go` | 每 DNS 劫持不再写 logcat |
 | UID 正/负缓存 | `VpnTunTransport.kt` | Binder 频率大降 |
-| UID 补齐（轮询门控 + 8 条/tick、每连接 ≤3 次） | `tunnel/conn.go`、`native/app/tun.go`、`ProcFsUidResolver.kt` | 残留 Unknown App 消除；不看列表时零查询零唤醒 |
+| UID 补齐（轮询 8 条/tick、后台 4 条/tick、每连接有界） | `tunnel/conn.go`、`native/app/tun.go`、`ProcFsUidResolver.kt` | 残留 Unknown App 消除；后台只做有界一次性补查，避免回放时已无 socket |
 | GOGC 200 + 内存上限 | `native/main.go` | GC 停顿尖峰减少 |
 | 启动三路并行 | `SessionRuntime.kt` | 冷启动高功耗段缩短 |
 | 快速地址解析 | `Net.kt` | 减少每 miss 的分配/GC |

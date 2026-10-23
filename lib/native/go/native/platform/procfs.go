@@ -72,16 +72,28 @@ func QuerySocketUidFromProcFs(source, _ net.Addr) int {
 		return -1
 	}
 
-	uid := doQuery(path+"6", sIP, sPort)
+	uid := doQueryWithSelfFallback(path+"6", sIP, sPort)
 	if uid == -1 {
 		sIP = sIP.To4()
 		if sIP == nil {
 			return -1
 		}
-		uid = doQuery(path, sIP, sPort)
+		uid = doQueryWithSelfFallback(path, sIP, sPort)
 	}
 
 	return uid
+}
+
+// doQueryWithSelfFallback keeps the procfs lookup working on devices that restrict the shared
+// /proc/net view but still expose the process-scoped /proc/self/net view.
+func doQueryWithSelfFallback(path string, sIP net.IP, sPort int) int {
+	if uid := doQuery(path, sIP, sPort); uid != -1 {
+		return uid
+	}
+	if strings.HasPrefix(path, "/proc/net/") {
+		return doQuery(strings.Replace(path, "/proc/net/", "/proc/self/net/", 1), sIP, sPort)
+	}
+	return -1
 }
 
 func doQuery(path string, sIP net.IP, sPort int) int {

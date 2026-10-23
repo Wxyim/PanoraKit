@@ -67,6 +67,11 @@ internal object ProcFsUidResolver {
          */
         var exactUid: Int? = null
         var portUid = -1
+        /**
+         * True when at least one live row sharing the port is owned by UID 0. A port-only system
+         * answer is accepted only when no positive-UID row competes for the same port.
+         */
+        var portSystem = false
 
         /**
          * True when rows sharing the port disagreed about the owner. The port answer is then
@@ -162,7 +167,9 @@ internal object ProcFsUidResolver {
      * - a dual-stack socket (what Java opens for an IPv4 endpoint) is listed in the v6 table as a
      *   v4-mapped address, so the v4 table alone is not enough for an IPv4 source.
      *
-     * A port-only answer is used only when every row with that port agrees on the UID.
+     * A port-only answer is used only when every row with that port agrees on the UID. UID 0 is
+     * included in that consensus: an unconnected system UDP socket is bound to `0.0.0.0`, so the
+     * full-address match cannot succeed and the port tier is the only way to attribute it.
      */
     private fun resolveFromProcFs(source: InetSocketAddress, tcp: Boolean): Int {
         val port = source.port
@@ -188,6 +195,7 @@ internal object ProcFsUidResolver {
         }
 
         var portUid = -1
+        var portSystem = false
         var ambiguous = false
         candidates.forEach { (table, exactKey) ->
             val match = scanProcNet(table, exactKey, port)
@@ -204,9 +212,26 @@ internal object ProcFsUidResolver {
                     ambiguous = true
                 }
             }
+            if (match.portSystem) {
+                portSystem = true
+            }
         }
-        return if (ambiguous) -1 else portUid
+        return resolvePortUid(portUid, portSystem, ambiguous)
     }
+
+    /**
+     * Combine the port-tier observations from every candidate table.
+     *
+     * A positive UID is accepted only when no system row shares the port, and UID 0 is accepted
+     * only when no positive row competes. Any disagreement stays unresolved instead of guessing.
+     */
+    internal fun resolvePortUid(portUid: Int, portSystem: Boolean, ambiguous: Boolean): Int =
+        when {
+            ambiguous || (portUid > 0 && portSystem) -> -1
+            portUid > 0 -> portUid
+            portSystem -> 0
+            else -> -1
+        }
 
     // ═══════════════════════════════════════════════════════════════
     //  Shared infra
@@ -241,10 +266,14 @@ internal object ProcFsUidResolver {
                         match.exactUid = uid
                         break
                     }
-                    // UID 0 on a port-only match is ambiguous: ownerless rows and system sockets
-                    // both report it. Only an exact local-address match is authoritative enough to
-                    // surface it, so keep the port-only tier limited to real app UIDs.
-                    if (uid <= 0) continue
+                    if (uid == 0) {
+                        // Ownerless rows were filtered by inode above, so a live UID 0 row is a
+                        // system socket. It is still rejected by the caller when another row with
+                        // the same port has a positive app UID.
+                        match.portSystem = true
+                        continue
+                    }
+                    if (uid < 0) continue
                     if (match.portUid < 0) {
                         match.portUid = uid
                     } else if (match.portUid != uid) {
@@ -313,6 +342,11 @@ internal object ProcFsUidResolver {
     }
 
     private fun parseTable(path: String): ProcNetTable? {
+        return parseTableAt(path)
+            ?: parseTableAt(path.replaceFirst("/proc/net/", "/proc/self/net/"))
+    }
+
+    private fun parseTableAt(path: String): ProcNetTable? {
         return runCatching {
                 File(path).bufferedReader().use { reader ->
                     val header = reader.readLine() ?: return@use null

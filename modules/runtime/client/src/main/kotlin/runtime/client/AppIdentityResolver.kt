@@ -28,6 +28,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import timber.log.Timber
 
 data class AppIdentity(val appKey: String, val packageName: String? = null, val appName: String)
 
@@ -58,12 +59,17 @@ class AppIdentityResolver(context: Context) {
             )
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
-        return resolve(
-            explicitPackageName = explicitPackageName,
-            processName = processName,
-            uid = uid,
-            fallbackSourceIp = sourceIp,
-        )
+        val identity =
+            resolve(
+                explicitPackageName = explicitPackageName,
+                processName = processName,
+                uid = uid,
+                fallbackSourceIp = sourceIp,
+            )
+        if (identity.appKey == UNKNOWN_APP_KEY) {
+            logUnresolvedIdentity(metadata)
+        }
+        return identity
     }
 
     fun resolve(
@@ -291,7 +297,11 @@ class AppIdentityResolver(context: Context) {
         return null
     }
 
-    /** Fallback display name when package resolution fails: process name → UID → "Unknown App". */
+    /**
+     * Fallback display name when package resolution fails: process name → hotspot → UID → unknown.
+     * Authoritative kernel/root ownership is carried separately as `ConnectionInfo.system`; callers
+     * check it before this fallback so it is never reported as "Unknown App".
+     */
     fun resolveFallbackDisplayName(metadata: JsonObject): String {
         // The recent-request list resolves its rows through here, so core-originated connections
         // get the same label the detail sheet shows rather than "Unknown App".
@@ -313,7 +323,43 @@ class AppIdentityResolver(context: Context) {
 
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         if (uid != null) return "UID $uid"
+        logUnresolvedIdentity(metadata)
         return UNKNOWN_APP_NAME
+    }
+
+    /**
+     * Rate-limited diagnostic for the remaining unattributed rows. It logs only routing fields
+     * already shown in the detail sheet, never payload data.
+     */
+    private fun logUnresolvedIdentity(metadata: JsonObject) {
+        val now = System.currentTimeMillis()
+        if (now - lastUnresolvedLogAt < UNRESOLVED_LOG_INTERVAL_MS) return
+        lastUnresolvedLogAt = now
+        val uid = metadata["uid"]?.jsonPrimitive?.contentOrNull ?: "<absent>"
+        val process =
+            metadata
+                .firstNonBlankValue(
+                    "process",
+                    "processName",
+                    "process-name",
+                    "process_name",
+                    "appProcess",
+                )
+                .ifBlank { "<empty>" }
+        val type = metadata.firstNonBlankValue("type").ifBlank { "<empty>" }
+        val network = metadata.firstNonBlankValue("network").ifBlank { "<empty>" }
+        val source = metadata.firstNonBlankValue("sourceIP", "sourceIp").ifBlank { "<empty>" }
+        val destination =
+            metadata.firstNonBlankValue("destinationIP", "destinationIp").ifBlank { "<empty>" }
+        Timber.d(
+            "[APP] unresolved identity uid=%s process=%s type=%s network=%s %s -> %s",
+            uid,
+            process,
+            type,
+            network,
+            source,
+            destination,
+        )
     }
 
     companion object {
@@ -323,6 +369,9 @@ class AppIdentityResolver(context: Context) {
         /** Identity of a connection the core opened itself (mihomo `type: "Inner"`). */
         const val CORE_APP_KEY = "core"
         const val CORE_APP_NAME = "MonadBox"
+
+        private const val UNRESOLVED_LOG_INTERVAL_MS = 60_000L
+        @Volatile private var lastUnresolvedLogAt = 0L
 
         private const val HOTSPOT_DEVICE_PREFIX = "Hotspot Device"
     }

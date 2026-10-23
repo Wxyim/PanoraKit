@@ -21,7 +21,9 @@ package app
 import (
 	"net"
 	"net/netip"
+	"sync"
 	"syscall"
+	"time"
 
 	"cfa/native/platform"
 
@@ -32,8 +34,82 @@ var markSocketImpl func(fd int)
 var querySocketUidImpl func(protocol int, source, target string, force bool) int
 var queryPackageNameImpl func(uid int) string
 
+// systemMetadata remembers connections whose owner was authoritatively resolved to UID 0 while
+// the core was evaluating rules, before the tracker sampler sees them. The marker is only a hint:
+// it lets the sampler record the system identity immediately instead of waiting for a second UID
+// lookup, which matters for short-lived kernel/root sockets.
+//
+// Keys are metadata pointers because the same pointer is stored in the eventual TrackerInfo. The
+// map is bounded by a TTL and a hard limit; tracked connections are unmarked when they close.
+const (
+	systemMetadataTTL   = 10 * time.Minute
+	systemMetadataLimit = 8192
+)
+
+var (
+	systemMetadataMu sync.Mutex
+	systemMetadata   = make(map[*constant.Metadata]time.Time)
+)
+
 func MarkSocket(fd int) {
 	markSocketImpl(fd)
+}
+
+// MarkSystemMetadata records that metadata's socket owner is UID 0 (kernel/root).
+func MarkSystemMetadata(metadata *constant.Metadata) {
+	if metadata == nil {
+		return
+	}
+	now := time.Now()
+	systemMetadataMu.Lock()
+	defer systemMetadataMu.Unlock()
+	systemMetadata[metadata] = now
+	if len(systemMetadata) <= systemMetadataLimit {
+		return
+	}
+	cutoff := now.Add(-systemMetadataTTL)
+	for m, at := range systemMetadata {
+		if at.Before(cutoff) {
+			delete(systemMetadata, m)
+		}
+	}
+	// A burst of untracked rule evaluations can still exceed the limit between TTL sweeps. Drop
+	// arbitrary entries rather than growing without bound; a dropped live marker is recovered by
+	// the normal UID enrichment path.
+	for m := range systemMetadata {
+		if len(systemMetadata) <= systemMetadataLimit {
+			break
+		}
+		delete(systemMetadata, m)
+	}
+}
+
+// IsSystemMetadata reports whether metadata was marked as kernel/root-owned.
+func IsSystemMetadata(metadata *constant.Metadata) bool {
+	if metadata == nil {
+		return false
+	}
+	systemMetadataMu.Lock()
+	defer systemMetadataMu.Unlock()
+	at, ok := systemMetadata[metadata]
+	if !ok {
+		return false
+	}
+	if time.Since(at) > systemMetadataTTL {
+		delete(systemMetadata, metadata)
+		return false
+	}
+	return true
+}
+
+// UnmarkSystemMetadata releases the marker once the tracker has closed.
+func UnmarkSystemMetadata(metadata *constant.Metadata) {
+	if metadata == nil {
+		return
+	}
+	systemMetadataMu.Lock()
+	delete(systemMetadata, metadata)
+	systemMetadataMu.Unlock()
 }
 
 // QuerySocketUid resolves the UID that owns the socket [source] → [target].

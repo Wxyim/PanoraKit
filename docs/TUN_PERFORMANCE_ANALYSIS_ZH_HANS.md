@@ -101,16 +101,17 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
    `ErrInvalidNetwork` 连查询都不发起。修复分三层：
    - `app.MetadataSocketAddrs`（`app/tun.go`）在 RawAddr 缺失时用 `SrcIP/DstIP + NetWork` 重建地址，
      resolver 照常进入查询链；
-   - `tunnel/conn.go` 仅在「App 正在轮询连接列表」（最近 10s 内有过 `QueryConnections`）且
-     `find-process-mode != off` 时，在采样器里对 `metadata.Uid == 0` 的连接补齐 UID：每 tick 最多 8 条、
-     每连接最多尝试 3 次（间隔 ≥500ms，覆盖 socket 属主发布延迟），不轮询时零查询、零 Binder；预算先给
-     「刚关闭且尚未投递给 App 的保留条目」（在活跃扫描补到之前就关闭的短连接，正是 `0 s / 0 B` 的
-     Unknown App 行），再给活跃连接，最后给已投递但仍在保留窗内的条目；
+   - `tunnel/conn.go` 在 `find-process-mode != off` 时，对 `metadata.Uid == 0` 的**活跃连接**先做有界补齐：
+     App 轮询期间每 tick 最多 8 条、每连接最多 3 次；App 在后台时每 tick 最多 4 条、每连接最多 2 次。
+     后台也补一次的原因：最近请求会回放后台关闭的连接，等 App 回到前台时 socket 已经不存在，补查只能 miss；
+     先在 socket 存活时拿到 UID/系统标记，回放时才能正确显示。保留条目的重试和「已投递 Unknown 行」的修复
+     仍只在 App 轮询期间进行，避免后台无限重试；
    - 核心自身发起的连接（mihomo `type: "Inner"`：proxydialer / inner listener / DNS dialer）没有可归属的
      App，`AppIdentityResolver` 不再把它们落到「Unknown App」，而是标注为 `MonadBox`（`appKey = "core"`）；
-   - `ProcFsUidResolver` 先按完整 `local_address` 精确匹配，未命中再退化为端口匹配（仅当同端口所有行 UID
-     一致时采用，否则视为歧义返回 -1），并对 IPv4 源同时查 v4 表与 v6 表的 v4-mapped 项，覆盖未连接 UDP
-     socket 与 Java dual-stack socket；稳态 miss 日志按 30s 限频，便于真机定位且不刷屏。
+   - `ProcFsUidResolver` 先按完整 `local_address` 精确匹配，未命中再退化为端口匹配（同端口所有行 UID
+     一致才采用，UID 0 只有在该端口没有正数 UID 竞争时才视为系统；否则返回 -1），并对 IPv4 源同时查 v4
+     表与 v6 表的 v4-mapped 项，覆盖未连接 UDP socket 与 Java dual-stack socket；稳态 miss 日志按 30s
+     限频，便于真机定位且不刷屏。
 3. **连接元数据/规则匹配**：规则数越多、正则越多成本越高；`IP-CIDR`/`GEOIP` 匹配依赖 IP 集与 MMDB，
    命中缓存后为 O(1)~O(log n)。fake-ip 模式下域名规则不触发二次解析，但 IP 类规则需要 `ResolveIP`。
 
@@ -240,7 +241,7 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | 优先级 | 项 | 位置 | 影响 | 改动量 |
 | --- | --- | --- | --- | --- |
 | P0 ✅ | UID 缓存：正缓存 15s、预热后负缓存 5s、按 TTL 淘汰、容量 2048；预热窗在 `transport.start()` 重新锚定，miss 重试 3×5ms | `VpnTunTransport.queryUid`/`cacheUid`/`refreshUidWarmup` | 降低短连接与 miss 场景下的 JNI+Binder+procfs 频率；消除冷启动首包洪峰的 UID miss（Unknown App） | 已实现 |
-| P0 ✅ | 残留 Unknown App：RawAddr 缺失时 `MetadataSocketAddrs` 重建地址；App 轮询期间由采样器按预算（8 条/tick、每连接 ≤3 次尝试）补齐 `metadata.Uid`；procfs 端口回退 + v4-mapped 双表 + 稳态 miss 日志 30s 限频 | `native/app/tun.go`、`native/delegate/init.go`、`native/tunnel/conn.go`、`ProcFsUidResolver.kt`、`VpnTunTransport.kt` | `strict` 模式下未被 process/uid 规则命中的连接也能显示 App；不看连接列表时不产生任何查询 | 已实现 |
+| P0 ✅ | 残留 Unknown App：RawAddr 缺失时 `MetadataSocketAddrs` 重建地址；采样器在 socket 存活期间补齐 `metadata.Uid`（轮询 8 条/tick、每连接 ≤3 次；后台 4 条/tick、每连接 ≤2 次）；procfs 端口回退 + UID 0 共识 + v4-mapped 双表 + `/proc/self/net` 回退 + 稳态 miss 日志 30s 限频 | `native/app/tun.go`、`native/delegate/init.go`、`native/tunnel/conn.go`、`ProcFsUidResolver.kt`、`VpnTunTransport.kt` | `strict` 模式下未被 process/uid 规则命中的连接也能显示 App；后台关闭后回放的最近请求仍有归属 | 已实现 |
 | P0 ✅ | 日志：`init()` 常驻订阅者加级别过滤（对齐 `subscribeLogcat`） | `lib/native/go/native/log.go` | 消除每 DNS 劫持的 logcat 写入；常驻订阅者保证 logCh 不阻塞 | 已实现 |
 | P1 ✅ | `querySocketUid` 字符串→地址解析改手写快速解析（去 `URL()`+`getByName`，规避中括号 IPv6 平台差异） | `core/util/Net.kt` | 减少每次 miss 的 URL 分配与解析成本 | 已实现 |
 | P1 ✅ | 日志：常驻 drainer 无条件排空 `logCh`；JNI 侧改为按需订阅并可退订（最后一个 channel 关闭时 `unsubscribeLogcat()`），无订阅者时不转发 info/debug 到 logcat | `lib/native/go/native/log.go`、`core/Clash.kt`、`cpp/main.cpp` | 消除每 DNS 劫持 JNI 开销、订阅泄漏导致的重复 fan-out 与后台 CPU | 已实现 |

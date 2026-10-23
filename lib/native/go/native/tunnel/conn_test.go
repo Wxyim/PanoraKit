@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"cfa/native/app"
+
 	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/tunnel/statistic"
 )
@@ -116,6 +118,35 @@ func TestConnectionInfoSerializesSystemOnlyWhenResolved(t *testing.T) {
 	}
 	if strings.Contains(string(payload), `"system"`) {
 		t.Fatalf("unresolved connection JSON = %s, want no system field", payload)
+	}
+}
+
+func TestSystemMetadataMarkerIsScopedToMetadata(t *testing.T) {
+	first := &C.Metadata{Type: C.TUN}
+	second := &C.Metadata{Type: C.TUN}
+	app.MarkSystemMetadata(first)
+	t.Cleanup(func() { app.UnmarkSystemMetadata(first) })
+
+	if !app.IsSystemMetadata(first) {
+		t.Fatal("marked metadata must be reported as system")
+	}
+	if app.IsSystemMetadata(second) {
+		t.Fatal("an unrelated metadata pointer must not inherit the marker")
+	}
+
+	app.UnmarkSystemMetadata(first)
+	if app.IsSystemMetadata(first) {
+		t.Fatal("unmarked metadata must not be reported as system")
+	}
+}
+
+func TestEnrichUidTrustsTheEarlySystemMarker(t *testing.T) {
+	info := &statistic.TrackerInfo{Metadata: &C.Metadata{Type: C.TUN}}
+	app.MarkSystemMetadata(info.Metadata)
+	t.Cleanup(func() { app.UnmarkSystemMetadata(info.Metadata) })
+
+	if got := enrichUid(info); got != uidEnrichmentSystem {
+		t.Fatalf("enrichUid() = %v, want uidEnrichmentSystem", got)
 	}
 }
 

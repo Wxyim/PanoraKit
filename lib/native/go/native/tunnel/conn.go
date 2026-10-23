@@ -310,8 +310,8 @@ func observeRecentClosed() bool {
 	})
 
 	recentClosedMu.Lock()
-	enrich := uidEnrichmentActive(now)
 	enrichPossible := uidEnrichmentPossible()
+	polling := uidEnrichmentActive(now)
 	var pending []uidEnrichmentRequest
 
 	// Nothing live and nothing pending: only retained entries can have work
@@ -325,11 +325,18 @@ func observeRecentClosed() bool {
 		for id, info := range recentClosedSeen {
 			if alive[id] == nil {
 				state := recentClosedEnriched[id]
+				system := state.system
+				if info != nil && app.IsSystemMetadata(info.Metadata) {
+					system = true
+				}
 				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{
 					info:     info,
 					closedAt: now,
-					system:   state.system,
+					system:   system,
 				})
+				if info != nil {
+					app.UnmarkSystemMetadata(info.Metadata)
+				}
 				delete(recentClosedSeen, id)
 				delete(recentClosedEnriched, id)
 			}
@@ -337,6 +344,13 @@ func observeRecentClosed() bool {
 		for id, info := range alive {
 			if _, ok := recentClosedSeen[id]; !ok {
 				recentClosedSeen[id] = info
+			}
+			if info != nil && app.IsSystemMetadata(info.Metadata) {
+				state := recentClosedEnriched[id]
+				if !state.system {
+					state.system = true
+					recentClosedEnriched[id] = state
+				}
 			}
 		}
 	}
@@ -366,19 +380,34 @@ func observeRecentClosed() bool {
 
 	// Collect the connections whose owner the core left unresolved (see [enrichUid]). The scan is
 	// budgeted per tick and skips connections it already gave up on, so opening the list over a long
-	// backlog cannot turn one tick into one binder round trip per connection. The budget is spent in
-	// priority order; the buffer tiers run oldest-first and the live tier rides Go's randomised map
-	// iteration, so nothing starves:
+	// backlog cannot turn one tick into one binder round trip per connection.
 	//
-	//   1. delivered closes that are still unresolved get first refusal of a small share of the
-	//      budget: they are already visible and their short retention window is running;
-	//   2. live connections, whose owner must be queried while the socket still exists;
+	// Live connections are attributed even when the app is not polling: the recent-request history
+	// retains background closes for later replay, but their sockets are gone by the time the user
+	// returns, so a lookup then can only miss. A bounded attempt per live connection while the app
+	// is in the background is the minimum needed to keep that replayed history attributable. The
+	// remaining retry budget and the retained-close tiers stay gated on the app polling the list:
+	//
+	//   1. live connections: their socket is still alive, so this is the only tier where a
+	//      late lookup can still succeed. Prioritising a visible backlog over them would create a
+	//      fresh Unknown App row every time a short-lived connection waits behind it;
+	//   2. retained closes a poll has already delivered (the row is visible and may still be
+	//      recoverable from procfs);
 	//   3. retained closes no poll has delivered yet (they have the long replay window);
 	//   4. any leftover budget goes back to delivered unresolved closes, including a large batch
 	//      delivered after the app returned from the background.
-	if enrich {
+	if enrichPossible {
 		budget := enrichUidBudgetPerTick
-		urgentBudget := enrichUidBudgetPerTick / 2
+		// Leave a small slice for the already-visible close tier. Otherwise a steady stream of
+		// new live connections could consume every tick and keep a row that is already showing
+		// Unknown App from ever being retried.
+		liveBudget := enrichUidBudgetPerTick - 2
+		if !polling {
+			// The app is not looking at the list. Only the bounded background attempt budget is
+			// paid for, so this is a burst limiter rather than the full polling budget.
+			budget = enrichUidBackgroundBudgetPerTick
+			liveBudget = budget
+		}
 		scheduleEntry := func(entry *recentClosedEntry) bool {
 			attempts, lastAt, scheduled := tryScheduleUidEnrichment(
 				entry.info,
@@ -394,20 +423,17 @@ func observeRecentClosed() bool {
 			}
 			return scheduled
 		}
-		for i := range recentClosedBuffer {
-			if budget <= 0 || urgentBudget <= 0 {
-				break
-			}
-			entry := &recentClosedBuffer[i]
-			if !entry.deliveredAt.IsZero() && scheduleEntry(entry) {
-				urgentBudget--
-			}
-		}
 		for id, info := range recentClosedSeen {
-			if budget <= 0 {
+			if budget <= 0 || liveBudget <= 0 {
 				break
 			}
 			state := recentClosedEnriched[id]
+			// With no poller there is nobody to show a retry result to, and the background cost
+			// must stay bounded. Two attempts cover a delayed owner publication without letting a
+			// long-lived unresolved connection keep paying for binder calls forever.
+			if !polling && state.attempts >= enrichUidBackgroundMaxAttempts {
+				continue
+			}
 			attempts, lastAt, scheduled :=
 				tryScheduleUidEnrichment(info, state.system, state.attempts, state.lastAt, now)
 			if scheduled {
@@ -416,24 +442,36 @@ func observeRecentClosed() bool {
 				recentClosedEnriched[id] = state
 				pending = append(pending, uidEnrichmentRequest{info: info})
 				budget--
+				liveBudget--
 			}
 		}
-		for i := range recentClosedBuffer {
-			if budget <= 0 {
-				break
+		if polling {
+			for i := range recentClosedBuffer {
+				if budget <= 0 {
+					break
+				}
+				entry := &recentClosedBuffer[i]
+				if !entry.deliveredAt.IsZero() {
+					scheduleEntry(entry)
+				}
 			}
-			entry := &recentClosedBuffer[i]
-			if entry.deliveredAt.IsZero() {
-				scheduleEntry(entry)
+			for i := range recentClosedBuffer {
+				if budget <= 0 {
+					break
+				}
+				entry := &recentClosedBuffer[i]
+				if entry.deliveredAt.IsZero() {
+					scheduleEntry(entry)
+				}
 			}
-		}
-		for i := range recentClosedBuffer {
-			if budget <= 0 {
-				break
-			}
-			entry := &recentClosedBuffer[i]
-			if !entry.deliveredAt.IsZero() {
-				scheduleEntry(entry)
+			for i := range recentClosedBuffer {
+				if budget <= 0 {
+					break
+				}
+				entry := &recentClosedBuffer[i]
+				if !entry.deliveredAt.IsZero() {
+					scheduleEntry(entry)
+				}
 			}
 		}
 	}
@@ -513,10 +551,10 @@ func noteQueryCadence() {
 // rule keeps an empty uid and process, and the app can only render it as "Unknown App".
 //
 // The app owns the very lookup the core would have run (VpnTunTransport.queryUid, with its
-// positive/negative caches), so it fills the gap itself. That work is deferred to the moment the
-// connection list is actually rendered: enrichment only runs while the app polls connections, so a
-// user who never opens the list never pays for it. `off` is left alone, since it is an explicit
-// opt-out of process resolution.
+// positive/negative caches), so it fills the gap itself. Live connections get bounded lookups while
+// their socket still exists even when the app is in the background; retries and the retained-close
+// tiers only run while the app polls the list. `off` is left alone, since it is an explicit opt-out
+// of process resolution.
 const (
 	// enrichUidPollWindow is how long after the last connection poll the app is still assumed to
 	// be rendering the list. The repository polls every second while the traffic screen is open
@@ -527,6 +565,14 @@ const (
 	// over a long list of already-established connections would otherwise stall that tick behind one
 	// binder round trip per connection; the rest are picked up by the following ticks.
 	enrichUidBudgetPerTick = 8
+
+	// enrichUidBackgroundBudgetPerTick bounds the one-shot live lookups while the app is not
+	// polling. The sampler runs at 20ms while connections are alive, so this still drains a burst
+	// quickly without spending an unbounded number of binder calls in the background.
+	enrichUidBackgroundBudgetPerTick = 4
+
+	// enrichUidBackgroundMaxAttempts is the per-connection cap while the app is not polling.
+	enrichUidBackgroundMaxAttempts = 2
 
 	// A connection is attributed at most enrichUidMaxAttempts times, spaced by at least
 	// enrichUidRetryInterval. Android publishes the socket owner a few ms after the socket first
@@ -578,6 +624,9 @@ func enrichUid(info *statistic.TrackerInfo) uidEnrichmentOutcome {
 		return uidEnrichmentUnresolved
 	}
 	metadata := info.Metadata
+	if app.IsSystemMetadata(metadata) {
+		return uidEnrichmentSystem
+	}
 	source, target := app.MetadataSocketAddrs(metadata)
 	if source == nil || target == nil {
 		return uidEnrichmentUnresolved
@@ -683,7 +732,8 @@ func QueryConnections() *connectionSnapshot {
 	for _, c := range snap.Connections {
 		conns = append(conns, &connectionInfo{
 			TrackerInfo: c,
-			System:      recentClosedEnriched[c.UUID.String()].system,
+			System: recentClosedEnriched[c.UUID.String()].system ||
+				app.IsSystemMetadata(c.Metadata),
 		})
 	}
 	// Cap how much retained history one response carries (see [recentClosedMaxPerResponse]).
@@ -706,7 +756,8 @@ func QueryConnections() *connectionSnapshot {
 			TrackerInfo: entry.info,
 			Closed:      true,
 			ClosedAt:    entry.closedAt.UnixMilli(),
-			System:      entry.system,
+			System: entry.system ||
+				(entry.info != nil && app.IsSystemMetadata(entry.info.Metadata)),
 		})
 	}
 
