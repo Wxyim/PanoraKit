@@ -154,12 +154,21 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+        Timber.tag("MainState").d(
+            "onCreate saved=%s taskId=%d lastTaskId=%d lastPage=%d component=%s flags=%d",
+            savedInstanceState != null,
+            taskId,
+            appSettingsStorage.lastBackgroundTaskId.value,
+            appSettingsStorage.lastMainPage.value,
+            intent.component,
+            intent.flags,
+        )
         if (savedInstanceState == null) {
             // A fresh task (app force-quit, force-stop or first launch) should
             // start on the home tab. Only recreations of the same backgrounded
-            // task (task id recorded in onStop) restore the last tab. Keep the
-            // onboarding hand-off on the launcher intent path so the first
-            // launcher tap does not look like a new task here.
+            // task (task id recorded in onStop) restore the last tab. The
+            // onboarding hand-off stays in the launcher-created task, so its
+            // first home-screen round-trip keeps the same task id.
             if (taskId.toLong() != appSettingsStorage.lastBackgroundTaskId.value) {
                 appSettingsStorage.lastMainPage.set(0)
             }
@@ -284,11 +293,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        Timber.tag("MainState").d(
+            "onNewIntent taskId=%d component=%s flags=%d",
+            taskId,
+            intent.component,
+            intent.flags,
+        )
         handleIntent(intent)
     }
 
     override fun onStop() {
         super.onStop()
+        Timber.tag("MainState").d(
+            "onStop taskId=%d finishing=%s changingConfigurations=%s lastPage=%d",
+            taskId,
+            isFinishing,
+            isChangingConfigurations,
+            appSettingsStorage.lastMainPage.value,
+        )
         appSettingsStorage.lastBackgroundTaskId.set(taskId.toLong())
     }
 
