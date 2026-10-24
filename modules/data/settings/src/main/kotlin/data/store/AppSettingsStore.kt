@@ -56,6 +56,7 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     val pageScale by floatFlow(1.0f)
     val lastMainPage by intFlow(0)
     val lastBackgroundTaskId by longFlow(-1L)
+    val mainPageRestoreStage by intFlow(MAIN_PAGE_RESTORE_NONE)
     val singleNodeTest by boolFlow(true)
     val cleanupAutoEnabled by boolFlow(false)
     val cleanupPolicy by enumFlow(CleanupPolicy.Balanced)
@@ -69,4 +70,11 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     // "查询" in the home screen to actually trigger the HTTP call. Non-empty
     // = manual-trigger-only; the home screen will not auto-poll this URL.
     val externalIpLookupUrl by strFlow("https://cloudflare.com/cdn-cgi/trace")
+
+    companion object {
+        const val MAIN_PAGE_RESTORE_NONE = 0
+        const val MAIN_PAGE_RESTORE_ONBOARDING_HANDOFF = 1
+        const val MAIN_PAGE_RESTORE_AWAITING_FIRST_STOP = 2
+        const val MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN = 3
+    }
 }

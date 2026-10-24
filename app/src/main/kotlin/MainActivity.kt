@@ -155,22 +155,36 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         Timber.tag("MainState").d(
-            "onCreate saved=%s taskId=%d lastTaskId=%d lastPage=%d component=%s flags=%d",
+            "onCreate saved=%s taskId=%d lastTaskId=%d lastPage=%d stage=%d component=%s flags=%d",
             savedInstanceState != null,
             taskId,
             appSettingsStorage.lastBackgroundTaskId.value,
             appSettingsStorage.lastMainPage.value,
+            appSettingsStorage.mainPageRestoreStage.value,
             intent.component,
             intent.flags,
         )
         if (savedInstanceState == null) {
-            // A fresh task (app force-quit, force-stop or first launch) should
-            // start on the home tab. Only recreations of the same backgrounded
-            // task (task id recorded in onStop) restore the last tab. The
-            // onboarding hand-off stays in the launcher-created task, so its
-            // first home-screen round-trip keeps the same task id.
-            if (taskId.toLong() != appSettingsStorage.lastBackgroundTaskId.value) {
-                appSettingsStorage.lastMainPage.set(0)
+            when (appSettingsStorage.mainPageRestoreStage.value) {
+                AppSettingsStorage.MAIN_PAGE_RESTORE_ONBOARDING_HANDOFF -> {
+                    appSettingsStorage.mainPageRestoreStage.set(
+                        AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_STOP
+                    )
+                }
+                AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN -> {
+                    // Some launchers replace the onboarding task on its first
+                    // home-screen round-trip. Preserve the tab once; subsequent
+                    // launches fall back to the task-id force-quit check.
+                    appSettingsStorage.mainPageRestoreStage.set(
+                        AppSettingsStorage.MAIN_PAGE_RESTORE_NONE
+                    )
+                }
+                else -> {
+                    val previousTaskId = appSettingsStorage.lastBackgroundTaskId.value
+                    if (taskId.toLong() != previousTaskId && previousTaskId != -1L) {
+                        appSettingsStorage.lastMainPage.set(0)
+                    }
+                }
             }
             appSettingsStorage.lastBackgroundTaskId.set(-1L)
         }
@@ -294,23 +308,42 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Timber.tag("MainState").d(
-            "onNewIntent taskId=%d component=%s flags=%d",
+            "onNewIntent taskId=%d stage=%d component=%s flags=%d",
             taskId,
+            appSettingsStorage.mainPageRestoreStage.value,
             intent.component,
             intent.flags,
         )
+        if (
+            appSettingsStorage.mainPageRestoreStage.value ==
+                AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN
+        ) {
+            appSettingsStorage.mainPageRestoreStage.set(
+                AppSettingsStorage.MAIN_PAGE_RESTORE_NONE
+            )
+        }
         handleIntent(intent)
     }
 
     override fun onStop() {
         super.onStop()
         Timber.tag("MainState").d(
-            "onStop taskId=%d finishing=%s changingConfigurations=%s lastPage=%d",
+            "onStop taskId=%d finishing=%s changingConfigurations=%s lastPage=%d stage=%d",
             taskId,
             isFinishing,
             isChangingConfigurations,
             appSettingsStorage.lastMainPage.value,
+            appSettingsStorage.mainPageRestoreStage.value,
         )
+        if (
+            !isChangingConfigurations &&
+                appSettingsStorage.mainPageRestoreStage.value ==
+                    AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_STOP
+        ) {
+            appSettingsStorage.mainPageRestoreStage.set(
+                AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN
+            )
+        }
         appSettingsStorage.lastBackgroundTaskId.set(taskId.toLong())
     }
 

@@ -24,20 +24,26 @@ package com.github.nomadboxlab.monadbox.di
 import android.app.Activity
 import android.content.Intent
 import com.github.nomadboxlab.monadbox.MainActivity
+import com.github.nomadboxlab.monadbox.data.store.AppSettingsStorage
 import com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingCompletionHandler
 import org.koin.dsl.module
 
-private class MainActivityOnboardingCompletionHandler : OnboardingCompletionHandler {
+private class MainActivityOnboardingCompletionHandler(
+    private val appSettingsStorage: AppSettingsStorage,
+) : OnboardingCompletionHandler {
     override fun finishOnboarding(activity: Activity) {
         // Keep the launcher-created task intact. Starting MainActivity with
         // NEW_TASK/CLEAR_TASK replaces that task during onboarding hand-off, so the first
         // launcher tap afterwards can get a new taskId. The restore policy would then
         // mistake a normal background/foreground cycle for a force-quit and clear the tab.
+        appSettingsStorage.mainPageRestoreStage.set(
+            AppSettingsStorage.MAIN_PAGE_RESTORE_ONBOARDING_HANDOFF
+        )
         activity.startActivity(Intent(activity, MainActivity::class.java))
         activity.finish()
     }
 }
 
 val onboardingDiModule = module {
-    single<OnboardingCompletionHandler> { MainActivityOnboardingCompletionHandler() }
+    single<OnboardingCompletionHandler> { MainActivityOnboardingCompletionHandler(get()) }
 }
