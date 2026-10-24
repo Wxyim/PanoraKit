@@ -154,16 +154,6 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
-        Timber.tag("MainState").d(
-            "onCreate saved=%s taskId=%d lastTaskId=%d lastPage=%d stage=%d component=%s flags=%d",
-            savedInstanceState != null,
-            taskId,
-            appSettingsStorage.lastBackgroundTaskId.value,
-            appSettingsStorage.lastMainPage.value,
-            appSettingsStorage.mainPageRestoreStage.value,
-            intent.component,
-            intent.flags,
-        )
         if (savedInstanceState == null) {
             when (appSettingsStorage.mainPageRestoreStage.value) {
                 AppSettingsStorage.MAIN_PAGE_RESTORE_ONBOARDING_HANDOFF -> {
@@ -307,13 +297,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Timber.tag("MainState").d(
-            "onNewIntent taskId=%d stage=%d component=%s flags=%d",
-            taskId,
-            appSettingsStorage.mainPageRestoreStage.value,
-            intent.component,
-            intent.flags,
-        )
         if (
             appSettingsStorage.mainPageRestoreStage.value ==
                 AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN
@@ -327,14 +310,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        Timber.tag("MainState").d(
-            "onStop taskId=%d finishing=%s changingConfigurations=%s lastPage=%d stage=%d",
-            taskId,
-            isFinishing,
-            isChangingConfigurations,
-            appSettingsStorage.lastMainPage.value,
-            appSettingsStorage.mainPageRestoreStage.value,
-        )
         if (
             !isChangingConfigurations &&
                 appSettingsStorage.mainPageRestoreStage.value ==
