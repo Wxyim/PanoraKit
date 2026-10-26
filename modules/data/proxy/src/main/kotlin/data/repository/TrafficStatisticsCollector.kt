@@ -40,13 +40,13 @@ class TrafficStatisticsCollector(
 
         /**
          * Ceiling for the sleep between samples while [RuntimeStateReader.isAppActive] is false
-         * (app backgrounded or screen off). Nothing renders the statistics in that state while the
-         * core keeps counting, so the collector idles at this slower pace, and sum-wise nothing is
-         * lost: every delta is still attributed over its real
-         * `windowStartMillis`..`windowEndMillis`. The sleep is cut short the moment the app becomes
-         * active again (see [awaitNextSample]), so the whole backlog is flushed at the wake
-         * boundary instead of up to this interval later. In exchange the collector wakes the CPU
-         * six times less often while unobserved.
+         * (app backgrounded or screen off). The facade suspends its UI traffic poll in that state,
+         * so [RuntimeStateReader.runtimeTrafficTotal] would otherwise stay frozen while the core
+         * keeps counting. Every inactive sample therefore actively refreshes the total: without
+         * that pull, all traffic accumulated during the night is only observed when the app returns
+         * and gets attributed to the wake-up slot instead of the slots where it was actually used.
+         * The sleep is still cut short when the app becomes active again (see [awaitNextSample]),
+         * so the final background delta is recorded immediately at the wake boundary.
          */
         private const val INACTIVE_COLLECTION_INTERVAL_MS = 30_000L
 
@@ -155,10 +155,10 @@ class TrafficStatisticsCollector(
      *
      * While the app is active this is a plain [COLLECTION_INTERVAL_MS] delay. While it is inactive
      * it waits up to [INACTIVE_COLLECTION_INTERVAL_MS] but wakes as soon as the app becomes active
-     * again, so the catch-up sample (and with it the flush of everything the frozen total
-     * accumulated while the app was away) lands at the wake boundary instead of up to thirty
-     * seconds later. A wake additionally pays for one [RuntimeStateReader.refreshTrafficTotal]
-     * pull; the regular active cadence relies on the facade's own two-second polling instead.
+     * again. In both cases it then performs an explicit [RuntimeStateReader.refreshTrafficTotal]
+     * pull: the facade's own traffic poll is suspended while inactive, so the shared total cannot
+     * be used to timestamp background traffic without this query. The regular active cadence relies
+     * on the facade's own two-second polling instead.
      */
     private suspend fun awaitNextSample() {
         if (runtimeStateReader.isAppActive.value) {
@@ -169,12 +169,14 @@ class TrafficStatisticsCollector(
             withTimeoutOrNull(INACTIVE_COLLECTION_INTERVAL_MS) {
                 runtimeStateReader.isAppActive.first { it }
             } != null
-        if (!wokeToForeground) return
 
-        // The shared total was frozen while the app was away, and this sample may beat the facade's
-        // own poll tick by a frame. Pull a fresh reading now so the sample that follows records the
-        // whole backlog without another wait; on failure the previous value is sampled and the next
-        // (active-cadence) tick picks the delta up anyway.
+        // The shared total is frozen while the app is away. Refresh it on every inactive tick so
+        // each delta is attributed to the interval in which it was observed. On wake the same pull
+        // also avoids losing the last sub-interval to the facade's slower background cadence. On
+        // failure the previous value is sampled and the next tick records the accumulated delta.
+        if (wokeToForeground) {
+            Timber.tag(TAG).d("Traffic collection resumed; refreshing total")
+        }
         runCatching { runtimeStateReader.refreshTrafficTotal() }
             .onFailure { error -> Timber.tag(TAG).d(error, "Traffic refresh skipped") }
     }

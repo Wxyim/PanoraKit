@@ -23,6 +23,11 @@ import org.junit.Test
  * smeared over every slot it spanned and, when the gap crossed midnight, most of it landed on the
  * previous day.
  *
+ * Regression covered: while the app is backgrounded the facade's traffic flow stops being polled,
+ * so the collector must pull the core total on each inactive sample. Otherwise the shared total
+ * remains frozen overnight and the next foreground sample attributes every byte used since the last
+ * foreground poll to the wake-up slot.
+ *
  * The collector samples every 5s while the app is active and every 30s otherwise; that only changes
  * how wide the attribution window is (the bursts above deliberately span multi-minute idle gaps),
  * so the math mirrored here is unaffected by the cadence.
@@ -192,8 +197,8 @@ class TrafficPipelineReplicaTest {
         private var lastFlushAt = 0L
         private val flushInterval = 30_000L
 
-        fun start() {
-            lastFlushAt = System.currentTimeMillis()
+        fun start(now: Long = System.currentTimeMillis()) {
+            lastFlushAt = now
         }
 
         /** Simulates loading the persisted baseline after a process restart. */
@@ -245,7 +250,7 @@ class TrafficPipelineReplicaTest {
             // Mirrors the production collector: the observation cursor advances on every sample so
             // the next delta's window spans the real sampling interval instead of the idle gap.
             lastSampleAt = collectedAt
-            if (shouldFlush(collectedAt)) flush()
+            if (shouldFlush(collectedAt)) flush(collectedAt)
         }
 
         /**
@@ -275,7 +280,7 @@ class TrafficPipelineReplicaTest {
             (pendingUpload > 0L || pendingDownload > 0L) &&
                 collectedAt - lastFlushAt >= flushInterval
 
-        fun flush() {
+        fun flush(flushedAt: Long = System.currentTimeMillis()) {
             if (pendingUpload <= 0L && pendingDownload <= 0L) return
             val upload = pendingUpload
             val download = pendingDownload
@@ -285,7 +290,7 @@ class TrafficPipelineReplicaTest {
             pendingDownload = 0L
             pendingWindowStart = 0L
             pendingWindowEnd = 0L
-            lastFlushAt = System.currentTimeMillis()
+            lastFlushAt = flushedAt
             store.recordTraffic(upload, download, start, end)
         }
 
@@ -295,7 +300,7 @@ class TrafficPipelineReplicaTest {
             profileId: String?,
             collectedAt: Long,
         ) {
-            flush()
+            flush(collectedAt)
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload
             lastProfileId = profileId
@@ -403,6 +408,61 @@ class TrafficPipelineReplicaTest {
     }
 
     @Test
+    fun backgroundSamplingKeepsOvernightTrafficOutOfWakeSlot() {
+        val store = StoreReplica()
+        val collector = CollectorReplica(store)
+
+        val calendar = Calendar.getInstance()
+        calendar.set(2026, Calendar.JUNE, 1, 20, 0, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val evening = calendar.timeInMillis
+        val trafficEnd = evening + 2L * 3_600_000L
+        val wakeAt = evening + 10L * 3_600_000L
+        collector.start(evening)
+
+        var t = evening
+        var upload = 0L
+        var download = 0L
+        collector.sample(upload, download, "P", t)
+
+        // The fresh core total is pulled on every 30s background sample, so the 1.2 GB used between
+        // 20:00 and 22:00 belongs to the 20-24 slot rather than to the morning wake-up sample.
+        while (t < trafficEnd) {
+            t += 30_000L
+            upload += 2_000_000L
+            download += 3_000_000L
+            collector.sample(upload, download, "P", t)
+        }
+
+        // No traffic after 22:00; the refreshed total stays unchanged through the night.
+        while (t < wakeAt) {
+            t += 30_000L
+            collector.sample(upload, download, "P", t)
+        }
+
+        // Opening the app at 06:00 and browsing a few pages adds only 5 MB.
+        val morningSampleAt = t + 30_000L
+        upload += 1_000_000L
+        download += 4_000_000L
+        collector.sample(upload, download, "P", morningSampleAt)
+        collector.flush()
+
+        val eveningDay = store.summaries()[dayStart(evening)]
+        val morningDay = store.summaries()[dayStart(wakeAt)]
+        assertEquals(1_200_000_000L, eveningDay?.total)
+        assertEquals(5_000_000L, morningDay?.total)
+
+        val eveningSlots = store.getTodayHourlyData(evening)
+        assertEquals(1_200_000_000L, eveningSlots[TimeSlot.SLOT_20_24.ordinal].total)
+
+        val morningSlots = store.getTodayHourlyData(morningSampleAt)
+        assertEquals(5_000_000L, morningSlots[TimeSlot.SLOT_4_8.ordinal].total)
+        assertEquals(0L, morningSlots[TimeSlot.SLOT_0_4.ordinal].total)
+        assertEquals(0L, morningSlots[TimeSlot.SLOT_8_12.ordinal].total)
+        assertEquals(0L, morningSlots[TimeSlot.SLOT_12_16.ordinal].total)
+    }
+
+    @Test
     fun backgroundStopSettlementLandsAtStopTime() {
         val store = StoreReplica()
         val collector = CollectorReplica(store)
@@ -413,9 +473,9 @@ class TrafficPipelineReplicaTest {
         calendar.set(Calendar.MILLISECOND, 0)
         val baselineAt = calendar.timeInMillis
 
-        // Foreground start: the baseline aligns at ~0. Then the app is backgrounded and its polling
-        // suspends â the shared total freezes at 0 while the core keeps counting; the frozen 30s
-        // samples record nothing.
+        // Foreground start: the baseline aligns at ~0. Then the app is backgrounded. The 500 MB
+        // below is used between the last background sample and the stop, so it still relies on the
+        // teardown settlement rather than a regular sample.
         collector.sample(0L, 0L, "P", baselineAt)
         var t = baselineAt
         repeat(20) {
