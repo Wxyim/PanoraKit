@@ -21,12 +21,14 @@
 
 package com.github.nomadboxlab.monadbox.service.root
 
+import com.github.nomadboxlab.monadbox.core.model.TunNetworkDefaults
+
 internal object RootTunConstants {
     const val IF_NAME = "monad"
     const val MTU = 1500
 
-    const val INET4 = "172.19.0.1/30"
-    const val INET6 = "fdfe:dcba:9876::1/126"
+    const val INET4 = TunNetworkDefaults.IPV4_CIDR
+    const val INET6 = TunNetworkDefaults.IPV6_CIDR
 
     const val FAKE_IP_RANGE = "198.18.0.1/16"
     const val FAKE_IP_RANGE6 = "fc00::/18"

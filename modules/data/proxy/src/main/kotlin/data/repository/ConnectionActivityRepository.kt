@@ -23,6 +23,7 @@ package com.github.nomadboxlab.monadbox.data.repository
 
 import com.github.nomadboxlab.monadbox.core.domain.ConnectionHistoryManager
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import com.github.nomadboxlab.monadbox.core.model.TunNetworkDefaults
 import com.github.nomadboxlab.monadbox.remote.RuntimeGatewayException
 import com.github.nomadboxlab.monadbox.remote.runtimeGatewayMessage
 import com.github.nomadboxlab.monadbox.runtime.contract.RuntimeConnectionReader
@@ -131,8 +132,14 @@ class ConnectionActivityRepository(
                     }
 
                     if (needsSessionClear) {
-                        // Start a fresh recent-request session when runtime enters running state.
-                        ConnectionHistoryManager.clear()
+                        // A socket that predates the VPN can make one last send with the physical
+                        // source address before the app reconnects. Give the history manager the
+                        // TUN ranges so it can retire that startup artifact once the app shows the
+                        // same request through the tunnel, without requiring a manual app restart.
+                        ConnectionHistoryManager.beginSession(
+                            startedAtMillis = System.currentTimeMillis(),
+                            tunPrefixes = TunNetworkDefaults.CIDRS,
+                        )
                         _closedConnections.value = emptyList()
                         lastClosedRevision = ConnectionHistoryManager.closedConnectionsRevision()
                         needsSessionClear = false

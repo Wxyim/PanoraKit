@@ -301,9 +301,7 @@ class MainActivity : ComponentActivity() {
             appSettingsStorage.mainPageRestoreStage.value ==
                 AppSettingsStorage.MAIN_PAGE_RESTORE_AWAITING_FIRST_REOPEN
         ) {
-            appSettingsStorage.mainPageRestoreStage.set(
-                AppSettingsStorage.MAIN_PAGE_RESTORE_NONE
-            )
+            appSettingsStorage.mainPageRestoreStage.set(AppSettingsStorage.MAIN_PAGE_RESTORE_NONE)
         }
         handleIntent(intent)
     }

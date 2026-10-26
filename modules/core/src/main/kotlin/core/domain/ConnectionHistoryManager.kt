@@ -22,6 +22,9 @@
 package com.github.nomadboxlab.monadbox.core.domain
 
 import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.time.OffsetDateTime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -51,6 +54,28 @@ object ConnectionHistoryManager {
      */
     private const val MIN_RETAIN_SIZE = 50
 
+    /**
+     * How long after the transport starts a TUN connection may still carry a pre-VPN physical
+     * source address. Such a connection is a candidate for replacement by the app's new socket.
+     */
+    private const val STARTUP_LEGACY_WINDOW_MS = 8_000L
+
+    /**
+     * The longest gap between the legacy first datagram and the same app reconnecting through the
+     * TUN source. Keep this bounded: a much later physical-source connection is not startup noise
+     * and must remain visible.
+     */
+    private const val STARTUP_LEGACY_RECONCILE_WINDOW_MS = 30_000L
+
+    /** Do not keep scanning the live/history snapshots after the startup transition has settled. */
+    private const val STARTUP_RECONCILE_LIFETIME_MS = 90_000L
+
+    /**
+     * Clock tolerance for the transport-start boundary. The runtime snapshot can reach the app a
+     * little after the Go core has already accepted its first packet.
+     */
+    private const val STARTUP_TIMESTAMP_TOLERANCE_MS = 5_000L
+
     private val _closedConnections = mutableListOf<Pair<Long, ConnectionInfo>>()
 
     /**
@@ -64,8 +89,45 @@ object ConnectionHistoryManager {
      */
     private val closedConnectionsById = mutableMapOf<String, Pair<Long, ConnectionInfo>>()
     private var previousConnections: Map<String, ConnectionInfo> = emptyMap()
+    private var startupSession: StartupSession? = null
+    private val supersededConnectionIds = mutableSetOf<String>()
     private var closedRevision = 0L
     private val lock = Any()
+
+    private data class StartupSession(
+        val startedAtMillis: Long,
+        val tunPrefixes: List<TunPrefix>,
+        val localSourceAddresses: Set<String>,
+    ) {
+        private val tunAddressCache = mutableMapOf<String, Boolean>()
+
+        fun containsTunAddress(raw: String): Boolean =
+            raw.isNotBlank() &&
+                tunAddressCache.getOrPut(raw) { tunPrefixes.any { it.contains(raw) } }
+
+        fun isLocalSourceAddress(raw: String): Boolean =
+            localSourceAddresses.isEmpty() || raw in localSourceAddresses
+    }
+
+    private data class TunPrefix(val network: ByteArray, val prefixLength: Int) {
+        fun contains(raw: String): Boolean {
+            val address =
+                runCatching { InetAddress.getByName(raw.substringBefore('%')) }.getOrNull()
+                    ?: return false
+            if (address.address.size != network.size) return false
+
+            val fullBytes = prefixLength / 8
+            val remainingBits = prefixLength % 8
+            for (index in 0 until fullBytes) {
+                if (address.address[index] != network[index]) return false
+            }
+            if (remainingBits == 0) return true
+
+            val mask = (0xff shl (8 - remainingBits)) and 0xff
+            return (address.address[fullBytes].toInt() and mask) ==
+                (network[fullBytes].toInt() and mask)
+        }
+    }
 
     /**
      * Feed a fresh connection snapshot from the Go core.
@@ -101,6 +163,12 @@ object ConnectionHistoryManager {
                 previousConnections[closedId]?.let { conn -> recordClosed(conn, now) }
             }
 
+            // A socket that existed before the VPN came up can send its first datagram through
+            // TUN with its old physical source. Once the same app reconnects through the TUN
+            // source, the startup artifact is redundant and would otherwise make the recent
+            // request list look like traffic escaped the tunnel.
+            reconcileStartupLegacyLocked(currentConnections)
+
             // Trim beyond the hard cap while preserving the minimum
             // guaranteed tail so the "Recent Requests" screen always has
             // enough entries to display.
@@ -123,6 +191,7 @@ object ConnectionHistoryManager {
      * the native enrichment pass. We therefore merge instead of dropping duplicates.
      */
     private fun recordClosed(conn: ConnectionInfo, observedAt: Long) {
+        if (conn.id in supersededConnectionIds) return
         val existing = closedConnectionsById[conn.id]
         if (existing != null) {
             upgradeClosedIfBetter(conn, existing)
@@ -198,13 +267,145 @@ object ConnectionHistoryManager {
         }
     }
 
+    /**
+     * Start a fresh recent-request session and enable startup legacy-session reconciliation.
+     *
+     * @param startedAtMillis wall-clock time at which the app observed the runtime become ready.
+     * @param tunPrefixes CIDR ranges assigned to the TUN interface(s).
+     * @param localSourceAddresses physical addresses owned by this device at session start.
+     */
+    fun beginSession(
+        startedAtMillis: Long,
+        tunPrefixes: List<String>,
+        localSourceAddresses: Set<String> = localAddressSnapshot(),
+    ) {
+        synchronized(lock) {
+            resetLocked()
+            startupSession =
+                StartupSession(
+                    startedAtMillis = startedAtMillis,
+                    tunPrefixes = tunPrefixes.mapNotNull(::parseTunPrefix),
+                    localSourceAddresses = localSourceAddresses,
+                )
+        }
+    }
+
     fun clear() {
         synchronized(lock) {
-            _closedConnections.clear()
-            closedConnectionsById.clear()
-            previousConnections = emptyMap()
-            closedRevision++
+            resetLocked()
+            startupSession = null
         }
+    }
+
+    private fun resetLocked() {
+        _closedConnections.clear()
+        closedConnectionsById.clear()
+        previousConnections = emptyMap()
+        supersededConnectionIds.clear()
+        closedRevision++
+    }
+
+    /**
+     * Remove a startup-era physical-source row when the same app later reaches the same endpoint
+     * through the TUN source. Live replacements count too: the old row should disappear as soon as
+     * the app has visibly reconnected, without waiting for the replacement to close.
+     *
+     * The match is deliberately conservative:
+     * - only connections whose mihomo type is `Tun`;
+     * - only rows started in the short post-start window with a source outside the TUN prefixes;
+     * - same owner (UID/package/process) and destination, or destination-only when the legacy row
+     *   has no resolved owner;
+     * - the TUN-sourced replacement must be at least as new and arrive within
+     *   [STARTUP_LEGACY_RECONCILE_WINDOW_MS].
+     */
+    private fun reconcileStartupLegacyLocked(currentConnections: List<ConnectionInfo>) {
+        val session = startupSession ?: return
+        if (session.tunPrefixes.isEmpty()) return
+        if (System.currentTimeMillis() > session.startedAtMillis + STARTUP_RECONCILE_LIFETIME_MS) {
+            return
+        }
+
+        val seenIds = HashSet<String>()
+        val legacyCandidates = ArrayList<ConnectionInfo>()
+        val tunReplacementStartsByPrimaryKey = HashMap<String, MutableList<Long>>()
+        val tunReplacementStartsByTargetKey = HashMap<String, MutableList<Long>>()
+
+        fun consider(conn: ConnectionInfo) {
+            if (!seenIds.add(conn.id)) return
+            if (!conn.isTunConnection()) return
+
+            val startedAt = conn.startedAtMillis() ?: return
+            val sourceIp = conn.sourceIp()
+            if (sourceIp.isBlank()) return
+            val targetKey = conn.connectionTargetKey()
+            val primaryKey =
+                conn.connectionOwnerKey()?.let { owner -> targetKey?.let { "$owner|$it" } }
+
+            if (session.containsTunAddress(sourceIp)) {
+                primaryKey?.let { key ->
+                    tunReplacementStartsByPrimaryKey.getOrPut(key) { mutableListOf() } += startedAt
+                }
+                targetKey?.let { key ->
+                    tunReplacementStartsByTargetKey.getOrPut(key) { mutableListOf() } += startedAt
+                }
+                return
+            }
+
+            val earliest = session.startedAtMillis - STARTUP_TIMESTAMP_TOLERANCE_MS
+            val latest = session.startedAtMillis + STARTUP_LEGACY_WINDOW_MS
+            if (startedAt in earliest..latest && session.isLocalSourceAddress(sourceIp)) {
+                legacyCandidates += conn
+            }
+        }
+
+        _closedConnections.forEach { consider(it.second) }
+        currentConnections.forEach(::consider)
+        if (legacyCandidates.isEmpty()) return
+
+        for (legacy in legacyCandidates) {
+            if (legacy.id in supersededConnectionIds) continue
+            val legacyStartedAt = legacy.startedAtMillis() ?: continue
+            val targetKey = legacy.connectionTargetKey() ?: continue
+            val ownerKey = legacy.connectionOwnerKey()
+            val replacementStarts =
+                if (ownerKey != null) {
+                    tunReplacementStartsByPrimaryKey["$ownerKey|$targetKey"]
+                } else {
+                    // A short-lived socket can close before Android publishes its UID. The
+                    // destination match still catches the common app-reconnect case; rows with a
+                    // known owner stay on the stricter owner+destination path.
+                    tunReplacementStartsByTargetKey[targetKey]
+                } ?: continue
+
+            val replacementAt =
+                replacementStarts.filter { it >= legacyStartedAt }.minOrNull() ?: continue
+            if (replacementAt - legacyStartedAt > STARTUP_LEGACY_RECONCILE_WINDOW_MS) continue
+
+            supersededConnectionIds += legacy.id
+            removeClosedLocked(legacy.id)
+        }
+    }
+
+    private fun removeClosedLocked(id: String): Boolean {
+        val index = _closedConnections.indexOfFirst { it.second.id == id }
+        if (index < 0) return false
+        _closedConnections.removeAt(index)
+        closedConnectionsById.remove(id)
+        closedRevision++
+        return true
+    }
+
+    private fun parseTunPrefix(raw: String): TunPrefix? {
+        val value = raw.trim()
+        val slash = value.lastIndexOf('/')
+        if (slash <= 0 || slash == value.lastIndex) return null
+        val address =
+            runCatching { InetAddress.getByName(value.substring(0, slash)) }.getOrNull()
+                ?: return null
+        val prefixLength =
+            value.substring(slash + 1).toIntOrNull()?.takeIf { it in 0..(address.address.size * 8) }
+                ?: return null
+        return TunPrefix(network = address.address, prefixLength = prefixLength)
     }
 }
 
@@ -215,6 +416,69 @@ private fun ConnectionInfo.withCloseTime(closedAt: Long): ConnectionInfo =
                 metadata.toMutableMap().apply { put("_closeTimeMs", JsonPrimitive(closedAt)) }
             )
     )
+
+private fun ConnectionInfo.isTunConnection(): Boolean =
+    metadata.firstNonBlankValue("type").equals("Tun", ignoreCase = true)
+
+private fun ConnectionInfo.sourceIp(): String =
+    metadata
+        .firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
+        .substringBefore('%')
+
+private fun localAddressSnapshot(): Set<String> =
+    runCatching {
+            NetworkInterface.getNetworkInterfaces()
+                .toList()
+                .flatMap { networkInterface -> networkInterface.inetAddresses.toList() }
+                .mapNotNull { it.hostAddress?.substringBefore('%') }
+                .toSet()
+        }
+        .getOrDefault(emptySet())
+
+private fun ConnectionInfo.startedAtMillis(): Long? {
+    val raw = start.trim()
+    if (raw.isEmpty()) return null
+    return runCatching { OffsetDateTime.parse(raw).toInstant().toEpochMilli() }.getOrNull()
+}
+
+/**
+ * The endpoint half of a startup-session match. Host is used only when mihomo could not populate
+ * the destination IP (for example a proxy-inbound request), while TUN UDP connections normally
+ * carry the concrete IP.
+ */
+private fun ConnectionInfo.connectionTargetKey(): String? {
+    val network = metadata.firstNonBlankValue("network").lowercase()
+    val destination =
+        metadata.firstNonBlankValue("destinationIP", "destinationIp").ifBlank {
+            metadata.firstNonBlankValue("host")
+        }
+    val port = metadata.firstNonBlankValue("destinationPort")
+    if (network.isEmpty() || destination.isEmpty() || port.isEmpty()) return null
+    return "$network|$destination|$port"
+}
+
+/**
+ * A stable owner identifier when mihomo has resolved one. UID is preferred because a package can
+ * have several processes; process/package fallbacks cover the early snapshots before UID lookup.
+ */
+private fun ConnectionInfo.connectionOwnerKey(): String? {
+    metadata.firstPositiveUid()?.let {
+        return "uid:$it"
+    }
+    metadata
+        .firstNonBlankValue("packageName", "package", "package-name", "package_name")
+        .takeIf { it.isNotEmpty() }
+        ?.let {
+            return "package:$it"
+        }
+    metadata
+        .firstNonBlankValue("process", "processName", "process-name", "process_name", "appProcess")
+        .takeIf { it.isNotEmpty() }
+        ?.let {
+            return "process:$it"
+        }
+    return null
+}
 
 /**
  * How much of an app identity this connection copy carries.

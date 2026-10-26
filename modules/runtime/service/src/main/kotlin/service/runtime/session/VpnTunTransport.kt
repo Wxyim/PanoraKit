@@ -27,6 +27,7 @@ import android.net.ProxyInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import com.github.nomadboxlab.monadbox.core.model.TunNetworkDefaults
 import com.github.nomadboxlab.monadbox.core.util.parseInetSocketAddress
 import com.github.nomadboxlab.monadbox.runtime.service.R
 import com.github.nomadboxlab.monadbox.service.common.compat.pendingIntentFlags
@@ -494,12 +495,12 @@ class VpnTunTransport(
         }
 
         private const val TUN_MTU = 1500
-        private const val TUN_SUBNET_PREFIX = 30
-        private const val TUN_GATEWAY = "172.19.0.1"
-        private const val TUN_SUBNET_PREFIX6 = 126
-        private const val TUN_GATEWAY6 = "fdfe:dcba:9876::1"
-        private const val TUN_PORTAL = "172.19.0.2"
-        private const val TUN_PORTAL6 = "fdfe:dcba:9876::2"
+        private const val TUN_SUBNET_PREFIX = TunNetworkDefaults.IPV4_PREFIX_LENGTH
+        private const val TUN_GATEWAY = TunNetworkDefaults.IPV4_GATEWAY
+        private const val TUN_SUBNET_PREFIX6 = TunNetworkDefaults.IPV6_PREFIX_LENGTH
+        private const val TUN_GATEWAY6 = TunNetworkDefaults.IPV6_GATEWAY
+        private const val TUN_PORTAL = TunNetworkDefaults.IPV4_PORTAL
+        private const val TUN_PORTAL6 = TunNetworkDefaults.IPV6_PORTAL
         private const val TUN_DNS = TUN_PORTAL
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"

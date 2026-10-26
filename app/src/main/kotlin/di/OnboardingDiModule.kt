@@ -29,7 +29,7 @@ import com.github.nomadboxlab.monadbox.screen.onboarding.OnboardingCompletionHan
 import org.koin.dsl.module
 
 private class MainActivityOnboardingCompletionHandler(
-    private val appSettingsStorage: AppSettingsStorage,
+    private val appSettingsStorage: AppSettingsStorage
 ) : OnboardingCompletionHandler {
     override fun finishOnboarding(activity: Activity) {
         // Keep the launcher-created task intact. Starting MainActivity with
