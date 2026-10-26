@@ -251,6 +251,86 @@ class ConnectionHistoryManagerTest {
     }
 
     @Test
+    fun startupLegacy_withoutResolvedUid_matchesTheSameDestinationOnANewPort() {
+        val sessionStart = System.currentTimeMillis()
+        beginStartupSession(sessionStart)
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "legacy-unknown-port",
+                    closed = true,
+                    uid = null,
+                    closedAt = sessionStart + 1_000L,
+                    type = "Tun",
+                    network = "udp",
+                    sourceIp = "10.2.196.45",
+                    destinationIp = "122.193.7.205",
+                    destinationPort = 22_000,
+                    start = timestamp(sessionStart + 500L),
+                )
+            )
+        )
+
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "tun-replacement-new-port",
+                    closed = false,
+                    uid = 10_123,
+                    type = "Tun",
+                    network = "udp",
+                    sourceIp = "172.19.0.1",
+                    destinationIp = "122.193.7.205",
+                    destinationPort = 23_000,
+                    start = timestamp(sessionStart + 2_000L),
+                )
+            )
+        )
+
+        assertTrue(ConnectionHistoryManager.getClosedConnections().isEmpty())
+    }
+
+    @Test
+    fun startupLegacy_withResolvedUid_matchesTheSameDestinationOnANewPort() {
+        val sessionStart = System.currentTimeMillis()
+        beginStartupSession(sessionStart)
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "legacy-known-port",
+                    closed = true,
+                    uid = 10_123,
+                    closedAt = sessionStart + 1_000L,
+                    type = "Tun",
+                    network = "udp",
+                    sourceIp = "10.2.196.45",
+                    destinationIp = "122.193.7.205",
+                    destinationPort = 22_000,
+                    start = timestamp(sessionStart + 500L),
+                )
+            )
+        )
+
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "known-owner-new-port",
+                    closed = false,
+                    uid = 10_123,
+                    type = "Tun",
+                    network = "udp",
+                    sourceIp = "172.19.0.1",
+                    destinationIp = "122.193.7.205",
+                    destinationPort = 23_000,
+                    start = timestamp(sessionStart + 2_000L),
+                )
+            )
+        )
+
+        assertTrue(ConnectionHistoryManager.getClosedConnections().isEmpty())
+    }
+
+    @Test
     fun startupLegacyOutsideTheStartupWindow_isNotRetired() {
         val sessionStart = System.currentTimeMillis()
         beginStartupSession(sessionStart)

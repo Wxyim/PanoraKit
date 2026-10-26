@@ -314,7 +314,8 @@ object ConnectionHistoryManager {
      * - only connections whose mihomo type is `Tun`;
      * - only rows started in the short post-start window with a source outside the TUN prefixes;
      * - same owner (UID/package/process) and destination, or destination-only when the legacy row
-     *   has no resolved owner;
+     *   has no resolved owner; if the server port changes during the reconnect, the owner+address
+     *   fallback still matches the same destination address;
      * - the TUN-sourced replacement must be at least as new and arrive within
      *   [STARTUP_LEGACY_RECONCILE_WINDOW_MS].
      */
@@ -329,6 +330,8 @@ object ConnectionHistoryManager {
         val legacyCandidates = ArrayList<ConnectionInfo>()
         val tunReplacementStartsByPrimaryKey = HashMap<String, MutableList<Long>>()
         val tunReplacementStartsByTargetKey = HashMap<String, MutableList<Long>>()
+        val tunReplacementStartsByOwnerTargetAddressKey = HashMap<String, MutableList<Long>>()
+        val tunReplacementStartsByTargetAddressKey = HashMap<String, MutableList<Long>>()
 
         fun consider(conn: ConnectionInfo) {
             if (!seenIds.add(conn.id)) return
@@ -338,8 +341,9 @@ object ConnectionHistoryManager {
             val sourceIp = conn.sourceIp()
             if (sourceIp.isBlank()) return
             val targetKey = conn.connectionTargetKey()
-            val primaryKey =
-                conn.connectionOwnerKey()?.let { owner -> targetKey?.let { "$owner|$it" } }
+            val targetAddressKey = conn.connectionTargetAddressKey()
+            val ownerKey = conn.connectionOwnerKey()
+            val primaryKey = ownerKey?.let { owner -> targetKey?.let { "$owner|$it" } }
 
             if (session.containsTunAddress(sourceIp)) {
                 primaryKey?.let { key ->
@@ -347,6 +351,17 @@ object ConnectionHistoryManager {
                 }
                 targetKey?.let { key ->
                     tunReplacementStartsByTargetKey.getOrPut(key) { mutableListOf() } += startedAt
+                }
+                ownerKey?.let { owner ->
+                    targetAddressKey?.let { key ->
+                        tunReplacementStartsByOwnerTargetAddressKey.getOrPut("$owner|$key") {
+                            mutableListOf()
+                        } += startedAt
+                    }
+                }
+                targetAddressKey?.let { key ->
+                    tunReplacementStartsByTargetAddressKey.getOrPut(key) { mutableListOf() } +=
+                        startedAt
                 }
                 return
             }
@@ -366,8 +381,9 @@ object ConnectionHistoryManager {
             if (legacy.id in supersededConnectionIds) continue
             val legacyStartedAt = legacy.startedAtMillis() ?: continue
             val targetKey = legacy.connectionTargetKey() ?: continue
+            val targetAddressKey = legacy.connectionTargetAddressKey() ?: targetKey
             val ownerKey = legacy.connectionOwnerKey()
-            val replacementStarts =
+            val exactReplacementStarts =
                 if (ownerKey != null) {
                     tunReplacementStartsByPrimaryKey["$ownerKey|$targetKey"]
                 } else {
@@ -375,10 +391,27 @@ object ConnectionHistoryManager {
                     // destination match still catches the common app-reconnect case; rows with a
                     // known owner stay on the stricter owner+destination path.
                     tunReplacementStartsByTargetKey[targetKey]
-                } ?: continue
+                }
 
             val replacementAt =
-                replacementStarts.filter { it >= legacyStartedAt }.minOrNull() ?: continue
+                earliestReplacementAt(exactReplacementStarts, legacyStartedAt)
+                    ?: if (ownerKey != null) {
+                        earliestReplacementAt(
+                            tunReplacementStartsByOwnerTargetAddressKey[
+                                "$ownerKey|$targetAddressKey"],
+                            legacyStartedAt,
+                        )
+                    } else {
+                        // Ports can change when the app opens a fresh socket after the VPN comes
+                        // up. For an unattributed startup row, the same network and destination
+                        // address are still enough to identify the replacement.
+                        earliestReplacementAt(
+                            tunReplacementStartsByTargetAddressKey[targetAddressKey],
+                            legacyStartedAt,
+                        )
+                    }
+                    ?: continue
+
             if (replacementAt - legacyStartedAt > STARTUP_LEGACY_RECONCILE_WINDOW_MS) continue
 
             supersededConnectionIds += legacy.id
@@ -394,6 +427,9 @@ object ConnectionHistoryManager {
         closedRevision++
         return true
     }
+
+    private fun earliestReplacementAt(starts: List<Long>?, notBefore: Long): Long? =
+        starts?.filter { it >= notBefore }?.minOrNull()
 
     private fun parseTunPrefix(raw: String): TunPrefix? {
         val value = raw.trim()
@@ -455,6 +491,20 @@ private fun ConnectionInfo.connectionTargetKey(): String? {
     val port = metadata.firstNonBlankValue("destinationPort")
     if (network.isEmpty() || destination.isEmpty() || port.isEmpty()) return null
     return "$network|$destination|$port"
+}
+
+/**
+ * Destination address without the port, used as a fallback when a socket reconnects to the same
+ * server on a different port.
+ */
+private fun ConnectionInfo.connectionTargetAddressKey(): String? {
+    val network = metadata.firstNonBlankValue("network").lowercase()
+    val destination =
+        metadata.firstNonBlankValue("destinationIP", "destinationIp").ifBlank {
+            metadata.firstNonBlankValue("host")
+        }
+    if (network.isEmpty() || destination.isEmpty()) return null
+    return "$network|$destination"
 }
 
 /**
