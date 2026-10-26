@@ -21,20 +21,14 @@
 
 package com.github.nomadboxlab.monadbox.common.util
 
-import java.util.*
-
 object LocaleUtil {
 
-    private val NORMALIZED_REGION_CODES = setOf("TW")
-
-    fun isChineseLocale(): Boolean {
-        val locale = Locale.getDefault()
-        return locale.language == "zh"
-    }
+    /** Region codes that use the One-China display default, regardless of locale or settings. */
+    private val CHINA_REGION_CODES = setOf("TW")
 
     fun normalizeRegionCode(countryCode: String?): String? {
         if (countryCode == null) return null
         val upperCode = countryCode.uppercase()
-        return if (upperCode in NORMALIZED_REGION_CODES) "CN" else countryCode
+        return if (upperCode in CHINA_REGION_CODES) "CN" else countryCode
     }
 }

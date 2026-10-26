@@ -114,7 +114,7 @@ class AppStartupCoordinator(
 
     private fun extractGeoFiles() {
         val clashDir = File(application.filesDir, "clash").apply { mkdirs() }
-        val geoFiles = listOf("geoip.metadb", "geosite.dat", "ASN.mmdb")
+        val geoFiles = listOf("geoip.dat", "geoip.metadb", "geosite.dat", "ASN.mmdb")
         val failedFiles = mutableListOf<String>()
 
         geoFiles.forEach { filename ->

@@ -676,8 +676,16 @@ class ResourceDownloader(private val config: ProjectConfig) {
         outputDir.mkdirs()
         PathBudgetGuard.warn(outputDir.absolutePath, "Geo asset output")
 
+        // Keep these defaults in sync with mihomo's geox-url defaults.
         val assets =
             listOf(
+                AssetInfo(
+                    "geoip.dat",
+                    config.getString(
+                        "asset.geoipdat.url",
+                        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+                    ),
+                ),
                 AssetInfo(
                     "geoip.metadb",
                     config.getString(
@@ -752,7 +760,7 @@ fun printUsage() {
         Options:
           --go       Build Go native libraries
           --cpp      Generate CMake/git info
-          --geo      Download and compress GeoIP/GeoSite assets into app/assets with XZ
+          --geo      Download and compress GeoIP (DAT + MMDB), GeoSite and ASN assets with XZ
           --clean    Clean build outputs
           --all      Build everything (default)
           --help     Show this help
@@ -765,7 +773,7 @@ fun cleanBuildOutputs() {
     println("[Clean] Removing build outputs...")
     File("build/native").deleteRecursively()
     File("build/generated").deleteRecursively()
-    listOf("geoip.metadb.xz", "geosite.dat.xz", "ASN.mmdb.xz").forEach { name ->
+    listOf("geoip.dat.xz", "geoip.metadb.xz", "geosite.dat.xz", "ASN.mmdb.xz").forEach { name ->
         File("build/generated/assets/geo/$name").delete()
     }
 
