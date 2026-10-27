@@ -59,12 +59,14 @@ class AppIdentityResolver(context: Context) {
             )
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         val sourceIp = metadata.firstNonBlankValue("sourceIP", "sourceIp", "source-ip", "source_ip")
+        val isNtp = metadata.isNtpConnection()
         val identity =
             resolve(
                 explicitPackageName = explicitPackageName,
                 processName = processName,
                 uid = uid,
                 fallbackSourceIp = sourceIp,
+                isNtp = isNtp,
             )
         if (identity.appKey == UNKNOWN_APP_KEY) {
             logUnresolvedIdentity(metadata)
@@ -77,6 +79,7 @@ class AppIdentityResolver(context: Context) {
         processName: String,
         uid: Int?,
         fallbackSourceIp: String = "",
+        isNtp: Boolean = false,
     ): AppIdentity {
         val cacheKey = buildString {
             append(explicitPackageName)
@@ -86,12 +89,15 @@ class AppIdentityResolver(context: Context) {
             append(uid ?: "")
             append('|')
             append(fallbackSourceIp)
+            append('|')
+            append(isNtp)
         }
         packageCache[cacheKey]?.let {
             return it
         }
 
-        val identity = resolveIdentity(explicitPackageName, processName, uid, fallbackSourceIp)
+        val identity =
+            resolveIdentity(explicitPackageName, processName, uid, fallbackSourceIp, isNtp)
 
         // Cache only a confirmed installed package. UID/process fallbacks can
         // be produced while the VPN's first UID lookup is still warming up;
@@ -107,6 +113,7 @@ class AppIdentityResolver(context: Context) {
         processName: String,
         uid: Int?,
         fallbackSourceIp: String,
+        isNtp: Boolean,
     ): AppIdentity {
         val packageName =
             findInstalledPackage(explicitPackageName)
@@ -131,6 +138,12 @@ class AppIdentityResolver(context: Context) {
                     appKey = "remote:$fallbackSourceIp",
                     packageName = null,
                     appName = "$HOTSPOT_DEVICE_PREFIX · $fallbackSourceIp",
+                )
+            isNtp ->
+                AppIdentity(
+                    appKey = NTP_SERVICE_KEY,
+                    packageName = null,
+                    appName = NTP_SERVICE_NAME,
                 )
             uid != null && uid > 0 ->
                 AppIdentity(
@@ -321,6 +334,8 @@ class AppIdentityResolver(context: Context) {
             return "$HOTSPOT_DEVICE_PREFIX · $sourceIp"
         }
 
+        if (metadata.isNtpConnection()) return NTP_SERVICE_NAME
+
         val uid = metadata.firstUidValue("uid", "sourceUid", "source_uid", "Uid", "UID")
         if (uid != null) return "UID $uid"
         logUnresolvedIdentity(metadata)
@@ -370,6 +385,10 @@ class AppIdentityResolver(context: Context) {
         const val CORE_APP_KEY = "core"
         const val CORE_APP_NAME = "MonadBox"
 
+        /** NTP traffic whose owning UID is not available from Android. */
+        const val NTP_SERVICE_KEY = "service:ntp"
+        const val NTP_SERVICE_NAME = "NTP"
+
         private const val UNRESOLVED_LOG_INTERVAL_MS = 60_000L
         @Volatile private var lastUnresolvedLogAt = 0L
 
@@ -380,6 +399,10 @@ class AppIdentityResolver(context: Context) {
 /** True when mihomo marks the connection as core-originated (`metadata.type == "Inner"`). */
 private fun JsonObject.isInnerConnection(): Boolean =
     firstNonBlankValue("type").equals("Inner", ignoreCase = true)
+
+internal fun JsonObject.isNtpConnection(): Boolean =
+    firstNonBlankValue("network").equals("udp", ignoreCase = true) &&
+        firstNonBlankValue("destinationPort") == "123"
 
 private fun isRemoteSourceAddress(raw: String): Boolean {
     val value = raw.trim()
