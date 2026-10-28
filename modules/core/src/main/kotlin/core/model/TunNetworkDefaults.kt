@@ -19,6 +19,8 @@
 
 package com.github.nomadboxlab.monadbox.core.model
 
+import java.net.InetAddress
+
 /**
  * Addresses assigned to MonadBox-owned TUN devices.
  *
@@ -39,4 +41,44 @@ object TunNetworkDefaults {
     const val IPV6_PORTAL = "fdfe:dcba:9876::2"
 
     val CIDRS: List<String> = listOf(IPV4_CIDR, IPV6_CIDR)
+
+    private data class Prefix(val network: ByteArray, val prefixLength: Int) {
+        fun contains(address: ByteArray): Boolean {
+            if (address.size != network.size) return false
+
+            val fullBytes = prefixLength / 8
+            val remainingBits = prefixLength % 8
+            for (index in 0 until fullBytes) {
+                if (address[index] != network[index]) return false
+            }
+            if (remainingBits == 0) return true
+
+            val mask = (0xff shl (8 - remainingBits)) and 0xff
+            return (address[fullBytes].toInt() and mask) == (network[fullBytes].toInt() and mask)
+        }
+    }
+
+    private val prefixes: List<Prefix> by lazy {
+        CIDRS.mapNotNull { raw ->
+            val value = raw.trim()
+            val slash = value.lastIndexOf('/')
+            if (slash <= 0 || slash == value.lastIndex) return@mapNotNull null
+            val network =
+                runCatching { InetAddress.getByName(value.substring(0, slash)) }.getOrNull()
+                    ?: return@mapNotNull null
+            val prefixLength =
+                value.substring(slash + 1).toIntOrNull()?.takeIf {
+                    it in 0..(network.address.size * 8)
+                } ?: return@mapNotNull null
+            Prefix(network = network.address, prefixLength = prefixLength)
+        }
+    }
+
+    /** True when [raw] is one of the addresses or belongs to one of the TUN subnets. */
+    fun isTunnelAddress(raw: String): Boolean {
+        val value = raw.trim().substringBefore('%')
+        if (value.isEmpty()) return false
+        val address = runCatching { InetAddress.getByName(value) }.getOrNull() ?: return false
+        return prefixes.any { it.contains(address.address) }
+    }
 }

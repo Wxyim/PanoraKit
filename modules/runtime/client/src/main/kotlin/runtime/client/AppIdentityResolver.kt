@@ -20,6 +20,7 @@
 package com.github.nomadboxlab.monadbox.runtime.client
 
 import android.content.Context
+import com.github.nomadboxlab.monadbox.core.model.TunNetworkDefaults
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.concurrent.ConcurrentHashMap
@@ -404,7 +405,7 @@ internal fun JsonObject.isNtpConnection(): Boolean =
     firstNonBlankValue("network").equals("udp", ignoreCase = true) &&
         firstNonBlankValue("destinationPort") == "123"
 
-private fun isRemoteSourceAddress(raw: String): Boolean {
+internal fun isRemoteSourceAddress(raw: String): Boolean {
     val value = raw.trim()
     if (value.isBlank() || value.equals("unknown", ignoreCase = true)) return false
     val address =
@@ -414,9 +415,12 @@ private fun isRemoteSourceAddress(raw: String): Boolean {
         return false
     }
 
-    val localAddresses = localAddressSnapshot()
     val hostAddress = address.hostAddress ?: return false
-    return hostAddress.substringBefore('%') !in localAddresses
+    val normalizedHost = hostAddress.substringBefore('%')
+    if (TunNetworkDefaults.isTunnelAddress(normalizedHost)) return false
+
+    val localAddresses = localAddressSnapshot()
+    return normalizedHost !in localAddresses
 }
 
 private val localAddressCacheLock = Any()
