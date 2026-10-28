@@ -153,7 +153,7 @@ val appDataRuntimeModule = module {
     single { com.github.nomadboxlab.monadbox.domain.model.StructuredLogCollector() }
     single { DebugExportBundleBuilder(androidApplication(), get(), get()) }
     single { StorageCleanupManager(androidApplication(), get(), get(), get()) }
-    single { StorageCleanupScheduler(androidContext()) }
+    single { StorageCleanupScheduler(androidContext(), get()) }
     single<com.github.nomadboxlab.monadbox.feature.settings.CleanupController> {
         com.github.nomadboxlab.monadbox.common.util.CleanupControllerImpl(get(), get())
     }

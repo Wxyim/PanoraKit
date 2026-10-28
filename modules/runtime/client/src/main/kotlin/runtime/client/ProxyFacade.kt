@@ -84,6 +84,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -538,9 +540,6 @@ class ProxyFacade(
 
     private val previewCache =
         ProxyFacadePreviewCache(appContext.filesDir.resolve("proxy-groups-preview.json"))
-    private val powerManager by lazy {
-        appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-    }
     private val appForegroundObserver =
         AppForegroundObserver(appContext, onWakeRequested = { kickTrafficPoller() })
 
@@ -596,10 +595,13 @@ class ProxyFacade(
     private val trafficPoller =
         ProxyFacadeTrafficPoller(scope = scope) { _ ->
             val snapshot = runtimeSnapshot.value
-            val active =
-                snapshot.running && powerManager.isInteractive && appForegroundObserver.isForeground
+            val active = snapshot.running && appForegroundObserver.active.value
             if (!active) {
-                delay(BACKGROUND_POLL_MS.milliseconds)
+                // Do not keep a 60s timer armed while the UI is backgrounded or the
+                // screen is off. ConnectionActivityRepository uses the same pattern:
+                // suspend until both the runtime and the foreground/screen condition
+                // are true, then let the caller resume immediately.
+                awaitTrafficPollingActive()
                 return@ProxyFacadeTrafficPoller
             }
 
@@ -630,6 +632,13 @@ class ProxyFacade(
 
             delay(ACTIVE_POLL_MS.milliseconds)
         }
+
+    private suspend fun awaitTrafficPollingActive() {
+        combine(runtimeState.isRunning, appForegroundObserver.active) { running, active ->
+                running && active
+            }
+            .first { it }
+    }
 
     init {
         appForegroundObserver.start()
@@ -2490,7 +2499,6 @@ class ProxyFacade(
 
     private companion object {
         private const val ACTIVE_POLL_MS = 2_000L
-        private const val BACKGROUND_POLL_MS = 60_000L
         private const val PAYLOAD_REFRESH_INTERVAL_MS = 4_000L
         private const val PROXY_PAGE_PAYLOAD_REFRESH_INTERVAL_MS = 2_000L
         private const val HEALTH_CHECK_TRAILING_REFRESH_DELAY_MS = 300L

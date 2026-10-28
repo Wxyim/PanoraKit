@@ -273,14 +273,21 @@ func ensureRecentClosedSampler() {
 	recentClosedOnce.Do(func() {
 		go func() {
 			interval := recentClosedSampler
+			// Reuse both the timer and the live map across ticks. At the active
+			// 20ms cadence, allocating a new timer/map every tick would create
+			// 50 timer and map allocations per second for as long as any
+			// connection remains open.
+			alive := make(map[string]statistic.Tracker, 16)
+			timer := time.NewTimer(interval)
+			defer timer.Stop()
 			for {
-				timer := time.NewTimer(interval)
 				<-timer.C
-				if observeRecentClosed() {
+				if observeRecentClosed(alive) {
 					interval = recentClosedSampler
 				} else {
 					interval = recentClosedIdleSampler
 				}
+				timer.Reset(interval)
 			}
 		}()
 	})
@@ -292,22 +299,18 @@ func ensureRecentClosedSampler() {
 // needed (live connections or pending seen entries); a false return means the
 // manager is idle and the caller may back off the sampling cadence. Retained
 // entries alone do not request the fine cadence — they only need to expire.
-func observeRecentClosed() bool {
+func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 	now := time.Now()
 
 	// Snapshot() also reads /proc/<pid>/statm for the memory field, which is
 	// not needed on this watcher. Iterate the manager directly so ticks avoid a
 	// per-tick /proc read and the slice allocation Snapshot() performs.
-	var alive map[string]*statistic.TrackerInfo
-	connectionCount := 0
+	clear(alive)
 	statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
-		if alive == nil {
-			alive = make(map[string]*statistic.TrackerInfo, 8)
-		}
-		alive[c.ID()] = c.Info()
-		connectionCount++
+		alive[c.ID()] = c
 		return true
 	})
+	connectionCount := len(alive)
 
 	recentClosedMu.Lock()
 	enrichPossible := uidEnrichmentPossible()
@@ -323,7 +326,7 @@ func observeRecentClosed() bool {
 		// Detect connections that left the manager since the previous sample and
 		// retain their final tracker info so a later poll can still observe them.
 		for id, info := range recentClosedSeen {
-			if alive[id] == nil {
+			if _, ok := alive[id]; !ok {
 				state := recentClosedEnriched[id]
 				system := state.system
 				if info != nil && app.IsSystemMetadata(info.Metadata) {
@@ -341,8 +344,13 @@ func observeRecentClosed() bool {
 				delete(recentClosedEnriched, id)
 			}
 		}
-		for id, info := range alive {
-			if _, ok := recentClosedSeen[id]; !ok {
+		for id, tracker := range alive {
+			info, ok := recentClosedSeen[id]
+			if !ok {
+				// TrackerInfo is stable for the tracker lifetime: its counters are
+				// atomics. Keep the first pointer instead of rebuilding the whole
+				// live map through Info() on every 20ms tick.
+				info = tracker.Info()
 				recentClosedSeen[id] = info
 			}
 			if info != nil && app.IsSystemMetadata(info.Metadata) {

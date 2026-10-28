@@ -37,12 +37,14 @@ import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
@@ -64,6 +66,25 @@ private data class RankedConnection(
     val connection: ConnectionInfo,
     val isActive: Boolean,
     val startMillis: Long,
+)
+
+private data class RecentRequestStatic(
+    val topLevelGroupName: String?,
+    val bottomNodeName: String?,
+    val sourceAppName: String,
+    val sourcePackageName: String?,
+    val isRejected: Boolean,
+)
+
+private data class RecentRequestStaticKey(
+    val metadata: JsonObject,
+    val chains: List<String>,
+    val system: Boolean,
+)
+
+private data class CachedRecentRequestStatic(
+    val cachedAtMillis: Long,
+    val value: RecentRequestStatic,
 )
 
 private val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
@@ -116,6 +137,10 @@ class DefaultTrafficStatisticsExplorer(
     private val appIdentityResolver: AppIdentityResolver,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) : TrafficStatisticsExplorer {
+    private val connectionStartMillisCache = ConcurrentHashMap<String, Long>()
+    private val recentRequestStaticCache =
+        ConcurrentHashMap<RecentRequestStaticKey, CachedRecentRequestStatic>()
+
     private val _selectedTimeRange = MutableStateFlow(TrafficStatisticsRange.Today)
     override val selectedTimeRange: StateFlow<TrafficStatisticsRange> =
         _selectedTimeRange.asStateFlow()
@@ -323,8 +348,27 @@ class DefaultTrafficStatisticsExplorer(
         RankedConnection(
             connection = connection,
             isActive = isActive,
-            startMillis = parseConnectionStartMillis(connection.start),
+            startMillis = connectionStartMillis(connection.start),
         )
+
+    /**
+     * ISO-8601 start timestamps are immutable for a connection and highly repetitive across
+     * one-second polls. Parsing them again for every active and retained row is unnecessary work;
+     * keep the parsed value keyed by the original string, with a bounded cache and no effect on
+     * ordering or displayed time.
+     */
+    private fun connectionStartMillis(start: String): Long {
+        if (start.isBlank()) return Long.MIN_VALUE
+        connectionStartMillisCache[start]?.let {
+            return it
+        }
+        val parsed = parseConnectionStartMillis(start)
+        if (connectionStartMillisCache.size >= MAX_CACHED_CONNECTION_STARTS) {
+            connectionStartMillisCache.clear()
+        }
+        connectionStartMillisCache[start] = parsed
+        return parsed
+    }
 
     /**
      * Extract the top-level proxy group name from the connection's recorded
@@ -379,17 +423,52 @@ class DefaultTrafficStatisticsExplorer(
     }
 
     private fun buildRecord(connection: ConnectionInfo, isActive: Boolean): RecentRequestRecord {
-        val (appName, packageName) = resolveAppIdentity(connection)
-        val chains = normalizeChains(connection)
+        val static = recentRequestStatic(connection)
         return RecentRequestRecord(
             connection = connection,
             isActive = isActive,
-            topLevelGroupName = resolveTopLevelGroupName(chains),
-            bottomNodeName = resolveBottomNodeName(chains),
-            sourceAppName = appName,
-            sourcePackageName = packageName,
-            isRejected = isRejectedConnection(chains),
+            topLevelGroupName = static.topLevelGroupName,
+            bottomNodeName = static.bottomNodeName,
+            sourceAppName = static.sourceAppName,
+            sourcePackageName = static.sourcePackageName,
+            isRejected = static.isRejected,
         )
+    }
+
+    /**
+     * The identity and routing fields of a row only depend on its metadata/chains/system flag, not
+     * on the byte counters that change on every live snapshot. Cache them briefly so a one-second
+     * refresh does not re-run PackageManager lookups and chain normalization for every row.
+     */
+    private fun recentRequestStatic(connection: ConnectionInfo): RecentRequestStatic {
+        val key =
+            RecentRequestStaticKey(
+                metadata = connection.metadata,
+                chains = connection.chains,
+                system = connection.system,
+            )
+        val now = System.currentTimeMillis()
+        recentRequestStaticCache[key]
+            ?.takeIf { now - it.cachedAtMillis < RECENT_REQUEST_STATIC_TTL_MS }
+            ?.let {
+                return it.value
+            }
+
+        val (appName, packageName) = resolveAppIdentity(connection)
+        val chains = normalizeChains(connection)
+        val static =
+            RecentRequestStatic(
+                topLevelGroupName = resolveTopLevelGroupName(chains),
+                bottomNodeName = resolveBottomNodeName(chains),
+                sourceAppName = appName,
+                sourcePackageName = packageName,
+                isRejected = isRejectedConnection(chains),
+            )
+        if (recentRequestStaticCache.size >= MAX_CACHED_RECENT_REQUEST_STATIC) {
+            recentRequestStaticCache.clear()
+        }
+        recentRequestStaticCache[key] = CachedRecentRequestStatic(now, static)
+        return static
     }
 
     /**
@@ -424,5 +503,9 @@ class DefaultTrafficStatisticsExplorer(
          * that keeps the list smooth without jank.
          */
         private const val SAMPLE_INTERVAL_MS = 1000L
+
+        private const val MAX_CACHED_CONNECTION_STARTS = 4096
+        private const val MAX_CACHED_RECENT_REQUEST_STATIC = 1024
+        private const val RECENT_REQUEST_STATIC_TTL_MS = 60_000L
     }
 }

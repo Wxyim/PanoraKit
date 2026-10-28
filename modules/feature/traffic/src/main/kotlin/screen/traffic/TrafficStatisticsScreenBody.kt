@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -407,10 +408,12 @@ private fun DetailsCard(
                         Arrangement.spacedBy(TrafficStatisticsScreenLayoutDefaults.ChartInfoSpacing)
                 ) {
                     recentRequests.forEach { request ->
-                        RecentRequestItem(
-                            record = request,
-                            onClick = { onRecentRequestClick(request) },
-                        )
+                        key(request.connection.id) {
+                            RecentRequestItem(
+                                record = request,
+                                onClick = { onRecentRequestClick(request) },
+                            )
+                        }
                     }
                 }
             }
@@ -534,7 +537,10 @@ private fun CompactTrafficSummary(
 private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) {
     val spacing = AppTheme.spacing
     val connection = record.connection
-    val displayAddress = remember(connection) { connection.toConnectionDisplayAddress() }
+    // Traffic counters change every second, but the destination address does not. Avoid
+    // rebuilding the address (and its metadata JSON lookups) for every live-row update.
+    val displayAddress =
+        remember(connection.id, connection.metadata) { connection.toConnectionDisplayAddress() }
     val totalTraffic = connection.upload + connection.download
 
     Surface(

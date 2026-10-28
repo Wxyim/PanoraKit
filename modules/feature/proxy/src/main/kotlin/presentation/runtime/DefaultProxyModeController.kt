@@ -34,9 +34,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -65,7 +65,6 @@ class DefaultProxyModeController(
          * cutting the `queryTunnelState` round-trips to a third of the previous 1.5s cadence.
          */
         const val MODE_REFRESH_RUNNING_MS = 5000L
-        const val MODE_REFRESH_IDLE_MS = 10_000L
     }
 
     private val _uiState = MutableStateFlow(ProxyModeControlUiState())
@@ -115,15 +114,10 @@ class DefaultProxyModeController(
                 }
         }
 
-        // Refresh immediately when the runtime starts or stops.
-        scope.launch { proxyFacade.isRunning.collect { refreshCurrentTunnelMode() } }
-
-        // Refresh as soon as the app becomes visible again so the first frame shows
-        // the current mode instead of waiting for the next idle tick.
+        // A stop has to restore the configured mode immediately. Starting is handled by the
+        // active/visible poll below, which avoids issuing the same core query twice on start.
         scope.launch {
-            proxyFacade.isAppActive
-                .filter { it }
-                .collect { if (proxyFacade.isRunning.value) refreshCurrentTunnelMode() }
+            proxyFacade.isRunning.collect { running -> if (!running) refreshCurrentTunnelMode() }
         }
 
         // Keep the displayed mode in sync with the actual runtime mode while running and the UI is
@@ -131,36 +125,30 @@ class DefaultProxyModeController(
         // skipped entirely while the app is backgrounded or the screen is off, because the value it
         // produces is only ever rendered on screen.
         scope.launch {
-            while (true) {
-                val running = proxyFacade.isRunning.value
-                val active = running && proxyFacade.isAppActive.value
-                if (active) {
-                    val actual = runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
-                    if (actual != null) {
-                        if (_currentMode.value != actual) {
-                            _currentMode.value = actual
+            combine(proxyFacade.isRunning, proxyFacade.isAppActive) { running, active ->
+                    running && active
+                }
+                .distinctUntilChanged()
+                .collectLatest { shouldPoll ->
+                    if (!shouldPoll) return@collectLatest
+                    // collectLatest cancels this block as soon as the runtime stops, the app goes
+                    // to the background, or the screen turns off. No idle timer is needed.
+                    while (true) {
+                        val actual = runCatching { proxyFacade.queryTunnelState().mode }.getOrNull()
+                        if (actual != null) {
+                            if (_currentMode.value != actual) {
+                                _currentMode.value = actual
+                            }
+                            if (
+                                !_uiState.value.isLoading &&
+                                    proxyDisplaySettingsStore.proxyMode.value != actual
+                            ) {
+                                proxyDisplaySettingsStore.proxyMode.set(actual)
+                            }
                         }
-                        if (
-                            !_uiState.value.isLoading &&
-                                proxyDisplaySettingsStore.proxyMode.value != actual
-                        ) {
-                            proxyDisplaySettingsStore.proxyMode.set(actual)
-                        }
-                    }
-                } else if (!running) {
-                    val configured = proxyDisplaySettingsStore.proxyMode.value
-                    if (_currentMode.value != configured) {
-                        _currentMode.value = configured
+                        delay(MODE_REFRESH_RUNNING_MS.milliseconds)
                     }
                 }
-                delay(
-                    if (active) {
-                        MODE_REFRESH_RUNNING_MS.milliseconds
-                    } else {
-                        MODE_REFRESH_IDLE_MS.milliseconds
-                    }
-                )
-            }
         }
     }
 

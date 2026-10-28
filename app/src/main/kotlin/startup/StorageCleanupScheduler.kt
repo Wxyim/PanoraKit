@@ -26,9 +26,13 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import java.util.concurrent.TimeUnit
 
-class StorageCleanupScheduler(context: Context) {
+class StorageCleanupScheduler(
+    context: Context,
+    private val settingsRepository: AppSettingsRepository,
+) {
     private val appContext = context.applicationContext
     private val workManager by lazy { WorkManager.getInstance(appContext) }
 
@@ -38,8 +42,12 @@ class StorageCleanupScheduler(context: Context) {
             return
         }
 
+        // The worker already gates execution by the user's configured interval. Run the
+        // WorkManager period at that same interval instead of waking the process every 15 minutes
+        // only to read the preference and return.
+        val intervalHours = settingsRepository.cleanupIntervalHours.value.coerceIn(1, 48)
         val request =
-            PeriodicWorkRequestBuilder<StorageCleanupWorker>(15, TimeUnit.MINUTES)
+            PeriodicWorkRequestBuilder<StorageCleanupWorker>(intervalHours.toLong(), TimeUnit.HOURS)
                 .setConstraints(
                     Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build()
                 )
