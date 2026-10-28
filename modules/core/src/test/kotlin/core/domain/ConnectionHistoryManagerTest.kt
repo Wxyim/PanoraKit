@@ -62,6 +62,29 @@ class ConnectionHistoryManagerTest {
     }
 
     @Test
+    fun lateUidUpgrade_preservesMeasuredDuration() {
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(
+                    id = "late-uid-duration",
+                    closed = true,
+                    uid = null,
+                    closedAt = 1_000L,
+                    durationMs = 1_500L,
+                )
+            )
+        )
+
+        ConnectionHistoryManager.updateConnections(
+            listOf(
+                connection(id = "late-uid-duration", closed = true, uid = 10_123, closedAt = 1_000L)
+            )
+        )
+
+        assertEquals(1_500L, ConnectionHistoryManager.getClosedConnections().single().durationMs)
+    }
+
+    @Test
     fun diffFallbackCanBeUpgradedByTheLaterCoreClosedSnapshot() {
         ConnectionHistoryManager.updateConnections(
             listOf(connection(id = "fallback", closed = false, uid = null))
@@ -558,6 +581,7 @@ class ConnectionHistoryManagerTest {
         destinationIp: String = "198.51.100.20",
         destinationPort: Int? = null,
         start: String = "",
+        durationMs: Long = -1L,
     ): ConnectionInfo =
         ConnectionInfo(
             id = id,
@@ -574,6 +598,7 @@ class ConnectionHistoryManagerTest {
             closedAt = closedAt,
             system = system,
             start = start,
+            durationMs = durationMs,
         )
 
     private fun timestamp(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis).toString()

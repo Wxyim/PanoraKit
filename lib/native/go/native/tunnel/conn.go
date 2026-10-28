@@ -168,8 +168,9 @@ func retainRecentClosed(
 }
 
 type recentClosedEntry struct {
-	info     *statistic.TrackerInfo
-	closedAt time.Time
+	info       *statistic.TrackerInfo
+	closedAt   time.Time
+	durationMs int64
 	// deliveredAt marks the poll that first returned this entry. Zero means no
 	// poll has seen it yet, which is what keeps a background close around until
 	// the app comes back (see the retention notes above).
@@ -214,6 +215,10 @@ type connectionInfo struct {
 	// backgrounded: those must not all look like they closed at poll time.
 	// Omitted for live connections.
 	ClosedAt int64 `json:"closedAt,omitempty"`
+	// DurationMs is measured with Go's monotonic clock at close time. It is authoritative for the
+	// detail-sheet duration and is unaffected by wall-clock adjustments between Start and ClosedAt.
+	// Omitted for live connections and when the duration rounds to zero.
+	DurationMs int64 `json:"durationMs,omitempty"`
 }
 
 // enrichState tracks one live connection's UID enrichment attempts so a miss is retried a couple of
@@ -333,16 +338,37 @@ func appendRecentClosedLocked(info *statistic.TrackerInfo, closedAt time.Time, s
 	if info == nil {
 		return
 	}
+	durationMs := recentClosedDurationMs(info, closedAt)
+	// Keep the wall-clock field monotonic as a data invariant. The monotonic
+	// duration above remains authoritative if the wall clock moved backwards.
+	if closedAt.UnixMilli() < info.Start.UnixMilli() {
+		closedAt = info.Start
+	}
 	id := info.UUID.String()
 	if _, exists := recentClosedBuffered[id]; exists {
 		return
 	}
 	recentClosedBuffered[id] = struct{}{}
 	recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{
-		info:     info,
-		closedAt: closedAt,
-		system:   system,
+		info:       info,
+		closedAt:   closedAt,
+		durationMs: durationMs,
+		system:     system,
 	})
+}
+
+func recentClosedDurationMs(info *statistic.TrackerInfo, closedAt time.Time) int64 {
+	if info == nil {
+		return 0
+	}
+	// time.Time.Sub uses the monotonic reading when both values came from this
+	// process, so an NTP/user wall-clock adjustment cannot make the duration
+	// negative or jump.
+	elapsed := closedAt.Sub(info.Start)
+	if elapsed < 0 {
+		return 0
+	}
+	return elapsed.Milliseconds()
 }
 
 func dropRecentClosedPrefixLocked(count int) {
@@ -859,6 +885,7 @@ func QueryConnections() *connectionSnapshot {
 			TrackerInfo: entry.info,
 			Closed:      true,
 			ClosedAt:    entry.closedAt.UnixMilli(),
+			DurationMs:  entry.durationMs,
 			System: entry.system ||
 				(entry.info != nil && app.IsSystemMetadata(entry.info.Metadata)),
 		})

@@ -77,24 +77,33 @@ internal fun ConnectionDetailSheet(
         remember(connectionInfo) {
             connectionInfo?.metadata?.get("_closeTimeMs")?.jsonPrimitive?.longOrNull
         }
+    val measuredDurationMs =
+        remember(connectionInfo) { connectionInfo?.durationMs?.takeIf { it >= 0L } }
     val durationText by
         produceState(
             initialValue =
-                connectionInfo?.start?.let { calculateDuration(it, closeTimeMs) } ?: "00:00:00",
+                connectionInfo?.start?.let {
+                    calculateDuration(it, closeTimeMs, measuredDurationMs)
+                } ?: "00:00:00",
             key1 = show,
             key2 = connectionInfo?.start,
-            key3 = closeTimeMs,
+            key3 = closeTimeMs to measuredDurationMs,
         ) {
             // Active connections (no close time): tick every second.
             // Closed connections: duration is fixed, no ticking needed.
-            while (show && connectionInfo?.start != null && closeTimeMs == null) {
+            while (
+                show &&
+                    connectionInfo?.start != null &&
+                    closeTimeMs == null &&
+                    measuredDurationMs == null
+            ) {
                 value = calculateDuration(connectionInfo.start, null)
                 delay(1000L)
             }
             // Final update when close time is known or sheet is still open.
             val start = connectionInfo?.start
             if (show && start != null) {
-                value = calculateDuration(start, closeTimeMs)
+                value = calculateDuration(start, closeTimeMs, measuredDurationMs)
             }
         }
     val sourceApp =
@@ -368,20 +377,36 @@ private fun InfoRow(
     }
 }
 
-private fun calculateDuration(start: String, closeTimeMs: Long? = null): String {
-    if (start.isEmpty()) return "00:00:00"
+internal fun calculateDuration(
+    start: String,
+    closeTimeMs: Long? = null,
+    measuredDurationMs: Long? = null,
+): String {
+    if (measuredDurationMs != null && measuredDurationMs >= 0L) {
+        return formatDurationSeconds(measuredDurationMs / 1000L)
+    }
+    if (start.isBlank()) return "00:00:00"
     return try {
         val startTime = java.time.OffsetDateTime.parse(start).toInstant()
         val endTime =
             closeTimeMs?.let { java.time.Instant.ofEpochMilli(it) } ?: java.time.Instant.now()
-        val duration = java.time.Duration.between(startTime, endTime)
-        val hours = duration.toHours()
-        val minutes = duration.toMinutes() % 60
-        val seconds = duration.seconds % 60
-        "%02d:%02d:%02d".format(hours, minutes, seconds)
+        // Wall-clock timestamps can move backwards around an NTP/user clock adjustment, and a
+        // close timestamp can otherwise land a fraction before the core's start timestamp. Never
+        // render a negative component such as `00:00:-1`.
+        formatDurationSeconds(
+            java.time.Duration.between(startTime, endTime).seconds.coerceAtLeast(0L)
+        )
     } catch (e: Exception) {
         "00:00:00"
     }
+}
+
+private fun formatDurationSeconds(durationSeconds: Long): String {
+    val safeSeconds = durationSeconds.coerceAtLeast(0L)
+    val hours = safeSeconds / 3600
+    val minutes = (safeSeconds % 3600) / 60
+    val seconds = safeSeconds % 60
+    return "%02d:%02d:%02d".format(hours, minutes, seconds)
 }
 
 private fun formatBytes(bytes: Long): String {

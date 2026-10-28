@@ -20,6 +20,7 @@
 package com.github.nomadboxlab.monadbox.core.model
 
 import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,5 +47,17 @@ class ConnectionSnapshotTest {
             )
 
         assertFalse(snapshot.connections.orEmpty().single().system)
+    }
+
+    @Test
+    fun durationIsDecodedAndDefaultsToUnknown() {
+        val snapshot =
+            json.decodeFromString<ConnectionSnapshot>(
+                """{"connections":[{"id":"closed","durationMs":1500},{"id":"live"}]}"""
+            )
+        val connections = snapshot.connections.orEmpty()
+
+        assertEquals(1_500L, connections.single { it.id == "closed" }.durationMs)
+        assertEquals(-1L, connections.single { it.id == "live" }.durationMs)
     }
 }

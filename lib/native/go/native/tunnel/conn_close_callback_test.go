@@ -46,6 +46,7 @@ func TestTrackerCloseCallbackRecordsImmediately(t *testing.T) {
 	info := &statistic.TrackerInfo{
 		UUID:     utils.NewUUIDV4(),
 		Metadata: &C.Metadata{Type: C.TUN},
+		Start:    time.Now().Add(-1500 * time.Millisecond),
 	}
 
 	onRecentTrackerClosed(info)
@@ -63,7 +64,33 @@ func TestTrackerCloseCallbackRecordsImmediately(t *testing.T) {
 	if entry.closedAt.IsZero() {
 		t.Fatal("close callback did not stamp closedAt")
 	}
+	if entry.durationMs < 1000 {
+		t.Fatalf("durationMs = %d, want a monotonic duration", entry.durationMs)
+	}
 	if _, exists := recentClosedSeen[info.UUID.String()]; exists {
 		t.Fatal("closed tracker is still present in the live seen map")
+	}
+}
+
+func TestAppendRecentClosedClampsWallClockToStart(t *testing.T) {
+	resetRecentClosedTrackingForTest()
+	start := time.Now().Add(2 * time.Second)
+	info := &statistic.TrackerInfo{
+		UUID:     utils.NewUUIDV4(),
+		Metadata: &C.Metadata{Type: C.TUN},
+		Start:    start,
+	}
+
+	recentClosedMu.Lock()
+	appendRecentClosedLocked(info, time.Now(), false)
+	entry := recentClosedBuffer[0]
+	recentClosedMu.Unlock()
+
+	if entry.closedAt.UnixMilli() != info.Start.UnixMilli() {
+		t.Fatalf(
+			"closedAt = %d, want start wall time %d",
+			entry.closedAt.UnixMilli(),
+			info.Start.UnixMilli(),
+		)
 	}
 }

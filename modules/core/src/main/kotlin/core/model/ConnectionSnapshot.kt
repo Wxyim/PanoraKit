@@ -21,6 +21,7 @@
 
 package com.github.nomadboxlab.monadbox.core.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -66,4 +67,12 @@ data class ConnectionInfo(
      * describe when the app came back instead of when the requests actually ended.
      */
     val closedAt: Long = 0L,
+    /**
+     * Monotonic connection duration in milliseconds for a closed connection.
+     *
+     * -1 means the core did not report a measured duration (older snapshot or live connection), so
+     * the UI falls back to `closedAt - start`. This value is preferred for display because a wall
+     * clock adjustment must not change the reported duration.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val durationMs: Long = -1L,
 )

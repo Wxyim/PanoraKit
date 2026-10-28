@@ -121,6 +121,23 @@ func TestConnectionInfoSerializesSystemOnlyWhenResolved(t *testing.T) {
 	}
 }
 
+func TestConnectionInfoSerializesMeasuredDuration(t *testing.T) {
+	info := &statistic.TrackerInfo{Metadata: &C.Metadata{Type: C.TUN}}
+
+	payload, err := json.Marshal(&connectionInfo{
+		TrackerInfo: info,
+		Closed:      true,
+		ClosedAt:    1_000,
+		DurationMs:  1_500,
+	})
+	if err != nil {
+		t.Fatalf("marshal measured duration: %v", err)
+	}
+	if !strings.Contains(string(payload), `"durationMs":1500`) {
+		t.Fatalf("connection JSON = %s, want durationMs=1500", payload)
+	}
+}
+
 func TestSystemMetadataMarkerIsScopedToMetadata(t *testing.T) {
 	first := &C.Metadata{Type: C.TUN}
 	second := &C.Metadata{Type: C.TUN}

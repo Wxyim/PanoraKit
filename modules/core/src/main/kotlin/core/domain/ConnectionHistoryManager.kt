@@ -224,11 +224,13 @@ object ConnectionHistoryManager {
         val authoritativeClosedAt = conn.closedAt.takeIf { it > 0L }
         val closeTimeChanged =
             authoritativeClosedAt != null && authoritativeClosedAt != existingClosedAt
-        if (newScore <= oldScore && !closeTimeChanged) return
+        val durationImproved = conn.durationMs >= 0L && existingInfo.durationMs < 0L
+        if (newScore <= oldScore && !closeTimeChanged && !durationImproved) return
 
         val base = if (newScore >= oldScore) conn else existingInfo
         val closedAt = authoritativeClosedAt ?: existingClosedAt
-        val upgraded = base.withCloseTime(closedAt)
+        val durationMs = if (conn.durationMs >= 0L) conn.durationMs else existingInfo.durationMs
+        val upgraded = base.withCloseTime(closedAt).copy(durationMs = durationMs)
         val index = _closedConnections.indexOfFirst { it.second.id == conn.id }
         if (index < 0) return
         _closedConnections[index] = closedAt to upgraded

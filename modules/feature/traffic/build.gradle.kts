@@ -55,4 +55,6 @@ dependencies {
     implementation(libs.miuix)
     implementation(libs.miuix.icons)
     implementation(libs.compose.destinations.core)
+
+    testImplementation(libs.junit4)
 }
