@@ -107,6 +107,19 @@ fun TrafficStatisticsScreenBody(navigator: DestinationsNavigator) {
     var selectedConnection by remember { mutableStateOf<ConnectionInfo?>(null) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
+    // The detail sheet is opened from a snapshot, but an active connection can close while the
+    // sheet is still open. Keep the selected row in sync with the live recent-request list so the
+    // sheet switches from the live `now - start` duration to the fixed `_closeTimeMs` duration.
+    LaunchedEffect(selectedConnection?.id, recentRequests) {
+        val selectedId = selectedConnection?.id ?: return@LaunchedEffect
+        val latest =
+            recentRequests.firstOrNull { it.connection.id == selectedId }?.connection
+                ?: return@LaunchedEffect
+        if (latest != selectedConnection) {
+            selectedConnection = latest
+        }
+    }
+
     LaunchedEffect(searchQuery) { trafficStatisticsExplorer.setSearchQuery(searchQuery) }
 
     Scaffold(
