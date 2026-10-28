@@ -212,7 +212,7 @@ Notes:
 
 | Script | Function |
 | --- | --- |
-| `scripts/sync-kernel.{sh,ps1,bat}` | kernel source/channel sync |
+| `scripts/sync-kernel.{sh,ps1,bat}` | kernel source/channel sync, then apply `config/kernel-patches/*.patch` |
 | `kotlin scripts/native-build.main.kts --all` | native artifact build |
 | `scripts/repo-health.{sh,ps1}` | repository health checks |
 | `scripts/setup-release-signing.{sh,ps1}` | release signing bootstrap |

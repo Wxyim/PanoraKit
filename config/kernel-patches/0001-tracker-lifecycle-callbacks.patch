@@ -1,0 +1,94 @@
+diff --git a/tunnel/statistic/manager.go b/tunnel/statistic/manager.go
+index c69746d..24a8b2f 100644
+--- a/tunnel/statistic/manager.go
++++ b/tunnel/statistic/manager.go
+@@ -2,6 +2,7 @@ package statistic
+ 
+ import (
+ 	"os"
++	"sync"
+ 	"time"
+ 
+ 	"github.com/metacubex/mihomo/common/atomic"
+@@ -27,6 +28,9 @@ func init() {
+ 
+ type Manager struct {
+ 	connections   xsync.Map[string, Tracker]
++	callbackMu    sync.RWMutex
++	onJoin        func(Tracker)
++	onLeave       func(*TrackerInfo)
+ 	uploadTemp    atomic.Int64
+ 	downloadTemp  atomic.Int64
+ 	uploadBlip    atomic.Int64
+@@ -37,12 +41,34 @@ type Manager struct {
+ 	memory        uint64
+ }
+ 
++// SetTrackerCallbacks installs optional lifecycle hooks for the native Android
++// layer. Callbacks run after the tracker has been added/removed from the
++// manager and must not block: they are invoked on the connection goroutine.
++func (m *Manager) SetTrackerCallbacks(onJoin func(Tracker), onLeave func(*TrackerInfo)) {
++	m.callbackMu.Lock()
++	m.onJoin = onJoin
++	m.onLeave = onLeave
++	m.callbackMu.Unlock()
++}
++
+ func (m *Manager) Join(c Tracker) {
+ 	m.connections.Store(c.ID(), c)
++	m.callbackMu.RLock()
++	callback := m.onJoin
++	m.callbackMu.RUnlock()
++	if callback != nil {
++		callback(c)
++	}
+ }
+ 
+ func (m *Manager) Leave(c Tracker) {
+ 	m.connections.Delete(c.ID())
++	m.callbackMu.RLock()
++	callback := m.onLeave
++	m.callbackMu.RUnlock()
++	if callback != nil {
++		callback(c.Info())
++	}
+ }
+ 
+ func (m *Manager) Get(id string) (c Tracker) {
+diff --git a/tunnel/statistic/manager_callback_test.go b/tunnel/statistic/manager_callback_test.go
+new file mode 100644
+index 0000000..1ec2a62
+--- /dev/null
++++ b/tunnel/statistic/manager_callback_test.go
+@@ -0,0 +1,31 @@
++package statistic
++
++import "testing"
++
++func TestManagerLifecycleCallbacks(t *testing.T) {
++	manager := &Manager{}
++	tracker := &tcpTracker{TrackerInfo: &TrackerInfo{}}
++	var joined Tracker
++	var left *TrackerInfo
++
++	manager.SetTrackerCallbacks(
++		func(c Tracker) { joined = c },
++		func(info *TrackerInfo) { left = info },
++	)
++
++	manager.Join(tracker)
++	if joined != tracker {
++		t.Fatal("join callback did not receive the tracker")
++	}
++	if manager.Get(tracker.ID()) != tracker {
++		t.Fatal("tracker was not stored by Join")
++	}
++
++	manager.Leave(tracker)
++	if left != tracker.Info() {
++		t.Fatal("leave callback did not receive the tracker info")
++	}
++	if manager.Get(tracker.ID()) != nil {
++		t.Fatal("tracker was not removed by Leave")
++	}
++}

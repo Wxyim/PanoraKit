@@ -182,27 +182,18 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 
 - `queryConnections`（连接列表）：客户端 `ConnectionActivityRepository` 按 **1s** 轮询（`ClashManager`/`SessionRuntime`
   侧 100ms TTL 只做去重）。每次全量 JSON 序列化 + JNI；连接多时是明显 CPU 尖峰。
-- 最近关闭采样器：`tunnel/conn.go` 的 `observeRecentClosed` 每 **20ms** 监视连接增减以保留「最近请求」历史。
-  **已优化**：原实现每 tick 调 `statistic.DefaultManager.Snapshot()`（会读 `/proc/<pid>/statm` 并分配连接切片），
-  改为直接 `DefaultManager.Range` 遍历（免 /proc 读取与切片分配），并加空闲 fast-path——无存活连接且无待处理项时
-  tick 近零成本（`alive` map 按需分配）。采样间隔由 50ms 降到 **20ms**：存活 **≥20ms** 的连接必然被捕获；
-  成本侧，活跃 tick 仍是锁自由的轻量遍历，空闲 tick 近零，故降间隔对 CPU 影响很小。
-  关闭连接的过期分两档：已被某次轮询取走的按 6~8 秒窗口过期；**尚未被取走的**（App 后台/熄屏期间关闭）保留
-  30 分钟、上限 500 条。单次响应最多回放 200 条并按最旧优先，积压由之后几次轮询排干，既避免 RootTun 路径的
-  AIDL JSON 字符串超出 binder 事务预算（binder 字符串为 UTF-16，约 1 MiB 预算对应半数左右字符），也不丢历史。
-  回到前台后的头几次轮询会把这段历史连同真实关闭时间（载荷新增 `closedAt`）一起补上。仅保留条目不会把采样器
-  拉回 20ms 档——空闲时仍按 250ms tick 只做过期，故后台不因此增加唤醒。
-- **空闲退避（电量平衡）**：20ms 定时器常驻会阻止 CPU 在安静设备上进入更深空闲态（即使空闲 tick 的 CPU 成本近零，
-  每 20ms 的定时唤醒本身是功耗杠杆）。因此采样循环改为自适应：有存活连接或有待保留/待处理项时保持 **20ms**；
-  三态全空（空闲）时退避到 **250ms**，出现活动立即恢复 20ms。代价仅是「空闲窗口内打开并关闭的首个连接」不被观测，
-  活跃期捕获不变。电量评估：活跃期 CPU 仍被数据面主导、20ms 影响可忽略；空闲期定时唤醒从 50/s 降到 4/s（-92%），
-  是本次 20ms 改动的电量补偿。
-- **正确性与捕获边界（已模拟验证）**：改动前后捕获语义等价——`c.ID()`≡`UUID.String()`、`c.Info()`≡快照指针，
-  检测/入 buffer/淘汰逻辑逐行相同；空闲 fast-path 仅在三态（存活/seen/buffer）全空时短路，均为 no-op，不会漏迁移
-  已关闭连接。用 4000 个随机场景（含大量 0~30ms 超短连接）对比新旧算法，捕获集合 **0 差异**（仅 buffer 顺序随 Go
-  map 随机迭代变化，不影响正确性）。采样式捕获的固有边界：存活 **≥20ms** 的连接必然被捕获；存活 **<20ms** 的连接为
-  概率捕获（约 `L/20ms`）。模拟实测（20ms 间隔，0~99ms 均匀分布）：总体捕获率 **89.1%**，分段为 0~10ms 22.3%、
-  10~20ms 72.2%、20ms 及以上 **100%**（50ms 间隔时分别为 73.7% / 8.8% / 28.3% / 48.1% / 78.6%）。
+- 最近关闭采样器：正常连接关闭现在由 mihomo `Manager.Leave()` 回调同步记录到 retained buffer，
+  `closedAt` 使用关闭调用时刻，不再依赖下一次 20ms 采样。`observeRecentClosed` 只作为异常移除的
+  **250ms 兜底**，并在新连接 Join 时被唤醒；只有仍有 live 连接需要 UID 补齐且下一次重试到期时，
+  才短暂切回 **20ms**。因此有长连接时不再永久保持 50Hz timer。
+- 关闭连接的过期语义不变：已被某次轮询取走的按 6~8 秒窗口过期；**尚未被取走的**（App 后台/熄屏期间关闭）
+  保留 30 分钟、上限 500 条。单次响应最多回放 200 条并按最旧优先，避免 RootTun 路径的 AIDL JSON
+  字符串超出 binder 事务预算，也不丢历史。回到前台后的头几次轮询会把这段历史连同真实关闭时间
+  （`closedAt`）一起补上。
+- **捕获边界**：正常 `Close()` 路径由 `Manager.Leave()` 100% 捕获；250ms 兜底只负责异常移除和过期。
+  UID 补齐仍按原背景预算执行：Join 回调叫醒采样器后立即开展，后续重试至少间隔 500ms；不再依赖
+  永久 20ms 采样来等待 socket owner 发布。若某 tracker 绕过 `Close()` 直接从 manager 消失，兜底扫描
+  仍会在 250ms 内发现它，但极短且绕过 Close 的连接可能丢失。
 - `queryTrafficSnapshot` 前台 2s、后台 60s 轮询，成本低（`down_scale_traffic` 已压成 30bit 计数）。
 - `queryRuntimeDataSnapshot`：服务侧 1s TTL，并把「快照实例 + 已持久化选择」与序列化结果都做记忆化——
   载荷（全部代理组 + providers + 配置）在无人操作时不再每 tick 重建/重编码；TTL 到期后重建的载荷若与上一次
@@ -231,10 +222,10 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 
 - 连接列表分页/增量仍待办；但「最近请求」历史依赖保留关闭连接，纯分页需保持该语义（产品取舍，未动）。
 - 客户端状态轮询节奏已按亮屏/前台分级（与 `docs/POWER_ANALYSIS_ZH_HANS.md` 一致），维持即可。
-- 采样间隔已由 50ms 降到 **20ms**（见上），超短连接捕获显著提升；若仍需更细可到 10ms（概率 `L/10`，活跃 tick ×5），
-  或走事件驱动（hook `Manager.Leave()`，可 100% 捕获，但需改 mihomo kernel；`lib/mihomo/mihomo` 由
-  `sync-kernel.sh` 每次重克隆上游、无 patch 机制，改动会被冲掉，不可持续）。配合空闲退避，20ms 的
-  「捕获率/电量」平衡点已成立；对 UI「最近请求」场景无需再细化。
+- 关闭捕获已改为事件驱动：`Manager.Leave()` 回调（通过 `config/kernel-patches/` 在 sync 后应用）
+  100% 捕获正常关闭，250ms 兜底只做过期/异常移除；UID 补齐才使用 20ms 短时节奏。下一步若追求
+  端到端零轮询，可把同一事件直接推送给 App，去掉 1s/5s 连接快照轮询；当前仍保留轮询以保持
+  `QueryConnections` 的现有接口和 RootTun 兼容性。
 
 ## 4. 优先级优化清单
 
@@ -249,7 +240,7 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | P1 ✅ | MTU 统一对齐 1500（本地 TUN + RootTun + 模型默认 + 编辑器占位符） | `VpnTunTransport`/`tun/tun.go`/`RootTunConfig`/`Editors.kt` | 消除两种模式的 MTU 漂移与 PMTU 兼容性风险 | 已实现 |
 | P1 ✅ | GSO 不启用：本地/root 的 `LC.Tun.GSO` 均保持 false，Go 侧强制 `tun.enable=false` 使 profile 覆盖无法开启 | `tun/tun.go`/`tun/root.go`/`config/override.go` | 保持稳定分段行为，避免未经验证的吞吐风险 | 已确认 |
 | P2 ✅ | 启动并行化：App→UID 发布并入三路 async，与 transport.prepare/compileAndLoad 并行；GLOBAL selection 因 patchSelector 改核心保持串行 | `SessionRuntime.startInternal` | 冷启动再省一段 | 已实现 |
-| P2 ✅ | 最近关闭采样器：`Range` 替代 `Snapshot()`（免 `/proc/statm` 读取）+ 空闲 fast-path；间隔 50ms→20ms 提升短连接捕获，空闲退避 250ms 平衡电量（唤醒 50/s→4/s） | `tunnel/conn.go` | 后台轮询开销 + 短连接可观测性 + 电量 | 已实现 |
+| P0 ✅ | 最近关闭改为 `Manager.Leave()` 事件驱动：正常关闭 100% 捕获并同步记录 `closedAt`；250ms 兜底只做过期/异常移除，UID 补齐窗口才短暂使用 20ms；kernel patch 由 `config/kernel-patches/` 在 sync 后自动应用 | `tunnel/conn.go`、`config/kernel-patches/`、`scripts/sync-kernel.{sh,ps1}` | 去掉长连接下永久 50Hz timer，同时提升关闭时间准确性 | 已实现 |
 | P1 ✅ | 连接列表订阅门控 + 关闭保留窗口自适应 + 历史去重 O(1) | `ConnectionActivityRepository.kt`、`ConnectionHistoryManager.kt`、`tunnel/conn.go` | 前台无订阅者时连接 JSON 往返 1/s→1/5s（-80%），历史捕获不漏 | 已实现 |
 | P2 ✅ | 载荷内容复用 + 体积告警 + `TransactionTooLargeException` 单独报因 | `SessionRuntime.kt`、`UiConfiguration.kt`、`RootTunRuntimeRecovery.kt` | TTL 到期但内容未变时不再重编码/以新实例下发 | 已实现 |
 | P3 ✅ | 显示模式兜底 1.5s→5s；日志页按写入代次增量解析；删除 `AppConstants.Timing/Limits` 死常量 | `DefaultProxyModeController.kt`、`LogRecordService.kt`、`LogViewModel.kt`、`AppConstants.kt` | 减少无收益轮询与重复解析 | 已实现 |

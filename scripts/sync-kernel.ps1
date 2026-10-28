@@ -16,6 +16,7 @@ $kernelProperties = Join-Path $projectRoot "config/kernel.properties"
 $golangRoot = Join-Path $projectRoot "lib\mihomo"
 $golangMain = Join-Path $projectRoot "lib\native\go"
 $mihomoDir = Join-Path $golangRoot "mihomo"
+$kernelPatchDir = Join-Path $projectRoot "config/kernel-patches"
 
 switch ($Choice.ToLowerInvariant()) {
     "alpha" {
@@ -155,6 +156,22 @@ function Sync-Repo {
     }
 }
 
+function Apply-KernelPatches {
+    if (-not (Test-Path -LiteralPath $kernelPatchDir)) {
+        return
+    }
+
+    Get-ChildItem -LiteralPath $kernelPatchDir -Filter "*.patch" |
+        Sort-Object Name |
+        ForEach-Object {
+            Write-Host "Applying kernel patch $($_.Name)"
+            & git -C $mihomoDir apply --whitespace=nowarn $_.FullName
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to apply kernel patch $($_.Name)"
+            }
+        }
+}
+
 function Run-GoModTidy {
     param([string]$TargetDir)
 
@@ -182,6 +199,7 @@ $releaseTag = Resolve-ReleaseTag
 $releaseRevision = Resolve-ReleaseRevision -Tag $releaseTag
 Update-KernelProperties
 Sync-Repo
+Apply-KernelPatches
 Run-GoModTidy -TargetDir $golangRoot
 Run-GoModTidy -TargetDir $golangMain
 

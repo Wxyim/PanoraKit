@@ -216,7 +216,7 @@ CI 变量：
 
 | 脚本 | 功能 |
 | --- | --- |
-| `scripts/sync-kernel.{sh,ps1,bat}` | 同步内核源与频道 |
+| `scripts/sync-kernel.{sh,ps1,bat}` | 同步内核源与频道，并应用 `config/kernel-patches/*.patch` |
 | `kotlin scripts/native-build.main.kts --all` | 构建 native 产物 |
 | `scripts/repo-health.{sh,ps1}` | 仓库健康检查 |
 | `scripts/setup-release-signing.{sh,ps1}` | 初始化 release 签名 |

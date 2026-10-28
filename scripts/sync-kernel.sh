@@ -6,6 +6,7 @@ KERNEL_PROPERTIES="$PROJECT_ROOT/config/kernel.properties"
 GOLANG_ROOT="$PROJECT_ROOT/lib/mihomo"
 GOLANG_MAIN="$PROJECT_ROOT/lib/native/go"
 MIHOMO_DIR="$GOLANG_ROOT/mihomo"
+KERNEL_PATCH_DIR="$PROJECT_ROOT/config/kernel-patches"
 
 usage() {
   echo "Usage: $(basename "$0") <alpha> [--print-state]"
@@ -165,6 +166,18 @@ sync_repo() {
   fi
 }
 
+apply_kernel_patches() {
+  if [ ! -d "$KERNEL_PATCH_DIR" ]; then
+    return
+  fi
+
+  for patch in "$KERNEL_PATCH_DIR"/*.patch; do
+    [ -f "$patch" ] || continue
+    echo "Applying kernel patch $(basename "$patch")"
+    git -C "$MIHOMO_DIR" apply --whitespace=nowarn "$patch"
+  done
+}
+
 strip_indirect_requires() {
   go_mod="$1/go.mod"
   if [ ! -f "$go_mod" ]; then
@@ -207,6 +220,7 @@ if [ "$MODE" = "--print-state" ]; then
 fi
 
 sync_repo
+apply_kernel_patches
 update_kernel_properties
 run_tidy "$GOLANG_ROOT"
 run_tidy "$GOLANG_MAIN"

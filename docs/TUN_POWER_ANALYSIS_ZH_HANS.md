@@ -32,16 +32,17 @@
 
 ### 3.1 最近关闭采样器
 
-| | 改动前 | 改动后 |
+| | 旧实现 | 当前 |
 | --- | --- | --- |
-| 周期 | 50ms 固定 | 活跃 **20ms** / 空闲退避 **250ms** |
-| 每 tick 数据 | `Snapshot()` → 读 `/proc/<pid>/statm` + 切片分配 | `Range` 直遍历，无 `/proc`，空闲 tick 近零 |
-| 空闲唤醒 | 20/s | 4/s（-80%，相对 20ms 固定 -92%） |
-| `/proc` 读取 | 20/s | 0 |
-| 短连接捕获 | 存活 ≥50ms 必捕获 | 存活 ≥20ms 必捕获（提升） |
+| 正常关闭捕获 | 20ms diff 采样 | `Manager.Leave()` 回调同步记录，关闭调用时即入 buffer |
+| 兜底扫描 | 活跃 20ms / 空闲 250ms | 正常 **250ms**；只有 live 连接需要 UID 补齐且重试到期时短暂 **20ms** |
+| 新连接唤醒 | 等下一次 20ms tick | `Manager.Join()` 回调立即唤醒兜底扫描 |
+| 每 tick 数据 | `Snapshot()` → 读 `/proc/<pid>/statm` + 切片分配 | `Range` 直遍历，无 `/proc`，timer/map 跨 tick 复用 |
+| 短连接捕获 | 存活 ≥20ms 必捕获 | 正常 `Close()` 路径 100% 捕获；极短且绕过 `Close()` 的异常移除走 250ms 兜底 |
 
-电量影响：空闲态（VPN 无流量）是主要受益场景——移除每 50ms 的 `/proc` 文件读取与分配，并把常驻定时器
-频率降至 4/s，允许 CPU 更深空闲。活跃期（有流量）设备本就因转发而唤醒，20ms 采样的增量成本可忽略。
+电量影响：有长连接时不再永久维持 50Hz timer；正常关闭由事件同步捕获，`closedAt` 也改为真实关闭调用时间。
+250ms 兜底只负责异常移除、过期和 UID 补齐后的状态回落。kernel 侧回调通过 `config/kernel-patches/`
+在 `sync-kernel` 后自动应用。
 
 ### 3.2 Go GC
 
@@ -83,7 +84,7 @@
 | 流量统计落盘 | 5s 采样 / 30s 批量写 MMKV | 运行中；非前台或熄屏降为 30s 采样并主动刷新核心累计总量，回前台立即补采一次，停止前落最终结算点 | 低 | 已降耗 |
 | Root 日志记录 | 2s | Root 模式 + 日志开启 | 中 | 未动 |
 | 核心日志流 | 无消费者时不打开；空闲 20s 自停 | 有人取日志（日志页 / 录制） | 中 | 已按需 |
-| 最近请求历史 | 1s（统计页可见）/ 5s（保温）取连接快照 | 前台 + 亮屏 + 运行中；关闭保留窗口 ≥6s 保证不漏；未被取走的关闭保留 30 分钟（单次响应最多回放 200 条，积压分多次 poll 排干），故后台期间的历史在回到前台后补记（后台零唤醒） | 中 | timer/map 复用 + 订阅门控 + 两档过期 |
+| 最近请求历史 | 1s（统计页可见）/ 5s（保温）取连接快照 | 前台 + 亮屏 + 运行中；正常关闭由 native `Manager.Leave()` 事件捕获，250ms 兜底；保留窗口 ≥6s 保证不漏；未被取走的关闭保留 30 分钟（单次响应最多回放 200 条，积压分多次 poll 排干），故后台期间的历史在回到前台后补记（后台零唤醒） | 中 | 事件驱动 + 订阅门控 + 两档过期 |
 | 最近请求列表重建 | 统计页可见时随 1s 连接快照重建：起始时间按字符串缓存，行静态字段（应用身份/链/拒绝标记）60s TTL 缓存；无搜索词时先截断到 100 行再建行 | 统计页可见 | 低 | 已降耗（解析 O(n log n)→O(n)，建行 O(n)→≤100/次） |
 
 所有高频轮询均已按亮屏/前台/订阅门控：显示模式同步与连接列表跟随「前台 + 亮屏」起停，
@@ -100,9 +101,9 @@
 | 最近请求列表重建 | `DefaultTrafficStatisticsExplorer.kt`、`AppIdentityResolver.kt` | 统计页每秒 ISO-8601 解析 O(n log n)→O(n)；建行 O(n)→≤100；`PackageManager` 查询按包缓存 |
 | 流量统计采样分级 | `TrafficStatisticsCollector.kt` | 后台/熄屏唤醒 12/min→2/min |
 | RootTun 熄屏轮询放宽 | `RootTunService.kt` | 熄屏状态 IPC 7.5/min→2/min，亮屏立即补刷 |
-| 采样器：Range 替代 Snapshot + 空闲退避 | `tunnel/conn.go` | 空闲 `/proc` 20/s→0；唤醒 20/s→4/s；空闲 tick 近零 |
-| 采样器：50ms→20ms（活跃） | `tunnel/conn.go` | 捕获提升；活跃期增量可忽略 |
-| 采样器：timer/map 跨 tick 复用 | `tunnel/conn.go` | 活跃 20ms 档不再每 tick 分配 timer/map，长连接场景降低 GC 与 CPU |
+| 关闭事件驱动 + 250ms 兜底 | `tunnel/conn.go`、`config/kernel-patches/` | 正常关闭 100% 捕获，长连接场景不再永久 50Hz |
+| UID 补齐短时 20ms | `tunnel/conn.go` | 只在 UID 重试到期时加速，Join 回调立即唤醒 |
+| 采样器：Range + timer/map 复用 | `tunnel/conn.go` | 无 `/proc` 读取；timer/map 不再每 tick 分配 |
 | 日志级别过滤 | `native/log.go` | 每 DNS 劫持不再写 logcat |
 | UID 正/负缓存 | `VpnTunTransport.kt` | Binder 频率大降 |
 | UID 补齐（轮询 8 条/tick、后台 4 条/tick、每连接有界） | `tunnel/conn.go`、`native/app/tun.go`、`ProcFsUidResolver.kt` | 残留 Unknown App 消除；后台只做有界一次性补查，避免回放时已无 socket |
@@ -134,13 +135,14 @@
    不可见期间开关的短连接不进入历史）**也已解决**：不再靠后台轮询，而是让核心区分「已被轮询取走」与「尚未取走」，
    未取走的关闭保留 30 分钟、上限 500 条；为避免 RootTun 路径的 AIDL JSON 字符串撑爆 binder 事务，单次响应最多回放
    200 条并按最旧优先，积压由之后几次轮询排干，因此后台既不唤醒也不丢历史（仅超过该窗口的历史会丢）。
-2. 事件驱动采样（hook `Manager.Leave()`）：可 100% 捕获且省掉全部定时唤醒；需改 mihomo kernel，
-   `sync-kernel.sh` 每次重克隆上游、无 patch 机制，不可持续。本轮先完成了不改变采样语义的
-   timer/map 复用；事件驱动仍需补 patch 管线与真机验证后才能替换 20ms 采样。
+2. 事件驱动采样（hook `Manager.Leave()`）：**已完成**。`config/kernel-patches/` 在
+   `sync-kernel.{sh,ps1}` 克隆后自动应用回调补丁；正常关闭同步记录，250ms 兜底只做异常移除、
+   过期和 UID 状态回落，长连接下不再永久 20ms 采样。仍需真机 `batterystats` 验证。
 3. 更细间隔（10ms）：收益递减，不推荐。
 4. 通知/日志周期按需收紧：维持现状即可（已有门控）。
-5. 连接采样做到端到端事件驱动（管理器 `Leave()` 回调 → 直接推给 App），可同时去掉 1s 轮询与 20ms 采样：
-   与第 2 条同样的内核改动限制，暂不可行。
+5. 端到端事件推送（管理器 `Leave()` 回调 → 直接推给 App）：native 侧已完成缓冲，但 App 仍用
+   1s/5s 快照轮询来兼容 `QueryConnections`、RootTun 和现有 UI 数据流；彻底去掉轮询需要单独设计
+   跨进程事件通道。
 
 ## 7. 真机验证方法
 

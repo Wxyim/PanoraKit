@@ -60,39 +60,30 @@ const closeAllTimeout = 2 * time.Second
 // ([recentClosedEntry.deliveredAt]); undelivered entries live for
 // [recentClosedUndeliveredRetention] instead, so returning to the foreground
 // replays what happened while the app was away. This costs nothing while
-// backgrounded — the sampler below already runs — and needs no extra polling,
-// no push channel and no binder traffic.
+// backgrounded — the manager close callback below already records it — and
+// needs no extra polling, no push channel and no binder traffic.
 //
 // A delivered close whose owner is still unknown is another special case: its
 // first copy may already have reached the app, but a later UID lookup can still
 // repair it. Such entries keep the long replay window until their retry budget
 // is exhausted, and a successful late lookup marks them for one redelivery.
 //
-// [recentClosedSampler] is the active cadence: it must be finer than the app's
-// 1s poll to catch short-lived connections, and the finer it is the shorter a
-// connection has to live to be guaranteed observable. 20ms means any connection
-// alive for >=20ms spans at least one sample and is captured with certainty;
-// shorter ones are captured probabilistically (~lifetime/20ms).
-//
-// [recentClosedIdleSampler] is the backoff cadence used while the manager is
-// idle (no live connections, none pending). Idle ticks are already nearly free
-// CPU-wise, but keeping a 20ms timer armed prevents the CPU from idling deep
-// between ticks on a quiet device, so the sampler backs off to 250ms when there
-// is nothing to track and returns to 20ms as soon as activity resumes. Retained
-// entries do not keep the fine cadence armed: the coarse tick is enough to expire
-// them and still gives an unresolved close a couple of UID-enrichment attempts
-// before the next poll (see [tryScheduleUidEnrichment]).
-// The only tradeoff: a connection that opens and closes entirely inside a
-// single idle window (the first connection of a new burst) is not observed.
+// A normal close is recorded synchronously by the Manager.Leave callback
+// installed below, so the 20ms close-diff sampler is no longer needed. The
+// fallback sampler keeps a 250ms cadence to reconcile unexpected removals and
+// expire retained entries. It switches to 20ms only while a live connection
+// still needs UID enrichment and its next retry is due; a Join callback wakes
+// it immediately for a new connection, preserving the old background UID
+// attribution window without a permanent 50Hz timer.
 const (
 	recentClosedRetention = 6 * time.Second
 	// [recentClosedRetentionCap] bounds the adaptive window so a stalled app (or
 	// a single manual refresh) cannot pin every closed connection in the
 	// snapshot: the buffer is also bounded by [recentClosedMax], but a bound on
 	// the window keeps the steady-state payload predictable as well.
-	recentClosedRetentionCap = 8 * time.Second
-	recentClosedSampler      = 20 * time.Millisecond
-	recentClosedIdleSampler  = 250 * time.Millisecond
+	recentClosedRetentionCap    = 8 * time.Second
+	recentUidEnrichmentSampler  = 20 * time.Millisecond
+	recentClosedFallbackSampler = 250 * time.Millisecond
 	// [recentClosedUndeliveredRetention] is how long a close survives while no
 	// poll has seen it yet. It only has to outlast a backgrounded app; the list
 	// it feeds is a "recent requests" view, so a bound that spans hours would
@@ -265,27 +256,42 @@ var (
 	recentClosedSeen     = make(map[string]*statistic.TrackerInfo)
 	recentClosedEnriched = make(map[string]enrichState)
 	recentClosedBuffer   []recentClosedEntry
+	recentClosedBuffered = make(map[string]struct{})
+	recentClosedWake     = make(chan struct{}, 1)
 )
 
-// ensureRecentClosedSampler starts the background sampler that watches the
-// manager for connections leaving and retains their final tracker info.
+// ensureRecentClosedSampler installs the manager lifecycle callbacks and starts
+// the fallback sampler. Manager.Leave records a normal close immediately; the
+// sampler only reconciles unexpected removals, expires retained entries, and
+// performs bounded UID enrichment for live connections.
 func ensureRecentClosedSampler() {
 	recentClosedOnce.Do(func() {
+		statistic.DefaultManager.SetTrackerCallbacks(onRecentTrackerJoined, onRecentTrackerClosed)
 		go func() {
-			interval := recentClosedSampler
-			// Reuse both the timer and the live map across ticks. At the active
-			// 20ms cadence, allocating a new timer/map every tick would create
-			// 50 timer and map allocations per second for as long as any
-			// connection remains open.
+			interval := recentUidEnrichmentSampler
+			// Reuse both the timer and the live map across ticks. The fallback
+			// cadence is 250ms; the timer only accelerates to 20ms while UID
+			// enrichment is still due for a live connection.
 			alive := make(map[string]statistic.Tracker, 16)
 			timer := time.NewTimer(interval)
 			defer timer.Stop()
 			for {
-				<-timer.C
+				select {
+				case <-timer.C:
+				case <-recentClosedWake:
+					// A new tracker joined; run a prompt scan instead of waiting for
+					// the fallback timer.
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
+				}
 				if observeRecentClosed(alive) {
-					interval = recentClosedSampler
+					interval = recentUidEnrichmentSampler
 				} else {
-					interval = recentClosedIdleSampler
+					interval = recentClosedFallbackSampler
 				}
 				timer.Reset(interval)
 			}
@@ -293,12 +299,72 @@ func ensureRecentClosedSampler() {
 	})
 }
 
+func onRecentTrackerJoined(_ statistic.Tracker) {
+	select {
+	case recentClosedWake <- struct{}{}:
+	default:
+	}
+}
+
+// onRecentTrackerClosed records the final tracker info exactly when the tracker
+// is removed. Manager.Leave runs before the underlying connection is closed, so
+// the counters and metadata are still valid. This replaces the 20ms close-diff
+// sampler and gives closedAt the actual close-call time rather than the next
+// sample time.
+func onRecentTrackerClosed(info *statistic.TrackerInfo) {
+	if info == nil {
+		return
+	}
+	now := time.Now()
+	id := info.UUID.String()
+
+	recentClosedMu.Lock()
+	state := recentClosedEnriched[id]
+	system := state.system || app.IsSystemMetadata(info.Metadata)
+	delete(recentClosedSeen, id)
+	delete(recentClosedEnriched, id)
+	appendRecentClosedLocked(info, now, system)
+	recentClosedMu.Unlock()
+
+	app.UnmarkSystemMetadata(info.Metadata)
+}
+
+func appendRecentClosedLocked(info *statistic.TrackerInfo, closedAt time.Time, system bool) {
+	if info == nil {
+		return
+	}
+	id := info.UUID.String()
+	if _, exists := recentClosedBuffered[id]; exists {
+		return
+	}
+	recentClosedBuffered[id] = struct{}{}
+	recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{
+		info:     info,
+		closedAt: closedAt,
+		system:   system,
+	})
+}
+
+func dropRecentClosedPrefixLocked(count int) {
+	if count <= 0 {
+		return
+	}
+	if count > len(recentClosedBuffer) {
+		count = len(recentClosedBuffer)
+	}
+	for i := 0; i < count; i++ {
+		if info := recentClosedBuffer[i].info; info != nil {
+			delete(recentClosedBuffered, info.UUID.String())
+		}
+	}
+	recentClosedBuffer = recentClosedBuffer[count:]
+}
+
 // observeRecentClosed samples the live connection set, moves connections that
 // closed since the previous sample into the retention buffer and prunes
-// expired entries. It reports whether the fine sampling cadence is still
-// needed (live connections or pending seen entries); a false return means the
-// manager is idle and the caller may back off the sampling cadence. Retained
-// entries alone do not request the fine cadence — they only need to expire.
+// expired entries. It reports whether the fast UID-enrichment cadence is
+// needed; close detection itself is handled by onRecentTrackerClosed. A false
+// return means the caller may use the coarse fallback cadence.
 func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 	now := time.Now()
 
@@ -332,11 +398,7 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 				if info != nil && app.IsSystemMetadata(info.Metadata) {
 					system = true
 				}
-				recentClosedBuffer = append(recentClosedBuffer, recentClosedEntry{
-					info:     info,
-					closedAt: now,
-					system:   system,
-				})
+				appendRecentClosedLocked(info, now, system)
 				if info != nil {
 					app.UnmarkSystemMetadata(info.Metadata)
 				}
@@ -345,11 +407,14 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 			}
 		}
 		for id, tracker := range alive {
+			if _, alreadyClosed := recentClosedBuffered[id]; alreadyClosed {
+				continue
+			}
 			info, ok := recentClosedSeen[id]
 			if !ok {
 				// TrackerInfo is stable for the tracker lifetime: its counters are
 				// atomics. Keep the first pointer instead of rebuilding the whole
-				// live map through Info() on every 20ms tick.
+				// live map through Info() on repeated samples.
 				info = tracker.Info()
 				recentClosedSeen[id] = info
 			}
@@ -379,11 +444,11 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 		}
 		keep++
 	}
-	recentClosedBuffer = recentClosedBuffer[keep:]
+	dropRecentClosedPrefixLocked(keep)
 
 	// Bound the buffer on a busy device.
 	if len(recentClosedBuffer) > recentClosedMax {
-		recentClosedBuffer = recentClosedBuffer[len(recentClosedBuffer)-recentClosedMax:]
+		dropRecentClosedPrefixLocked(len(recentClosedBuffer) - recentClosedMax)
 	}
 
 	// Collect the connections whose owner the core left unresolved (see [enrichUid]). The scan is
@@ -483,6 +548,28 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 			}
 		}
 	}
+
+	needFast := false
+	if enrichPossible {
+		maxAttempts := enrichUidMaxAttempts
+		if !polling {
+			maxAttempts = enrichUidBackgroundMaxAttempts
+		}
+		for id, info := range recentClosedSeen {
+			if !connectionNeedsUid(info) {
+				continue
+			}
+			state := recentClosedEnriched[id]
+			if state.system || state.attempts >= maxAttempts {
+				continue
+			}
+			if state.attempts == 0 ||
+				now.Sub(time.Unix(0, state.lastAt)) >= enrichUidRetryInterval {
+				needFast = true
+				break
+			}
+		}
+	}
 	recentClosedMu.Unlock()
 
 	// Attribute the connections outside the lock: the lookup is a JNI/binder round trip and must not
@@ -500,8 +587,15 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 		for _, result := range results {
 			switch result.outcome {
 			case uidEnrichmentAttributed:
-				if result.request.entry != nil {
-					redeliver = append(redeliver, result.request.entry)
+				entry := result.request.entry
+				if entry == nil {
+					// The live tracker may have closed while the lookup was in
+					// flight; the event callback has already moved its info into
+					// the retained buffer.
+					entry = findRecentClosedLocked(result.request.info.UUID.String())
+				}
+				if entry != nil {
+					redeliver = append(redeliver, entry)
 				}
 			case uidEnrichmentSystem:
 				id := result.request.info.UUID.String()
@@ -538,7 +632,7 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 		recentClosedMu.Unlock()
 	}
 
-	return !idle
+	return needFast
 }
 
 // noteQueryCadence records the gap between consecutive [QueryConnections] calls
@@ -575,8 +669,9 @@ const (
 	enrichUidBudgetPerTick = 8
 
 	// enrichUidBackgroundBudgetPerTick bounds the one-shot live lookups while the app is not
-	// polling. The sampler runs at 20ms while connections are alive, so this still drains a burst
-	// quickly without spending an unbounded number of binder calls in the background.
+	// polling. The sampler runs at 20ms while a live connection needs UID enrichment (and at
+	// 250ms otherwise), so this still drains a burst quickly without spending an unbounded number
+	// of binder calls in the background.
 	enrichUidBackgroundBudgetPerTick = 4
 
 	// enrichUidBackgroundMaxAttempts is the per-connection cap while the app is not polling.
