@@ -305,12 +305,15 @@ class VpnTunTransport(
                 source = endpointKey(source),
                 target = endpointKey(target),
             )
-        val cached = uidCache[key]?.takeIf { it.expiresAt > now }
-        // A resolved answer (including UID 0, which identifies kernel/system traffic) is reusable.
-        // A forced (enrichment) lookup may reuse it but never a cached miss: the native enrichment
-        // path asks precisely about the sockets that missed while they were alive, and it is
-        // already rate-limited per connection, so the cached -1 would only hide the one lookup
-        // that can still attribute a short-lived connection.
+        val cached =
+            uidCache[key]?.takeIf {
+                it.expiresAt > now && it.uid != 0
+            }
+        // Positive app-owner answers are reusable. UID 0 is deliberately not cached: UDP can
+        // reuse the same four-tuple for a different socket shortly after close, and a cached
+        // system result would then hide the new app owner. A forced (enrichment) lookup may reuse
+        // a cached positive answer but never a cached miss; the native enrichment path asks
+        // precisely about sockets that missed while alive and is already rate-limited per row.
         if (cached != null && (cached.uid >= 0 || !force)) {
             return cached.uid
         }
@@ -342,9 +345,12 @@ class VpnTunTransport(
         }
         // UID 0 is a valid answer: Android reports it for sockets owned by the kernel/root rather
         // than INVALID_UID. It must be preserved so the UI can label the row as System instead of
-        // treating it as an unresolved app lookup.
+        // treating it as an unresolved app lookup. Unlike positive app UIDs, do not retain it in
+        // the tuple cache because a later UDP socket can reuse that tuple under a different UID.
         if (uid >= 0) {
-            cacheUid(key, uid, now + UID_CACHE_RESOLVED_TTL_MS)
+            if (uid > 0) {
+                cacheUid(key, uid, now + UID_CACHE_RESOLVED_TTL_MS)
+            }
             return uid
         }
 
@@ -354,7 +360,9 @@ class VpnTunTransport(
         if (uid < 0) {
             val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
             if (procUid >= 0) {
-                cacheUid(key, procUid, now + UID_CACHE_RESOLVED_TTL_MS)
+                if (procUid > 0) {
+                    cacheUid(key, procUid, now + UID_CACHE_RESOLVED_TTL_MS)
+                }
                 return procUid
             }
         }

@@ -66,6 +66,8 @@ internal object ProcFsUidResolver {
          * from "no match", which is what the caller treats as unresolved.
          */
         var exactUid: Int? = null
+        /** True when exact local-address rows for the same socket disagree on the owner. */
+        var exactAmbiguous = false
         var portUid = -1
         /**
          * True when at least one live row sharing the port is owned by UID 0. A port-only system
@@ -197,10 +199,19 @@ internal object ProcFsUidResolver {
         var portUid = -1
         var portSystem = false
         var ambiguous = false
+        var exactUid: Int? = null
+        var exactAmbiguous = false
         candidates.forEach { (table, exactKey) ->
             val match = scanProcNet(table, exactKey, port)
-            match.exactUid?.let {
-                return it
+            if (match.exactAmbiguous) {
+                exactAmbiguous = true
+            }
+            match.exactUid?.let { uid ->
+                if (exactUid == null) {
+                    exactUid = uid
+                } else if (exactUid != uid) {
+                    exactAmbiguous = true
+                }
             }
             if (match.portAmbiguous) {
                 ambiguous = true
@@ -216,6 +227,11 @@ internal object ProcFsUidResolver {
                 portSystem = true
             }
         }
+        // Exact rows are stronger than a port-only match, but only when every row agrees.
+        // Reused UDP tuples (or duplicate v4/v6 views) can otherwise make the first procfs row
+        // determine the owner, including incorrectly turning an app connection into UID 0.
+        if (exactAmbiguous) return -1
+        exactUid?.let { return it }
         return resolvePortUid(portUid, portSystem, ambiguous)
     }
 
@@ -263,8 +279,12 @@ internal object ProcFsUidResolver {
                     }
                     val uid = fields[table.uidIndex].toIntOrNull() ?: continue
                     if (local.equals(exactKey, ignoreCase = true)) {
-                        match.exactUid = uid
-                        break
+                        if (match.exactUid == null) {
+                            match.exactUid = uid
+                        } else if (match.exactUid != uid) {
+                            match.exactAmbiguous = true
+                        }
+                        continue
                     }
                     if (uid == 0) {
                         // Ownerless rows were filtered by inode above, so a live UID 0 row is a
