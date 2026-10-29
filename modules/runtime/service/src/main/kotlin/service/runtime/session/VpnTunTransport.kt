@@ -46,7 +46,7 @@ class VpnTunTransport(
     private val store: ServiceStore = ServiceStore(),
 ) : RuntimeTransport {
     private val random = SecureRandom()
-    private val uidCache = ConcurrentHashMap<UidQueryKey, UidCacheEntry>()
+    private val uidMissCache = ConcurrentHashMap<UidQueryKey, Long>()
     private val packageNameCache = ConcurrentHashMap<Int, String>()
     private val startupLogStore =
         RuntimeStartupLogStore(vpnService, RuntimeStartupLogStore.Scope.LOCAL_TUN)
@@ -68,7 +68,7 @@ class VpnTunTransport(
      * leaks a fd behind the new session.
      */
     override fun prepare(spec: RuntimeSpec) {
-        uidCache.clear()
+        uidMissCache.clear()
         packageNameCache.clear()
         refreshUidWarmup()
         startupLogStore.append("LOCAL_TUN transport prepare: begin")
@@ -247,7 +247,7 @@ class VpnTunTransport(
      * and gated by the tracker, so concurrent teardowns cannot double-close.
      */
     override fun stop() {
-        uidCache.clear()
+        uidMissCache.clear()
         packageNameCache.clear()
         com.github.nomadboxlab.monadbox.core.Clash.stopLocalProxyHttpListener()
         synchronized(deviceLock) { closePendingDeviceLocked() }
@@ -277,7 +277,7 @@ class VpnTunTransport(
     }
 
     override fun onNetworkChanged() {
-        uidCache.clear()
+        uidMissCache.clear()
         if (Build.VERSION.SDK_INT in 22..28) {
             @Suppress("DEPRECATION") vpnService.setUnderlyingNetworks(null)
         }
@@ -305,17 +305,13 @@ class VpnTunTransport(
                 source = endpointKey(source),
                 target = endpointKey(target),
             )
-        val cached =
-            uidCache[key]?.takeIf {
-                it.expiresAt > now && it.uid != 0
-            }
-        // Positive app-owner answers are reusable. UID 0 is deliberately not cached: UDP can
-        // reuse the same four-tuple for a different socket shortly after close, and a cached
-        // system result would then hide the new app owner. A forced (enrichment) lookup may reuse
-        // a cached positive answer but never a cached miss; the native enrichment path asks
-        // precisely about sockets that missed while alive and is already rate-limited per row.
-        if (cached != null && (cached.uid >= 0 || !force)) {
-            return cached.uid
+        val cachedMissUntil = uidMissCache[key]
+        // Only misses are cached. A socket can close and another app can reuse the same
+        // four-tuple immediately, so even a positive answer must be checked against the current
+        // owner. Enrichment also bypasses cached misses because it retries sockets that were
+        // unresolved while alive.
+        if (cachedMissUntil != null && cachedMissUntil > now && !force) {
+            return -1
         }
 
         val connectivity = vpnService.getSystemService(android.net.ConnectivityManager::class.java)
@@ -345,26 +341,20 @@ class VpnTunTransport(
         }
         // UID 0 is a valid answer: Android reports it for sockets owned by the kernel/root rather
         // than INVALID_UID. It must be preserved so the UI can label the row as System instead of
-        // treating it as an unresolved app lookup. Unlike positive app UIDs, do not retain it in
-        // the tuple cache because a later UDP socket can reuse that tuple under a different UID.
+        // treating it as an unresolved app lookup. It is returned for this lookup but never cached:
+        // a later socket can reuse the tuple under a different UID.
         if (uid >= 0) {
-            if (uid > 0) {
-                cacheUid(key, uid, now + UID_CACHE_RESOLVED_TTL_MS)
-            }
+            uidMissCache.remove(key)
             return uid
         }
 
         // getConnectionOwnerUid may miss sockets that are already closed,
         // in TIME_WAIT, or otherwise untracked by the kernel. Fall back to
         // reading /proc/net/{tcp,udp}[6] with a protocol-specific resolver.
-        if (uid < 0) {
-            val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
-            if (procUid >= 0) {
-                if (procUid > 0) {
-                    cacheUid(key, procUid, now + UID_CACHE_RESOLVED_TTL_MS)
-                }
-                return procUid
-            }
+        val procUid = ProcFsUidResolver.resolveByProtocol(protocol, source)
+        if (procUid >= 0) {
+            uidMissCache.remove(key)
+            return procUid
         }
         // A miss is inherently transient during VPN startup and for a forced enrichment lookup:
         // Android may not have published the socket owner yet, and procfs may lag behind the first
@@ -374,9 +364,9 @@ class VpnTunTransport(
         // re-queries stop hammering the ConnectivityService Binder and procfs with the same
         // 4-tuple.
         if (warmupActive || force) {
-            uidCache.remove(key)
+            uidMissCache.remove(key)
         } else {
-            cacheUid(key, -1, now + UID_CACHE_NEGATIVE_TTL_MS)
+            cacheUidMiss(key, now + UID_CACHE_NEGATIVE_TTL_MS)
         }
         if (warmupActive && !uidWarmupMissLogged) {
             uidWarmupMissLogged = true
@@ -435,26 +425,26 @@ class VpnTunTransport(
         return "${endpoint.address?.hostAddress ?: endpoint.hostString}:${endpoint.port}"
     }
 
-    private fun cacheUid(key: UidQueryKey, uid: Int, expiresAt: Long) {
-        uidCache[key] = UidCacheEntry(uid = uid, expiresAt = expiresAt)
-        if (uidCache.size <= UID_CACHE_MAX_ENTRIES) {
+    private fun cacheUidMiss(key: UidQueryKey, expiresAt: Long) {
+        uidMissCache[key] = expiresAt
+        if (uidMissCache.size <= UID_CACHE_MAX_ENTRIES) {
             return
         }
         // Drop expired entries first; they are always safe to remove.
         val now = android.os.SystemClock.elapsedRealtime()
-        uidCache.entries.forEach { entry ->
-            if (entry.value.expiresAt <= now) {
-                uidCache.remove(entry.key, entry.value)
+        uidMissCache.entries.forEach { entry ->
+            if (entry.value <= now) {
+                uidMissCache.remove(entry.key, entry.value)
             }
         }
         // Still over the cap (e.g. a burst of long-lived entries): evict the
         // entries that expire soonest, keeping the freshly cached one.
-        if (uidCache.size > UID_CACHE_MAX_ENTRIES) {
-            uidCache.entries
+        if (uidMissCache.size > UID_CACHE_MAX_ENTRIES) {
+            uidMissCache.entries
                 .filterNot { it.key == key }
-                .sortedBy { it.value.expiresAt }
-                .take(uidCache.size - UID_CACHE_MAX_ENTRIES)
-                .forEach { uidCache.remove(it.key, it.value) }
+                .sortedBy { it.value }
+                .take(uidMissCache.size - UID_CACHE_MAX_ENTRIES)
+                .forEach { uidMissCache.remove(it.key, it.value) }
         }
     }
 
@@ -472,8 +462,6 @@ class VpnTunTransport(
     }
 
     private data class UidQueryKey(val protocol: Int, val source: String, val target: String)
-
-    private data class UidCacheEntry(val uid: Int, val expiresAt: Long)
 
     private data class TunDevice(
         val fd: Int,
@@ -513,7 +501,6 @@ class VpnTunTransport(
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
-        private const val UID_CACHE_RESOLVED_TTL_MS = 15_000L
         private const val UID_CACHE_NEGATIVE_TTL_MS = 5_000L
         private const val UID_CACHE_MAX_ENTRIES = 2048
         private const val UID_WARMUP_WINDOW_MS = 3_000L

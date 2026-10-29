@@ -25,8 +25,6 @@ import (
 	"syscall"
 	"time"
 
-	"cfa/native/platform"
-
 	"github.com/metacubex/mihomo/constant"
 )
 
@@ -135,10 +133,9 @@ func QuerySocketUid(source, target net.Addr, force bool) int {
 		return -1
 	}
 
-	if PlatformVersion() < 29 {
-		return platform.QuerySocketUidFromProcFs(source, target)
-	}
-
+	// The Kotlin callback selects the platform API when available and otherwise uses the
+	// ambiguity-aware procfs resolver. Keeping old Android versions on that same path avoids the
+	// native fallback's first-row-wins lookup, which can confuse shared local ports.
 	return querySocketUidImpl(protocol, source.String(), target.String(), force)
 }
 

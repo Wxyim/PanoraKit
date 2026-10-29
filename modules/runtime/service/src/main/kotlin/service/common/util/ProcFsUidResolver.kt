@@ -24,29 +24,20 @@ import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetSocketAddress
 import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Fallback UID resolver that reads [procfs] when [ConnectivityManager.getConnectionOwnerUid]
  * returns -1.
  *
- * Resolution is two-tier: port cache → on-demand procfs read. The port cache avoids redundant file
- * reads for short-lived sockets that appear in rapid succession. No background threads — procfs is
- * only read when a JNI callback calls [resolveByProtocol] and the port is not already cached.
+ * Resolution reads procfs on demand. Positive UID answers are not cached because a socket can
+ * close and another app can reuse its local port immediately; a stale cache answer would be more
+ * harmful than repeating the small procfs lookup.
  *
  * The procfs read matches a socket by its full local address first and falls back to the rows that
  * share the source port (see [resolveFromProcFs]) — an address-only match can never find the two
  * shapes Android sockets take most often, an unconnected UDP socket and a dual-stack socket.
  */
 internal object ProcFsUidResolver {
-    /**
-     * Port-level UID cache for short-lived sockets that disappear from procfs before an on-demand
-     * read can find them. Key: source port, Value: Pair(resolutionTimestamp, uid)
-     */
-    private val portUidCache = ConcurrentHashMap<Int, Pair<Long, Int>>()
-
-    private const val PORT_CACHE_TTL_MS = 5_000L
-
     private val WHITESPACE = Regex("\\s+")
 
     /** One procfs table plus the data-row columns we need, resolved once from its header. */
@@ -103,61 +94,7 @@ internal object ProcFsUidResolver {
      * kernel/root (system traffic), and a positive UID for an app.
      */
     fun resolveByProtocol(protocol: Int, source: InetSocketAddress): Int =
-        when (protocol) {
-            IPPROTO_TCP -> resolveTcpUid(source)
-            IPPROTO_UDP -> resolveUdpUid(source)
-            else -> resolveUdpUid(source)
-        }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  UDP resolution
-    // ═══════════════════════════════════════════════════════════════
-
-    fun resolveUdpUid(source: InetSocketAddress): Int {
-        val port = source.port
-
-        // 1. Port cache — successful past resolutions with TTL.
-        portUidCache[port]?.let { (timestamp, uid) ->
-            if (System.currentTimeMillis() - timestamp < PORT_CACHE_TTL_MS) {
-                return uid
-            }
-        }
-
-        // 2. Direct on-demand procfs read.
-        val uid = resolveFromProcFs(source, tcp = false)
-        if (uid > 0) {
-            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
-            if (portUidCache.size > 2000) {
-                prunePortCache()
-            }
-        }
-        return uid
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  TCP resolution
-    // ═══════════════════════════════════════════════════════════════
-
-    fun resolveTcpUid(source: InetSocketAddress): Int {
-        val port = source.port
-
-        // 1. Port cache.
-        portUidCache[port]?.let { (timestamp, uid) ->
-            if (System.currentTimeMillis() - timestamp < PORT_CACHE_TTL_MS) {
-                return uid
-            }
-        }
-
-        // 2. Direct on-demand procfs read.
-        val uid = resolveFromProcFs(source, tcp = true)
-        if (uid > 0) {
-            portUidCache[port] = Pair(System.currentTimeMillis(), uid)
-            if (portUidCache.size > 2000) {
-                prunePortCache()
-            }
-        }
-        return uid
-    }
+        resolveFromProcFs(source, tcp = protocol == IPPROTO_TCP)
 
     /**
      * Resolve [source] against the procfs tables.
@@ -382,14 +319,4 @@ internal object ProcFsUidResolver {
             .getOrNull()
     }
 
-    private fun prunePortCache() {
-        val now = System.currentTimeMillis()
-        val iterator = portUidCache.entries.iterator()
-        while (iterator.hasNext()) {
-            val entry = iterator.next()
-            if (now - entry.value.first > PORT_CACHE_TTL_MS) {
-                iterator.remove()
-            }
-        }
-    }
 }
