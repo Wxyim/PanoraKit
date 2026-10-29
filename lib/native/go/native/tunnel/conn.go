@@ -69,12 +69,13 @@ const closeAllTimeout = 2 * time.Second
 // is exhausted, and a successful late lookup marks them for one redelivery.
 //
 // A normal close is recorded synchronously by the Manager.Leave callback
-// installed below, so the 20ms close-diff sampler is no longer needed. The
-// fallback sampler keeps a 250ms cadence to reconcile unexpected removals and
-// expire retained entries. It switches to 20ms only while a live connection
-// still needs UID enrichment and its next retry is due; a Join callback wakes
-// it immediately for a new connection, preserving the old background UID
-// attribution window without a permanent 50Hz timer.
+// installed below, so the 20ms close-diff sampler is no longer needed. While
+// live trackers exist, the fallback sampler keeps a 250ms cadence to reconcile
+// unexpected removals and switches to 20ms only while a live connection still
+// needs UID enrichment and its next retry is due. With no live trackers, it
+// checks retained UID work only while the app is polling, then parks on the
+// lifecycle/query channel. Expired retained entries are pruned lazily when the
+// next snapshot is queried, so an idle process does not keep a timer running.
 const (
 	recentClosedRetention = 6 * time.Second
 	// [recentClosedRetentionCap] bounds the adaptive window so a stalled app (or
@@ -267,48 +268,102 @@ var (
 
 // ensureRecentClosedSampler installs the manager lifecycle callbacks and starts
 // the fallback sampler. Manager.Leave records a normal close immediately; the
-// sampler only reconciles unexpected removals, expires retained entries, and
-// performs bounded UID enrichment for live connections.
+// sampler only reconciles unexpected removals and performs bounded UID
+// enrichment. Retained entries are pruned during active scans and before a
+// snapshot is returned.
 func ensureRecentClosedSampler() {
 	recentClosedOnce.Do(func() {
 		statistic.DefaultManager.SetTrackerCallbacks(onRecentTrackerJoined, onRecentTrackerClosed)
 		go func() {
-			interval := recentUidEnrichmentSampler
 			// Reuse both the timer and the live map across ticks. The fallback
-			// cadence is 250ms; the timer only accelerates to 20ms while UID
-			// enrichment is still due for a live connection.
+			// cadence is 250ms while live trackers exist. With no live trackers
+			// and no pending UID work, the loop blocks until a join, leave, or
+			// connection query arrives.
 			alive := make(map[string]statistic.Tracker, 16)
-			timer := time.NewTimer(interval)
+			timer := time.NewTimer(0)
 			defer timer.Stop()
+			timerC := timer.C
 			for {
-				select {
-				case <-timer.C:
-				case <-recentClosedWake:
-					// A new tracker joined; run a prompt scan instead of waiting for
-					// the fallback timer.
-					if !timer.Stop() {
-						select {
-						case <-timer.C:
-						default:
-						}
+				if timerC == nil {
+					<-recentClosedWake
+				} else {
+					select {
+					case <-timerC:
+						timerC = nil
+					case <-recentClosedWake:
+						stopAndDrainTimer(timer)
+						timerC = nil
 					}
 				}
-				if observeRecentClosed(alive) {
-					interval = recentUidEnrichmentSampler
-				} else {
-					interval = recentClosedFallbackSampler
+
+				needFast := observeRecentClosed(alive)
+				interval, keepSampling := recentClosedSamplerInterval(alive, needFast, time.Now())
+				if !keepSampling {
+					timerC = nil
+					continue
 				}
+				stopAndDrainTimer(timer)
 				timer.Reset(interval)
+				timerC = timer.C
 			}
 		}()
 	})
 }
 
 func onRecentTrackerJoined(_ statistic.Tracker) {
+	wakeRecentClosedSampler()
+}
+
+func wakeRecentClosedSampler() {
 	select {
 	case recentClosedWake <- struct{}{}:
 	default:
 	}
+}
+
+func stopAndDrainTimer(timer *time.Timer) {
+	if timer.Stop() {
+		return
+	}
+	select {
+	case <-timer.C:
+	default:
+	}
+}
+
+func recentClosedSamplerInterval(
+	alive map[string]statistic.Tracker,
+	needFast bool,
+	now time.Time,
+) (time.Duration, bool) {
+	if needFast {
+		return recentUidEnrichmentSampler, true
+	}
+	if len(alive) > 0 {
+		return recentClosedFallbackSampler, true
+	}
+	if hasPendingRecentClosedUidEnrichment(now) {
+		return recentClosedFallbackSampler, true
+	}
+	return 0, false
+}
+
+func hasPendingRecentClosedUidEnrichment(now time.Time) bool {
+	if !uidEnrichmentPossible() || !uidEnrichmentActive(now) {
+		return false
+	}
+
+	recentClosedMu.Lock()
+	defer recentClosedMu.Unlock()
+	for i := range recentClosedBuffer {
+		entry := &recentClosedBuffer[i]
+		if !entry.system &&
+			entry.enrichAttempts < enrichUidMaxAttempts &&
+			connectionNeedsUid(entry.info) {
+			return true
+		}
+	}
+	return false
 }
 
 // onRecentTrackerClosed records the final tracker info exactly when the tracker
@@ -332,6 +387,7 @@ func onRecentTrackerClosed(info *statistic.TrackerInfo) {
 	recentClosedMu.Unlock()
 
 	app.UnmarkSystemMetadata(info.Metadata)
+	wakeRecentClosedSampler()
 }
 
 func appendRecentClosedLocked(info *statistic.TrackerInfo, closedAt time.Time, system bool) {
@@ -454,23 +510,7 @@ func observeRecentClosed(alive map[string]statistic.Tracker) bool {
 		}
 	}
 
-	// Expire retained entries. Entries no poll has seen yet are kept for the
-	// longer window so a backgrounded app still gets them on its next poll.
-	// Delivered entries normally expire on the short window, but an unresolved
-	// entry that still has enrichment attempts left (or an entry waiting to be
-	// redelivered) keeps the long replay window. The loop stops at the first
-	// retained entry; later entries are newer, so they cannot be expired yet.
-	deliveredCutoff := now.Add(-recentClosedRetentionWindow())
-	undeliveredCutoff := now.Add(-recentClosedUndeliveredRetention)
-	keep := 0
-	for keep < len(recentClosedBuffer) {
-		entry := recentClosedBuffer[keep]
-		if retainRecentClosed(&entry, enrichPossible, deliveredCutoff, undeliveredCutoff) {
-			break
-		}
-		keep++
-	}
-	dropRecentClosedPrefixLocked(keep)
+	pruneRecentClosedLocked(now, enrichPossible)
 
 	// Bound the buffer on a busy device.
 	if len(recentClosedBuffer) > recentClosedMax {
@@ -671,6 +711,24 @@ func noteQueryCadence() {
 	}
 }
 
+// pruneRecentClosedLocked removes entries that have outlived their delivery or
+// replay window. It is called by the sampler when it is already active and by
+// QueryConnections before returning a snapshot, allowing the sampler to sleep
+// indefinitely when no live connection or UID retry needs attention.
+func pruneRecentClosedLocked(now time.Time, enrichPossible bool) {
+	deliveredCutoff := now.Add(-recentClosedRetentionWindow())
+	undeliveredCutoff := now.Add(-recentClosedUndeliveredRetention)
+	keep := 0
+	for keep < len(recentClosedBuffer) {
+		entry := recentClosedBuffer[keep]
+		if retainRecentClosed(&entry, enrichPossible, deliveredCutoff, undeliveredCutoff) {
+			break
+		}
+		keep++
+	}
+	dropRecentClosedPrefixLocked(keep)
+}
+
 // UID enrichment for connections the core never attributed.
 //
 // mihomo resolves a connection's owner UID (and with it the package name) either when
@@ -849,13 +907,20 @@ func selectRecentClosedIndices(buffer []recentClosedEntry) []int {
 	return selectedIndices
 }
 
+// QueryConnections prunes expired history before returning it, and wakes the
+// sampler after the snapshot so any retained UID enrichment remains bounded
+// and prompt without a periodic idle scan.
 func QueryConnections() *connectionSnapshot {
 	ensureRecentClosedSampler()
 	noteQueryCadence()
 	snap := statistic.DefaultManager.Snapshot()
 
 	recentClosedMu.Lock()
-	defer recentClosedMu.Unlock()
+	defer func() {
+		recentClosedMu.Unlock()
+		wakeRecentClosedSampler()
+	}()
+	pruneRecentClosedLocked(time.Now(), uidEnrichmentPossible())
 
 	conns := make([]*connectionInfo, 0, len(snap.Connections)+len(recentClosedBuffer))
 	for _, c := range snap.Connections {

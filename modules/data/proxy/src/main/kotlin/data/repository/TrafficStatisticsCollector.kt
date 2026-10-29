@@ -45,6 +45,8 @@ class TrafficStatisticsCollector(
          * keeps counting. Every inactive sample therefore actively refreshes the total: without
          * that pull, all traffic accumulated during the night is only observed when the app returns
          * and gets attributed to the wake-up slot instead of the slots where it was actually used.
+         * This coroutine delay does not acquire a wake lock; Android may defer it while the device
+         * is idle. The 30-second cadence is retained to keep background time attribution bounded.
          * The sleep is still cut short when the app becomes active again (see [awaitNextSample]),
          * so the final background delta is recorded immediately at the wake boundary.
          */
