@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | 每字节协议栈 | 用户态收发+转发，随吞吐线性 | 无 |
 | 每连接 `protect`/`markSocket` | 1 次 JNI + 1 次 Binder + 2 syscall，`semaphore(4)` 串行 | 无（安全上限，保持） |
-| 每连接 UID 解析 | JNI+Binder+procfs 回退 | 正缓存 15s / 负缓存 5s → miss 大幅下降 |
+| 每连接 UID 解析 | JNI+Binder+procfs 回退 | 只缓存未确认结果 5s；不复用正 UID 结果，避免旧归属跨 socket 复用 |
 | 加密（AEAD/TLS） | 低端 SoC 上可观，随流量 | 无 |
 | MTU | 9000→1500：同吞吐下**包数更多**，每包 syscall/中断略增 | 已对齐 1500（用户指定） |
 
@@ -56,17 +56,21 @@
 
 ### 3.4 UID 解析（Kotlin 侧）
 
-- 正缓存 15s / 预热后负缓存 5s / 容量 2048：新四元组首次才走 Binder，重复四元组命中缓存。预热窗在
-  `transport.start()`（数据面开始收包）重新锚定 3s，窗内 miss 先重试（3×5ms、上限约 +15ms）再决定是否负缓存，
-  以免冷启动首包洪峰被负缓存 5s（电量上只影响启动 3s，稳态不变）。核心侧补齐发出的查询带 `force` 标志：
-  只复用正缓存、不读也不写负缓存，代价受 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms），稳态唤醒不变。
-- 电量：减少 `ConnectivityService` Binder 往返 → 减少唤醒系统服务与进程切换。
+- 只缓存未确认（UID `-1`）的结果 5s，容量 2048；正 UID（包括系统 UID 0）不缓存，避免 UDP 关闭后四元组被
+  复用时沿用旧归属。相同四元组已有未过期 miss 时仍会暂时返回未确认；`force` 补查可绕过该 miss。预热窗在
+  `transport.start()`（数据面开始收包）重新锚定 3s，
+  窗内 miss 先重试（3×5ms、上限约 +15ms）再决定是否负缓存。核心侧补齐查询带 `force` 标志，会绕过负缓存；
+  成功归属时清掉该四元组的负缓存，失败时也不写负缓存。补查频率仍受 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms）。
+- 电量：正归属每次重新查询会增加少量 Binder/procfs 工作；未确认结果仍短暂缓存，减少重复失败查询。
 - 核心侧补齐（新增）：`find-process-mode != off` 时，活跃连接在 socket 存活期间先做有界补齐。App 轮询
-  列表时每 tick 最多 8 条、每连接最多 3 次；后台时每 tick 最多 4 条、每连接最多 2 次，保证后台关闭后
-  回放的最近请求也有 UID/系统标记。保留条目的重试与已投递 Unknown 行的修复仍只在轮询期间进行，后台不会
-  无限重试。正/负缓存与 Kotlin 侧共用，稳态下每个新连接通常只多一次 Binder 查询。
-- procfs 回退：先精确匹配完整 `local_address`，未命中才按端口匹配（仅同端口 UID 一致时采用），并覆盖
-  v4-mapped v6 表，减少 miss 后的重复读表。
+  列表时每 tick 最多 8 条、每连接最多 3 次；后台时每 tick 最多 4 条、每连接最多 2 次，让已解析的连接在后台
+  关闭后回放时仍带 UID/系统标记。无法确认归属的记录仍显示 Unknown App。保留条目的重试与已投递 Unknown 行的
+  修复仍只在轮询期间进行，后台不会无限重试。
+- procfs 回退：精确匹配会检查所有同地址/端口记录，UID 冲突时返回未确认；没有精确记录时再按端口匹配，
+  仅在候选 UID 一致时采用，并覆盖 v4-mapped v6 表、排除 inode 为 0 的失效记录。旧的 native 第一条匹配即返回
+  路径已移除；各 Android 版本统一经过 Kotlin resolver。procfs 正 UID 也不缓存。
+- 来源应用名按包名/UID/进程等身份信息解析；只有 socket owner 查询明确返回 UID 0 才设置系统标记，UID 缺失或
+  查询未确认不会被当成系统流量。
 
 ## 4. 客户端轮询矩阵
 
@@ -105,8 +109,8 @@
 | UID 补齐短时 20ms | `tunnel/conn.go` | 只在 UID 重试到期时加速，Join 回调立即唤醒 |
 | 采样器：Range + timer/map 复用 | `tunnel/conn.go` | 无 `/proc` 读取；timer/map 不再每 tick 分配 |
 | 日志级别过滤 | `native/log.go` | 每 DNS 劫持不再写 logcat |
-| UID 正/负缓存 | `VpnTunTransport.kt` | Binder 频率大降 |
-| UID 补齐（轮询 8 条/tick、后台 4 条/tick、每连接有界） | `tunnel/conn.go`、`native/app/tun.go`、`ProcFsUidResolver.kt` | 残留 Unknown App 消除；后台只做有界一次性补查，避免回放时已无 socket |
+| UID miss 负缓存 | `VpnTunTransport.kt` | 减少短时间内重复失败查询；正 UID 不缓存以避免 socket 复用造成错归属 |
+| UID 补齐（轮询 8 条/tick、后台 4 条/tick、每连接有界） | `tunnel/conn.go`、`native/app/tun.go`、`ProcFsUidResolver.kt` | 减少可归属连接显示 Unknown App；无法确认的记录保持 Unknown，后台补查有界 |
 | GOGC 200 + 内存上限 | `native/main.go` | GC 停顿尖峰减少 |
 | 启动三路并行 | `SessionRuntime.kt` | 冷启动高功耗段缩短 |
 | 快速地址解析 | `Net.kt` | 减少每 miss 的分配/GC |

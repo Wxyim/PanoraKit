@@ -23,9 +23,10 @@
   预热窗只是第一层兜底：`find-process-mode=strict` 下未被 `process`/`uid` 规则命中的连接，以及
   HTTP/SOCKS 入站、packetaddr 出口这类不写 `RawAddr` 的连接，核心根本不会发起解析。第二轮补齐了这两条：
   `MetadataSocketAddrs` 在地址缺失时重建 socket 地址，`tunnel/conn.go` 在 socket 存活期间由采样器补齐
-  `metadata.Uid`：App 轮询时 8 条/tick、每连接 ≤3 次，后台时 4 条/tick、每连接 ≤2 次，保证后台关闭后
-  回放的最近请求仍有归属；保留条目的重试仍只在轮询期间进行。procfs 回退同时支持端口匹配（含无正数 UID
-  竞争时的 UID 0 系统归属）与 v4-mapped 双表，补齐查询带 `force` 标志、只复用正缓存而不命中 App 侧负缓存。核心自身发起的
+  `metadata.Uid`：App 轮询时 8 条/tick、每连接 ≤3 次，后台时 4 条/tick、每连接 ≤2 次，让已成功解析的连接在
+  后台关闭后回放时仍保留归属；无法确认的记录仍显示 Unknown App。保留条目的重试仍只在轮询期间进行。
+  procfs 回退支持冲突检查、端口共识（无正 UID 竞争时才接受 UID 0）与 v4-mapped 双表；正 UID 不缓存，
+  `force` 补查绕过负缓存并在成功后清除旧 miss。核心自身发起的
   `Inner` 连接（proxydialer / inner listener / DNS dialer，无 App 可归属）不再显示「Unknown App」，
   而是标注为 `MonadBox`；同样见第 3.2 节。
 

@@ -10,7 +10,7 @@
   出站 socket 的 `protect`/`markSocket`（JNI + Binder）与按需的 UID/进程解析（JNI + Binder + procfs 回退）。
 - 启动路径已把「VPN 建立（Android IPC）」「配置编译/加载（Go JNI）」「App→UID 表发布」三路并行；剩余串行段是
   GLOBAL selection 引导（`patchSelector` 改核心，须在编译后）与 `transport.start`（`sing_tun.New` + 栈初始化）。
-- 原风险最高三项均已处理：UID/进程解析按 `find-process-mode=strict` 按需门控并加正/负缓存；
+- 原风险最高三项均已处理：UID/进程解析按 `find-process-mode=strict` 按需门控并缓存短期 miss（正 UID 不缓存）；
   `protect`/`markSocket` 经 `semaphore(4)` 串行化属安全上限，保持不动；隐藏日志热点已加级别过滤（P0）。
 
 ## 2. 链路全景
@@ -85,13 +85,13 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 2. **UID/进程解析**：`process.DefaultPackageNameResolver`（`delegate/init.go`）在 CMFA 构建里是
    `metadata.Uid` 唯一来源。mihomo 默认 `find-process-mode=strict`：只有规则里存在 `process`/`uid` 类规则时才触发。
    触发时链路为：`app.QuerySocketUid` → `remoteTun.querySocketUid`（`C.CString`×2 + semaphore）→ JNI →
-   Kotlin `ConnectivityManager.getConnectionOwnerUid`（Binder）→ 失败回退 `ProcFsUidResolver`（读 `/proc/net/tcp[6]`）。
-   已实现 Kotlin 侧正/负缓存：正缓存 **15s**、预热窗结束后的负缓存 **5s**、容量 **2048**、按 TTL 淘汰，
-   键为 `(protocol, srcIp:port, dstIp:port)`。短连接场景（每请求新 src 端口）只在**新四元组首次出现**时走一次
-   JNI+Binder，重复四元组命中缓存；预热窗内 miss 先重试（3×5ms）再决定是否落负缓存，避免误伤启动期尚未
-   发布的 socket。补齐路径的查询带 `force` 标志（`querySocketUid(..., force=true)`，Go/C++/Kotlin 各层透传）：
-   它只复用正缓存，永不命中负缓存、也不写负缓存，因为「连接关闭后补查」问的恰恰是活跃期 miss 过的四元组；
-   频率已由 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms），不会退化成反复打 Binder。
+   Kotlin `ConnectivityManager.getConnectionOwnerUid`（API 29+，Binder）→ 失败或旧系统时回退
+   `ProcFsUidResolver`（读 `/proc/net/tcp[6]`、`udp[6]`）。UID 缓存只保留负结果 **5s**（容量 **2048**，键为
+   `(protocol, srcIp:port, dstIp:port)`）；正 UID（包括 UID 0）不复用缓存结果，避免 UDP 复用四元组后沿用旧归属。
+   同四元组已有未过期负缓存时会暂时跳过 UID 查询；若 metadata 也没有可用包名/进程名，最终会显示 `Unknown App`。
+   预热窗内 miss 先重试（3×5ms）再决定是否落负缓存，避免误伤启动期尚未发布的 socket。连接关闭后的补齐查询带
+   `force` 标志（`querySocketUid(..., force=true)`，Go/C++/Kotlin 各层透传）：绕过负缓存；成功归属时清掉旧负缓存，
+   失败时也不写负缓存。频率由 Go 侧预算约束（每连接 ≤3 次、间隔 ≥500ms）。
    预热窗**在 `transport.start()`（数据面真正开始收包）重新锚定 3s**：`prepare()` 到 `start()`
    之间还夹着配置编译/核心加载、App→UID 表发布与 GLOBAL selection 引导，冷启动慢时原锚点会把窗口提前耗光，
    导致启动首包洪峰的 UID miss 既不重试又被负缓存 5s，对应行永远只能显示「Unknown App」。
@@ -108,21 +108,24 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
      仍只在 App 轮询期间进行，避免后台无限重试；
    - 核心自身发起的连接（mihomo `type: "Inner"`：proxydialer / inner listener / DNS dialer）没有可归属的
      App，`AppIdentityResolver` 不再把它们落到「Unknown App」，而是标注为 `MonadBox`（`appKey = "core"`）；
-   - `ProcFsUidResolver` 先按完整 `local_address` 精确匹配，未命中再退化为端口匹配（同端口所有行 UID
-     一致才采用，UID 0 只有在该端口没有正数 UID 竞争时才视为系统；否则返回 -1），并对 IPv4 源同时查 v4
-     表与 v6 表的 v4-mapped 项，覆盖未连接 UDP socket 与 Java dual-stack socket；稳态 miss 日志按 30s
-     限频，便于真机定位且不刷屏。
+   - `ProcFsUidResolver` 对完整 `local_address` 的所有精确匹配记录做 UID 共识，冲突时返回 -1；没有精确记录时再
+     按端口匹配，只有候选 UID 一致才采用。端口回退时，UID 0 仅在该端口无正 UID 竞争时可作为系统归属；
+     inode 为 0 的失效行会跳过。
+     IPv4 源同时查 v4 表与 v6 表的 v4-mapped 项，覆盖未连接 UDP socket 与 Java dual-stack socket。procfs 不缓存
+     正 UID；旧 Android 也统一走 Kotlin resolver，移除了 native 的 first-row-wins 路径。稳态 miss 日志按 30s 限频。
+   - 来源应用显示基于包名、UID、进程等身份信息；无法确认归属且没有其他身份线索时显示 `Unknown App`。
+     只有明确的 UID 0 结果设置系统标记，未确认 UID 不等于系统流量。
 3. **连接元数据/规则匹配**：规则数越多、正则越多成本越高；`IP-CIDR`/`GEOIP` 匹配依赖 IP 集与 MMDB，
    命中缓存后为 O(1)~O(log n)。fake-ip 模式下域名规则不触发二次解析，但 IP 类规则需要 `ResolveIP`。
 
 建议：
 
-- 正/负缓存已落地（见上）；resolver 本身由 mihomo `find-process-mode=strict` 按需门控（仅 `process`/`uid` 规则或
+- 负缓存已落地（见上）；resolver 本身由 mihomo `find-process-mode=strict` 按需门控（仅 `process`/`uid` 规则或
   `always` 时、每连接至多一次），无需在 `delegate/init.go` 额外加门控。
 - Kotlin 端字符串→地址解析已改为手写快速解析（替换 `URL()`+`InetAddress.getByName`，见 `Net.kt`），
   去掉每次 miss 的 URL 对象分配并规避 Android 对中括号 IPv6 字面量的平台差异。
 - `querySocketUid` 的字符串跨 JNI 改整型编码（`C.CString`/`NewStringUTF`/解析三步合并）收益约 10~20% miss 路径，
-  但需跨 Go/C++/Kotlin 改 JNI ABI、无法在本仓库离线验证，且正缓存已大幅降低 miss 频率——暂缓，列为 P3。
+  但需跨 Go/C++/Kotlin 改 JNI ABI、无法在本仓库离线验证，且负缓存已减少重复 miss 查询——暂缓，列为 P3。
 
 ### 3.3 DNS 链路
 
@@ -231,8 +234,8 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 
 | 优先级 | 项 | 位置 | 影响 | 改动量 |
 | --- | --- | --- | --- | --- |
-| P0 ✅ | UID 缓存：正缓存 15s、预热后负缓存 5s、按 TTL 淘汰、容量 2048；预热窗在 `transport.start()` 重新锚定，miss 重试 3×5ms | `VpnTunTransport.queryUid`/`cacheUid`/`refreshUidWarmup` | 降低短连接与 miss 场景下的 JNI+Binder+procfs 频率；消除冷启动首包洪峰的 UID miss（Unknown App） | 已实现 |
-| P0 ✅ | 残留 Unknown App：RawAddr 缺失时 `MetadataSocketAddrs` 重建地址；采样器在 socket 存活期间补齐 `metadata.Uid`（轮询 8 条/tick、每连接 ≤3 次；后台 4 条/tick、每连接 ≤2 次）；procfs 端口回退 + UID 0 共识 + v4-mapped 双表 + `/proc/self/net` 回退 + 稳态 miss 日志 30s 限频 | `native/app/tun.go`、`native/delegate/init.go`、`native/tunnel/conn.go`、`ProcFsUidResolver.kt`、`VpnTunTransport.kt` | `strict` 模式下未被 process/uid 规则命中的连接也能显示 App；后台关闭后回放的最近请求仍有归属 | 已实现 |
+| P0 ✅ | UID miss 负缓存 5s、容量 2048；正 UID 不缓存；预热窗在 `transport.start()` 重新锚定，miss 重试 3×5ms；`force` 绕过负缓存 | `VpnTunTransport.queryUid`/`cacheUidMiss`/`refreshUidWarmup` | 减少重复失败查询和 socket 四元组复用后的错归属；冲突时保留 Unknown App | 已实现 |
+| P0 ✅ | UID 补齐：RawAddr 缺失时重建地址，socket 存活期间有界补查；procfs 精确记录冲突与端口记录冲突均不猜测，UID 0 只在无正 UID 竞争时作为系统归属 | `native/app/tun.go`、`native/delegate/init.go`、`native/tunnel/conn.go`、`ProcFsUidResolver.kt`、`VpnTunTransport.kt` | 提高可确认连接的应用归属率；无法确认的仍显示 Unknown App，避免误标系统 | 已实现 |
 | P0 ✅ | 日志：`init()` 常驻订阅者加级别过滤（对齐 `subscribeLogcat`） | `lib/native/go/native/log.go` | 消除每 DNS 劫持的 logcat 写入；常驻订阅者保证 logCh 不阻塞 | 已实现 |
 | P1 ✅ | `querySocketUid` 字符串→地址解析改手写快速解析（去 `URL()`+`getByName`，规避中括号 IPv6 平台差异） | `core/util/Net.kt` | 减少每次 miss 的 URL 分配与解析成本 | 已实现 |
 | P1 ✅ | 日志：常驻 drainer 无条件排空 `logCh`；JNI 侧改为按需订阅并可退订（最后一个 channel 关闭时 `unsubscribeLogcat()`），无订阅者时不转发 info/debug 到 logcat | `lib/native/go/native/log.go`、`core/Clash.kt`、`cpp/main.cpp` | 消除每 DNS 劫持 JNI 开销、订阅泄漏导致的重复 fan-out 与后台 CPU | 已实现 |
