@@ -90,7 +90,7 @@
 | native 采样器资源复用 | 复用单个 `time.Timer` 和 live tracker map；只对新连接调用 `Info()` | 兜底扫描与 UID 补齐窗口不再每 tick 分配 timer/map |
 | kernel patch 管线 | `config/kernel-patches/` 由 `sync-kernel.{sh,ps1}` 克隆后自动应用 | 上游重克隆不会冲掉 `Manager` 生命周期回调 |
 | 客户端后台空转 timer 移除 | `ProxyFacade` 流量轮询与 `DefaultProxyModeController` 模式同步改为 Flow 挂起，后台/熄屏不设 60s/10s timer | 去掉运行中后台约 420 次/小时的无意义唤醒，恢复前台立即查询 |
-| 最近请求派生数据缓存 | `DefaultTrafficStatisticsExplorer` 缓存连接起始时间解析和行静态字段（应用身份/链/拒绝标记，60 秒 TTL）；统计页行使用稳定 key，地址解析只在元数据变化时重算 | 统计页每秒刷新时减少 ISO-8601 解析、PackageManager 查询和 Compose 行重组 |
+| 最近请求派生数据缓存 | 连接起始时间按字符串缓存；链/拒绝标记按 chains 缓存；源应用统一走 `ConnectionAppIdentityLookup` 的 5 秒共享缓存（列表和详情共用）；统计页行使用稳定 key，地址解析只在元数据变化时重算 | 统计页每秒刷新时减少 ISO-8601 解析和 PackageManager 查询，同时消除列表 60 秒旧来源与详情实时解析不一致 |
 | 存储清理周期 | `StorageCleanupScheduler` 直接按用户设置的 1~48 小时周期调度 | 开启自动清理时不再每 15 分钟唤醒进程 |
 
 最近请求的 1s/5s 采样、6~8 秒已投递保留窗口、30 分钟未投递保留、500 条上限、单次 200 条上限、`closedAt` 和 UID 补齐语义均未改动；差异仅是正常关闭由采样改为事件捕获。

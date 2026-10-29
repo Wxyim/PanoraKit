@@ -28,11 +28,11 @@ import com.github.nomadboxlab.monadbox.data.repository.ConnectionActivityReposit
 import com.github.nomadboxlab.monadbox.data.store.TrafficStatisticsStore
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimerSpecs
 import com.github.nomadboxlab.monadbox.domain.util.PollingTimers
+import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.feature.meta.api.RecentRequestRecord
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficChartPoint
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsExplorer
 import com.github.nomadboxlab.monadbox.feature.meta.api.TrafficStatisticsRange
-import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
 import dev.oom_wg.purejoy.mlang.MLang
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
@@ -44,7 +44,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
@@ -71,21 +70,10 @@ private data class RankedConnection(
 private data class RecentRequestStatic(
     val topLevelGroupName: String?,
     val bottomNodeName: String?,
-    val sourceAppName: String,
-    val sourcePackageName: String?,
     val isRejected: Boolean,
 )
 
-private data class RecentRequestStaticKey(
-    val metadata: JsonObject,
-    val chains: List<String>,
-    val system: Boolean,
-)
-
-private data class CachedRecentRequestStatic(
-    val cachedAtMillis: Long,
-    val value: RecentRequestStatic,
-)
+private data class RecentRequestStaticKey(val chains: List<String>)
 
 private val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
     get() = this as? JsonPrimitive
@@ -134,12 +122,12 @@ internal fun RecentRequestRecord.matchesQuery(query: String): Boolean {
 class DefaultTrafficStatisticsExplorer(
     private val trafficStatisticsStore: TrafficStatisticsStore,
     connectionActivityRepository: ConnectionActivityRepository,
-    private val appIdentityResolver: AppIdentityResolver,
+    private val connectionAppIdentityLookup: ConnectionAppIdentityLookup,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) : TrafficStatisticsExplorer {
     private val connectionStartMillisCache = ConcurrentHashMap<String, Long>()
     private val recentRequestStaticCache =
-        ConcurrentHashMap<RecentRequestStaticKey, CachedRecentRequestStatic>()
+        ConcurrentHashMap<RecentRequestStaticKey, RecentRequestStatic>()
 
     private val _selectedTimeRange = MutableStateFlow(TrafficStatisticsRange.Today)
     override val selectedTimeRange: StateFlow<TrafficStatisticsRange> =
@@ -322,22 +310,6 @@ class DefaultTrafficStatisticsExplorer(
         return cal.timeInMillis
     }
 
-    /**
-     * Extract the package name from mihomo metadata (with UID fallback) and resolve its display
-     * label.
-     */
-    private fun resolveAppIdentity(connection: ConnectionInfo): Pair<String, String?> {
-        // A resolved kernel/root owner has no package and no process. Label it explicitly instead
-        // of letting the absent app identity fall through to "Unknown App". Hotspot clients are
-        // also forwarded by the kernel, so keep their more specific remote-device label.
-        if (connection.system && !appIdentityResolver.hasRemoteSource(connection.metadata)) {
-            return MLang.TrafficStatistics.RecentRequests.System to null
-        }
-        val pkg = appIdentityResolver.resolvePackageFromMetadata(connection.metadata)
-        if (pkg != null) return appIdentityResolver.resolveAppLabel(pkg) to pkg
-        return appIdentityResolver.resolveFallbackDisplayName(connection.metadata) to null
-    }
-
     private fun parseConnectionStartMillis(start: String): Long {
         if (start.isBlank()) return Long.MIN_VALUE
         return runCatching { OffsetDateTime.parse(start).toInstant().toEpochMilli() }
@@ -424,50 +396,41 @@ class DefaultTrafficStatisticsExplorer(
 
     private fun buildRecord(connection: ConnectionInfo, isActive: Boolean): RecentRequestRecord {
         val static = recentRequestStatic(connection)
+        val sourceApp = connectionAppIdentityLookup.resolve(connection)
         return RecentRequestRecord(
             connection = connection,
             isActive = isActive,
             topLevelGroupName = static.topLevelGroupName,
             bottomNodeName = static.bottomNodeName,
-            sourceAppName = static.sourceAppName,
-            sourcePackageName = static.sourcePackageName,
+            sourceAppName = sourceApp.appName,
+            sourcePackageName = sourceApp.packageName,
             isRejected = static.isRejected,
         )
     }
 
     /**
-     * The identity and routing fields of a row only depend on its metadata/chains/system flag, not
-     * on the byte counters that change on every live snapshot. Cache them briefly so a one-second
-     * refresh does not re-run PackageManager lookups and chain normalization for every row.
+     * The routing fields of a row only depend on its chains, not on the byte counters that change
+     * on every live snapshot. Source-app resolution is deliberately not cached here: both this list
+     * and the detail sheet resolve through the same [ConnectionAppIdentityLookup], which owns the
+     * short shared cache.
      */
     private fun recentRequestStatic(connection: ConnectionInfo): RecentRequestStatic {
-        val key =
-            RecentRequestStaticKey(
-                metadata = connection.metadata,
-                chains = connection.chains,
-                system = connection.system,
-            )
-        val now = System.currentTimeMillis()
-        recentRequestStaticCache[key]
-            ?.takeIf { now - it.cachedAtMillis < RECENT_REQUEST_STATIC_TTL_MS }
-            ?.let {
-                return it.value
-            }
+        val key = RecentRequestStaticKey(connection.chains)
+        recentRequestStaticCache[key]?.let {
+            return it
+        }
 
-        val (appName, packageName) = resolveAppIdentity(connection)
         val chains = normalizeChains(connection)
         val static =
             RecentRequestStatic(
                 topLevelGroupName = resolveTopLevelGroupName(chains),
                 bottomNodeName = resolveBottomNodeName(chains),
-                sourceAppName = appName,
-                sourcePackageName = packageName,
                 isRejected = isRejectedConnection(chains),
             )
         if (recentRequestStaticCache.size >= MAX_CACHED_RECENT_REQUEST_STATIC) {
             recentRequestStaticCache.clear()
         }
-        recentRequestStaticCache[key] = CachedRecentRequestStatic(now, static)
+        recentRequestStaticCache[key] = static
         return static
     }
 
@@ -506,6 +469,5 @@ class DefaultTrafficStatisticsExplorer(
 
         private const val MAX_CACHED_CONNECTION_STARTS = 4096
         private const val MAX_CACHED_RECENT_REQUEST_STATIC = 1024
-        private const val RECENT_REQUEST_STATIC_TTL_MS = 60_000L
     }
 }

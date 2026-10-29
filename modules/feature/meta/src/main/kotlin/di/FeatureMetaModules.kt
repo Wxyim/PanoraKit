@@ -31,15 +31,15 @@ import com.github.nomadboxlab.monadbox.runtime.client.AppIdentityResolver
 import org.koin.dsl.module
 
 val featureMetaContractModule = module {
+    single<ConnectionAppIdentityLookup> {
+        RuntimeConnectionAppIdentityLookup(get<AppIdentityResolver>())
+    }
     single<TrafficStatisticsExplorer> {
         DefaultTrafficStatisticsExplorer(
             get<TrafficStatisticsStore>(),
             get<ConnectionActivityRepository>(),
-            get<AppIdentityResolver>(),
+            get<ConnectionAppIdentityLookup>(),
         )
-    }
-    single<ConnectionAppIdentityLookup> {
-        RuntimeConnectionAppIdentityLookup(get<AppIdentityResolver>())
     }
 }
 
