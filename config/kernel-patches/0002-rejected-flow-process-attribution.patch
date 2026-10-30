@@ -1,0 +1,76 @@
+diff --git a/component/process/process.go b/component/process/process.go
+index 464f5a7..ef6dcee 100644
+--- a/component/process/process.go
++++ b/component/process/process.go
+@@ -30,9 +30,20 @@ type PackageNameResolver func(metadata *C.Metadata) (string, error)
+ // never change type traits because it's used in CMFA
+ var DefaultPackageNameResolver PackageNameResolver
+ 
++// DefaultPackageNameResolverWithForce resolves a package name and can request a fresh owner lookup.
++var DefaultPackageNameResolverWithForce func(metadata *C.Metadata, force bool) (string, error)
++
+ func FindPackageName(metadata *C.Metadata) (string, error) {
+ 	if resolver := DefaultPackageNameResolver; resolver != nil {
+ 		return resolver(metadata)
+ 	}
+ 	return "", ErrPlatformNotSupport
+ }
++
++// FindPackageNameWithForce requests a fresh owner lookup when the platform supports it.
++func FindPackageNameWithForce(metadata *C.Metadata) (string, error) {
++	if resolver := DefaultPackageNameResolverWithForce; resolver != nil {
++		return resolver(metadata, true)
++	}
++	return "", ErrPlatformNotSupport
++}
+diff --git a/tunnel/tunnel.go b/tunnel/tunnel.go
+index 86dbc14..dcfabd8 100644
+--- a/tunnel/tunnel.go
++++ b/tunnel/tunnel.go
+@@ -390,7 +390,8 @@ func resolveMetadata(metadata *C.Metadata) (proxy C.Proxy, rule C.Rule, err erro
+ 		},
+ 	}
+ 
+-	switch FindProcessMode() {
++	findProcessMode := FindProcessMode()
++	switch findProcessMode {
+ 	case process.FindProcessAlways:
+ 		helper.FindProcess()
+ 		helper.FindProcess = nil
+@@ -407,9 +408,36 @@ func resolveMetadata(metadata *C.Metadata) (proxy C.Proxy, rule C.Rule, err erro
+ 	default:
+ 		proxy, rule, err = match(metadata, helper)
+ 	}
++	if err == nil &&
++		proxy != nil &&
++		metadata.Type != C.INNER &&
++		findProcessMode != process.FindProcessOff &&
++		isRejectProxy(metadata, proxy) {
++		// Strict mode normally defers owner lookup until a rule needs process data. Rejected flows
++		// can close before the native history sampler resolves their owner, so check them while live.
++		if findProcessMode == process.FindProcessStrict && helper.FindProcess != nil {
++			helper.FindProcess()
++		}
++		// Retry only unresolved rejected flows, bypassing Android's negative cache so a delayed
++		// socket-owner publication gets another chance.
++		if metadata.Uid == 0 && (metadata.Process == "" || metadata.Process == ".") && metadata.ProcessPath == "" {
++			if pkg, err := process.FindPackageNameWithForce(metadata); err == nil && pkg != "" {
++				metadata.Process = pkg
++			}
++		}
++	}
+ 	return
+ }
+ 
++func isRejectProxy(metadata *C.Metadata, proxy C.Proxy) bool {
++	for adapter := proxy; adapter != nil; adapter = adapter.Unwrap(metadata, false) {
++		if adapter.Type() == C.Reject || adapter.Type() == C.RejectDrop {
++			return true
++		}
++	}
++	return false
++}
++
+ // processUDP starts a loop to handle udp packet
+ func processUDP(queue chan C.PacketAdapter) {
+ 	for conn := range queue {

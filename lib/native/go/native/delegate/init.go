@@ -50,16 +50,19 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 	app.ApplyVersionName(versionName)
 	app.ApplyPlatformVersion(platformVersion)
 
-	process.DefaultPackageNameResolver = func(metadata *constant.Metadata) (string, error) {
+	packageNameResolver := func(metadata *constant.Metadata, force bool) (string, error) {
 		src, dst := app.MetadataSocketAddrs(metadata)
 
 		if src == nil || dst == nil {
 			return "", process.ErrInvalidNetwork
 		}
+		if force && app.IsSystemMetadata(metadata) {
+			return "", process.ErrNotFound
+		}
 
-		// The core's own lookup runs while the connection is live, so it keeps taking the
-		// negative cache; only the enrichment path in tunnel/conn.go forces a fresh query.
-		uid := app.QuerySocketUid(src, dst, false)
+		// Regular core lookup respects the negative cache. Rejected-flow attribution and the native
+		// enrichment path can force a fresh query because both retry a specific unresolved socket.
+		uid := app.QuerySocketUid(src, dst, force)
 
 		// Always stash the UID so the Kotlin-side AppIdentityResolver can fall
 		// back to PackageManager.getPackagesForUid() when FindPackageName yields
@@ -85,6 +88,10 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 		}
 
 		return pkg, nil
+	}
+	process.DefaultPackageNameResolverWithForce = packageNameResolver
+	process.DefaultPackageNameResolver = func(metadata *constant.Metadata) (string, error) {
+		return packageNameResolver(metadata, false)
 	}
 
 	dialer.DefaultSocketHook = func(network, address string, conn syscall.RawConn) error {
