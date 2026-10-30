@@ -1,5 +1,7 @@
 # MonadBox TUN 全链路性能分析（VPN 开启 → 请求经 TUN）
 
+> 最后同步：**2026-10-30**。本文为源码链路分析；CPU、吞吐、首包时延和电量仍需在目标设备上测量。
+
 > 基于当前源码的静态分析。链路涉及 `modules/runtime/service/.../VpnTunTransport.kt`、
 > `lib/native/go/native/tun.go`、`lib/native/cpp/main.cpp`、mihomo（`listener/sing_tun`）与
 > sing-tun。真机实测（CPU 占用、首字节时延、吞吐、电量）仍需在目标设备上验证。
@@ -113,6 +115,10 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
      inode 为 0 的失效行会跳过。
      IPv4 源同时查 v4 表与 v6 表的 v4-mapped 项，覆盖未连接 UDP socket 与 Java dual-stack socket。procfs 不缓存
      正 UID；旧 Android 也统一走 Kotlin resolver，移除了 native 的 first-row-wins 路径。稳态 miss 日志按 30s 限频。
+   - `0002-rejected-flow-process-attribution.patch` 在匹配到 `REJECT` / `REJECT-DROP` 后，对
+     `find-process-mode != off` 且仍缺 UID / process 的流量发起强制 owner lookup；`always` 模式下这是首次识别失败后的
+     补查，`strict` 模式下则补足那些未命中 process/uid 规则的拒绝流。强制查询绕过 5s UID miss 缓存，但 Android 和
+     procfs 仍可能都无法确认短命 UDP socket，最终仍会显示 `Unknown App`。
    - 来源应用显示基于包名、UID、进程等身份信息；无法确认归属且没有其他身份线索时显示 `Unknown App`。
      只有明确的 UID 0 结果设置系统标记，未确认 UID 不等于系统流量。
 3. **连接元数据/规则匹配**：规则数越多、正则越多成本越高；`IP-CIDR`/`GEOIP` 匹配依赖 IP 集与 MMDB，
@@ -185,6 +191,7 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 
 - `queryConnections`（连接列表）：客户端 `ConnectionActivityRepository` 按 **1s** 轮询（`ClashManager`/`SessionRuntime`
   侧 100ms TTL 只做去重）。每次全量 JSON 序列化 + JNI；连接多时是明显 CPU 尖峰。
+- 流量查询：前台 `ProxyFacade` 每 2 秒查询时直接调用 `queryTrafficSnapshot()`，不再重复连接 backend（该查询内部会连接）。成功样本会发布到同进程缓存；服务通知和 RootTun 通知若在 500ms 内读取就复用，否则保留原 JNI / RootTun IPC 查询。更新频率不变，通知即时速率最多使用旧 500ms 的样本。
 - 最近关闭采样器：正常连接关闭现在由 mihomo `Manager.Leave()` 回调同步记录到 retained buffer，
   `closedAt` 使用关闭调用时刻，不再依赖下一次 20ms 采样。`observeRecentClosed` 只作为异常移除的
   **250ms 兜底**，并在新连接 Join 时被唤醒；只有仍有 live 连接需要 UID 补齐且下一次重试到期时，
@@ -252,6 +259,7 @@ tunnel.Tunnel 入站处理（tunnel/tunnel.go）
 | P3 ✅ | 代理页/节点网格的行分块与行 key 改为 `remember` 记忆化 | `NodeGrid.kt`、`NodeGroups.kt`、`NodeContent.kt`、`Proxy.kt` | 负载刷新时不再每次重组重算 O(行数) 分配与 key 字符串 | 已实现 |
 | P2 ✅ | 本地模式运行载荷戳：对载荷序列化的每个字段做零分配内容哈希，未变时客户端复用已解码副本（含 30s 兜底 TTL） | `native/tunnel.go`、`cpp/main.cpp`、`Bridge.kt`、`Clash.kt` | 本地模式下代理页 2 秒的刷新由 O(全部节点) 的 marshal + JNI 字符串 + 反序列化降到一次 64 位调用 | 已实现（native 侧需 CI 验证） |
 | P3 ✅ | 最近请求管线：先按起始时间排序（每条连接只解析一次）→ 无搜索词时先截断再建行；源应用解析加正向缓存；链解析合并 | `DefaultTrafficStatisticsExplorer.kt`、`AppIdentityResolver.kt` | 统计页每秒的 ISO-8601 解析 O(n log n)→O(n)、建行 O(n)→≤100、`PackageManager` 查询按包缓存 | 已实现 |
+| P3 ✅ | 流量通知复用前台新鲜快照（≤500ms），过期时回退原查询；流量轮询去掉冗余 backend 连接 | `ForegroundTrafficSnapshotCache.kt`、`ProxyFacade.kt`、`ServiceNotificationManager.kt`、`RootTunService.kt` | 同步到达时省一次通知侧 JNI / RootTun IPC 查询和一次重复连接调用；通知样本最多滞后 500ms | 已实现 |
 | P2 | 连接列表分页/增量 | `SessionRuntime.queryConnections` | UI 常开时 CPU | 中 |
 | P2 ✅ | `GOGC` 调优：`debug.SetGCPercent(200)` 配合硬内存上限 | `native/main.go` | 高吞吐下 GC 抖动 | 已实现 |
 | P3 | `querySocketUid` 字符串跨 JNI 改整型编码（Go/C++/Kotlin ABI 变更，本仓库离线无法验证，收益受缓存稀释） | `tun.go`+`main.cpp`+`TunInterface` | 再省 ~10~20% miss 路径 | 暂缓 |

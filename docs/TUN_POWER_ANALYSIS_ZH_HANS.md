@@ -4,6 +4,8 @@
 > 亮度与系统后台策略影响。TUN 模式的总体电量 = **数据面转发**（随流量变化） + **客户端轮询/通知**（受 UI
 > 与亮屏门控）+ **native 常驻成本**（本次优化重点）+ **启动瞬态**。
 
+> 最后同步：**2026-10-30**。本报告包含前台流量快照向服务通知复用的源码改动；没有新增真机电量实测。
+
 ## 1. 电量模型
 
 ```
@@ -67,6 +69,8 @@ kernel 侧回调通过 `config/kernel-patches/`
   列表时每 tick 最多 8 条、每连接最多 3 次；后台时每 tick 最多 4 条、每连接最多 2 次，让已解析的连接在后台
   关闭后回放时仍带 UID/系统标记。无法确认归属的记录仍显示 Unknown App。保留条目的重试与已投递 Unknown 行的
   修复仍只在轮询期间进行，后台不会无限重试。
+- 拒绝流补查：`REJECT` / `REJECT-DROP` 在 `find-process-mode != off` 时会于路由过程中对未解析 owner 强制重查，绕过
+  5s UID miss 缓存；这能覆盖短连接在关闭前的查询窗口，但系统 API 与 procfs 均无法确认时仍保留 Unknown App。
 - procfs 回退：精确匹配会检查所有同地址/端口记录，UID 冲突时返回未确认；没有精确记录时再按端口匹配，
   仅在候选 UID 一致时采用，并覆盖 v4-mapped v6 表、排除 inode 为 0 的失效记录。旧的 native 第一条匹配即返回
   路径已移除；各 Android 版本统一经过 Kotlin resolver。procfs 正 UID 也不缓存。
@@ -84,8 +88,8 @@ kernel 侧回调通过 `config/kernel-patches/`
 | 运行状态快照（RootTun 跨进程） | 每次刷新都被服务端戳挡在「载荷未变」之外：不传输、不反序列化 | 有订阅者 + RootTun 模式 | 低 | 已加戳复用 |
 | 代理组 | 1s 合并窗 / 500ms TTL 缓存 | 有订阅者 | 低 | 已加记忆化 |
 | 代理组（延迟测试期） | 请求 500ms / 真正重建 1s | 代理页可见 + 测试进行中 | 低 | 已降频 |
-| 本地 Tun 流量通知 | 2s | 亮屏 + 开启流量通知；否则自停；文本未变则跳过重建 | 中 | 已降耗 |
-| RootTun 通知 | 4s / 熄屏 30s（亮屏广播提前唤醒） | RootTun 运行；文本未变则跳过重建 | 中 | 已降耗 |
+| 本地 Tun 流量通知 | 2s | 亮屏 + 开启流量通知；否则自停；文本未变则跳过重建；可复用 500ms 内的前台流量快照，过期时回退原查询 | 中 | 已降耗 |
+| RootTun 通知 | 4s / 熄屏 30s（亮屏广播提前唤醒） | RootTun 运行；文本未变则跳过重建；可复用 500ms 内的前台流量快照，过期时回退 RootTun 查询 | 中 | 已降耗 |
 | 流量统计落盘 | 5s 采样 / 30s 批量写 MMKV | 运行中；非前台或熄屏降为 30s 采样并主动刷新核心累计总量，回前台立即补采一次，停止前落最终结算点 | 低 | 已降耗 |
 | Root 日志记录 | 2s | Root 模式 + 日志开启 | 中 | 未动 |
 | 核心日志流 | 无消费者时不打开；空闲 20s 自停 | 有人取日志（日志页 / 录制） | 中 | 已按需 |
@@ -95,6 +99,10 @@ kernel 侧回调通过 `config/kernel-patches/`
 所有高频轮询均已按亮屏/前台/订阅门控：显示模式同步与连接列表跟随「前台 + 亮屏」起停，
 不可见时不再查询核心；连接列表进一步在「无订阅者」时降到 5s 保温档（唯一消费方是流量统计页，
 保温只为下次打开时历史不为空）。
+
+前台流量样本还可供通知复用：仅生产者仍有效、样本年龄不超过 500ms 时跳过通知侧查询，否则仍查询原数据源。
+通知更新周期没有变化，即时速率可能比独立查询最多旧 500ms。前台轮询也移除了多余的 backend 连接调用，
+因为 `queryTrafficSnapshot()` 内部已完成连接。
 
 ## 5. 本次优化电量影响汇总
 
@@ -123,6 +131,8 @@ kernel 侧回调通过 `config/kernel-patches/`
 | 载荷内容复用 + 体积告警 | `SessionRuntime.kt`、`UiConfiguration.kt`、`RootTunRuntimeRecovery.kt` | TTL 到期但内容未变时不再重编码/以新实例下发；≥512 KiB 打印告警，`TransactionTooLargeException` 单独报因 |
 | 日志页增量解析 | `LogRecordService.kt`、`LogViewModel.kt` | 实时缓冲新增写入选代次，未变化时不再重复解析 2000 行 |
 | 通知文本去重 | `ServiceNotificationManager.kt`、`RootTunService.kt` | 空闲时不再重建 builder/PendingIntent/notify |
+| 通知流量快照复用 | `ForegroundTrafficSnapshotCache.kt`、`ServiceNotificationManager.kt`、`RootTunService.kt` | 前台样本与通知查询相近时跳过一次重复流量查询；过期时仍用原路径，通知速率样本最多滞后 500ms |
+| 前台流量查询去重 | `ProxyFacade.kt` | 每个流量 tick 移除一次重复 backend 连接调用 |
 | 磁贴更新去重 + IO 读取 | `ProxyTileService.kt` | 面板可见期间只在状态变化时更新 |
 | 配置/选择反序列化缓存 | `ProfileStore.kt`、`ProfileManager.kt` | 每次快照刷新少 2~3 次全量 JSON 解析 |
 | 首页流量重组下沉 + 旋转层化 | `HomeViewModel.kt`、`HomePager.kt`、`TrafficDisplay.kt`、`NodeCard.kt` | 2s 流量更新不再重组整页；空闲卡片不再跑旋转动画 |

@@ -136,9 +136,15 @@ adb wait-for-device
 adb shell getprop sys.boot_completed
 ```
 
-- (4) Build and install Debug APK to the running emulator:
+- (4) Build and install the Debug APK to the running emulator (POSIX shell):
 
 ```sh
+./gradlew :app:installDebug
+```
+
+Windows PowerShell:
+
+```powershell
 .\gradlew.bat :app:installDebug
 ```
 

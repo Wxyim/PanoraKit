@@ -30,6 +30,8 @@
   `Inner` 连接（proxydialer / inner listener / DNS dialer，无 App 可归属）不再显示「Unknown App」，
   而是标注为 `MonadBox`；同样见第 3.2 节。
 
+  拒绝流另有一层即时补查：匹配 `REJECT` / `REJECT-DROP` 后，如进程识别未关闭且 owner 字段仍为空，kernel patch 会在 socket 仍可能存活时强制查 UID/包名，并绕过负缓存。该路径提高归属率，但不保证短命 UDP socket 一定能被系统识别。
+
 ## 2. fd 归属规则
 
 一个 TUN fd 从诞生到销毁只有三个状态，由 `VpnTunTransport` 的 `deviceLock` + 进程级 `leakedTunFd`

@@ -140,9 +140,15 @@ adb wait-for-device
 adb shell getprop sys.boot_completed
 ```
 
-- (4) 构建并安装 Debug APK 到当前运行的模拟器：
+- (4) 在 POSIX shell 中构建并安装 Debug APK：
 
 ```sh
+./gradlew :app:installDebug
+```
+
+Windows PowerShell：
+
+```powershell
 .\gradlew.bat :app:installDebug
 ```
 

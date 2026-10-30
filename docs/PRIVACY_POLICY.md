@@ -17,6 +17,8 @@ MonadBox requests only permissions required for local functionality:
 
 - `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`:
   Required for proxy runtime networking, profile download, and network state checks.
+- `RECEIVE_BOOT_COMPLETED`:
+  Lets the app check its configured automatic-restart behavior after boot or an app update.
 - `POST_NOTIFICATIONS`:
   Used to display runtime and service status notifications.
 - `CAMERA`:
@@ -25,8 +27,10 @@ MonadBox requests only permissions required for local functionality:
   Used on supported devices for access-control and RootTun app filtering. Package lists are processed locally.
 - `QUERY_ALL_PACKAGES`:
   Used to map VPN connections back to their source apps and to support app-based routing features. Package visibility is processed locally and not uploaded.
+- `ACCESS_LOCAL_NETWORK`:
+  On Android 17 / API 37 and later, used for local network interface discovery. If unavailable, local IP discovery degrades gracefully.
 - Foreground service permissions:
-  Required by Android for running VPN and proxy background services.
+  `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`, and `FOREGROUND_SERVICE_SPECIAL_USE` support the app's VPN, proxy, and data-sync services as required by Android.
 
 MonadBox does not upload your installed app list, profile files, or runtime logs to an app-owned cloud backend.
 

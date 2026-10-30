@@ -2,14 +2,6 @@
 
 [简体中文](README_ZH_HANS.md) | [English](../README.md)
 
-<p align="center">
-   <img src="img/readme_poster.png" alt="MonadBox 海报" width="720" />
-</p>
-
-<p align="center">
-   <sub>平板布局预览</sub>
-</p>
-
 MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCubeX/mihomo) 客户端，基于 [YumeBox](https://github.com/YumeLira/YumeBox) 演进，并为手机与平板提供自适应界面。
 
 ## 概览
@@ -29,6 +21,9 @@ MonadBox 是一个面向 Android 的定制化 [mihomo](https://github.com/MetaCu
 - TUN 会话与 fd 生命周期：[TUN_LIFECYCLE_ZH_HANS.md](TUN_LIFECYCLE_ZH_HANS.md)
 - TUN 全链路性能分析：[TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
 - TUN 电量分析：[TUN_POWER_ANALYSIS_ZH_HANS.md](TUN_POWER_ANALYSIS_ZH_HANS.md)
+- App 整体耗电分析：[POWER_ANALYSIS_ZH_HANS.md](POWER_ANALYSIS_ZH_HANS.md)
+- 弹窗与半窗渲染性能记录：[UI_MODAL_RENDERING_PERF_ZH_HANS.md](UI_MODAL_RENDERING_PERF_ZH_HANS.md)
+- 首次弹窗与 Baseline Profile 记录：[FIRST_DIALOG_JANK_AND_PROFILE_COVERAGE_ZH_HANS.md](FIRST_DIALOG_JANK_AND_PROFILE_COVERAGE_ZH_HANS.md)
 
 ## 快速开始
 
@@ -93,4 +88,4 @@ MonadBox 由 MonadBoxLab 作为独立 fork 维护。感谢 [YumeBox](https://git
 ## 备注
 
 - 构建与工具链权威配置以 [gradle.properties](../gradle.properties) 为准。
-- UI 能力注册表见 [config/ui-capability-registry.txt](../config/ui-capability-registry.txt)。
+- 当前导航与 UI 能力注册表见 [config/ui-capability-registry.txt](../config/ui-capability-registry.txt)。

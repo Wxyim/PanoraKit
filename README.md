@@ -2,14 +2,6 @@
 
 [English](README.md) | [简体中文](docs/README_ZH_HANS.md)
 
-<p align="center">
-   <img src="docs/img/readme_poster.png" alt="MonadBox poster" width="720" />
-</p>
-
-<p align="center">
-   <sub>Tablet Layout Preview</sub>
-</p>
-
 MonadBox is a customized [mihomo](https://github.com/MetaCubeX/mihomo) client for Android, refined from [YumeBox](https://github.com/YumeLira/YumeBox) with adaptive layouts for phones and tablets.
 
 ## Overview
@@ -26,9 +18,12 @@ MonadBox is a customized [mihomo](https://github.com/MetaCubeX/mihomo) client fo
 - Licensing policy: [docs/LICENSING.md](docs/LICENSING.md)
 - Product specification: [docs/SPEC.md](docs/SPEC.md)
 - Privacy notice (EN): [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md)
+- App power analysis (ZH): [docs/POWER_ANALYSIS_ZH_HANS.md](docs/POWER_ANALYSIS_ZH_HANS.md)
 - TUN session & fd lifecycle (ZH): [docs/TUN_LIFECYCLE_ZH_HANS.md](docs/TUN_LIFECYCLE_ZH_HANS.md)
 - TUN end-to-end performance analysis (ZH): [docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md](docs/TUN_PERFORMANCE_ANALYSIS_ZH_HANS.md)
 - TUN power analysis (ZH): [docs/TUN_POWER_ANALYSIS_ZH_HANS.md](docs/TUN_POWER_ANALYSIS_ZH_HANS.md)
+- UI rendering performance notes (ZH): [docs/UI_MODAL_RENDERING_PERF_ZH_HANS.md](docs/UI_MODAL_RENDERING_PERF_ZH_HANS.md)
+- First-dialog and baseline-profile report (ZH): [docs/FIRST_DIALOG_JANK_AND_PROFILE_COVERAGE_ZH_HANS.md](docs/FIRST_DIALOG_JANK_AND_PROFILE_COVERAGE_ZH_HANS.md)
 
 ## Quick Start
 
@@ -94,4 +89,4 @@ MonadBox is maintained by MonadBoxLab as an independent fork. Thanks to [YumeBox
 ## Notes
 
 - Authoritative build/toolchain values live in [gradle.properties](gradle.properties).
-- UI capability registration is tracked in [config/ui-capability-registry.txt](config/ui-capability-registry.txt).
+- Current navigation and UI capability registration are tracked in [config/ui-capability-registry.txt](config/ui-capability-registry.txt).

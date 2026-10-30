@@ -13,6 +13,8 @@ MonadBox 是一个开源 Android 客户端。本应用按原样提供，不会�
 
 - INTERNET、ACCESS_NETWORK_STATE、ACCESS_WIFI_STATE：
 	用于代理运行时网络、配置文件下载和网络检查。
+- RECEIVE_BOOT_COMPLETED：
+	在设备启动或应用更新后检查用户配置的自动重启行为。
 - POST_NOTIFICATIONS：
 	用于运行时和服务状态通知。
 - CAMERA：
@@ -21,8 +23,10 @@ MonadBox 是一个开源 Android 客户端。本应用按原样提供，不会�
 	在受支持设备上用于访问控制和 RootTun 应用过滤。应用列表仅在本地处理。
 - QUERY_ALL_PACKAGES：
 	用于将 VPN 连接归因到源应用，并支撑按应用路由能力。包可见性信息仅在本地处理，不会上传。
+- ACCESS_LOCAL_NETWORK：
+	Android 17 / API 37 及以上用于发现本地网络接口；权限不可用时，本地 IP 发现会降级运行。
 - 前台服务权限：
-	Android VPN 和代理后台服务所需。
+	FOREGROUND_SERVICE、FOREGROUND_SERVICE_DATA_SYNC 和 FOREGROUND_SERVICE_SPECIAL_USE，用于 Android 要求的 VPN、代理及数据同步服务。
 
 MonadBox 不会将您的已安装应用列表、配置文件或运行时日志上传到应用自有的云后端。
 

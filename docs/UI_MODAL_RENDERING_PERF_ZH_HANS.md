@@ -1,6 +1,8 @@
 # MonadBox 弹窗 / 半窗动画掉帧分析与优化
 
-> 基于当前源码与依赖产物（compose-ui 1.11.4、haze 1.7.2、liquid 1.1.1、Miuix 0.8.8）的静态分析。
+> 历史渲染性能诊断记录。文中的页面入口和控件名称对应当时检查的界面；App UI 后续已有改动，本文用于保留绘制机制与验证结论，不作为当前导航说明。当前 UI 入口以源码和 `config/ui-capability-registry.txt` 为准。
+
+> 基于本文记录时检查的源码与依赖产物（compose-ui 1.11.4、haze 1.7.2、liquid 1.1.1、Miuix 0.8.8）的静态分析。
 > 真机帧率（janky frames、frame overrun）仍需在目标设备上验证，本文只给结论与验证方法。
 
 ## 1. 结论速览
