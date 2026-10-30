@@ -65,6 +65,7 @@ import com.github.nomadboxlab.monadbox.service.root.RootTunState
 import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
 import com.github.nomadboxlab.monadbox.service.runtime.entity.Profile
+import com.github.nomadboxlab.monadbox.service.runtime.session.ForegroundTrafficSnapshotCache
 import com.github.nomadboxlab.monadbox.service.runtime.session.RuntimeServiceLauncher
 import com.github.nomadboxlab.monadbox.service.runtime.session.VpnTunTransport
 import com.github.nomadboxlab.monadbox.service.runtime.state.RuntimeOwner
@@ -597,6 +598,7 @@ class ProxyFacade(
             val snapshot = runtimeSnapshot.value
             val active = snapshot.running && appForegroundObserver.active.value
             if (!active) {
+                ForegroundTrafficSnapshotCache.markForegroundPollerInactive()
                 // Do not keep a 60s timer armed while the UI is backgrounded or the
                 // screen is off. ConnectionActivityRepository uses the same pattern:
                 // suspend until both the runtime and the foreground/screen condition
@@ -606,13 +608,14 @@ class ProxyFacade(
             }
 
             try {
-                connectCurrentBackend()
-                queryTrafficSnapshot()
+                ForegroundTrafficSnapshotCache.publish(queryTrafficSnapshot())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: ControllerError) {
+                ForegroundTrafficSnapshotCache.markForegroundPollerInactive()
                 Timber.d(e, "Traffic polling skipped: ${e.message}")
             } catch (e: Exception) {
+                ForegroundTrafficSnapshotCache.markForegroundPollerInactive()
                 Timber.d(e, "Traffic polling skipped")
             }
 
@@ -1364,6 +1367,7 @@ class ProxyFacade(
 
     private fun stopTrafficPolling() {
         trafficPoller.stop()
+        ForegroundTrafficSnapshotCache.clear()
     }
 
     /**

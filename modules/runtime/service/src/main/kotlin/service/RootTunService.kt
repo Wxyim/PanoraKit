@@ -52,6 +52,7 @@ import com.github.nomadboxlab.monadbox.service.root.RootTunServiceBridge
 import com.github.nomadboxlab.monadbox.service.root.RootTunState
 import com.github.nomadboxlab.monadbox.service.root.RootTunStateStore
 import com.github.nomadboxlab.monadbox.service.root.RootTunStatus
+import com.github.nomadboxlab.monadbox.service.runtime.session.ForegroundTrafficSnapshotCache
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStarted
 import com.github.nomadboxlab.monadbox.service.runtime.util.sendClashStopped
 import dev.oom_wg.purejoy.mlang.MLang
@@ -264,9 +265,12 @@ class RootTunService : BaseService() {
     }
 
     private suspend fun buildTrafficContent(): String {
+        // Reuse a nearly simultaneous foreground sample; keep the root query as the fallback so
+        // background notifications and stale samples retain their existing behavior.
         val traffic =
-            runCatching { RootTunServiceBridge.queryTrafficSnapshot(appContextOrSelf) }
-                .getOrDefault(TrafficSnapshot(0L, 0L))
+            ForegroundTrafficSnapshotCache.recentSnapshot()
+                ?: runCatching { RootTunServiceBridge.queryTrafficSnapshot(appContextOrSelf) }
+                    .getOrDefault(TrafficSnapshot(0L, 0L))
         val now = traffic.now
         val total = traffic.total
 

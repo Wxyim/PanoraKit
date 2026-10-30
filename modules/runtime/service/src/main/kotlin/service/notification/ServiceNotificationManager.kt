@@ -46,6 +46,7 @@ import com.github.nomadboxlab.monadbox.runtime.service.R
 import com.github.nomadboxlab.monadbox.service.common.constants.Components
 import com.github.nomadboxlab.monadbox.service.runtime.config.ServiceStore
 import com.github.nomadboxlab.monadbox.service.runtime.records.ImportedDao
+import com.github.nomadboxlab.monadbox.service.runtime.session.ForegroundTrafficSnapshotCache
 import com.tencent.mmkv.MMKV
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlin.time.Duration.Companion.milliseconds
@@ -232,8 +233,13 @@ class ServiceNotificationManager(private val service: Service, private val confi
             return RunningNotificationText(profileName, MLang.Service.Notification.Running)
         }
 
+        // Reuse the client's sample only when it is nearly simultaneous. A stale or absent sample
+        // falls back to the service query, preserving notification freshness while avoiding a
+        // duplicate local JNI or RootTun IPC query when both two-second pollers happen to overlap.
         val traffic =
-            runCatching { Clash.queryTrafficSnapshot() }.getOrDefault(TrafficSnapshot(0L, 0L))
+            ForegroundTrafficSnapshotCache.recentSnapshot()
+                ?: runCatching { Clash.queryTrafficSnapshot() }
+                    .getOrDefault(TrafficSnapshot(0L, 0L))
         val now = traffic.now
         val total = traffic.total
 
