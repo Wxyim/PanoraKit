@@ -21,11 +21,21 @@
 
 package com.github.nomadboxlab.monadbox.common.util
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.core.net.toUri
+import dev.oom_wg.purejoy.mlang.MLang
+import timber.log.Timber
 
 fun openUrl(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-    context.startActivity(intent)
+    try {
+        context.startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+        // Keep external links from crashing the app on devices without a browser/handler.
+        Timber.w("No activity available to open external link")
+        Toast.makeText(context, MLang.Util.Error.OpenLinkUnavailable, Toast.LENGTH_LONG).show()
+    }
 }

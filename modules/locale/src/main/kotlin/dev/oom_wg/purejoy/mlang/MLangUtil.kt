@@ -40,6 +40,9 @@ object MLangUtil {
         val `UnknownError`: String
             get() = LocaleBootstrap.getString(R.string.util_error_unknown_error)
 
+        val `OpenLinkUnavailable`: String
+            get() = LocaleBootstrap.getString(R.string.util_error_open_link_unavailable)
+
         @Composable
         fun `UnknownError`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.util_error_unknown_error, *args)

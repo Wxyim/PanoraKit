@@ -1042,4 +1042,5 @@
     <string name="traffic_statistics_compare_same_as_yesterday">Same as yesterday</string>
     <string name="traffic_statistics_compare_week_stats">Last 7 days stats</string>
     <string name="util_error_unknown_error">Unknown error</string>
+    <string name="util_error_open_link_unavailable">No app is available to open this link</string>
 </resources>
