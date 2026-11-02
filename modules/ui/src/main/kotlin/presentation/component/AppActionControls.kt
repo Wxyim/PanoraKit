@@ -357,8 +357,21 @@ fun AppCommandButton(
     enabled: Boolean = true,
     tone: SemanticTone = SemanticTone.Neutral,
     highEmphasis: Boolean = false,
+    containerColor: Color = Color.Unspecified,
+    contentColor: Color = Color.Unspecified,
+    iconContainerColor: Color = Color.Unspecified,
+    borderColor: Color = Color.Unspecified,
 ) {
     val actionStyle = SemanticActionDefaults.style(tone = tone, highEmphasis = highEmphasis)
+    val resolvedContainer =
+        if (containerColor == Color.Unspecified) actionStyle.containerColor else containerColor
+    val resolvedContent =
+        if (contentColor == Color.Unspecified) actionStyle.contentColor else contentColor
+    val resolvedIconContainer =
+        if (iconContainerColor == Color.Unspecified) actionStyle.iconContainerColor
+        else iconContainerColor
+    val resolvedBorder =
+        if (borderColor == Color.Unspecified) actionStyle.borderColor else borderColor
     val shape = RoundedCornerShape(22.dp)
     val semanticDescription = buildSemanticDescription(title, tone.accessibilityDescription())
 
@@ -373,8 +386,8 @@ fun AppCommandButton(
                     if (!enabled) disabled()
                 }
                 .clip(shape)
-                .background(actionStyle.containerColor, shape)
-                .border(AppTheme.strokes.default, actionStyle.borderColor, shape)
+                .background(resolvedContainer, shape)
+                .border(AppTheme.strokes.default, resolvedBorder, shape)
                 .appClickable(enabled = enabled, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
@@ -382,14 +395,14 @@ fun AppCommandButton(
     ) {
         ActionTileIcon(
             imageVector = imageVector,
-            contentColor = actionStyle.contentColor,
-            containerColor = actionStyle.iconContainerColor,
+            contentColor = resolvedContent,
+            containerColor = resolvedIconContainer,
             size = 32.dp,
             iconSize = 18.dp,
         )
         Text(
             text = title,
-            color = actionStyle.contentColor,
+            color = resolvedContent,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

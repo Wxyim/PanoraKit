@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -318,6 +319,16 @@ private fun EditorCommandBar(
     onSave: () -> Unit,
 ) {
     val spacing = LocalSpacing.current
+    val canSave = isModified && !isSaving
+    val saveContainerColor =
+        if (canSave) MiuixTheme.colorScheme.primary else Color.Unspecified
+    val saveContentColor =
+        if (canSave) MiuixTheme.colorScheme.onPrimary else Color.Unspecified
+    val saveIconContainerColor =
+        if (canSave) MiuixTheme.colorScheme.onPrimary.copy(alpha = 0.14f)
+        else Color.Unspecified
+    val saveBorderColor =
+        if (canSave) MiuixTheme.colorScheme.primary else Color.Unspecified
     val surfaceShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.12f)
 
@@ -379,10 +390,14 @@ private fun EditorCommandBar(
                             Modifier.weight(1f)
                                 .heightIn(min = 56.dp)
                                 .testTag(TestTags.Editor.SaveButton),
-                        enabled = isModified && !isSaving,
+                        enabled = canSave,
                         onClick = onSave,
                         tone = SemanticTone.Brand,
                         highEmphasis = true,
+                        containerColor = saveContainerColor,
+                        contentColor = saveContentColor,
+                        iconContainerColor = saveIconContainerColor,
+                        borderColor = saveBorderColor,
                     )
                 }
             }
@@ -429,10 +444,14 @@ private fun EditorCommandBar(
                             Modifier.weight(1f)
                                 .heightIn(min = 56.dp)
                                 .testTag(TestTags.Editor.SaveButton),
-                        enabled = isModified && !isSaving,
+                        enabled = canSave,
                         onClick = onSave,
                         tone = SemanticTone.Brand,
                         highEmphasis = true,
+                        containerColor = saveContainerColor,
+                        contentColor = saveContentColor,
+                        iconContainerColor = saveIconContainerColor,
+                        borderColor = saveBorderColor,
                     )
                 }
             }
