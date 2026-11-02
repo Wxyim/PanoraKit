@@ -121,7 +121,7 @@ fun ProfileCard(
     dragHandleModifier: Modifier = Modifier,
 ) {
     val colorScheme = MiuixTheme.colorScheme
-    val activeStyle = SemanticActionDefaults.style(SemanticTone.Success, highEmphasis = true)
+    val activeStyle = SemanticActionDefaults.style(SemanticTone.Brand, highEmphasis = true)
     val isConfigSaved = remember(profile.uuid, profile.updatedAt) { profile.isConfigSaved(workDir) }
     // Read without remember so a fresh marker (written by a local save that does
     // not bump updatedAt) is picked up when the profile list refreshes.

@@ -133,8 +133,8 @@ fun ThemeColorPickerItem(
                 editingThemeSeedHex.value = formatThemeSeedHex(colorToArgbLong(it))
             },
             onEditingThemeSeedHexChange = { raw ->
-                // 不立即 normalize，让用户自由输入
-                editingThemeSeedHex.value = raw.uppercase()
+                // Keep the exact text while editing so the field's caret and selection stay put.
+                editingThemeSeedHex.value = raw
                 // 尝试解析颜色，成功则更新预览
                 parseThemeHexColorOrNull(raw)?.let { editingThemeSeedColor.value = it }
             },
@@ -171,10 +171,11 @@ fun ThemeColorPickerSheet(
                 onColorChanged = onEditingThemeSeedColorChange,
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextField(
+            MiuixEditTextField(
                 value = editingThemeSeedHex,
                 onValueChange = onEditingThemeSeedHexChange,
                 label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
             )
         },
@@ -187,7 +188,8 @@ private fun formatThemeSeedHex(argb: Long): String {
 }
 
 private fun parseThemeHexColorOrNull(input: String): Color? {
-    val body = input.removePrefix("#").removePrefix("0x").uppercase()
+    val normalized = input.trim().removePrefix("#")
+    val body = normalized.removePrefix("0x").removePrefix("0X").uppercase()
     if (body.length != 6) return null
     val rgb = body.toLongOrNull(16) ?: return null
     return colorFromArgb(0xFF000000L or rgb)

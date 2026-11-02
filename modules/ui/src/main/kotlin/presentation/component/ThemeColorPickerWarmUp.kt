@@ -50,7 +50,6 @@ import androidx.compose.ui.window.DialogWindowProvider
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.ColorPicker
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TextField
 
 /**
  * Per-process: the picker sheet's first open is paid once, on the first screen that shows its entry
@@ -188,10 +187,11 @@ private fun ThemeColorPickerContentWarmUp() {
                     onColorChanged = {},
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextField(
+                MiuixEditTextField(
                     value = WarmUpPickerHex,
                     onValueChange = {},
                     label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
                 )
             }
@@ -234,10 +234,11 @@ private fun ThemeColorPickerSheetShowWarmUp() {
                     onColorChanged = {},
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextField(
+                MiuixEditTextField(
                     value = WarmUpPickerHex,
                     onValueChange = {},
                     label = MLang.AppSettings.Interface.ColorThemeCodeLabel,
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp).miuixTextFieldDrawGuard(),
                 )
             }
