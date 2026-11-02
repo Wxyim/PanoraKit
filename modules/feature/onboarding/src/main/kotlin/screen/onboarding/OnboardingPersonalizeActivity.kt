@@ -27,11 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import com.github.nomadboxlab.monadbox.presentation.component.ThemeColorPickerSheet
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
+import com.github.nomadboxlab.monadbox.presentation.theme.DEFAULT_THEME_SEED_ARGB
 import com.github.nomadboxlab.monadbox.presentation.theme.colorFromArgb
 import com.github.nomadboxlab.monadbox.presentation.theme.colorToArgbLong
 import dev.oom_wg.purejoy.mlang.MLang
@@ -59,7 +59,7 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
                 remember(themeState.themeSeedColorArgb) {
                     mutableStateOf(
                         runCatching { colorFromArgb(themeState.themeSeedColorArgb) }
-                            .getOrDefault(Color.White)
+                            .getOrDefault(colorFromArgb(DEFAULT_THEME_SEED_ARGB))
                     )
                 }
             var editingThemeSeedHex by
@@ -86,7 +86,7 @@ internal class OnboardingPersonalizeActivity : OnboardingBaseActivity() {
                         if (show) {
                             editingThemeSeedColor =
                                 runCatching { colorFromArgb(themeState.themeSeedColorArgb) }
-                                    .getOrDefault(Color.White)
+                                    .getOrDefault(colorFromArgb(DEFAULT_THEME_SEED_ARGB))
                             editingThemeSeedHex =
                                 "#${(themeState.themeSeedColorArgb and 0x00FFFFFFL).toString(16).uppercase().padStart(6, '0')}"
                         }

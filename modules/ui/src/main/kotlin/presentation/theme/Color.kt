@@ -24,6 +24,7 @@ package com.github.nomadboxlab.monadbox.presentation.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import com.github.nomadboxlab.monadbox.domain.model.DEFAULT_THEME_SEED_COLOR_ARGB
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 
@@ -47,7 +48,7 @@ private data class ThemeColors(
 
 private data class ThemePalette(val light: ThemeColors, val dark: ThemeColors)
 
-const val DEFAULT_THEME_SEED_ARGB: Long = 0xFFFFFFFFL
+const val DEFAULT_THEME_SEED_ARGB: Long = DEFAULT_THEME_SEED_COLOR_ARGB
 
 private fun ThemeColors.toLightScheme() =
     lightColorScheme(
@@ -236,4 +237,10 @@ private fun Color.mix(other: Color, ratio: Float): Color {
     )
 }
 
-private fun Color.autoOnColor(): Color = if (luminance() > 0.52f) Color.Black else Color.White
+/** Picks whichever of black or white gives the stronger WCAG contrast against this color. */
+private fun Color.autoOnColor(): Color {
+    val backgroundLuminance = luminance()
+    val blackContrast = (backgroundLuminance + 0.05f) / 0.05f
+    val whiteContrast = 1.05f / (backgroundLuminance + 0.05f)
+    return if (blackContrast >= whiteContrast) Color.Black else Color.White
+}

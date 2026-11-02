@@ -49,6 +49,8 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.CircleGauge
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Rocket
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.ShieldMinus
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Speed
+import com.github.nomadboxlab.monadbox.presentation.theme.AppSemanticColors
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import com.github.nomadboxlab.monadbox.presentation.theme.ProxyNodeCardLayoutDefaults
 import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
 import com.github.nomadboxlab.monadbox.presentation.util.extractNodeTags
@@ -321,9 +323,14 @@ internal fun NodeLargeIcon(
     isSelected: Boolean,
 ) {
     val neutral = MiuixTheme.colorScheme.onSurface
+    val semanticColors = LocalSemanticColors.current
     val builtInVisual =
-        remember(proxyName, typeName) {
-            resolveBuiltInNodeVisual(proxyName = proxyName, typeName = typeName)
+        remember(proxyName, typeName, semanticColors) {
+            resolveBuiltInNodeVisual(
+                proxyName = proxyName,
+                typeName = typeName,
+                semanticColors = semanticColors,
+            )
         }
     Box(
         modifier =
@@ -359,15 +366,19 @@ internal fun NodeLargeIcon(
     }
 }
 
-private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): BuiltInNodeVisual? {
+private fun resolveBuiltInNodeVisual(
+    proxyName: String,
+    typeName: String,
+    semanticColors: AppSemanticColors,
+): BuiltInNodeVisual? {
     val normalizedName = proxyName.trim().uppercase()
     val normalizedType = typeName.trim().uppercase()
     return when {
         normalizedType == "DIRECT" || normalizedName == "DIRECT" || normalizedName == "直连" -> {
             BuiltInNodeVisual(
                 icon = MonadIcons.ArrowRight,
-                iconTint = Color(0xFF0A8F6A),
-                containerColor = Color(0xFF0A8F6A),
+                iconTint = semanticColors.success.foreground,
+                containerColor = semanticColors.success.foreground,
             )
         }
 
@@ -378,8 +389,8 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
             normalizedName == "拦截" -> {
             BuiltInNodeVisual(
                 icon = MonadIcons.ShieldMinus,
-                iconTint = Color(0xFFE53935),
-                containerColor = Color(0xFFE53935),
+                iconTint = semanticColors.danger.foreground,
+                containerColor = semanticColors.danger.foreground,
             )
         }
 
@@ -388,16 +399,16 @@ private fun resolveBuiltInNodeVisual(proxyName: String, typeName: String): Built
             normalizedName == "PROXY" -> {
             BuiltInNodeVisual(
                 icon = MonadIcons.Rocket,
-                iconTint = Color(0xFF2E6FF2),
-                containerColor = Color(0xFF2E6FF2),
+                iconTint = semanticColors.info.foreground,
+                containerColor = semanticColors.info.foreground,
             )
         }
 
         normalizedType == "PASS" || normalizedName == "PASS" -> {
             BuiltInNodeVisual(
                 icon = MonadIcons.Cancel,
-                iconTint = Color(0xFF7A7A7A),
-                containerColor = Color(0xFF7A7A7A),
+                iconTint = semanticColors.neutral.foreground,
+                containerColor = semanticColors.neutral.foreground,
             )
         }
 
@@ -428,8 +439,9 @@ private fun NodeTagChip(label: String, textColor: Color? = null, backgroundColor
 private fun NodeMultiplierChip(multiplier: Float) {
     val isHigh = multiplier >= 2.0f
     val primary = MiuixTheme.colorScheme.primary
-    val chipBg = if (isHigh) Color(0x1AFF3B30) else primary.copy(alpha = 0.1f)
-    val chipColor = if (isHigh) Color(0xFFFF3B30) else primary
+    val danger = LocalSemanticColors.current.danger
+    val chipBg = if (isHigh) danger.iconContainer else primary.copy(alpha = 0.1f)
+    val chipColor = if (isHigh) danger.foreground else primary
     val label =
         if (multiplier == multiplier.toLong().toFloat()) "x${multiplier.toLong()}"
         else "x$multiplier"

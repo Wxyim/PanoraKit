@@ -26,12 +26,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.nomadboxlab.monadbox.core.model.TunnelState
 import com.github.nomadboxlab.monadbox.presentation.component.CountryFlagCircle
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
+import com.github.nomadboxlab.monadbox.presentation.theme.latencyForeground
 import com.github.nomadboxlab.monadbox.presentation.util.extractFlaggedName
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
@@ -143,19 +144,12 @@ fun NodeInfoDisplay(
 
 @Composable
 private fun PingValue(ping: Int?) {
+    val semanticColors = LocalSemanticColors.current
     val (text, color) =
         when {
             ping == null || ping == 0 -> "--" to MiuixTheme.colorScheme.onSurfaceVariantSummary
-            ping < 0 -> "TIMEOUT" to MiuixTheme.colorScheme.onSurfaceVariantSummary
-            else -> {
-                val c =
-                    when {
-                        ping <= 300 -> Color(0xFF007906)
-                        ping <= 1000 -> Color(0xFFFFB300)
-                        else -> Color(0xFFE53935)
-                    }
-                "${ping}ms" to c
-            }
+            ping < 0 -> "TIMEOUT" to semanticColors.danger.foreground
+            else -> "${ping}ms" to semanticColors.latencyForeground(ping)
         }
     Box(modifier = Modifier.height(INFO_TEXT_HEIGHT), contentAlignment = Alignment.Center) {
         Text(

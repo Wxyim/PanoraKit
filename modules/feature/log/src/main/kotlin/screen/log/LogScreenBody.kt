@@ -38,7 +38,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +63,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Save
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -570,14 +570,15 @@ private fun formatFileSize(bytes: Long): String {
 private fun LogEntryRow(entry: LogViewModel.LogEntry) {
     val spacing = AppTheme.spacing
     val pageMetrics = LocalPageMetrics.current
+    val semanticColors = LocalSemanticColors.current
     val levelColor =
         when (entry.level) {
-            LogMessage.Level.Debug -> Color(0xFF9E9E9E)
+            LogMessage.Level.Debug -> semanticColors.neutral.foreground.copy(alpha = 0.72f)
             LogMessage.Level.Info -> MiuixTheme.colorScheme.primary
-            LogMessage.Level.Warning -> Color(0xFFFF9800)
-            LogMessage.Level.Error -> Color(0xFFF44336)
-            LogMessage.Level.Silent -> Color(0xFF9E9E9E)
-            LogMessage.Level.Unknown -> Color(0xFF9E9E9E)
+            LogMessage.Level.Warning -> semanticColors.warning.foreground
+            LogMessage.Level.Error -> semanticColors.danger.foreground
+            LogMessage.Level.Silent -> semanticColors.neutral.foreground.copy(alpha = 0.72f)
+            LogMessage.Level.Unknown -> semanticColors.neutral.foreground.copy(alpha = 0.72f)
         }
 
     Card(modifier = Modifier.padding(vertical = spacing.sm)) {

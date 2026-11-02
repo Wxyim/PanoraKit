@@ -14166,11 +14166,6 @@ SPLcom/github/nomadboxlab/monadbox/core/locale/LocaleBootstrap;->install(Landroi
 SPLcom/github/nomadboxlab/monadbox/core/locale/LocaleBootstrap;->resolveContext()Landroid/content/Context;
 SPLcom/github/nomadboxlab/monadbox/core/locale/LocaleBootstrap;->resolveLocalizedContext()Landroid/content/Context;
 Lcom/github/nomadboxlab/monadbox/core/locale/R$string;
-Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;->$values()[Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;-><clinit>()V
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;-><init>(Ljava/lang/String;I)V
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;->values()[Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
 Lcom/github/nomadboxlab/monadbox/data/model/AppLanguage;
 SPLcom/github/nomadboxlab/monadbox/data/model/AppLanguage;->$values()[Lcom/github/nomadboxlab/monadbox/data/model/AppLanguage;
 SPLcom/github/nomadboxlab/monadbox/data/model/AppLanguage;-><clinit>()V

@@ -48,6 +48,7 @@ import com.github.nomadboxlab.monadbox.core.model.ConnectionInfo
 import com.github.nomadboxlab.monadbox.feature.meta.api.ConnectionAppIdentityLookup
 import com.github.nomadboxlab.monadbox.feature.meta.api.toConnectionDisplayAddress
 import com.github.nomadboxlab.monadbox.presentation.component.AppActionBottomSheet
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.jsonPrimitive
@@ -192,6 +193,7 @@ private fun ConnectionInfoSection(
     chains: List<String>,
     onCopy: (String, String) -> Unit,
 ) {
+    val semanticColors = LocalSemanticColors.current
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle(MLang.Connection.Detail.Info)
         InfoRow(
@@ -242,13 +244,13 @@ private fun ConnectionInfoSection(
         InfoRow(
             label = MLang.Connection.Detail.Upload,
             value = formatBytes(upload),
-            valueColor = Color(0xFF2196F3),
+            valueColor = semanticColors.info.foreground,
             onCopy = { value -> onCopy(MLang.Connection.Detail.Upload, value) },
         )
         InfoRow(
             label = MLang.Connection.Detail.Download,
             value = formatBytes(download),
-            valueColor = Color(0xFF4CAF50),
+            valueColor = semanticColors.success.foreground,
             onCopy = { value -> onCopy(MLang.Connection.Detail.Download, value) },
         )
         if (chains.isNotEmpty()) {
@@ -278,7 +280,7 @@ private fun ProxyChainRow(chains: List<String>, onCopy: (String) -> Unit) {
                     Text(
                         text = "->",
                         style = MiuixTheme.textStyles.footnote1,
-                        color = Color(0xFF6B7280),
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         modifier = Modifier.padding(horizontal = 2.dp),
                     )
                 }
@@ -289,17 +291,18 @@ private fun ProxyChainRow(chains: List<String>, onCopy: (String) -> Unit) {
 
 @Composable
 private fun ChainNode(name: String, isActive: Boolean, onCopy: (String) -> Unit) {
+    val semanticColors = LocalSemanticColors.current
     val backgroundColor =
         if (isActive) {
-            Color(0xFF0A8F6A).copy(alpha = 0.12f)
+            semanticColors.success.container
         } else {
             MiuixTheme.colorScheme.surfaceVariant
         }
     val textColor =
         if (isActive) {
-            Color(0xFF0A8F6A)
+            semanticColors.success.foreground
         } else {
-            Color(0xFF6B7280)
+            MiuixTheme.colorScheme.onSurfaceVariantSummary
         }
 
     Row(
@@ -312,7 +315,12 @@ private fun ChainNode(name: String, isActive: Boolean, onCopy: (String) -> Unit)
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (isActive) {
-            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF0A8F6A)))
+            Box(
+                modifier =
+                    Modifier.size(6.dp)
+                        .clip(CircleShape)
+                        .background(semanticColors.success.foreground)
+            )
         }
         Text(
             text = name,

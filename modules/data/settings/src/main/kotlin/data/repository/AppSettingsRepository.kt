@@ -22,7 +22,6 @@
 package com.github.nomadboxlab.monadbox.data.repository
 
 import com.github.nomadboxlab.monadbox.core.Clash
-import com.github.nomadboxlab.monadbox.data.model.AppColorTheme
 import com.github.nomadboxlab.monadbox.data.model.AppLanguage
 import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
 import com.github.nomadboxlab.monadbox.data.model.ThemeMode
@@ -35,7 +34,6 @@ class AppSettingsRepository(private val storage: AppSettingsStorage) {
 
     val appLanguage: Preference<AppLanguage> = storage.appLanguage
     val themeMode: Preference<ThemeMode> = storage.themeMode
-    val colorTheme: Preference<AppColorTheme> = storage.colorTheme
     val themeSeedColorArgb: Preference<Long> = storage.themeAccentColorArgb
     val automaticRestart: Preference<Boolean> = storage.automaticRestart
     val autoUpdateCurrentProfileOnStart: Preference<Boolean> =

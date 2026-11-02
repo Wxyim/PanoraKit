@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.github.nomadboxlab.monadbox.domain.model.ThemeMode
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Palette
+import com.github.nomadboxlab.monadbox.presentation.theme.DEFAULT_THEME_SEED_ARGB
 import com.github.nomadboxlab.monadbox.presentation.theme.colorFromArgb
 import com.github.nomadboxlab.monadbox.presentation.theme.colorToArgbLong
 import dev.oom_wg.purejoy.mlang.MLang
@@ -73,7 +74,8 @@ fun ThemeColorPickerItem(
     val editingThemeSeedColor =
         remember(themeSeedColorArgb) {
             mutableStateOf(
-                runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
+                runCatching { colorFromArgb(themeSeedColorArgb) }
+                    .getOrDefault(colorFromArgb(DEFAULT_THEME_SEED_ARGB))
             )
         }
     val editingThemeSeedHex =
@@ -88,7 +90,8 @@ fun ThemeColorPickerItem(
                 ),
             onClick = {
                 editingThemeSeedColor.value =
-                    runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
+                    runCatching { colorFromArgb(themeSeedColorArgb) }
+                        .getOrDefault(colorFromArgb(DEFAULT_THEME_SEED_ARGB))
                 editingThemeSeedHex.value = formatThemeSeedHex(themeSeedColorArgb)
                 if (showBottomSheetInPlace) {
                     showThemeColorPicker.value = true
@@ -99,7 +102,8 @@ fun ThemeColorPickerItem(
             endActions = {
                 val previewColor =
                     remember(themeSeedColorArgb) {
-                        runCatching { colorFromArgb(themeSeedColorArgb) }.getOrDefault(Color.White)
+                        runCatching { colorFromArgb(themeSeedColorArgb) }
+                            .getOrDefault(colorFromArgb(DEFAULT_THEME_SEED_ARGB))
                     }
                 Icon(
                     MonadIcons.Palette,

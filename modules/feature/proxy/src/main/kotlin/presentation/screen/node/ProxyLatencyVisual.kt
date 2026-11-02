@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.github.nomadboxlab.monadbox.domain.model.ProxyLatencyState
 import com.github.nomadboxlab.monadbox.domain.model.toProxyLatencyState
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
+import com.github.nomadboxlab.monadbox.presentation.theme.latencyForeground
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -30,6 +32,7 @@ internal data class ProxyLatencyVisual(val label: String, val color: Color)
 
 @Composable
 internal fun proxyLatencyVisual(delay: Int?, isTesting: Boolean): ProxyLatencyVisual {
+    val semanticColors = LocalSemanticColors.current
     if (isTesting) {
         return ProxyLatencyVisual(
             label = MLang.Proxy.Testing.InProgress,
@@ -41,10 +44,16 @@ internal fun proxyLatencyVisual(delay: Int?, isTesting: Boolean): ProxyLatencyVi
 
     return when (state) {
         is ProxyLatencyState.Available ->
-            ProxyLatencyVisual(label = "${state.delayMs}ms", color = latencyColor(state.delayMs))
+            ProxyLatencyVisual(
+                label = "${state.delayMs}ms",
+                color = semanticColors.latencyForeground(state.delayMs),
+            )
 
         ProxyLatencyState.Timeout ->
-            ProxyLatencyVisual(label = MLang.Proxy.Selection.Timeout, color = Color(0xFFB26A00))
+            ProxyLatencyVisual(
+                label = MLang.Proxy.Selection.Timeout,
+                color = semanticColors.danger.foreground,
+            )
 
         ProxyLatencyState.Unknown ->
             ProxyLatencyVisual(
@@ -53,11 +62,3 @@ internal fun proxyLatencyVisual(delay: Int?, isTesting: Boolean): ProxyLatencyVi
             )
     }
 }
-
-private fun latencyColor(delay: Int): Color =
-    when (delay) {
-        in 1..300 -> Color(0xFF007906)
-        in 301..1000 -> Color(0xFFFFB300)
-        in 1001..3000 -> Color(0xFFE53935)
-        else -> Color(0xFFE53935)
-    }

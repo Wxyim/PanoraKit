@@ -23,10 +23,6 @@ package com.github.nomadboxlab.monadbox.data.model
 
 typealias ThemeMode = com.github.nomadboxlab.monadbox.domain.model.ThemeMode
 
-enum class AppColorTheme {
-    ClassicMonochrome
-}
-
 enum class AppLanguage {
     System,
     Zh,

@@ -22,13 +22,13 @@
 package com.github.nomadboxlab.monadbox.feature.settings
 
 import androidx.lifecycle.ViewModel
-import com.github.nomadboxlab.monadbox.data.model.AppColorTheme
 import com.github.nomadboxlab.monadbox.data.model.AppLanguage
 import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
 import com.github.nomadboxlab.monadbox.data.model.ThemeMode
 import com.github.nomadboxlab.monadbox.data.repository.AppSettingsRepository
 import com.github.nomadboxlab.monadbox.data.repository.isAllowedExternalIpLookupUrl
 import com.github.nomadboxlab.monadbox.data.store.Preference
+import com.github.nomadboxlab.monadbox.domain.model.DEFAULT_THEME_SEED_COLOR_ARGB
 import com.github.nomadboxlab.monadbox.presentation.component.GlobalDialogPresenter
 import dev.oom_wg.purejoy.mlang.MLang
 
@@ -42,7 +42,6 @@ class AppSettingsViewModel(
 
     val appLanguage: Preference<AppLanguage> = repository.appLanguage
     val themeMode: Preference<ThemeMode> = repository.themeMode
-    val colorTheme: Preference<AppColorTheme> = repository.colorTheme
     val themeSeedColorArgb: Preference<Long> = repository.themeSeedColorArgb
     val automaticRestart: Preference<Boolean> = repository.automaticRestart
     val autoUpdateCurrentProfileOnStart: Preference<Boolean> =
@@ -89,11 +88,9 @@ class AppSettingsViewModel(
 
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
 
-    fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
-
     fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
 
-    fun resetThemeSeedColor() = themeSeedColorArgb.set(0xFF138A74L)
+    fun resetThemeSeedColor() = themeSeedColorArgb.set(DEFAULT_THEME_SEED_COLOR_ARGB)
 
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
 

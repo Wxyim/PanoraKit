@@ -22813,11 +22813,6 @@ Lcom/github/nomadboxlab/monadbox/data/model/AccessControlMode;
 SPLcom/github/nomadboxlab/monadbox/data/model/AccessControlMode;->$values()[Lcom/github/nomadboxlab/monadbox/data/model/AccessControlMode;
 SPLcom/github/nomadboxlab/monadbox/data/model/AccessControlMode;-><clinit>()V
 SPLcom/github/nomadboxlab/monadbox/data/model/AccessControlMode;-><init>(Ljava/lang/String;I)V
-Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;->$values()[Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;-><clinit>()V
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;-><init>(Ljava/lang/String;I)V
-SPLcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;->values()[Lcom/github/nomadboxlab/monadbox/data/model/AppColorTheme;
 Lcom/github/nomadboxlab/monadbox/data/model/AppLanguage;
 SPLcom/github/nomadboxlab/monadbox/data/model/AppLanguage;->$values()[Lcom/github/nomadboxlab/monadbox/data/model/AppLanguage;
 SPLcom/github/nomadboxlab/monadbox/data/model/AppLanguage;-><clinit>()V

@@ -43,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -65,6 +64,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.TrafficBarChart
 import com.github.nomadboxlab.monadbox.presentation.component.appClickable
 import com.github.nomadboxlab.monadbox.presentation.component.miuixTextFieldDrawGuard
 import com.github.nomadboxlab.monadbox.presentation.theme.AppTheme
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSemanticColors
 import com.github.nomadboxlab.monadbox.presentation.theme.TrafficStatisticsScreenLayoutDefaults
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
@@ -675,9 +675,10 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
                     }
                     if (!bottomNodeName.isNullOrBlank()) {
                         if (record.isRejected) {
-                            // Same red as the built-in REJECT node visual (NodeCard.kt):
-                            // solid red text on a light red tinted container.
-                            RequestChip(text = bottomNodeName, color = RejectTagColor)
+                            RequestChip(
+                                text = bottomNodeName,
+                                color = LocalSemanticColors.current.danger.foreground,
+                            )
                         } else {
                             RequestChip(
                                 text = bottomNodeName,
@@ -690,9 +691,6 @@ private fun RecentRequestItem(record: RecentRequestRecord, onClick: () -> Unit) 
         }
     }
 }
-
-/** Base red of the reject chip; matches the built-in REJECT node visual. */
-private val RejectTagColor = Color(0xFFE53935)
 
 @Composable
 private fun RequestChip(text: String, color: androidx.compose.ui.graphics.Color) {

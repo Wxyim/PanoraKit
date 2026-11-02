@@ -87,9 +87,9 @@ fun appSemanticColors(
 
     return AppSemanticColors(
         brand = token(primary),
-        success = token(if (isDark) Color(0xFF77D9C6) else Color(0xFF087F6C)),
-        info = token(if (isDark) Color(0xFF7CCDE4) else Color(0xFF147E9D)),
-        warning = token(if (isDark) Color(0xFFE8C46A) else Color(0xFF92640D)),
+        success = token(if (isDark) Color(0xFF76D395) else Color(0xFF1B7F3A)),
+        info = token(if (isDark) Color(0xFF8AB4F8) else Color(0xFF1558A6)),
+        warning = token(if (isDark) Color(0xFFF2C66D) else Color(0xFF855A00)),
         danger =
             SemanticColorToken(
                 foreground = error,
@@ -113,3 +113,10 @@ fun appSemanticColors(
         global = token(if (isDark) Color(0xFFC9B6F2) else Color(0xFF5E35B1)),
     )
 }
+
+fun AppSemanticColors.latencyForeground(delayMs: Int): Color =
+    when (delayMs) {
+        in 1..300 -> success.foreground
+        in 301..1000 -> warning.foreground
+        else -> danger.foreground
+    }

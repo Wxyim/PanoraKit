@@ -411,7 +411,7 @@ internal fun NodeGroupCard(
                             modifier =
                                 Modifier.size(NodeCardDefaults.ChevronIconSize)
                                     .rotate(if (isExpanded) 90f else 0f),
-                            tint = Color(0xFFC7C7CC),
+                            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }

@@ -21,10 +21,10 @@
 
 package com.github.nomadboxlab.monadbox.data.store
 
-import com.github.nomadboxlab.monadbox.data.model.AppColorTheme
 import com.github.nomadboxlab.monadbox.data.model.AppLanguage
 import com.github.nomadboxlab.monadbox.data.model.CleanupPolicy
 import com.github.nomadboxlab.monadbox.data.model.ThemeMode
+import com.github.nomadboxlab.monadbox.domain.model.DEFAULT_THEME_SEED_COLOR_ARGB
 import com.tencent.mmkv.MMKV
 
 /**
@@ -42,8 +42,7 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
 
     val appLanguage by enumFlow(AppLanguage.System)
     val themeMode by enumFlow(ThemeMode.Auto)
-    val colorTheme by enumFlow(AppColorTheme.ClassicMonochrome)
-    val themeAccentColorArgb by longFlow(0xFF138A74L)
+    val themeAccentColorArgb by longFlow(DEFAULT_THEME_SEED_COLOR_ARGB)
     val automaticRestart by boolFlow(false)
     val autoUpdateCurrentProfileOnStart by boolFlow(false)
     val hideAppIcon by boolFlow(false)

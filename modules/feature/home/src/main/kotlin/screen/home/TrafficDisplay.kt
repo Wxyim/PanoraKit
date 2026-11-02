@@ -242,9 +242,8 @@ private fun ProfileModeBadge(
 ) {
     val primary = MiuixTheme.colorScheme.primary
     val semanticColors = LocalSemanticColors.current
-    val isDirect = tunnelMode == TunnelState.Mode.Direct
     val fallbackAccent =
-        if (isDirect || tone == HomeControlTone.Primary) {
+        if (tone == HomeControlTone.Primary) {
             primary
         } else {
             MiuixTheme.colorScheme.onSurface
@@ -681,6 +680,7 @@ internal fun TunnelState.Mode?.toModeAccentColor(
     semanticColors: AppSemanticColors,
 ): Color =
     when (this) {
+        TunnelState.Mode.Direct -> semanticColors.success.foreground
         TunnelState.Mode.Rule -> semanticColors.info.foreground
         TunnelState.Mode.Global -> semanticColors.global.foreground
         else -> fallback
