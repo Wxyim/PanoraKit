@@ -372,6 +372,14 @@ fun AppCommandButton(
         else iconContainerColor
     val resolvedBorder =
         if (borderColor == Color.Unspecified) actionStyle.borderColor else borderColor
+    val disabledVisualAlpha =
+        if (enabled) 1f else AppInteractionFeedbackDefaults.DisabledAlpha
+    val buttonContainer =
+        resolvedContainer.copy(alpha = resolvedContainer.alpha * disabledVisualAlpha)
+    val buttonContent = resolvedContent.copy(alpha = resolvedContent.alpha * disabledVisualAlpha)
+    val buttonIconContainer =
+        resolvedIconContainer.copy(alpha = resolvedIconContainer.alpha * disabledVisualAlpha)
+    val buttonBorder = resolvedBorder.copy(alpha = resolvedBorder.alpha * disabledVisualAlpha)
     val shape = RoundedCornerShape(22.dp)
     val semanticDescription = buildSemanticDescription(title, tone.accessibilityDescription())
 
@@ -380,29 +388,34 @@ fun AppCommandButton(
             modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
+                .clip(shape)
+                .background(buttonContainer, shape)
+                .border(AppTheme.strokes.default, buttonBorder, shape)
                 .semantics(mergeDescendants = true) {
                     contentDescription = semanticDescription
                     stateDescription = if (enabled) "enabled" else "disabled"
                     if (!enabled) disabled()
                 }
-                .clip(shape)
-                .background(resolvedContainer, shape)
-                .border(AppTheme.strokes.default, resolvedBorder, shape)
-                .appClickable(enabled = enabled, onClick = onClick)
+                .appClickable(
+                    enabled = enabled,
+                    pressedAlpha = 1f,
+                    disabledAlpha = 1f,
+                    onClick = onClick,
+                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ActionTileIcon(
             imageVector = imageVector,
-            contentColor = resolvedContent,
-            containerColor = resolvedIconContainer,
+            contentColor = buttonContent,
+            containerColor = buttonIconContainer,
             size = 32.dp,
             iconSize = 18.dp,
         )
         Text(
             text = title,
-            color = resolvedContent,
+            color = buttonContent,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
