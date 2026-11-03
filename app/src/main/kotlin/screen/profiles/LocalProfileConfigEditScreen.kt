@@ -89,6 +89,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
@@ -377,7 +378,10 @@ fun LocalProfileConfigEditScreen(
                 }
 
                 editState.currentConfig != null -> {
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
                         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
                         val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
 
@@ -385,6 +389,9 @@ fun LocalProfileConfigEditScreen(
                             LocalOverrideCardHorizontalPadding provides false
                         ) {
                             ScreenLazyColumn(
+                                modifier =
+                                    Modifier.adaptiveContentWidth(contentMaxWidth)
+                                        .padding(horizontal = LocalSpacing.current.gutter),
                                 scrollBehavior = scrollBehavior,
                                 innerPadding = PaddingValues(0.dp),
                                 lazyListState = editorListState,
