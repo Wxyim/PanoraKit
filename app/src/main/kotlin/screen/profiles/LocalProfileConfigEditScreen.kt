@@ -90,6 +90,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.presentation.theme.sectionHPadding
@@ -384,6 +385,7 @@ fun LocalProfileConfigEditScreen(
                     ) {
                         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
                         val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+                        val sectionListHorizontalPadding = LocalSpacing.current.gutter
 
                         CompositionLocalProvider(
                             LocalOverrideCardHorizontalPadding provides false
@@ -446,6 +448,7 @@ fun LocalProfileConfigEditScreen(
                                     },
                                     expandedSections = expandedSections,
                                     contentMaxWidth = contentMaxWidth,
+                                    sectionListHorizontalPadding = sectionListHorizontalPadding,
                                     onConfigChange = ::applyConfigChange,
                                     onSectionToggle = { section ->
                                         expandedSectionNames =

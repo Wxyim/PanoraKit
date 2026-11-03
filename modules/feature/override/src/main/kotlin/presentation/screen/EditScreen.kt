@@ -35,6 +35,7 @@ import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.data.util.defaultOverridePresetTemplateSelection
 import com.github.nomadboxlab.monadbox.data.util.inferPresetTemplateSelection
 import com.github.nomadboxlab.monadbox.presentation.component.*
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
@@ -160,6 +161,7 @@ fun OverrideEditScreen(
         ) {
             val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
             val editContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
+            val sectionListHorizontalPadding = LocalSpacing.current.gutter
             ScreenLazyColumn(
                 modifier = Modifier.adaptiveContentWidth(editContentMaxWidth),
                 scrollBehavior = scrollBehavior,
@@ -173,6 +175,7 @@ fun OverrideEditScreen(
                         remoteSourceUrl = session.remoteSourceUrl,
                         remoteUpdateIntervalSeconds = session.remoteUpdateIntervalSeconds,
                         isRemoteResource = session.isRemoteResource,
+                        sectionListHorizontalPadding = sectionListHorizontalPadding,
                         config = session.config,
                         currentConfigProvider = {
                             viewModel.editSession.value?.config ?: session.config

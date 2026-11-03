@@ -48,7 +48,6 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Tun
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
-import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.util.*
 import dev.oom_wg.purejoy.mlang.MLang
@@ -98,6 +97,7 @@ fun LazyListScope.OverrideEditContent(
     remoteSourceUrl: String?,
     remoteUpdateIntervalSeconds: Long?,
     isRemoteResource: Boolean,
+    sectionListHorizontalPadding: Dp,
     onRemoteSourceUrlChange: (String?) -> Unit,
     onRemoteIntervalSecondsChange: (String?) -> Unit,
     onConfigChange: (ConfigurationOverride) -> Unit,
@@ -162,7 +162,7 @@ fun LazyListScope.OverrideEditContent(
             config = config,
             currentConfigProvider = currentConfigProvider,
             expandedSections = expandedSections,
-            sectionListHorizontalPadding = LocalSpacing.current.gutter,
+            sectionListHorizontalPadding = sectionListHorizontalPadding,
             hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
             onConfigChange = onConfigChange,
             onSectionToggle = onSectionToggle,
@@ -186,6 +186,7 @@ fun LazyListScope.LocalProfileConfigEditContent(
     currentConfigProvider: () -> ConfigurationOverride,
     expandedSections: Set<OverrideEditorSection>,
     contentMaxWidth: Dp = Dp.Unspecified,
+    sectionListHorizontalPadding: Dp,
     contentTopSpacing: Dp = 12.dp,
     onConfigChange: (ConfigurationOverride) -> Unit,
     onSectionToggle: (OverrideEditorSection) -> Unit,
@@ -203,7 +204,7 @@ fun LazyListScope.LocalProfileConfigEditContent(
         expandedSections = expandedSections,
         sectionListTitle = null,
         sectionListContentMaxWidth = contentMaxWidth,
-        sectionListHorizontalPadding = LocalSpacing.current.gutter,
+        sectionListHorizontalPadding = sectionListHorizontalPadding,
         sectionListTopSpacing = contentTopSpacing,
         editSemantics = OverrideEditorSemantics.LocalConfig,
         hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
