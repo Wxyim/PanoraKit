@@ -537,7 +537,7 @@ private fun LocalProfileOverrideBindingSection(
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(
-            modifier = Modifier.adaptiveContentWidth(contentMaxWidth).padding(horizontal = 20.dp),
+            modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Spacer(Modifier.height(8.dp))

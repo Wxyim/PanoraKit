@@ -24,14 +24,12 @@ package com.github.nomadboxlab.monadbox.presentation.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.nomadboxlab.monadbox.common.util.toast
 import com.github.nomadboxlab.monadbox.data.util.defaultOverridePresetTemplateSelection
@@ -163,9 +161,7 @@ fun OverrideEditScreen(
             val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
             val editContentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
             ScreenLazyColumn(
-                modifier =
-                    Modifier.adaptiveContentWidth(editContentMaxWidth)
-                        .padding(horizontal = 20.dp),
+                modifier = Modifier.adaptiveContentWidth(editContentMaxWidth),
                 scrollBehavior = scrollBehavior,
                 innerPadding = paddingValues,
                 lazyListState = editorListState,

@@ -203,6 +203,7 @@ fun LazyListScope.LocalProfileConfigEditContent(
         expandedSections = expandedSections,
         sectionListTitle = null,
         sectionListContentMaxWidth = contentMaxWidth,
+        sectionListHorizontalPadding = 0.dp,
         sectionListTopSpacing = contentTopSpacing,
         editSemantics = OverrideEditorSemantics.LocalConfig,
         hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
