@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -226,6 +227,7 @@ fun OverrideSectionCardHeader(
         modifier =
             Modifier.fillMaxWidth()
                 .padding(horizontal = horizontalInset)
+                .clip(shape)
                 .background(color = containerColor, shape = shape)
                 .border(width = 0.8.dp, color = borderColor, shape = shape)
                 .appClickable(onClick = onClick)
