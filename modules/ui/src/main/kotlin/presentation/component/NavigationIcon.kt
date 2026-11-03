@@ -50,6 +50,7 @@ fun NavigationBackIcon(
     modifier: Modifier = Modifier,
     contentDescription: String = "Back",
     onClick: () -> Unit = { navigator.popBackStack() },
+    enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -71,6 +72,7 @@ fun NavigationBackIcon(
                     scaleY = scale
                 }
                 .clickable(
+                    enabled = enabled,
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = dropUnlessResumed { onClick() },

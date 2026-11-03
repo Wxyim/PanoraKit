@@ -71,6 +71,7 @@ import com.github.nomadboxlab.monadbox.feature.profiles.ProfilesViewModel
 import com.github.nomadboxlab.monadbox.presentation.component.JsonTextEditorDialog
 import com.github.nomadboxlab.monadbox.presentation.component.LocalOverrideCardHorizontalPadding
 import com.github.nomadboxlab.monadbox.presentation.component.LocalProfileConfigEditContent
+import com.github.nomadboxlab.monadbox.presentation.component.NavigationBackIcon
 import com.github.nomadboxlab.monadbox.presentation.component.OpenObjectMapEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenRuleListEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenStringListModifiersEditor
@@ -85,7 +86,6 @@ import com.github.nomadboxlab.monadbox.presentation.component.StructuredErrorSec
 import com.github.nomadboxlab.monadbox.presentation.component.TopBar
 import com.github.nomadboxlab.monadbox.presentation.component.resolveStringMapValidationMode
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
-import com.github.nomadboxlab.monadbox.presentation.icon.monad.ArrowLeft
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
@@ -315,16 +315,12 @@ fun LocalProfileConfigEditScreen(
                 title = MLang.Override.Edit.TitleEdit,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    IconButton(
-                        modifier = Modifier.padding(start = 24.dp),
-                        enabled = !editState.isSaving,
+                    NavigationBackIcon(
+                        navigator = navigator,
+                        contentDescription = MLang.Component.Navigation.Back,
                         onClick = { requestExit() },
-                    ) {
-                        Icon(
-                            MonadIcons.ArrowLeft,
-                            contentDescription = MLang.Component.Navigation.Back,
-                        )
-                    }
+                        enabled = !editState.isSaving,
+                    )
                 },
                 actions = {},
             )

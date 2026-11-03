@@ -229,62 +229,70 @@ fun OverrideSectionCardHeader(
     val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.28f)
     val iconTint = style.contentColor
 
-    Row(
+    Box(
         modifier =
             Modifier.fillMaxWidth()
                 .padding(horizontal = horizontalInset)
                 .clip(shape)
                 .background(color = containerColor, shape = shape)
-                .border(width = 0.8.dp, color = borderColor, shape = shape)
-                .appClickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+                .border(width = 0.8.dp, color = borderColor, shape = shape),
     ) {
-        OverrideStatusBadge(
-            imageVector = imageVector,
-            contentDescription = title,
-            tint = iconTint,
-            backgroundColor = style.iconContainerColor,
-        )
-
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                color = MiuixTheme.colorScheme.onSurface,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Row(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .appClickable(onClick = onClick)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OverrideStatusBadge(
+                imageVector = imageVector,
+                contentDescription = title,
+                tint = iconTint,
+                backgroundColor = style.iconContainerColor,
             )
-            if (!summary.isNullOrBlank()) {
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
-                    text = summary,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
+                    text = title,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (!summary.isNullOrBlank()) {
+                    Text(
+                        text = summary,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
 
-        if (showIndicator) {
-            Icon(
-                imageVector = MonadIcons.chevron,
-                contentDescription = null,
-                tint =
-                    if (emphasized) {
-                        lerp(
-                            MiuixTheme.colorScheme.onSurfaceVariantActions,
-                            style.contentColor,
-                            0.72f,
-                        )
-                    } else {
-                        MiuixTheme.colorScheme.onSurfaceVariantActions
-                    },
-                modifier = Modifier.rotate(indicatorRotation.value),
-            )
+            if (showIndicator) {
+                Icon(
+                    imageVector = MonadIcons.chevron,
+                    contentDescription = null,
+                    tint =
+                        if (emphasized) {
+                            lerp(
+                                MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                style.contentColor,
+                                0.72f,
+                            )
+                        } else {
+                            MiuixTheme.colorScheme.onSurfaceVariantActions
+                        },
+                    modifier = Modifier.rotate(indicatorRotation.value),
+                )
+            }
         }
     }
 }
