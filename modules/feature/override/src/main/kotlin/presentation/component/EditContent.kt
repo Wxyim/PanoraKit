@@ -291,35 +291,33 @@ private fun LazyListScope.OverrideSectionListContent(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(OverrideSectionTitleSpacing),
                         ) {
-                            OverrideSelectorCard {
-                                OverrideSectionCardHeader(
-                                    title = section.title,
-                                    summary = displaySummary,
-                                    expanded = !directEntry && section in expandedSections,
-                                    imageVector = sectionStyle.icon,
-                                    tone = sectionStyle.tone,
-                                    active = isSectionActive,
-                                    horizontalInset = 0.dp,
-                                    onClick = {
-                                        if (directEntry) {
-                                            openDirectSectionEditor(
-                                                section = section,
-                                                editSemantics = editSemantics,
-                                                config = config,
-                                                currentConfigProvider = currentConfigProvider,
-                                                onConfigChange = onConfigChange,
-                                                onEditRuleList = onEditRuleList,
-                                                onEditObjectList = onEditObjectList,
-                                                onEditObjectMap = onEditObjectMap,
-                                                onEditSubRules = onEditSubRules,
-                                            )
-                                        } else {
-                                            onSectionToggle(section)
-                                        }
-                                    },
-                                    showIndicator = true,
-                                )
-                            }
+                            OverrideSectionCardHeader(
+                                title = section.title,
+                                summary = displaySummary,
+                                expanded = !directEntry && section in expandedSections,
+                                imageVector = sectionStyle.icon,
+                                tone = sectionStyle.tone,
+                                active = isSectionActive,
+                                horizontalInset = 0.dp,
+                                onClick = {
+                                    if (directEntry) {
+                                        openDirectSectionEditor(
+                                            section = section,
+                                            editSemantics = editSemantics,
+                                            config = config,
+                                            currentConfigProvider = currentConfigProvider,
+                                            onConfigChange = onConfigChange,
+                                            onEditRuleList = onEditRuleList,
+                                            onEditObjectList = onEditObjectList,
+                                            onEditObjectMap = onEditObjectMap,
+                                            onEditSubRules = onEditSubRules,
+                                        )
+                                    } else {
+                                        onSectionToggle(section)
+                                    }
+                                },
+                                showIndicator = true,
+                            )
                             if (!directEntry) {
                                 OverrideSectionVisibility(visible = section in expandedSections) {
                                     if (
