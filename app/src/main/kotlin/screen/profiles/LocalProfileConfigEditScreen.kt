@@ -550,7 +550,7 @@ private fun LocalProfileOverrideBindingSection(
             )
 
             if (systemPreset != null) {
-                Card(applyHorizontalPadding = false) {
+                Card {
                     SuperSwitch(
                         title = MLang.ProfilesPage.SettingsDialog.SystemPreset,
                         summary = MLang.ProfilesPage.SettingsDialog.SystemPresetSummary,
@@ -580,7 +580,7 @@ private fun LocalProfileOverrideBindingSection(
                         }
                     }
 
-                Card(applyHorizontalPadding = false) {
+                Card {
                     LazyColumn(
                         state = overridesListState,
                         modifier =
