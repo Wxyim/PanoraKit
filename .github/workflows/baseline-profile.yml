@@ -17,10 +17,9 @@ name: Generate baseline profile
 #   screen fails the run (see JourneyReport.kt); every best-effort journey first proves the app is
 #   the window in front, so a node the app owns but another window draws (its notification rows, a
 #   launcher widget) cannot report a dead app as a covered journey;
-# - :app:verifyBaselineProfile rejects a profile that lost app-package/startup coverage or fell
-#   below 90% of the committed profile's entry and class counts, and (because this job passes
-#   -PbaselineProfile.require=true) a `startup-prof.txt` that is missing or is not smaller than
-#   `baseline-prof.txt`;
+# - :app:verifyBaselineProfile rejects missing/invalid baseline rules, lost app-package/launcher
+#   startup coverage, or coverage below 90% of the committed profile; it also requires the startup
+#   rules to be a strict subset of the shipped baseline rules;
 # - a regenerated profile that differs from the committed one fails the job unless it is committed,
 #   so profile drift cannot be forgotten;
 # - the generated startup profile is collected in its own test method, separate from the baseline

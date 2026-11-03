@@ -21,10 +21,10 @@ import org.gradle.api.tasks.TaskAction
  * A baseline profile silently stops helping as soon as its recorded journeys no longer match the
  * real startup/navigation paths, and nothing in a normal build notices. This task makes that
  * visible: it parses every profile AGP consumes (see `baselineProfileSourceDirPaths` in
- * `app/build.gradle.kts`), requires that it still covers the app package and the launcher
- * activity's startup path, checks that `startup-prof.txt` is present and smaller than
- * `baseline-prof.txt` (AGP feeds the former to dex startup optimization and the latter to the
- * shipped profile), and compares entry/class coverage with the profile committed to the repository.
+ * `app/build.gradle.kts`), requires a valid `baseline-prof.txt` that covers the app package and
+ * launcher activity, checks that `startup-prof.txt` contains startup coverage and is a strict rule
+ * subset of the baseline profile (AGP feeds the former to dex startup optimization and the latter
+ * to the shipped profile), and compares baseline entry/class coverage with the committed profile.
  *
  * Wiring: `verifyBaselineProfile` in `app/build.gradle.kts`. When no profile has been generated yet
  * the task reports `SKIPPED` unless `-PbaselineProfile.require=true` asks for a hard requirement.
@@ -104,12 +104,24 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
             return
         }
 
+        val baselineSources = sources.filter { it.name != STARTUP_PROFILE_FILE_NAME }
+        val startupSources = sources.filter { it.name == STARTUP_PROFILE_FILE_NAME }
         val summary =
             BaselineProfileAnalyzer.analyze(
-                sources = sources,
+                sources = baselineSources,
                 appPackage = appPackage.get(),
                 launcherClass = launcherClass.get(),
             )
+        val startupSummary =
+            startupSources
+                .takeIf { it.isNotEmpty() }
+                ?.let { startupFiles ->
+                    BaselineProfileAnalyzer.analyze(
+                        sources = startupFiles,
+                        appPackage = appPackage.get(),
+                        launcherClass = launcherClass.get(),
+                    )
+                }
 
         val baseline =
             baselineProfile.orNull
@@ -125,9 +137,18 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
 
         val issues = mutableListOf<String>()
         val warnings = mutableListOf<String>()
+        val baselineSource = sources.firstOrNull { it.name == BASELINE_PROFILE_FILE_NAME }
+        if (baselineSource == null) {
+            issues +=
+                "No `$BASELINE_PROFILE_FILE_NAME` found; startup-only or unrelated profile files cannot replace the profile shipped in the APK."
+        }
         if (summary.entries == 0) {
             issues +=
                 "Baseline profile is empty or unparsable (unparsed lines: ${summary.unparsedEntries})."
+        }
+        if (summary.unparsedEntries > 0) {
+            issues +=
+                "Baseline profile contains ${summary.unparsedEntries} unrecognized line(s); expected ART class or method rules."
         }
         if (summary.appEntries == 0) {
             issues +=
@@ -142,28 +163,48 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
                 "Baseline profile does not mention the launcher activity ${launcherClass.get()}; the startup journey never reached the main screen."
         }
         // AGP embeds `baseline-prof.txt` in the APK and feeds `startup-prof.txt` to dex startup
-        // optimization, so the startup file is never merged into the shipped profile: a missing one
-        // disables that optimization without failing anything, and one that is not smaller than the
-        // baseline is a copy of the whole profile that claims every journey is startup-critical.
-        val baselineSource = sources.firstOrNull { it.name == BASELINE_PROFILE_FILE_NAME }
-        val startupSource = sources.firstOrNull { it.name == STARTUP_PROFILE_FILE_NAME }
-        if (baselineSource != null && startupSource == null) {
+        // optimization. The startup collection is also folded into the generated baseline profile,
+        // so validate each artifact separately: a missing startup file disables dex startup
+        // optimization, while counting both files together masks a missing baseline and inflates
+        // the committed-profile comparison.
+        if (baselineSource != null && startupSources.isEmpty()) {
             issues +=
                 "No `$STARTUP_PROFILE_FILE_NAME` next to `$BASELINE_PROFILE_FILE_NAME`; dex startup optimization reads only that file and would silently do nothing."
         }
-        if (baselineSource != null && startupSource != null) {
-            val startupEntries = entriesOf(startupSource)
-            val baselineEntries = entriesOf(baselineSource)
-            if (startupEntries >= baselineEntries) {
+        if (startupSummary != null) {
+            if (startupSummary.entries == 0) {
+                issues +=
+                    "`$STARTUP_PROFILE_FILE_NAME` is empty or contains no valid ART profile rules."
+            }
+            if (startupSummary.unparsedEntries > 0) {
+                issues +=
+                    "`$STARTUP_PROFILE_FILE_NAME` contains ${startupSummary.unparsedEntries} unrecognized line(s); expected ART class or method rules."
+            }
+            if (startupSummary.appStartupEntries == 0) {
+                issues +=
+                    "`$STARTUP_PROFILE_FILE_NAME` contains no startup rule for app package ${appPackage.get()}; dex startup optimization would miss app code."
+            }
+            if (startupSummary.launcherStartupEntries == 0) {
+                issues +=
+                    "`$STARTUP_PROFILE_FILE_NAME` contains no startup rule for launcher activity ${launcherClass.get()}."
+            }
+
+            val startupOnlyRules = startupSummary.ruleIdentities - summary.ruleIdentities
+            if (startupOnlyRules.isNotEmpty()) {
                 val note =
-                    "`$STARTUP_PROFILE_FILE_NAME` has $startupEntries entries and `$BASELINE_PROFILE_FILE_NAME` has $baselineEntries, so the startup profile is not a subset of the baseline profile; the generator is labelling the whole journey set as startup-critical."
-                // A heuristic: it fails the build only where a profile is a hard requirement
-                // (the baseline profile workflow); a plain `check` reports it as a warning.
-                if (requireProfile.get()) {
-                    issues += note
-                } else {
-                    warnings += note
-                }
+                    "`$STARTUP_PROFILE_FILE_NAME` has ${startupOnlyRules.size} class/method rule(s) absent from `$BASELINE_PROFILE_FILE_NAME`; the startup fragment is not fully represented in the shipped baseline profile."
+                // The generated startup fragment is expected to merge into the baseline profile.
+                // Keep local checks usable while making the required generation workflow strict.
+                if (requireProfile.get()) issues += note else warnings += note
+            } else if (
+                baselineSource != null &&
+                    startupSummary.ruleIdentities.size >= summary.ruleIdentities.size
+            ) {
+                val note =
+                    "`$STARTUP_PROFILE_FILE_NAME` covers all ${summary.ruleIdentities.size} baseline rules, so the generator is labelling the whole profile as startup-critical."
+                // Fail only where a profile is a hard requirement; a plain `check` reports the
+                // unusually broad startup profile as a warning.
+                if (requireProfile.get()) issues += note else warnings += note
             }
         }
         if (baseline != null) {
@@ -180,11 +221,14 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
                 ?.let { warnings += it }
         }
 
+        val summaryLines =
+            summary.renderLines() +
+                startupSummary?.renderLines()?.map { "Startup profile: $it" }.orEmpty()
         val delta = baseline?.let { BaselineProfileAnalyzer.renderDelta(summary, it) }
         writeOutputs(
             status =
                 if (issues.isNotEmpty()) "FAIL" else if (warnings.isEmpty()) "PASS" else "WARN",
-            summaryLines = summary.renderLines() + listOfNotNull(delta),
+            summaryLines = summaryLines + listOfNotNull(delta),
             issues = issues,
             warnings = warnings,
             baseline = baseline,
@@ -192,7 +236,7 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
         )
 
         logger.lifecycle(
-            "baseline profile: ${summary.entries} entries / ${summary.classes} classes across ${sources.size} file(s)"
+            "baseline profile: ${summary.entries} entries / ${summary.classes} classes across ${baselineSources.size} file(s); startup profile: ${startupSummary?.entries ?: 0} entries"
         )
         if (warnings.isNotEmpty()) {
             logger.warn("Baseline profile warnings: ${warnings.joinToString(" ")}")
@@ -203,14 +247,6 @@ abstract class BaselineProfileVerificationTask : DefaultTask() {
             )
         }
     }
-
-    private fun entriesOf(source: BaselineProfileSource): Int =
-        BaselineProfileAnalyzer.analyze(
-                sources = listOf(source),
-                appPackage = appPackage.get(),
-                launcherClass = launcherClass.get(),
-            )
-            .entries
 
     private fun writeOutputs(
         status: String,

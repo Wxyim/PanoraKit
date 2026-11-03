@@ -278,11 +278,12 @@ Consumption and guardrails:
   rows, a launcher widget) would otherwise let a dead app report a covered journey. The journey
   report accumulates one block per test method in the same file, so CI sees both leg sets.
 - `:app:verifyBaselineProfile` (`BaselineProfileVerificationTask`, wired into `check`) rejects a
-  profile that loses app-package/launcher coverage or falls below 90% of the committed entry and
-  class counts, and a missing `startup-prof.txt` next to the baseline one. A `startup-prof.txt` that
-  is not smaller than the baseline one (the "whole journey set is startup-critical" regression) is a
-  build failure when the profile is required (`-PbaselineProfile.require=true`, i.e. the
-  baseline-profile workflow) and a warning on a plain `check`.
+  missing or invalid `baseline-prof.txt`, unparsed profile lines, lost app-package/launcher
+  coverage, or entry/class counts below 90% of the committed baseline. It parses both class-only
+  and method rules, counts rules by class/member identity, and checks the baseline independently
+  from `startup-prof.txt`. The startup file must contain app and launcher startup rules and its
+  rules must be a strict subset of the baseline file; violations fail the required generation job
+  (`-PbaselineProfile.require=true`) and warn on a plain `check` where appropriate.
 - Regeneration is manual only. `.github/workflows/baseline-profile.yml` has no `schedule`, because a
   fixed-interval emulator run costs far more than it finds; dispatch it whenever the startup or
   navigation paths change enough that the committed profile drifts away from the real journeys.

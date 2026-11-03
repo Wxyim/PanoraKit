@@ -41,6 +41,55 @@ class BaselineProfileAnalyzerTest {
     }
 
     @Test
+    fun countsClassOnlyRulesAsValidProfileEntries() {
+        val summary =
+            analyze(
+                """
+                Lcom/github/nomadboxlab/monadbox/MainActivity;
+                SPLcom/github/nomadboxlab/monadbox/MainActivity;->onCreate(Landroid/os/Bundle;)V
+                Landroidx/compose/runtime/ComposerImpl;
+                """
+                    .trimIndent()
+            )
+
+        assertEquals(3, summary.entries)
+        assertEquals(2, summary.classes)
+        assertEquals(0, summary.unparsedEntries)
+        assertEquals(2, summary.appEntries)
+        assertEquals(1, summary.appStartupEntries)
+        assertEquals(2, summary.launcherEntries)
+        assertEquals(1, summary.launcherStartupEntries)
+    }
+
+    @Test
+    fun mergesFlagsForTheSameRuleAcrossProfileSources() {
+        val summary =
+            BaselineProfileAnalyzer.analyze(
+                sources =
+                    listOf(
+                        BaselineProfileSource(
+                            "baseline-prof.txt",
+                            "PLcom/github/nomadboxlab/monadbox/MainActivity;->onCreate()V",
+                        ),
+                        BaselineProfileSource(
+                            "startup-prof.txt",
+                            "SPLcom/github/nomadboxlab/monadbox/MainActivity;->onCreate()V",
+                        ),
+                    ),
+                appPackage = appPackage,
+                launcherClass = launcherClass,
+            )
+
+        assertEquals(1, summary.entries)
+        assertEquals(1, summary.classes)
+        assertEquals(1, summary.startupEntries)
+        assertEquals(1, summary.appEntries)
+        assertEquals(1, summary.appStartupEntries)
+        assertEquals(1, summary.launcherStartupEntries)
+        assertEquals(0, summary.unparsedEntries)
+    }
+
+    @Test
     fun toleratesCommentsBlankLinesAndReportsUnparsedEntries() {
         val summary =
             analyze(

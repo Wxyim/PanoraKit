@@ -1,7 +1,7 @@
-/** One `*.txt` baseline profile source, as read from `app/src/main/baselineProfiles`. */
+/** One `*.txt` baseline profile source, as read from the app's registered profile source dirs. */
 internal data class BaselineProfileSource(val name: String, val text: String)
 
-/** Aggregated facts about the baseline profile that ships inside the release artifact. */
+/** Aggregated facts about one or more baseline profile sources. */
 internal data class BaselineProfileSummary(
     val sources: List<String>,
     val entries: Int,
@@ -13,6 +13,8 @@ internal data class BaselineProfileSummary(
     val launcherStartupEntries: Int,
     val unparsedEntries: Int,
     val topPackages: List<Pair<String, Int>>,
+    /** Rule identities deliberately omit profile flags, which may differ between source files. */
+    val ruleIdentities: Set<BaselineProfileRuleIdentity>,
 ) {
     fun renderLines(): List<String> =
         listOf(
@@ -31,17 +33,23 @@ internal data class BaselineProfileSummary(
             }
 }
 
+/** A class rule or a method rule. A null [member] represents a class-only rule. */
+internal data class BaselineProfileRuleIdentity(val className: String, val member: String?)
+
 /**
  * Parses `baseline-prof.txt` style artifacts (AGP / R8 output) and derives the coverage facts that
  * the verification task asserts on.
  *
- * Profile lines look like `HSPLcom/example/Foo;->bar()V`, where the leading letters are ART profile
- * flags (hot / startup / post-startup) and `S` marks a startup entry. Parsing is intentionally
- * tolerant: unknown flag combinations still resolve the class, and anything unparseable is counted
- * so a format change shows up in the report instead of silently reporting full coverage.
+ * Profile lines can be class-only rules such as `Lcom/example/Foo;` or method rules such as
+ * `HSPLcom/example/Foo;->bar()V`, where the leading letters are ART profile flags (hot / startup /
+ * post-startup) and `S` marks a startup entry. Parsing is intentionally tolerant: unknown flag
+ * combinations still resolve the class, and anything unparseable is counted so a format change
+ * shows up in the report instead of silently reporting full coverage.
  */
 internal object BaselineProfileAnalyzer {
-    private val entryPattern = Regex("""^([A-Z]*)L([^;]+);->(.+)$""")
+    // ART profile files contain both class-only rules (`Lpkg/Type;`) and method rules
+    // (`SPLpkg/Type;->method()V`). Both contribute to the compiled profile and must be counted.
+    private val entryPattern = Regex("""^([A-Z]*)L([^;]+);(?:->(.+))?$""")
 
     const val STARTUP_FLAG = 'S'
 
@@ -53,27 +61,16 @@ internal object BaselineProfileAnalyzer {
         val appPrefix = appPackage.replace('.', '/') + "/"
         val launcherPath = launcherClass.replace('.', '/')
 
-        val classNames = mutableSetOf<String>()
-        val packageCounts = mutableMapOf<String, Int>()
-        var entries = 0
-        var startupEntries = 0
-        var appEntries = 0
-        var appStartupEntries = 0
-        var launcherEntries = 0
-        var launcherStartupEntries = 0
+        // Profiles from separate source files can name the same rule with different flags. Count
+        // the rule once and union its flags, matching the profile merge semantics and preventing
+        // the startup file from inflating the baseline coverage comparison.
+        val startupByRule = linkedMapOf<BaselineProfileRuleIdentity, Boolean>()
         var unparsedEntries = 0
-
-        // A profile can arrive as several fragments, and the same rule can legitimately appear in
-        // both `baseline-prof.txt` and `startup-prof.txt`: the baseline merge folds the
-        // startup-typed fragments in as well. Counting duplicate lines would inflate coverage and
-        // hide a shrunken profile, so the union is de-duplicated by line.
-        val seenLines = mutableSetOf<String>()
 
         sources.forEach { source ->
             source.text.lineSequence().forEach { rawLine ->
                 val line = rawLine.trim()
                 if (line.isEmpty() || line.startsWith("#")) return@forEach
-                if (!seenLines.add(line)) return@forEach
 
                 val match = entryPattern.matchEntire(line)
                 if (match == null) {
@@ -83,32 +80,32 @@ internal object BaselineProfileAnalyzer {
 
                 val flags = match.groupValues[1]
                 val className = match.groupValues[2]
+                val member = match.groupValues[3].takeIf(String::isNotEmpty)
+                val identity = BaselineProfileRuleIdentity(className, member)
                 val isStartup = flags.contains(STARTUP_FLAG)
-                val isAppClass = className.startsWith(appPrefix)
-                val isLauncherClass = className == launcherPath
-
-                entries++
-                classNames += className
-                if (isStartup) startupEntries++
-                if (isAppClass) appEntries++
-                if (isAppClass && isStartup) appStartupEntries++
-                if (isLauncherClass) launcherEntries++
-                if (isLauncherClass && isStartup) launcherStartupEntries++
-
-                val packageName = className.substringBeforeLast('/', "")
-                packageCounts[packageName] = (packageCounts[packageName] ?: 0) + 1
+                startupByRule[identity] = startupByRule[identity] == true || isStartup
             }
         }
 
+        val rules = startupByRule.keys
+        val classNames = rules.mapTo(mutableSetOf(), BaselineProfileRuleIdentity::className)
+        val packageCounts =
+            rules.groupingBy { it.className.substringBeforeLast('/', "") }.eachCount()
+        val appRules = rules.filter { it.className.startsWith(appPrefix) }
+        val launcherRules = rules.filter { it.className == launcherPath }
+        val startupRules = startupByRule.filterValues { it }.keys
+        val appStartupRules = startupRules.filter { it.className.startsWith(appPrefix) }
+        val launcherStartupRules = startupRules.filter { it.className == launcherPath }
+
         return BaselineProfileSummary(
             sources = sources.map(BaselineProfileSource::name),
-            entries = entries,
+            entries = rules.size,
             classes = classNames.size,
-            startupEntries = startupEntries,
-            appEntries = appEntries,
-            appStartupEntries = appStartupEntries,
-            launcherEntries = launcherEntries,
-            launcherStartupEntries = launcherStartupEntries,
+            startupEntries = startupRules.size,
+            appEntries = appRules.size,
+            appStartupEntries = appStartupRules.size,
+            launcherEntries = launcherRules.size,
+            launcherStartupEntries = launcherStartupRules.size,
             unparsedEntries = unparsedEntries,
             topPackages =
                 packageCounts.entries
@@ -117,6 +114,7 @@ internal object BaselineProfileAnalyzer {
                     )
                     .take(TOP_PACKAGE_LIMIT)
                     .map { it.key to it.value },
+            ruleIdentities = rules,
         )
     }
 

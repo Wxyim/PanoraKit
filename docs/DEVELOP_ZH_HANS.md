@@ -277,10 +277,11 @@ CI 变量：
   就是最前窗口：应用已死时，通知、挂件等仍带着应用包名的节点会把"未运行"记成"已覆盖"。journey
   报告按测试方法各写一段到同一个文件，CI 因此能看到两段。
 - `:app:verifyBaselineProfile`（`BaselineProfileVerificationTask`，挂在 `check` 上）会拒绝丢失
-  app 包/launcher 覆盖、条目数或类数低于已提交档位 90% 的 profile，以及缺失的
-  `startup-prof.txt`。若 `startup-prof.txt` 不小于 `baseline-prof.txt`（即"整个 journey 集合
-  被当成启动关键路径"的退化），在要求 profile 的场景（`-PbaselineProfile.require=true`，即
-  baseline profile workflow）会直接失败，普通 `check` 只报警告。
+  或无效的 `baseline-prof.txt`、无法解析的规则行、app 包/launcher 覆盖缺失，以及条目数或类数
+  低于已提交 baseline 的 90%。解析器同时识别仅类规则和方法规则，按类/成员身份计数，并将
+  baseline 与 `startup-prof.txt` 分开校验。startup 文件必须含 app 与 launcher 的启动规则，且其规则
+  必须是 baseline 规则的严格子集；要求 profile 时（`-PbaselineProfile.require=true`）此类退化会失败，
+  普通 `check` 对可恢复的问题给出警告。
 - 重新生成仅手动触发。`.github/workflows/baseline-profile.yml` 不含 `schedule`：固定周期的模拟器
   任务开销远大于收益；当启动或导航路径变动到已提交 profile 偏离真实 journey 时再手动派发。
 
