@@ -856,8 +856,8 @@
     <string name="profiles_page_settings_dialog_open_config">编辑文本</string>
     <string name="profiles_page_settings_dialog_edit_settings">配置选项</string>
     <string name="profiles_page_settings_dialog_save_failed">保存配置失败</string>
-    <string name="profiles_page_settings_dialog_rule_overrides">规则复写</string>
-    <string name="profiles_page_settings_dialog_rule_overrides_priority_hint">规则复写会按从上到下的顺序应用。\n越靠上优先级越高，新项会插入最前。</string>
+    <string name="profiles_page_settings_dialog_rule_overrides">规则覆写</string>
+    <string name="profiles_page_settings_dialog_rule_overrides_priority_hint">规则覆写会按从上到下的顺序应用。\n越靠上优先级越高，新项会插入最前。</string>
     <string name="profiles_v_m_message_profile_added">配置已添加：%s</string>
     <string name="profiles_v_m_message_add_failed">添加配置失败：%s</string>
     <string name="profiles_v_m_message_profile_deleted">配置已删除</string>
