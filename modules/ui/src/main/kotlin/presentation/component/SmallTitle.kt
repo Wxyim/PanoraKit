@@ -26,9 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.github.nomadboxlab.monadbox.presentation.theme.topPadding
-import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.SmallTitle as MiuixSmallTitle
 
 @Composable
-fun SmallTitle(text: String) {
-    SmallTitle(modifier = Modifier.topPadding().semantics { heading() }, text = text)
+fun SmallTitle(text: String, modifier: Modifier = Modifier) {
+    MiuixSmallTitle(modifier = modifier.topPadding().semantics { heading() }, text = text)
 }

@@ -48,6 +48,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Settings-2`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.chevron
+import com.github.nomadboxlab.monadbox.presentation.theme.sectionHPadding
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -141,12 +142,15 @@ fun OverrideSelectorCard(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(24.dp)
-    val cardModifier = modifier.overrideCardSurface(shape)
+    val shouldApplyHorizontalPadding =
+        applyHorizontalPadding ?: LocalOverrideCardHorizontalPadding.current
+    val cardModifier =
+        (if (shouldApplyHorizontalPadding) modifier.sectionHPadding() else modifier)
+            .overrideCardSurface(shape)
     Card(
         modifier = cardModifier,
         insideMargin = PaddingValues(vertical = 6.dp),
-        applyHorizontalPadding =
-            applyHorizontalPadding ?: LocalOverrideCardHorizontalPadding.current,
+        applyHorizontalPadding = false,
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = { content() })
     }
@@ -162,10 +166,13 @@ fun OverrideEmptyStateCard(
     onAction: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(24.dp)
+    val cardModifier =
+        (if (LocalOverrideCardHorizontalPadding.current) modifier.sectionHPadding() else modifier)
+            .overrideCardSurface(shape)
     Card(
-        modifier = modifier.overrideCardSurface(shape),
+        modifier = cardModifier,
         insideMargin = PaddingValues(horizontal = 18.dp, vertical = 20.dp),
-        applyHorizontalPadding = LocalOverrideCardHorizontalPadding.current,
+        applyHorizontalPadding = false,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

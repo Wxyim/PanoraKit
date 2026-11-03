@@ -48,6 +48,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scan-eye`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Scroll-text`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Tun
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Wifi-cog`
+import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.util.*
 import dev.oom_wg.purejoy.mlang.MLang
@@ -113,7 +114,7 @@ fun LazyListScope.OverrideEditContent(
     item(key = "override-basic-info-section") {
         OverrideCardSection(
             title = MLang.Override.Draft.BasicInfo,
-            applyHorizontalPadding = false,
+            applyHorizontalPadding = true,
         ) {
             StringInputContent(
                 title = MLang.Override.Draft.ConfigName,
@@ -148,7 +149,7 @@ fun LazyListScope.OverrideEditContent(
         item(key = "override-preset-template-section") {
             OverrideCardSection(
                 title = MLang.Override.Draft.PresetTemplate,
-                applyHorizontalPadding = false,
+                applyHorizontalPadding = true,
             ) {
                 BasicComponent(
                     title = MLang.Override.Draft.OfficialMrs,
@@ -161,7 +162,7 @@ fun LazyListScope.OverrideEditContent(
             config = config,
             currentConfigProvider = currentConfigProvider,
             expandedSections = expandedSections,
-            sectionListHorizontalPadding = 0.dp,
+            sectionListHorizontalPadding = LocalSpacing.current.gutter,
             hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
             onConfigChange = onConfigChange,
             onSectionToggle = onSectionToggle,
@@ -202,7 +203,7 @@ fun LazyListScope.LocalProfileConfigEditContent(
         expandedSections = expandedSections,
         sectionListTitle = null,
         sectionListContentMaxWidth = contentMaxWidth,
-        sectionListHorizontalPadding = 0.dp,
+        sectionListHorizontalPadding = LocalSpacing.current.gutter,
         sectionListTopSpacing = contentTopSpacing,
         editSemantics = OverrideEditorSemantics.LocalConfig,
         hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
@@ -363,8 +364,12 @@ private fun LazyListScope.OverrideSectionListContent(
                 if (sectionListTitle.isNullOrBlank()) {
                     Box(modifier = contentModifier) { content() }
                 } else {
-                    OverrideSection(title = sectionListTitle, modifier = contentModifier) {
-                        content()
+                    Column(
+                        modifier = Modifier.adaptiveContentWidth(sectionListContentMaxWidth),
+                        verticalArrangement = Arrangement.spacedBy(OverrideSectionTitleSpacing),
+                    ) {
+                        SmallTitle(sectionListTitle)
+                        Box(modifier = contentModifier) { content() }
                     }
                 }
             }

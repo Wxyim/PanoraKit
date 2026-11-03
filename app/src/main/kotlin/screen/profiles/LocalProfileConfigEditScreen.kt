@@ -90,9 +90,9 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Close
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.`List-chevrons-up-down`
 import com.github.nomadboxlab.monadbox.presentation.theme.LocalPageMetrics
-import com.github.nomadboxlab.monadbox.presentation.theme.LocalSpacing
 import com.github.nomadboxlab.monadbox.presentation.theme.adaptiveContentWidth
 import com.github.nomadboxlab.monadbox.presentation.theme.rememberAvailableWindowAdaptiveInfo
+import com.github.nomadboxlab.monadbox.presentation.theme.sectionHPadding
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSection
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -389,9 +389,7 @@ fun LocalProfileConfigEditScreen(
                             LocalOverrideCardHorizontalPadding provides false
                         ) {
                             ScreenLazyColumn(
-                                modifier =
-                                    Modifier.adaptiveContentWidth(contentMaxWidth)
-                                        .padding(horizontal = LocalSpacing.current.gutter),
+                                modifier = Modifier.adaptiveContentWidth(contentMaxWidth),
                                 scrollBehavior = scrollBehavior,
                                 innerPadding = PaddingValues(0.dp),
                                 lazyListState = editorListState,
@@ -553,11 +551,14 @@ private fun LocalProfileOverrideBindingSection(
                 text = MLang.ProfilesPage.SettingsDialog.RuleOverridesPriorityHint,
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp),
+                modifier = Modifier.sectionHPadding().padding(horizontal = 4.dp),
             )
 
             if (systemPreset != null) {
-                OverrideSelectorCard(applyHorizontalPadding = false) {
+                OverrideSelectorCard(
+                    modifier = Modifier.sectionHPadding(),
+                    applyHorizontalPadding = false,
+                ) {
                     SuperSwitch(
                         title = MLang.ProfilesPage.SettingsDialog.SystemPreset,
                         summary = MLang.ProfilesPage.SettingsDialog.SystemPresetSummary,
@@ -587,7 +588,10 @@ private fun LocalProfileOverrideBindingSection(
                         }
                     }
 
-                OverrideSelectorCard(applyHorizontalPadding = false) {
+                OverrideSelectorCard(
+                    modifier = Modifier.sectionHPadding(),
+                    applyHorizontalPadding = false,
+                ) {
                     LazyColumn(
                         state = overridesListState,
                         modifier =

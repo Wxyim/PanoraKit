@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -207,7 +208,7 @@ private fun SettingsSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.md),
     ) {
-        SmallTitle(title)
+        SmallTitle(title, modifier = Modifier.offset(x = -LocalSpacing.current.gutter))
         content()
     }
 }
