@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,7 +112,10 @@ fun LazyListScope.OverrideEditContent(
     onEditSubRules: OpenSubRulesEditor,
 ) {
     item(key = "override-basic-info-section") {
-        OverrideCardSection(title = MLang.Override.Draft.BasicInfo) {
+        OverrideCardSection(
+            title = MLang.Override.Draft.BasicInfo,
+            applyHorizontalPadding = false,
+        ) {
             StringInputContent(
                 title = MLang.Override.Draft.ConfigName,
                 value = name,
@@ -143,7 +147,10 @@ fun LazyListScope.OverrideEditContent(
 
     if (!isRemoteResource) {
         item(key = "override-preset-template-section") {
-            OverrideCardSection(title = MLang.Override.Draft.PresetTemplate) {
+            OverrideCardSection(
+                title = MLang.Override.Draft.PresetTemplate,
+                applyHorizontalPadding = false,
+            ) {
                 BasicComponent(
                     title = MLang.Override.Draft.OfficialMrs,
                     summary = MLang.Override.Draft.OfficialMrsSummary,
@@ -155,6 +162,7 @@ fun LazyListScope.OverrideEditContent(
             config = config,
             currentConfigProvider = currentConfigProvider,
             expandedSections = expandedSections,
+            sectionListHorizontalPadding = 0.dp,
             hierarchyEmphasis = OverrideSectionHierarchyEmphasis.Nested,
             onConfigChange = onConfigChange,
             onSectionToggle = onSectionToggle,
@@ -216,6 +224,7 @@ private fun LazyListScope.OverrideSectionListContent(
     expandedSections: Set<OverrideEditorSection>,
     sectionListTitle: String? = MLang.Override.Draft.ConfigSections,
     sectionListContentMaxWidth: Dp = Dp.Unspecified,
+    sectionListHorizontalPadding: Dp = 20.dp,
     sectionListTopSpacing: Dp = 0.dp,
     editSemantics: OverrideEditorSemantics = OverrideEditorSemantics.Override,
     hierarchyEmphasis: OverrideSectionHierarchyEmphasis = OverrideSectionHierarchyEmphasis.Flat,
@@ -240,7 +249,7 @@ private fun LazyListScope.OverrideSectionListContent(
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             val contentModifier =
                 Modifier.adaptiveContentWidth(sectionListContentMaxWidth)
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = sectionListHorizontalPadding)
 
             val content: @Composable () -> Unit = {
                 Column(
@@ -289,6 +298,7 @@ private fun LazyListScope.OverrideSectionListContent(
                                     imageVector = sectionStyle.icon,
                                     tone = sectionStyle.tone,
                                     active = isSectionActive,
+                                    horizontalInset = 0.dp,
                                     onClick = {
                                         if (directEntry) {
                                             openDirectSectionEditor(
@@ -351,10 +361,14 @@ private fun LazyListScope.OverrideSectionListContent(
                 }
             }
 
-            if (sectionListTitle.isNullOrBlank()) {
-                Box(modifier = contentModifier) { content() }
-            } else {
-                OverrideSection(title = sectionListTitle, modifier = contentModifier) { content() }
+            CompositionLocalProvider(LocalOverrideCardHorizontalPadding provides false) {
+                if (sectionListTitle.isNullOrBlank()) {
+                    Box(modifier = contentModifier) { content() }
+                } else {
+                    OverrideSection(title = sectionListTitle, modifier = contentModifier) {
+                        content()
+                    }
+                }
             }
         }
     }
@@ -437,7 +451,7 @@ private fun OverrideNestedSectionContainer(tone: SemanticTone, content: @Composa
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(start = 14.dp, end = 4.dp, top = 4.dp)
+                .padding(top = 4.dp)
                 .clip(shape)
                 .background(color = containerColor, shape = shape)
                 .border(width = 0.8.dp, color = borderColor, shape = shape)

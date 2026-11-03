@@ -380,11 +380,9 @@ fun LocalProfileConfigEditScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val adaptiveInfo = rememberAvailableWindowAdaptiveInfo(maxWidth, maxHeight)
                         val contentMaxWidth = adaptiveInfo.preferredSinglePaneMaxWidth
-                        val useWideLayout =
-                            adaptiveInfo.isMediumWidth || adaptiveInfo.isExpandedWidth
 
                         CompositionLocalProvider(
-                            LocalOverrideCardHorizontalPadding provides !useWideLayout
+                            LocalOverrideCardHorizontalPadding provides false
                         ) {
                             ScreenLazyColumn(
                                 scrollBehavior = scrollBehavior,
@@ -552,7 +550,7 @@ private fun LocalProfileOverrideBindingSection(
             )
 
             if (systemPreset != null) {
-                Card {
+                Card(applyHorizontalPadding = false) {
                     SuperSwitch(
                         title = MLang.ProfilesPage.SettingsDialog.SystemPreset,
                         summary = MLang.ProfilesPage.SettingsDialog.SystemPresetSummary,
@@ -582,7 +580,7 @@ private fun LocalProfileOverrideBindingSection(
                         }
                     }
 
-                Card {
+                Card(applyHorizontalPadding = false) {
                     LazyColumn(
                         state = overridesListState,
                         modifier =

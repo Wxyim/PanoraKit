@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
@@ -87,9 +88,15 @@ fun OverrideSection(
 fun OverrideCardSection(
     title: String,
     modifier: Modifier = Modifier,
+    applyHorizontalPadding: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
-    OverrideSection(title = title, modifier = modifier) { OverrideSelectorCard(content = content) }
+    OverrideSection(title = title, modifier = modifier) {
+        OverrideSelectorCard(
+            applyHorizontalPadding = applyHorizontalPadding,
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -117,11 +124,16 @@ fun OverrideFieldAssistText(text: String, color: Color, modifier: Modifier = Mod
 }
 
 @Composable
-fun OverrideSelectorCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun OverrideSelectorCard(
+    modifier: Modifier = Modifier,
+    applyHorizontalPadding: Boolean? = null,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = modifier,
         insideMargin = PaddingValues(vertical = 6.dp),
-        applyHorizontalPadding = LocalOverrideCardHorizontalPadding.current,
+        applyHorizontalPadding =
+            applyHorizontalPadding ?: LocalOverrideCardHorizontalPadding.current,
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = { content() })
     }
@@ -181,6 +193,7 @@ fun OverrideSectionCardHeader(
     imageVector: ImageVector = MonadIcons.`Settings-2`,
     tone: SemanticTone = SemanticTone.Neutral,
     active: Boolean = false,
+    horizontalInset: Dp = 10.dp,
 ) {
     val indicatorRotation =
         animateFloatAsState(
@@ -212,7 +225,7 @@ fun OverrideSectionCardHeader(
     Row(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(horizontal = 10.dp)
+                .padding(horizontal = horizontalInset)
                 .background(color = containerColor, shape = shape)
                 .border(width = 0.8.dp, color = borderColor, shape = shape)
                 .appClickable(onClick = onClick)
