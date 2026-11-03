@@ -122,6 +122,16 @@ fun AboutScreenBody(navigationIcon: @Composable () -> Unit, onOpenSourceLicenses
                             textAlign = TextAlign.Center,
                         )
 
+                        Spacer(modifier = Modifier.height(spacing.sm))
+
+                        Text(
+                            text = MLang.About.App.CustomizationNote,
+                            modifier = Modifier.padding(horizontal = spacing.lg),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            textAlign = TextAlign.Center,
+                        )
+
                         Spacer(modifier = Modifier.height(spacing.xxxl))
                     }
 

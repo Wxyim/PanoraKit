@@ -49,6 +49,13 @@ object MLangAbout {
         fun `VersionWithMihomo`(vararg args: Any): String =
             LocaleBootstrap.getString(R.string.about_app_version_with_mihomo, *args)
 
+        val `CustomizationNote`: String
+            get() = LocaleBootstrap.getString(R.string.about_app_customization_note)
+
+        @Composable
+        fun `CustomizationNote`(vararg args: Any): String =
+            LocaleBootstrap.getString(R.string.about_app_customization_note, *args)
+
         val `Name`: String
             get() = LocaleBootstrap.getString(R.string.about_app_name)
 

@@ -12,8 +12,9 @@
     <string name="about_title">关于</string>
     <string name="about_app_description">一个基于 mihomo 的定制化 Android 客户端</string>
     <string name="about_app_version_with_mihomo" formatted="false">%s · mihomo %s</string>
+    <string name="about_app_customization_note">此版本由 PanoraKit 定制、维护并构建。</string>
     <string name="about_app_name">MonadBox</string>
-    <string name="about_section_project_links">项目链接</string>
+    <string name="about_section_project_links">原项目链接</string>
     <string name="about_section_credits">鸣谢</string>
     <string name="about_section_license">许可证</string>
     <string name="about_link_repository">MonadBox（GitHub）</string>
