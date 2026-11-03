@@ -36,6 +36,7 @@ import com.github.nomadboxlab.monadbox.presentation.icon.monad.`Badge-plus`
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Delete
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.List
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.Undo
+import com.github.nomadboxlab.monadbox.presentation.theme.sectionHPadding
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideEditorSemantics
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideListEditorMode
 import com.github.nomadboxlab.monadbox.presentation.util.OverrideListModeValues
@@ -346,9 +347,12 @@ private fun ReorderableCollectionItemScope.StringListEntryCard(
 ) {
     Card(
         modifier =
-            Modifier.padding(top = OverrideStringListMetrics.EntryTopPadding)
+            Modifier.sectionHPadding()
+                .padding(top = OverrideStringListMetrics.EntryTopPadding)
+                .overrideCardSurface()
                 .longPressDraggableHandle()
-                .alpha(if (isDragging) 0.92f else 1f)
+                .alpha(if (isDragging) 0.92f else 1f),
+        applyHorizontalPadding = false,
     ) {
         Row(
             modifier =

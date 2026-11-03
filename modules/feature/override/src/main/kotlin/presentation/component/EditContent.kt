@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -323,7 +322,7 @@ private fun LazyListScope.OverrideSectionListContent(
                                     if (
                                         hierarchyEmphasis == OverrideSectionHierarchyEmphasis.Nested
                                     ) {
-                                        OverrideNestedSectionContainer(tone = sectionStyle.tone) {
+                                        OverrideNestedSectionContainer {
                                             OverrideSectionContent(
                                                 section = section,
                                                 config = config,
@@ -436,17 +435,10 @@ private fun resolveDisplayedConfiguredCount(
 }
 
 @Composable
-private fun OverrideNestedSectionContainer(tone: SemanticTone, content: @Composable () -> Unit) {
+private fun OverrideNestedSectionContainer(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
-    val style = SemanticActionDefaults.style(tone = tone, highEmphasis = false)
-    val containerColor =
-        lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.22f)
-    val borderColor =
-        lerp(
-            MiuixTheme.colorScheme.outline.copy(alpha = 0.12f),
-            style.contentColor.copy(alpha = 0.10f),
-            0.18f,
-        )
+    val containerColor = MiuixTheme.colorScheme.surface
+    val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.28f)
     Box(
         modifier =
             Modifier.fillMaxWidth()

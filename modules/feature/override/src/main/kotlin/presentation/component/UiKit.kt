@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +63,18 @@ private val OverrideStatusBadgeSize = 32.dp
 private val OverrideStatusBadgeIconSize = 18.dp
 
 val LocalOverrideCardHorizontalPadding = staticCompositionLocalOf { true }
+
+@Composable
+fun Modifier.overrideCardOutline(shape: Shape = RoundedCornerShape(24.dp)): Modifier =
+    border(
+        width = 0.8.dp,
+        color = MiuixTheme.colorScheme.outline.copy(alpha = 0.28f),
+        shape = shape,
+    )
+
+@Composable
+fun Modifier.overrideCardSurface(shape: Shape = RoundedCornerShape(24.dp)): Modifier =
+    background(MiuixTheme.colorScheme.surface, shape).overrideCardOutline(shape)
 
 enum class OverrideActionTone {
     Neutral,
@@ -93,10 +106,7 @@ fun OverrideCardSection(
     content: @Composable () -> Unit,
 ) {
     OverrideSection(title = title, modifier = modifier) {
-        OverrideSelectorCard(
-            applyHorizontalPadding = applyHorizontalPadding,
-            content = content,
-        )
+        OverrideSelectorCard(applyHorizontalPadding = applyHorizontalPadding, content = content)
     }
 }
 
@@ -130,8 +140,10 @@ fun OverrideSelectorCard(
     applyHorizontalPadding: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
+    val shape = RoundedCornerShape(24.dp)
+    val cardModifier = modifier.overrideCardSurface(shape)
     Card(
-        modifier = modifier,
+        modifier = cardModifier,
         insideMargin = PaddingValues(vertical = 6.dp),
         applyHorizontalPadding =
             applyHorizontalPadding ?: LocalOverrideCardHorizontalPadding.current,
@@ -149,8 +161,9 @@ fun OverrideEmptyStateCard(
     modifier: Modifier = Modifier,
     onAction: (() -> Unit)? = null,
 ) {
+    val shape = RoundedCornerShape(24.dp)
     Card(
-        modifier = modifier,
+        modifier = modifier.overrideCardSurface(shape),
         insideMargin = PaddingValues(horizontal = 18.dp, vertical = 20.dp),
         applyHorizontalPadding = LocalOverrideCardHorizontalPadding.current,
     ) {
@@ -205,22 +218,8 @@ fun OverrideSectionCardHeader(
     val emphasized = active || expanded
     val style = SemanticActionDefaults.style(tone = tone, highEmphasis = emphasized)
     val shape = RoundedCornerShape(26.dp)
-    val containerColor =
-        if (emphasized) {
-            lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.16f)
-        } else {
-            lerp(MiuixTheme.colorScheme.surface, MiuixTheme.colorScheme.surfaceVariant, 0.28f)
-        }
-    val borderColor =
-        if (emphasized) {
-            lerp(
-                MiuixTheme.colorScheme.outline.copy(alpha = 0.18f),
-                style.contentColor.copy(alpha = 0.12f),
-                0.22f,
-            )
-        } else {
-            MiuixTheme.colorScheme.outline.copy(alpha = 0.10f)
-        }
+    val containerColor = MiuixTheme.colorScheme.surface
+    val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.28f)
     val iconTint = style.contentColor
 
     Row(

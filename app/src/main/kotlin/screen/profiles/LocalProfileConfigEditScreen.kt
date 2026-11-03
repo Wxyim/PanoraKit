@@ -76,6 +76,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.OpenRuleListEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenStringListModifiersEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenStructuredObjectListEditor
 import com.github.nomadboxlab.monadbox.presentation.component.OpenSubRulesEditor
+import com.github.nomadboxlab.monadbox.presentation.component.OverrideSelectorCard
 import com.github.nomadboxlab.monadbox.presentation.component.ScreenLazyColumn
 import com.github.nomadboxlab.monadbox.presentation.component.SmallTitle
 import com.github.nomadboxlab.monadbox.presentation.component.StringMapEditorDialog
@@ -102,7 +103,6 @@ import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -557,7 +557,7 @@ private fun LocalProfileOverrideBindingSection(
             )
 
             if (systemPreset != null) {
-                Card {
+                OverrideSelectorCard(applyHorizontalPadding = false) {
                     SuperSwitch(
                         title = MLang.ProfilesPage.SettingsDialog.SystemPreset,
                         summary = MLang.ProfilesPage.SettingsDialog.SystemPresetSummary,
@@ -587,7 +587,7 @@ private fun LocalProfileOverrideBindingSection(
                         }
                     }
 
-                Card {
+                OverrideSelectorCard(applyHorizontalPadding = false) {
                     LazyColumn(
                         state = overridesListState,
                         modifier =

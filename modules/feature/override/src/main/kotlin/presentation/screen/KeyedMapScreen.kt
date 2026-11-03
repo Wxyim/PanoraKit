@@ -34,6 +34,7 @@ import com.github.nomadboxlab.monadbox.presentation.component.*
 import com.github.nomadboxlab.monadbox.presentation.component.Card
 import com.github.nomadboxlab.monadbox.presentation.icon.MonadIcons
 import com.github.nomadboxlab.monadbox.presentation.icon.monad.*
+import com.github.nomadboxlab.monadbox.presentation.theme.sectionHPadding
 import com.github.nomadboxlab.monadbox.presentation.util.*
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
@@ -337,8 +338,11 @@ private fun ReorderableCollectionItemScope.KeyedObjectCard(
     Column {
         Card(
             modifier =
-                Modifier.longPressDraggableHandle(enabled = !isDeleteMode)
-                    .alpha(if (isDragging) 0.92f else 1f)
+                Modifier.sectionHPadding()
+                    .overrideCardSurface()
+                    .longPressDraggableHandle(enabled = !isDeleteMode)
+                    .alpha(if (isDragging) 0.92f else 1f),
+            applyHorizontalPadding = false,
         ) {
             Row(
                 modifier =
